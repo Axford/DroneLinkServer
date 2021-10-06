@@ -1,0 +1,45 @@
+
+
+.ParameterContainer {
+  border:1px solid #ccc;
+  padding: 5px 10px;
+  background-color: #fff;
+  border-radius: 8px;
+  position:relative;
+  min-height:50px;
+}
+
+.ParameterContainer.writable {
+  border:2px solid #89b !important;
+  background-color: #cdf;
+}
+
+.ParameterContainer .card-title {
+  font-size: 1em;
+  margin-bottom:0.4em;
+  z-index: 10;
+}
+
+.ParameterContainer .card-title .addr {
+  margin-left:6px;
+  font-size: 0.8em;
+  color:#aaa;
+}
+
+.ParameterContainer .card-subtitle {
+  font-size: 0.8em;
+  color:#aaa;
+  z-index: 10;
+}
+
+.ParameterContainer .paramValueContainer {
+  z-index: 10;
+}
+
+.ParameterContainer .paramValueContainer .form-control {
+  width: 100px;
+}
+
+.ParameterContainer .paramValueContainer input[type=checkbox] {
+  height: 1em;
+}

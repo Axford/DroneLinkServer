@@ -1,0 +1,13 @@
+
+.NMEA {
+  height:200px;
+}
+
+.NMEA .boatMarker {
+  background-color: #00ff00;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  cursor: pointer;
+  border:1px solid black;
+}

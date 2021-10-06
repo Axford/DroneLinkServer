@@ -1,0 +1,172 @@
+{
+  "nodeSettings":[
+    { "name":"hostname", "values":1, "type":"char", "description":"Network name of the node, keep to 8 characters max and no special characters", "default":"newName" },
+    { "name":"node", "values":1, "type":"uint8_t", "description":"ID of node, 1..254", "default":1 },
+    { "name":"discovery", "values":1, "type":"boolean", "description":"Periodically publish all parameters - increases bandwidth usage", "default":true }
+  ],
+  "coreSettings":[
+    { "name":"type", "values":1, "type":"moduleType", "description":"Module Type name" },
+    { "name":"name", "values":1, "type":"char", "description":"Name of module instance" },
+    { "name":"id", "values":1, "type":"uint8_t", "description":"Module ID in range 1..254" },
+    { "name":"enable", "values":1, "type":"boolean", "description":"Is module enabled at boot", "default":true },
+    { "name":"interval", "values":1, "type":"uint32_t", "description":"Millisecond interval between module updates (e.g. sensor sample interval)", "default":1000 }
+  ],
+  "pins":[
+     "OUT0_0",
+     "OUT0_1",
+     "OUT1_0",
+     "OUT1_1",
+     "OUT2_0",
+     "OUT2_1",
+     "DAC0_0",
+     "DAC0_1",
+     "IN0_0",
+     "IN0_1"
+  ],
+  "modules":[
+    {
+      "type":"Management",
+      "description":"Common node management controls and diagnostic info.  One of these should be instanced in each node with id=1",
+      "publish":["hostname","build","reset","uptime","heap", "IP","publishRate","choked"],
+      "publishParams":[8,9,10,13,11,12,14,15]
+    },
+    {
+      "type":"Servo",
+      "description":"Control a standard PWM servo",
+      "settings":[
+        { "name":"pins", "type":"pin", "values":1, "description":"0: PWM output to servo", "default":"OUT0_0" }
+      ],
+      "namedSubs":[
+        { "name":"position", "values":2, "type":"float", "description":"Position control value in range -1 to 1, zero is center", "default":[0,1] }
+      ],
+      "publish":["position"],
+      "publishParams":[8]
+    },
+    {
+      "type":"Telemetry",
+      "description":"Manages a radio telemetry link via a serial port, including packet framing and CRC.",
+      "settings":[
+        { "name":"port", "values":1, "type":"uint8_t", "description":"Which serial port to use 1..3" },
+        { "name":"subs", "values":1, "extensible":true, "type":"char", "description":"Addresses to subscribe to", "default":["1>0.0"] }
+      ]
+    },
+    {
+      "type":"UDPTelemetry",
+      "description":"Manages UDP broadcast based telemetry using built-in WiFi capability",
+      "settings":[
+        { "name":"port", "values":1, "type":"uint8_t", "description":"IP port on which to listen/broadcast" },
+        { "name":"broadcast", "values":4, "type":"uint8_t", "description":"Broadcast IP address", "default":[192,168,1,255] },
+        { "name":"subs", "values":1, "extensible":true, "type":"char", "description":"Addresses to subscribe to", "default":["1>0.0"] }
+      ]
+    },
+    {
+      "type":"BME280",
+      "description":"Manage an I2C BME280 temperature, pressure, humidity sensor",
+      "settings":[
+        { "name":"bus", "type":"uint8_t", "values":1, "description":"Which I2C bus is the sensor connected to", "default":0 }
+      ],
+      "publish":["temperature","humidity","pressure","altitude"],
+      "publishParams":[8, 16, 32, 64]
+    },
+    {
+      "type":"INA219",
+      "description":"Manage an I2C INA219 voltage, current sensor",
+      "settings":[
+        { "name":"bus", "type":"uint8_t", "values":1, "description":"Which I2C bus is the sensor connected to", "default":0 },
+        { "name":"addr", "type":"uint8_t", "values":1, "description":"I2C address", "default":65 }
+      ],
+      "publish":["shuntV","busV","current","power","loadV"],
+      "publishParams":[8,16,32,64,128]
+    },
+    {
+      "type":"HMC5883L",
+      "description":"Manage an I2C HMC5883L compass sensor",
+      "settings":[
+        { "name":"bus", "type":"uint8_t", "values":1, "description":"Which I2C bus is the sensor connected to", "default":0 }
+      ],
+      "publish":["vector","heading","declination","calibX","calibY","location"],
+      "publishParams":[8,16,32,64,128,9],
+      "namedSubs":[
+        { "name":"location", "values":2, "type":"float", "description":"Location Lon,Lat to use for declination lookup", "default":[-1.8,52] }
+      ]
+    },
+    {
+      "type":"MPU6050",
+      "description":"Manage an I2C MPU6050 gyro, acceleration sensor",
+      "settings":[
+        { "name":"bus", "type":"uint8_t", "values":1, "description":"Which I2C bus is the sensor connected to", "default":0 }
+      ],
+      "publish":["gyro","accel"],
+      "publishParams":[9, 8]
+    },
+    {
+      "type":"NMEA",
+      "description":"Decode location from NMEA serial input",
+      "settings":[
+        { "name":"port", "type":"uint8_t", "values":1, "description":"Which serial port to use 0..2", "default":1 },
+        { "name":"baud", "type":"uint32_t", "values":1, "description":"Baud rate", "default":38400 }
+      ],
+      "publish":["location","satellites","heading","speed","HDOP"],
+      "publishParams":[8,9,10,11,12]
+    },
+    {
+      "type":"Motor",
+      "description":"Manage a motor via speed (PWM) and direction outputs",
+      "settings":[
+        { "name":"pins", "type":"pin", "values":3, "description":"Which pins are connected: A, B, EN", "default":[] }
+      ],
+      "publish":["speed"],
+      "publishParams":[8],
+      "namedSubs":[
+        { "name":"speed", "values":1, "type":"float", "description":"Speed input in range -1 to 1", "default":[0] }
+      ]
+    },
+    {
+      "type":"TurnRate",
+      "description":"Calculate a turn rate to move toward a target heading from the current heading",
+      "settings":[],
+      "publish":["target","heading","PID","turnRate"],
+      "publishParams":[10,12,14,16],
+      "namedSubs":[
+        { "name":"target", "values":1, "type":"float", "description":"Target heading e.g. from a WaypointNav", "default":[0] },
+        { "name":"heading", "values":1, "type":"float", "description":"Current heading - e.g. from a compass", "default":[0] },
+        { "name":"PID", "values":1, "type":"float", "description":"PID control values to tune turn rate relative to heading error: P,I,D", "default":[0.1,0,0] }
+      ]
+    },
+    {
+      "type":"TankSteer",
+      "description":"Calculate left and right motor speeds to achieve a desired turnRate and speed",
+      "settings":[],
+      "publish":["left","right","turnRate","speed"],
+      "publishParams":[8,9,10,12],
+      "namedSubs":[
+        { "name":"turnRate", "values":1, "type":"float", "description":"Desired turn rate", "default":[0] },
+        { "name":"speed", "values":1, "type":"float", "description":"Desired speed 0..1", "default":[0] }
+      ]
+    },
+    {
+      "type":"WaypointNav",
+      "description":"Navigate between a series of waypoints",
+      "settings":[
+        { "name":"location", "type":"char", "values":1, "description":"Address of location e.g. from NMEA module", "default":"" }
+      ],
+      "publish":["target",
+                "location",
+                "heading",
+                "distance",
+                "waypoints",
+                "waypoint",
+                "loopTo"],
+      "publishParams":[8,9,10,11,12,13,14],
+      "namedSubs":[
+      ]
+    },
+    {
+      "type":"RFM69Telemetry",
+      "description":"Manages telemetry over mesh network between RFM69HW modules on 915Mhz",
+      "settings":[
+        { "name":"subs", "values":1, "extensible":true, "type":"char", "description":"Addresses to subscribe to", "default":["1>0.0"] }
+      ]
+    }
+  ]
+}

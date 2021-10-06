@@ -1,0 +1,44 @@
+
+.WaypointNav {
+  height:400px;
+}
+
+
+.WaypointNav .boatMarker {
+  background-color: #00ff00;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  cursor: pointer;
+  border:1px solid black;
+}
+
+
+.WaypointNav .marker {
+  background-image: radial-gradient(circle at center, rgba(0,0,0,0.8) 0, rgba(0,0,0,0) 100%);
+  background-size: cover;
+  width: 20px;
+  height: 20px;
+  text-align:center;
+  font-size:14px;
+  font-weight:normal;
+  color:white;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid rgba(255,255,0,0.5);
+  text-shadow: -1px -1px 3 #000;
+  overflow:visible;
+  white-space:nowrap;
+}
+
+.WaypointNav .marker.updating {
+  background-image: radial-gradient(circle at center, rgba(128,128,128,0.8) 0, rgba(0,0,0,0) 100%) !important;
+}
+
+.WaypointNav .marker.active {
+  background-image: radial-gradient(circle at center, rgba(255,0,0,0.8) 0, rgba(0,0,0,0) 100%);
+  color:yellow;
+  font-weight: bold;
+  font-size:20px;
+  text-shadow: -2px -2px 5 #000;
+}

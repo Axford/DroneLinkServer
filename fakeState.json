@@ -1,0 +1,709 @@
+{
+  "1": {
+    "channels": {
+      "1": {
+        "params": {
+          "1": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              1
+            ],
+            "writable": true,
+            "name": "status"
+          },
+          "2": {
+            "msgType": 4,
+            "bytesPerValue": 1,
+            "numValues": 10,
+            "values": [
+              "Management"
+            ],
+            "writable": false,
+            "name": "name"
+          },
+          "3": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              0
+            ],
+            "writable": false,
+            "name": "error"
+          }
+        },
+        "lastHeard": 1632906493159,
+        "name": "Management"
+      },
+      "3": {
+        "params": {
+          "1": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              0
+            ],
+            "writable": true,
+            "name": "status"
+          },
+          "2": {
+            "msgType": 4,
+            "bytesPerValue": 1,
+            "numValues": 6,
+            "values": [
+              "Rudder"
+            ],
+            "writable": false,
+            "name": "name"
+          },
+          "3": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              0
+            ],
+            "writable": false,
+            "name": "error"
+          },
+          "4": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              0
+            ],
+            "writable": false,
+            "name": "resetCount"
+          }
+        },
+        "lastHeard": 1632906484352,
+        "name": "Rudder"
+      },
+      "5": {
+        "params": {
+          "1": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              0
+            ],
+            "writable": true,
+            "name": "status"
+          },
+          "2": {
+            "msgType": 4,
+            "bytesPerValue": 1,
+            "numValues": 9,
+            "values": [
+              "Telemetry"
+            ],
+            "writable": false,
+            "name": "name"
+          },
+          "3": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              0
+            ],
+            "writable": false,
+            "name": "error"
+          },
+          "4": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              0
+            ],
+            "writable": false,
+            "name": "resetCount"
+          }
+        },
+        "lastHeard": 1632906485274,
+        "name": "Telemetry"
+      },
+      "6": {
+        "params": {
+          "1": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              1
+            ],
+            "writable": true,
+            "name": "status"
+          },
+          "2": {
+            "msgType": 4,
+            "bytesPerValue": 1,
+            "numValues": 4,
+            "values": [
+              "UDPT"
+            ],
+            "writable": false,
+            "name": "name"
+          },
+          "3": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              0
+            ],
+            "writable": false,
+            "name": "error"
+          },
+          "4": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              0
+            ],
+            "writable": false,
+            "name": "resetCount"
+          }
+        },
+        "lastHeard": 1632906486299,
+        "name": "UDPT"
+      },
+      "7": {
+        "params": {
+          "1": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              0
+            ],
+            "writable": true,
+            "name": "status"
+          },
+          "2": {
+            "msgType": 4,
+            "bytesPerValue": 1,
+            "numValues": 6,
+            "values": [
+              "BME280"
+            ],
+            "writable": false,
+            "name": "name"
+          },
+          "3": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              0
+            ],
+            "writable": false,
+            "name": "error"
+          },
+          "4": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              0
+            ],
+            "writable": false,
+            "name": "resetCount"
+          }
+        },
+        "lastHeard": 1632906493466,
+        "name": "BME280"
+      },
+      "8": {
+        "params": {
+          "1": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              0
+            ],
+            "writable": true,
+            "name": "status"
+          },
+          "2": {
+            "msgType": 4,
+            "bytesPerValue": 1,
+            "numValues": 6,
+            "values": [
+              "INA219"
+            ],
+            "writable": false,
+            "name": "name"
+          },
+          "3": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              0
+            ],
+            "writable": false,
+            "name": "error"
+          },
+          "4": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              0
+            ],
+            "writable": false,
+            "name": "resetCount"
+          }
+        },
+        "lastHeard": 1632906488346,
+        "name": "INA219"
+      },
+      "9": {
+        "params": {
+          "1": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              1
+            ],
+            "writable": true,
+            "name": "status"
+          },
+          "2": {
+            "msgType": 4,
+            "bytesPerValue": 1,
+            "numValues": 8,
+            "values": [
+              "HMC5883L"
+            ],
+            "writable": false,
+            "name": "name"
+          },
+          "3": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              0
+            ],
+            "writable": false,
+            "name": "error"
+          },
+          "16": {
+            "msgType": 3,
+            "bytesPerValue": 4,
+            "numValues": 1,
+            "values": [
+              74.43424987792969
+            ],
+            "writable": false,
+            "name": "heading"
+          }
+        },
+        "lastHeard": 1632906495002,
+        "name": "HMC5883L"
+      },
+      "10": {
+        "params": {
+          "1": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              1
+            ],
+            "writable": true,
+            "name": "status"
+          },
+          "2": {
+            "msgType": 4,
+            "bytesPerValue": 1,
+            "numValues": 4,
+            "values": [
+              "NMEA"
+            ],
+            "writable": false,
+            "name": "name"
+          },
+          "3": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              0
+            ],
+            "writable": false,
+            "name": "error"
+          },
+          "4": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              0
+            ],
+            "writable": false,
+            "name": "resetCount"
+          },
+          "8": {
+            "msgType": 3,
+            "bytesPerValue": 4,
+            "numValues": 3,
+            "values": [
+              -1.8295509815216064,
+              51.56223678588867,
+              86.19999694824219
+            ],
+            "writable": false,
+            "name": "location"
+          },
+          "9": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              9
+            ],
+            "writable": false,
+            "name": "satellites"
+          },
+          "12": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              17
+            ],
+            "writable": false,
+            "name": "HDOP"
+          }
+        },
+        "lastHeard": 1632906495007,
+        "name": "NMEA"
+      },
+      "11": {
+        "params": {
+          "1": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              0
+            ],
+            "writable": true,
+            "name": "status"
+          },
+          "2": {
+            "msgType": 4,
+            "bytesPerValue": 1,
+            "numValues": 7,
+            "values": [
+              "MPU6050"
+            ],
+            "writable": false,
+            "name": "name"
+          },
+          "3": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              0
+            ],
+            "writable": false,
+            "name": "error"
+          },
+          "4": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              0
+            ],
+            "writable": false,
+            "name": "resetCount"
+          }
+        },
+        "lastHeard": 1632906494694,
+        "name": "MPU6050"
+      },
+      "12": {
+        "params": {
+          "1": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              0
+            ],
+            "writable": true,
+            "name": "status"
+          },
+          "2": {
+            "msgType": 4,
+            "bytesPerValue": 1,
+            "numValues": 9,
+            "values": [
+              "LeftMotor"
+            ],
+            "writable": false,
+            "name": "name"
+          },
+          "3": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              0
+            ],
+            "writable": false,
+            "name": "error"
+          },
+          "4": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              0
+            ],
+            "writable": false,
+            "name": "resetCount"
+          }
+        },
+        "lastHeard": 1632906495719,
+        "name": "LeftMotor"
+      },
+      "13": {
+        "params": {
+          "1": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              0
+            ],
+            "writable": true,
+            "name": "status"
+          },
+          "2": {
+            "msgType": 4,
+            "bytesPerValue": 1,
+            "numValues": 10,
+            "values": [
+              "RightMotor"
+            ],
+            "writable": false
+          },
+          "3": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              0
+            ],
+            "writable": false
+          },
+          "4": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              0
+            ],
+            "writable": false
+          }
+        },
+        "lastHeard": 1632906495924,
+        "name": "RightMotor"
+      },
+      "14": {
+        "params": {
+          "1": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              1
+            ],
+            "writable": true,
+            "name": "status"
+          },
+          "2": {
+            "msgType": 4,
+            "bytesPerValue": 1,
+            "numValues": 9,
+            "values": [
+              "TankSteer"
+            ],
+            "writable": false,
+            "name": "name"
+          },
+          "3": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              0
+            ],
+            "writable": false,
+            "name": "error"
+          },
+          "4": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              0
+            ],
+            "writable": false
+          },
+          "8": {
+            "msgType": 3,
+            "bytesPerValue": 4,
+            "numValues": 1,
+            "values": [
+              0.0232103131711483
+            ],
+            "writable": false,
+            "name": "left"
+          },
+          "9": {
+            "msgType": 3,
+            "bytesPerValue": 4,
+            "numValues": 1,
+            "values": [
+              1
+            ],
+            "writable": false,
+            "name": "right"
+          }
+        },
+        "lastHeard": 1632906495015,
+        "name": "TankSteer"
+      },
+      "15": {
+        "params": {
+          "1": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              1
+            ],
+            "writable": true,
+            "name": "status"
+          },
+          "2": {
+            "msgType": 4,
+            "bytesPerValue": 1,
+            "numValues": 11,
+            "values": [
+              "WaypointNav"
+            ],
+            "writable": false,
+            "name": "name"
+          },
+          "3": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              0
+            ],
+            "writable": false,
+            "name": "error"
+          },
+          "8": {
+            "msgType": 3,
+            "bytesPerValue": 4,
+            "numValues": 2,
+            "values": [
+              -2,
+              52
+            ],
+            "writable": false,
+            "name": "target"
+          },
+          "10": {
+            "msgType": 3,
+            "bytesPerValue": 4,
+            "numValues": 1,
+            "values": [
+              346.523193359375
+            ],
+            "writable": false,
+            "name": "heading"
+          },
+          "11": {
+            "msgType": 3,
+            "bytesPerValue": 4,
+            "numValues": 1,
+            "values": [
+              50069.484375
+            ],
+            "writable": false,
+            "name": "distance"
+          },
+          "12": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              2
+            ],
+            "writable": false,
+            "name": "waypoints"
+          },
+          "13": {
+            "msgType": 0,
+            "bytesPerValue": 1,
+            "numValues": 1,
+            "values": [
+              1
+            ],
+            "writable": true,
+            "name": "waypoint"
+          },
+          "100": {
+            "msgType": 3,
+            "bytesPerValue": 4,
+            "numValues": 3,
+            "values": [
+              -1.829699993133545,
+              51.561798095703125,
+              100
+            ],
+            "writable": false,
+            "name": "target"
+          },
+          "101": {
+            "msgType": 3,
+            "bytesPerValue": 4,
+            "numValues": 3,
+            "values": [
+              -2,
+              52,
+              100
+            ],
+            "writable": false,
+            "name": "target"
+          }
+        },
+        "lastHeard": 1632906495012,
+        "name": "WaypointNav"
+      }
+    },
+    "lastHeard": 1632906495924,
+    "interface": "UDP"
+  }
+}

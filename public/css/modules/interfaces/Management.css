@@ -1,0 +1,18 @@
+
+
+.Management .resetButton {
+  margin-left:1em;
+}
+
+.Management .configButton {
+  margin-left:1em;
+}
+
+.Management .uptime {
+  background-color:white;
+  padding: .375rem .75rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  border-radius: .25rem;
+  margin-bottom:0.5rem;
+}

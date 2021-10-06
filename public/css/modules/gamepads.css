@@ -1,0 +1,39 @@
+.gamepads .axes {
+  padding: 1em;
+}
+
+.gamepads .buttons {
+  margin-left: 1em;
+}
+
+.gamepads /*meter*/.axis {
+  min-width: 200px;
+  margin: 1em;
+}
+
+.gamepads .button {
+  display: inline-block;
+  width: 1em;
+  text-align: center;
+  padding: 1em;
+  border-radius: 20px;
+  border: 1px solid black;
+  background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAAAXNSR0IArs4c6QAAAAxJREFUCNdjYPjPAAACAgEAqiqeJwAAAABJRU5ErkJggg==);
+  background-size: 0% 0%;
+  background-position: 50% 50%;
+  background-repeat: no-repeat;
+}
+
+.gamepads .pressed {
+  border: 1px solid red;
+}
+
+.gamepads .touched::after {
+  content: "touch";
+  display: block;
+  position: absolute;
+  margin-top: -0.2em;
+  margin-left: -0.5em;
+  font-size: 0.8em;
+  opacity: 0.7;
+}
