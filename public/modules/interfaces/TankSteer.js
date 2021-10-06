@@ -5,7 +5,7 @@ import { getParamValueFromChannel, getParamObjFromChannel } from '../droneLinkUt
 // shortcut
 const e = React.createElement;
 
-loadStylesheet('./css/modules/interfaces/TankSteer.css');
+//loadStylesheet('./css/modules/interfaces/TankSteer.css');
 
 
 export default class TankSteer extends React.Component {
