@@ -164,6 +164,8 @@
     {
       "type":"RFM69Telemetry",
       "description":"Manages telemetry over mesh network between RFM69HW modules on 915Mhz",
+      "publish":["RSSI"],
+      "publishParams":[8],
       "settings":[
         { "name":"subs", "values":1, "extensible":true, "type":"char", "description":"Addresses to subscribe to", "default":["1>0.0"] }
       ]

@@ -811,7 +811,7 @@ function sendMessages() {
         // attempt to send by UDP
         if (server && UDPReadyToTransit) {
           console.log(('Send by UDP: ' + msg.asString()).yellow);
-          server.send(msg.encodeUnframed(), 8007, broadcastAddress('en0'), function(error){
+          server.send(msg.encodeUnframed(), 8007, '255.255.255.255', function(error){
             if(error){
               UDPReadyToTransit = false;
               console.error('BLERGH '+ error);
