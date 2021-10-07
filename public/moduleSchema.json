@@ -176,7 +176,7 @@
       "publish":["xAxis","yAxis"],
       "publishParams":[8,9],
       "settings":[
-        { "name":"pins", "type":"pin", "values":2, "description":"Joystick inputs X, Y", "default":["OUT0_0"] }
+        { "name":"bus", "type":"uint8_t", "values":1, "description":"Which I2C bus is the sensor connected to", "default":0 }
       ]
     }
   ]
