@@ -500,7 +500,7 @@ function attemptToOpenSerial() {
   }
 }
 
-if (!fakeMode && (influxConfig[env].telemetryPort != "")) attemptToOpenSerial();
+if (!fakeMode && (influxConfig[env].telemetryPort && (influxConfig[env].telemetryPort != ""))) attemptToOpenSerial();
 
 
 // --------------------creating a udp server --------------------
