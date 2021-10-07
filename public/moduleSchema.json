@@ -167,6 +167,15 @@
       "settings":[
         { "name":"subs", "values":1, "extensible":true, "type":"char", "description":"Addresses to subscribe to", "default":["1>0.0"] }
       ]
+    },
+    {
+      "type":"Joystick",
+      "description":"Read analog joystick values",
+      "publish":["xAxis","yAxis"],
+      "publishParams":[8,9],
+      "settings":[
+        { "name":"pins", "type":"pin", "values":2, "description":"Joystick inputs X, Y", "default":["OUT0_0"] }
+      ]
     }
   ]
 }
