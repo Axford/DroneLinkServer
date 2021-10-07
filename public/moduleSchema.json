@@ -173,10 +173,11 @@
     {
       "type":"Joystick",
       "description":"Read analog joystick values",
-      "publish":["xAxis","yAxis"],
-      "publishParams":[8,9],
+      "publish":["xAxis","yAxis","zAxis","button"],
+      "publishParams":[8,9,10,11],
       "settings":[
-        { "name":"bus", "type":"uint8_t", "values":1, "description":"Which I2C bus is the sensor connected to", "default":0 }
+        { "name":"bus", "type":"uint8_t", "values":1, "description":"Which I2C bus is the sensor connected to", "default":0 },
+        { "name":"invert", "type":"boolean", "values":4, "description":"Invert axes: X, Y, Z, Button", "default":[false,false,false,false] }
       ]
     }
   ]
