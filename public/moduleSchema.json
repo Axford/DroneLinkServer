@@ -113,7 +113,8 @@
       "type":"Motor",
       "description":"Manage a motor via speed (PWM) and direction outputs",
       "settings":[
-        { "name":"pins", "type":"pin", "values":3, "description":"Which pins are connected: A, B, EN", "default":[] }
+        { "name":"pins", "type":"pin", "values":3, "description":"Which pins are connected: A, B, EN", "default":[] },
+        { "name":"deadband", "type":"float", "values":1, "description":"Range over which to ignore speed input to avoid driving H-bridges below stiction torque, value is either side of 0.  So total deadband is double the width of this value.", "default":[0.3] }
       ],
       "publish":["speed"],
       "publishParams":[8],
