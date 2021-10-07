@@ -474,26 +474,30 @@ list()
 
 function attemptToOpenSerial() {
   //
-  ///dev/tty.SLAB_USBtoUART
-  const port = new SerialPort(influxConfig[env].telemetryPort, {
-    baudRate: 57600
-  });
+  try {
+    ///dev/tty.SLAB_USBtoUART
+    const port = new SerialPort(influxConfig[env].telemetryPort, {
+      baudRate: 57600
+    });
 
-  // Open errors will be emitted as an error event
-  port.on('error', function(err) {
-    console.log('Error: ', err.message);
+    // Open errors will be emitted as an error event
+    port.on('error', function(err) {
+      console.log('Error: ', err.message);
 
-    openSerialPort = null;
+      openSerialPort = null;
 
-    // wait a while, then try to open port again
-    setTimeout(attemptToOpenSerial, 10000);
-  })
+      // wait a while, then try to open port again
+      setTimeout(attemptToOpenSerial, 10000);
+    })
 
-  port.on('readable', function () {
-    openSerialPort = port;
+    port.on('readable', function () {
+      openSerialPort = port;
 
-    decoder.decode(port.read());
-  })
+      decoder.decode(port.read());
+    })
+  } catch(err) {
+    console.err(err);
+  }
 }
 
 if (!fakeMode && (influxConfig[env].telemetryPort != "")) attemptToOpenSerial();
