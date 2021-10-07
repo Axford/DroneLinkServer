@@ -6,7 +6,7 @@ const path = require('path')
 
 const colors = require('colors');
 
-const broadcastAddress = require('broadcast-address');
+//const broadcastAddress = require('broadcast-address');
 
 const SerialPort = require('serialport')
 
@@ -14,7 +14,7 @@ var os = require("os");
 var hostname = os.hostname();
 console.log(hostname);
 
-console.log('broadcast address: ', broadcastAddress('en0'));
+//console.log('broadcast address: ', broadcastAddress('en0'));
 
 const fs = require('fs');
 const express = require('express');
