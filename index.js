@@ -48,6 +48,8 @@ const queryApi = client.getQueryApi(org);
 var channelState = {};
 var msgQueue = [];
 
+var lastDiscovered;
+
 var openSerialPort;
 
 
@@ -123,6 +125,16 @@ class DroneLinkMsg {
     this.values = [];
 
     if (buffer) this.parse(buffer);
+  }
+
+  sameSignature(msg) {
+    if (msg == undefined) return false;
+
+  // returns true if channel, param and type match
+    return (this.node == msg.node) &&
+           (this.channel == msg.channel) &&
+           (this.param == msg.param) &&
+           (this.msgType == msg.msgType);
   }
 
   setAddress(addr) {
@@ -692,7 +704,11 @@ function discovery() {
           newMsg.msgLength = 1;
           newMsg.uint8_tPayload[0] = 0;
 
-          queueMsg(newMsg);
+          if (!newMsg.sameSignature(lastDiscovered)) {
+            queueMsg(newMsg);
+            lastDiscovered = newMsg;
+          }
+
         }
 
         // check name
@@ -708,7 +724,10 @@ function discovery() {
           newMsg.msgLength = 1;
           newMsg.uint8_tPayload[0] = 0;
 
-          queueMsg(newMsg);
+          if (!newMsg.sameSignature(lastDiscovered)) {
+            queueMsg(newMsg);
+            lastDiscovered = newMsg;
+          }
         }
 
         // check type
@@ -724,7 +743,10 @@ function discovery() {
           newMsg.msgLength = 1;
           newMsg.uint8_tPayload[0] = 0;
 
-          queueMsg(newMsg);
+          if (!newMsg.sameSignature(lastDiscovered)) {
+            queueMsg(newMsg);
+            lastDiscovered = newMsg;
+          }
         }
 
         // check error
@@ -740,7 +762,10 @@ function discovery() {
           newMsg.msgLength = 1;
           newMsg.uint8_tPayload[0] = 0;
 
-          queueMsg(newMsg);
+          if (!newMsg.sameSignature(lastDiscovered)) {
+            queueMsg(newMsg);
+            lastDiscovered = newMsg;
+          }
         }
       }
 
@@ -760,7 +785,10 @@ function discovery() {
             newMsg.msgLength = 1;
             newMsg.uint8_tPayload[0] = 0;
 
-            queueMsg(newMsg);
+            if (!newMsg.sameSignature(lastDiscovered)) {
+              queueMsg(newMsg);
+              lastDiscovered = newMsg;
+            }
 
             //return false; // stop iterating
           }
@@ -770,6 +798,7 @@ function discovery() {
     });
 
     // now check for missing modules and query their existance
+    /*
     for (var i=1; i<maxChannel; i++) {
       if (msgQueue.length < 1) {
         if (!channelState[nodeKey].channels[i]) {
@@ -782,11 +811,15 @@ function discovery() {
           newMsg.msgLength = 1;
           newMsg.uint8_tPayload[0] = 0;
 
-          queueMsg(newMsg);
+          if (!newMsg.sameSignature(lastDiscovered)) {
+            queueMsg(newMsg);
+            lastDiscovered = newMsg;
+          }
         }
       }
 
     }
+    */
 
   });
 
