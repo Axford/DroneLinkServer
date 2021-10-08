@@ -195,6 +195,21 @@
         { "name":"sub3", "values":1, "type":"float", "description":"item 3", "default":[0] },
         { "name":"sub4", "values":1, "type":"float", "description":"item 4", "default":[0] }
       ]
+    },
+    {
+      "type":"Controller",
+      "description":"Manage a controller with an OLED display and a pair of Joysticks",
+      "publish":[],
+      "publishParams":[],
+      "settings":[
+        { "name":"bus", "type":"uint8_t", "values":1, "description":"Which I2C bus is the OLD display connected to", "default":0 }
+      ],
+      "namedSubs":[
+        { "name":"sub1", "values":1, "type":"float", "description":"item 1", "default":[0] },
+        { "name":"sub2", "values":1, "type":"float", "description":"item 2", "default":[0] },
+        { "name":"sub3", "values":1, "type":"float", "description":"item 3", "default":[0] },
+        { "name":"sub4", "values":1, "type":"float", "description":"item 4", "default":[0] }
+      ]
     }
   ]
 }
