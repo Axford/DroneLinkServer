@@ -1,5 +1,7 @@
 
 
+export const DRONE_LINK_SOURCE_OWNER     =  0;
+
 export const DRONE_LINK_MSG_TYPE_UINT8_T =  0;
 export const DRONE_LINK_MSG_TYPE_ADDR     = 1;
 export const DRONE_LINK_MSG_TYPE_UINT32_T = 2;
@@ -45,6 +47,7 @@ export function sendDroneLinkMsg(msgObj) {
 
 export class DroneLinkMsg {
   constructor(buffer) {
+		this.source = 0;
     this.node = 0;
     this.channel = 0;
     this.param = 0;
@@ -58,17 +61,18 @@ export class DroneLinkMsg {
   }
 
   asString() {
-    return this.node + '>' + this.channel + '.' + this.param + '('+this.msgType+')=' + this.payloadToString();
+    return this.source + ':' + this.node + '>' + this.channel + '.' + this.param + '('+this.msgType+')=' + this.payloadToString();
   }
 
   parse(buffer) {
-    this.node = buffer[0];
-    this.channel = buffer[1];
-    this.param = buffer[2];
-    this.msgType = (buffer[3] >> 4) & 0x0F;
-    this.msgLength = (buffer[3] & 0x0F) + 1;
+		this.source = buffer[0];
+    this.node = buffer[1];
+    this.channel = buffer[2];
+    this.param = buffer[3];
+    this.msgType = (buffer[4] >> 4) & 0x0F;
+    this.msgLength = (buffer[4] & 0x0F) + 1;
     for (var i=0; i < this.msgLength; i++) {
-      this.uint8_tPayload[i] = buffer[4+i];
+      this.uint8_tPayload[i] = buffer[5+i];
     }
   }
 
@@ -76,15 +80,16 @@ export class DroneLinkMsg {
     // return Uint8Array
     var buffer = new Uint8Array(this.msgLength + 4 + 2);
     buffer[0] = 0xFE;
-    buffer[1] = this.node;
-    buffer[2] = this.channel;
-    buffer[3] = this.param;
-    buffer[4] = (this.msgType << 4) | ((this.msgLength-1) & 0x0F);
+		buffer[1] = this.source;
+    buffer[2] = this.node;
+    buffer[3] = this.channel;
+    buffer[4] = this.param;
+    buffer[5] = (this.msgType << 4) | ((this.msgLength-1) & 0x0F);
 
     for (var i=0; i<this.msgLength; i++) {
-      buffer[5+i] = this.uint8_tPayload[i];
+      buffer[6+i] = this.uint8_tPayload[i];
     }
-    buffer[buffer.length-1] = crc8.calc(buffer.slice(1,this.msgLength+5), this.msgLength + 4);
+    buffer[buffer.length-1] = crc8.calc(buffer.slice(1,this.msgLength+6), this.msgLength + 5);
     //console.log('Sending: '+bufferToHex(buffer));
     return buffer;
   }

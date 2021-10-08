@@ -31,6 +31,9 @@ console.log('env: ' + env);
 var fakeMode = influxConfig[env].mode == 'fake';
 var fakeState = JSON.parse( fs.readFileSync('./fakeState.json') );
 
+// network id
+var sourceId = influxConfig[env].id ? influxConfig[env].id : 254;
+
 if (fakeMode) console.log('Operating in fakeMode!!!');
 
 // You can generate a Token from the "Tokens Tab" in the UI
@@ -98,6 +101,7 @@ function bufferToHex (buffer) {
 }
 
 // -----------------------------------------------------------
+const DRONE_LINK_SOURCE_OWNER  = 0;
 
 const DRONE_LINK_MSG_TYPE_UINT8_T  = 0;
 const DRONE_LINK_MSG_TYPE_ADDR = 1;
@@ -108,12 +112,24 @@ const DRONE_LINK_MSG_TYPE_NAME     = 5  // reply with param name
 const DRONE_LINK_MSG_TYPE_NAMEQUERY= 6;  // query param name
 const DRONE_LINK_MSG_TYPE_QUERY    = 7;
 
+const DRONE_LINK_MSG_TYPE_NAMES = [
+  'u8',
+  'a',
+  'u32',
+  'f',
+  'c',
+  'n',
+  'nq',
+  'q'
+];
+
 const DRONE_LINK_MSG_WRITABLE      = 0b10000000;
 
 const DRONE_LINK_MSG_TYPE_SIZES = [1,1,4,4, 1,1,1,1, 1,1,1,1, 1,1,1,1];
 
 class DroneLinkMsg {
   constructor(buffer) {
+    this.source = 0;
     this.node = 0;
     this.channel = 0;
     this.param = 0;
@@ -131,7 +147,8 @@ class DroneLinkMsg {
     if (msg == undefined) return false;
 
   // returns true if channel, param and type match
-    return (this.node == msg.node) &&
+    return (this.source == msg.source) &&
+           (this.node == msg.node) &&
            (this.channel == msg.channel) &&
            (this.param == msg.param) &&
            (this.msgType == msg.msgType);
@@ -146,23 +163,25 @@ class DroneLinkMsg {
   }
 
   asString() {
-    return this.node + '>' + this.channel + '.' + this.param + '('+this.msgType+', '+this.writable+')=' + this.payloadToString();
+    return this.source + ':' + this.node + '>' + this.channel + '.' + this.param + '('+DRONE_LINK_MSG_TYPE_NAMES[this.msgType]+', '+(this.writable ? 'RW' : 'R')+')=' + this.payloadToString();
   }
 
   parse(buffer) {
-    this.node = buffer[0];
-    this.channel = buffer[1];
-    this.param = buffer[2];
-    this.msgType = (buffer[3] >> 4) & 0x07;
-    this.msgLength = (buffer[3] & 0x0F) + 1;
-    this.writable = (buffer[3] & DRONE_LINK_MSG_WRITABLE) == DRONE_LINK_MSG_WRITABLE;
+    this.source = buffer[0]
+    this.node = buffer[1];
+    this.channel = buffer[2];
+    this.param = buffer[3];
+    this.msgType = (buffer[4] >> 4) & 0x07;
+    this.msgLength = (buffer[4] & 0x0F) + 1;
+    this.writable = (buffer[4] & DRONE_LINK_MSG_WRITABLE) == DRONE_LINK_MSG_WRITABLE;
     //console.log('msgTypeLength: ', buffer[3].toString(2));
     for (var i=0; i < this.msgLength; i++) {
-      this.uint8_tPayload[i] = buffer[4+i];
+      this.uint8_tPayload[i] = buffer[5+i];
     }
   }
 
   copy(msg) {
+    this.source = msg.source;
     this.node = msg.node;
     this.channel = msg.channel;
     this.param = msg.param;
@@ -177,8 +196,26 @@ class DroneLinkMsg {
 
   encode() {
     // return Uint8Array
-    var buffer = new Uint8Array(this.msgLength + 4 + 2);
+    var buffer = new Uint8Array(this.msgLength + 5 + 2);
     buffer[0] = 0xFE;
+    buffer[1] = this.source;
+    buffer[2] = this.node;
+    buffer[3] = this.channel;
+    buffer[4] = this.param;
+    buffer[5] = (this.writable ? DRONE_LINK_MSG_WRITABLE : 0) | (this.msgType << 4) | ((this.msgLength-1) & 0x0F);
+
+    for (var i=0; i<this.msgLength; i++) {
+      buffer[6+i] = this.uint8_tPayload[i];
+    }
+    buffer[buffer.length-1] = crc8.calc(buffer.slice(1,this.msgLength+6), this.msgLength + 5);
+    //console.log('Sending: '+bufferToHex(buffer));
+    return buffer;
+  }
+
+  encodeUnframed() {
+    // return Uint8Array
+    var buffer = new Uint8Array(this.msgLength + 5);
+    buffer[0] = this.source;
     buffer[1] = this.node;
     buffer[2] = this.channel;
     buffer[3] = this.param;
@@ -187,28 +224,13 @@ class DroneLinkMsg {
     for (var i=0; i<this.msgLength; i++) {
       buffer[5+i] = this.uint8_tPayload[i];
     }
-    buffer[buffer.length-1] = crc8.calc(buffer.slice(1,this.msgLength+5), this.msgLength + 4);
-    //console.log('Sending: '+bufferToHex(buffer));
-    return buffer;
-  }
-
-  encodeUnframed() {
-    // return Uint8Array
-    var buffer = new Uint8Array(this.msgLength + 4);
-    buffer[0] = this.node;
-    buffer[1] = this.channel;
-    buffer[2] = this.param;
-    buffer[3] = (this.writable ? DRONE_LINK_MSG_WRITABLE : 0) | (this.msgType << 4) | ((this.msgLength-1) & 0x0F);
-
-    for (var i=0; i<this.msgLength; i++) {
-      buffer[4+i] = this.uint8_tPayload[i];
-    }
     return buffer;
   }
 
   payloadToString() {
     var s = '';
     //console.log(this.msgType);
+
     if (this.msgType == DRONE_LINK_MSG_TYPE_CHAR || this.msgType == DRONE_LINK_MSG_TYPE_NAME) {
       for (var i=0; i<this.msgLength; i++) {
         var c = String.fromCharCode(this.uint8_tPayload[i]);
@@ -401,7 +423,7 @@ function handleLinkMsg(msg, interface) {
 
 class TelemetryDecoder {
   constructor() {
-    this.msgBuffer = new Uint8Array(16+4+2);
+    this.msgBuffer = new Uint8Array(16+5+2);
     this.msgSize = 0;
     this.payloadLength = 0;
     this.state = 0;
@@ -429,7 +451,7 @@ class TelemetryDecoder {
           // we skip the start byte, so we're filling the buffer from node
           // node  chan  param  paramTypeLen
           this.msgBuffer[this.msgSize] = buffer[i];
-          if (this.msgSize == 3) {
+          if (this.msgSize == 4) {
             // made it to the payload type/length byte
             this.payloadLength = (buffer[i] & 0x0F)+1;
             //console.log('payload length:' + this.payloadLength);
@@ -587,6 +609,7 @@ app.post('/send', (req, res) => {
   console.log('Send got json: ',req.body);      // your JSON
 
   var newMsg = new DroneLinkMsg();
+  newMsg.source = sourceId;
   newMsg.setAddress(req.body.addr);
   newMsg.msgType = req.body.msgType;
   newMsg.writable = true;
@@ -697,6 +720,7 @@ function discovery() {
 
           var newMsg = new DroneLinkMsg();
 
+          newMsg.source = sourceId;
           newMsg.node = nodeKey;
           newMsg.channel = key;
           newMsg.param = 1;
@@ -717,6 +741,7 @@ function discovery() {
 
           var newMsg = new DroneLinkMsg();
 
+          newMsg.source = sourceId;
           newMsg.node = nodeKey;
           newMsg.channel = key;
           newMsg.param = 2;
@@ -736,6 +761,7 @@ function discovery() {
 
           var newMsg = new DroneLinkMsg();
 
+          newMsg.source = sourceId;
           newMsg.node = nodeKey;
           newMsg.channel = key;
           newMsg.param = 5;
@@ -755,6 +781,7 @@ function discovery() {
 
           var newMsg = new DroneLinkMsg();
 
+          newMsg.source = sourceId;
           newMsg.node = nodeKey;
           newMsg.channel = key;
           newMsg.param = 3;
@@ -778,6 +805,7 @@ function discovery() {
 
             var newMsg = new DroneLinkMsg();
 
+            newMsg.source = sourceId;
             newMsg.node = nodeKey;
             newMsg.channel = key;
             newMsg.param = mkey;
@@ -804,6 +832,7 @@ function discovery() {
         if (!channelState[nodeKey].channels[i]) {
           var newMsg = new DroneLinkMsg();
 
+          newMsg.source = sourceId;
           newMsg.node = nodeKey;
           newMsg.channel = i;
           newMsg.param = 1;
