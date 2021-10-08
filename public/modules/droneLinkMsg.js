@@ -29,7 +29,7 @@ export function sendDroneLinkMsg(msgObj) {
 
 	*/
 
-	console.log('sendDroneLinkMsg', msgObj)
+	//console.log('sendDroneLinkMsg', msgObj)
 
 	fetch('send', {
 		method: 'post',
