@@ -15,6 +15,7 @@ import TurnRate from '../interfaces/TurnRate.js';
 import WaypointNav from '../interfaces/WaypointNav.js';
 import TankSteer from '../interfaces/TankSteer.js';
 import Joystick from '../interfaces/Joystick.js';
+import INA219 from '../interfaces/INA219.js';
 
 // Generic UI
 import ParameterContainer from './ParameterContainer.js';
@@ -58,6 +59,10 @@ export default class ChannelContainer extends React.Component {
 
       if (modType == 'HMC5883L') {
 				customUI.push(e(HMC5883L, { key:'HMC5883L', node: this.props.node, channelObj: this.props.value, cs:this.props.cs  }));
+			}
+
+      if (modType == 'INA219') {
+				customUI.push(e(INA219, { key:'INA219', node: this.props.node, channel: this.props.id, channelObj: this.props.value  }));
 			}
 
       if (modType == 'Joystick') {
