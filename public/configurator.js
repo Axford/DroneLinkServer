@@ -160,7 +160,8 @@ class SchemaRoot extends React.Component {
               onClick: (e)=> {
                 state.config.modules.push({
                   type:mod.type,
-                  id: getNextId()
+                  id: getNextId(),
+                  name: mod.type
                 });
                 configChanged = true;
               }
