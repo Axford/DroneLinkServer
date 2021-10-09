@@ -921,6 +921,6 @@ function sendMessages() {
 }
 
 
-setInterval(discovery, 1000);
+setInterval(discovery, 500);
 
 setInterval(sendMessages, 100);
