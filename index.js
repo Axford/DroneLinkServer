@@ -48,7 +48,11 @@ const writeApi = client.getWriteApi(org, bucket)
 
 const queryApi = client.getQueryApi(org);
 
-var channelState = {};
+var channelState = {
+  254: {
+    interface:'UDP'
+  }
+};
 var msgQueue = [];
 
 var lastDiscovered;
@@ -160,6 +164,13 @@ class DroneLinkMsg {
     this.node = parseInt(addr.substring(0,gti));
     this.channel = parseInt(addr.substring(gti+1,pi));
     this.param = parseInt(addr.substring(pi+1, addr.length));
+  }
+
+  setString(s) {
+    this.msgLength = s.length;
+    for (var i=0; i < this.msgLength; i++) {
+      this.uint8_tPayload[i] = s.charCodeAt(i);
+    }
   }
 
   asString() {
@@ -851,6 +862,18 @@ function discovery() {
     */
 
   });
+
+  // publish own name
+  var newMsg = new DroneLinkMsg();
+
+  newMsg.source = sourceId;
+  newMsg.node = sourceId;
+  newMsg.channel = 1;
+  newMsg.param = 8;
+  newMsg.msgType = DRONE_LINK_MSG_TYPE_CHAR;
+  newMsg.setString('Server');
+
+  queueMsg(newMsg);
 
   //console.log(JSON.stringify(channelState, null, 2));
 }
