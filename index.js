@@ -719,7 +719,8 @@ function discovery() {
 
     var maxChannel = 0;
 
-    // iterate over channels with node
+    // iterate over channels with node, ignore ourselves
+    if (nodeKey != 254)
     _.forOwn(channelState[nodeKey].channels, function(value, key) {
 
       if (key > maxChannel) maxChannel = key;
