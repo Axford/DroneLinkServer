@@ -37,7 +37,7 @@
         { "name":"pins", "type":"pin", "values":1, "description":"0: PWM output to servo", "default":"OUT0_0" }
       ],
       "namedSubs":[
-        { "name":"position", "values":2, "type":"float", "description":"Position control value in range -1 to 1, zero is center", "default":[0,1] }
+        { "name":"position", "values":1, "type":"float", "description":"Position control value in range -1 to 1, zero is center", "default":[0] }
       ],
       "publish":["position"],
       "publishParams":[8]
@@ -141,8 +141,9 @@
       "publish":["left","right","turnRate","speed"],
       "publishParams":[8,9,10,12],
       "namedSubs":[
-        { "name":"turnRate", "values":1, "type":"float", "description":"Desired turn rate", "default":[0] },
-        { "name":"speed", "values":1, "type":"float", "description":"Desired speed 0..1", "default":[0] }
+        { "name":"turnRate", "values":1, "type":"float", "description":"Desired turn rate -1..1", "default":[0] },
+        { "name":"speed", "values":1, "type":"float", "description":"Desired speed -1..1", "default":[0] },
+        { "name":"trim", "values":1, "type":"float", "description":"Trim adjustment -1..1", "default":[0] }
       ]
     },
     {
