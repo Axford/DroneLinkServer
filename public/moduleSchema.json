@@ -138,8 +138,8 @@
       "type":"TankSteer",
       "description":"Calculate left and right motor speeds to achieve a desired turnRate and speed",
       "settings":[],
-      "publish":["left","right","turnRate","speed"],
-      "publishParams":[8,9,10,12],
+      "publish":["left","right","turnRate","speed","trim"],
+      "publishParams":[8,9,10,12,14],
       "namedSubs":[
         { "name":"turnRate", "values":1, "type":"float", "description":"Desired turn rate -1..1", "default":[0] },
         { "name":"speed", "values":1, "type":"float", "description":"Desired speed -1..1", "default":[0] },

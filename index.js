@@ -565,7 +565,8 @@ server.on('error',function(error){
 server.on('message',function(msg,info){
   var newMsg = new DroneLinkMsg(msg);
 
-  handleLinkMsg(newMsg, 'UDP');
+  // ignore messages from ourself!
+  if (newMsg.source != 254) handleLinkMsg(newMsg, 'UDP');
 
   UDPReadyToTransit = true;
 
@@ -705,6 +706,9 @@ function queueMsg(msg) {
   }
 }
 
+
+var discoveryNodeIndex = 0,
+    discoveryChannelIndex = 0;
 
 function discovery() {
   if (fakeMode) return;

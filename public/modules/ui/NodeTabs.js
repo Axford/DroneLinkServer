@@ -25,18 +25,21 @@ export default class NodeTabs extends React.Component {
     for (const [key, value] of Object.entries(this.props.cs)) {
 
 			var title = key + '> ';
-			if (value.channels[1] &&
+			if (value.channels &&
+          value.channels[1] &&
 				  value.channels[1].params[8] &&
 					value.channels[1].params[8].values) {
 				title += value.channels[1].params[8].values[0];
 			}
 
-      items.push(
-        e(ReactBootstrap.Tab,
-           {key: 'node'+key, eventKey: 'node'+key, title: title },
-           e(NodeContainer, {key:key, id:key, value:value, cs:this.props.cs})
-         )
-      );
+      if (value.channels) {
+        items.push(
+          e(ReactBootstrap.Tab,
+             {key: 'node'+key, eventKey: 'node'+key, title: title },
+             e(NodeContainer, {key:key, id:key, value:value, cs:this.props.cs})
+           )
+        );
+      }
     }
 
     return e(ReactBootstrap.Tabs, {
