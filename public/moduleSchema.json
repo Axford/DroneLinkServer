@@ -73,11 +73,13 @@
       "type":"INA219",
       "description":"Manage an I2C INA219 voltage, current sensor",
       "settings":[
-        { "name":"bus", "type":"uint8_t", "values":1, "description":"Which I2C bus is the sensor connected to", "default":0 },
-        { "name":"addr", "type":"uint8_t", "values":1, "description":"I2C address", "default":65 }
+        { "name":"bus", "type":"uint8_t", "values":1, "description":"Which I2C bus is the sensor connected to", "default":[0] },
+        { "name":"addr", "type":"uint8_t", "values":1, "description":"I2C address", "default":[65] },
+        { "name":"cells", "type":"uint8_t", "values":1, "description":"Number of cells in battery", "default":[1] },
+        { "name":"threshold", "type":"float", "values":1, "description":"Low voltage threshold at which to set an alarm", "default":[0] }
       ],
-      "publish":["shuntV","busV","current","power","loadV"],
-      "publishParams":[8,16,32,64,128]
+      "publish":["shuntV","busV","current","power","loadV","cellV","alarm"],
+      "publishParams":[8,16,32,64,128,9,10]
     },
     {
       "type":"HMC5883L",
