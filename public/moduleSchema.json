@@ -34,7 +34,8 @@
       "type":"Servo",
       "description":"Control a standard PWM servo",
       "settings":[
-        { "name":"pins", "type":"pin", "values":1, "description":"0: PWM output to servo", "default":"OUT0_0" }
+        { "name":"pins", "type":"pin", "values":1, "description":"0: PWM output to servo", "default":"OUT0_0" },
+        { "name":"limits", "type":"float", "values":2, "description":"Min,Max limits -1..1", "default":[-1,1] }
       ],
       "namedSubs":[
         { "name":"position", "values":1, "type":"float", "description":"Position control value in range -1 to 1, zero is center", "default":[0] }
