@@ -220,6 +220,20 @@
         { "name":"left", "type":"uint8_t", "values":1, "description":"Channel for left joystick", "default":4 },
         { "name":"right", "type":"uint8_t", "values":1, "description":"Channel for right joystick", "default":5 }
       ]
+    },
+    {
+      "type":"Neopixel",
+      "description":"Manage a Neopixel (WS2812B) string with configurable scenes",
+      "publish":["scene","activeScene"],
+      "publishParams":[8,9],
+      "settings":[
+        { "name":"pins", "type":"pin", "values":1, "description":"0: PWM output to servo", "default":"OUT0_0" },
+        { "name":"numPixels", "type":"uint8_t", "values":1, "description":"Number of pixels in string, automatically divided into 4 segments", "default":4 }
+      ],
+      "namedSubs":[
+        { "name":"scene", "values":16, "type":"uint8_t", "description":"Current scene", "default":[] },
+        { "name":"activeScene", "values":1, "type":"uint8_t", "description":"Scene number", "default":[0] }
+      ]
     }
   ]
 }
