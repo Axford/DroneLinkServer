@@ -27,8 +27,8 @@
     {
       "type":"Management",
       "description":"Common node management controls and diagnostic info.  One of these should be instanced in each node with id=1",
-      "publish":["hostname","build","reset","uptime","heap", "IP","publishRate","choked"],
-      "publishParams":[8,9,10,13,11,12,14,15]
+      "publish":["hostname","build","reset","uptime","heap", "IP","publishRate","choked","discovery"],
+      "publishParams":[8,9,10,13,11,12,14,15,16]
     },
     {
       "type":"Servo",
