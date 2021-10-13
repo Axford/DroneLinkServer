@@ -16,7 +16,7 @@ export default class INA219 extends React.Component {
 
   drawMeter(ctx, v, label, x1,y1,x2,y2) {
     ctx.strokeStyle = '#343a40';
-    ctx.strokeRect(x1+5, y1+5, x2-5, y2-5);
+    ctx.strokeRect(x1, y1, x2, y2);
 
     ctx.fillStyle = '#ccc';
     ctx.font = '20px serif';
@@ -37,19 +37,28 @@ export default class INA219 extends React.Component {
     var ina = {
       current: getParamValueFromChannel(this.props.channelObj, 32, [0])[0],
       power: getParamValueFromChannel(this.props.channelObj, 64, [0])[0],
-      loadV: getParamValueFromChannel(this.props.channelObj, 128, [0])[0]
+      loadV: getParamValueFromChannel(this.props.channelObj, 128, [0])[0],
+			alarm: getParamValueFromChannel(this.props.channelObj, 10, [0])[0]
     }
 
     var c = this.canvasRef.current;
     var ctx = c.getContext("2d");
-    ctx.fillStyle = '#343a40';
+		if (ina.alarm > 0) {
+			ctx.fillStyle = '#f03a40';
+		} else
+    	ctx.fillStyle = '#343a40';
     ctx.fillRect(0,0,300,200);
 
-    this.drawMeter(ctx, ina.loadV.toFixed(1), 'V', 0,0,100,100);
+		if (ina.loadV)
+			this.drawMeter(ctx, ina.loadV.toFixed(1), 'V', 0,0,100,100);
 
-    this.drawMeter(ctx, ina.current.toFixed(1), 'A', 100,0,200,100);
+		if (ina.current)
+	    this.drawMeter(ctx, ina.current.toFixed(1), 'A', 100,0,200,100);
 
-    this.drawMeter(ctx, ina.power.toFixed(1), 'W', 200,0,300,100);
+		if (ina.power)
+	    this.drawMeter(ctx, ina.power.toFixed(1), 'W', 200,0,300,100);
+
+
 
 /*
     // z indicator
