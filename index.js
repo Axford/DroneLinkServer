@@ -20,6 +20,7 @@ const fs = require('fs');
 const express = require('express');
 const app = express();
 const router = express.Router();
+const cors = require('cors')
 
 const {InfluxDB} = require('@influxdata/influxdb-client')
 
@@ -602,6 +603,7 @@ if (!fakeMode) {
 const webPort = 8002;
 
 app.use(express.json());
+app.use(cors());
 
 app.get('/', function(req, res){
   res.sendfile('./public/index.htm');
