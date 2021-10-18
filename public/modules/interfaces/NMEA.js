@@ -11,6 +11,7 @@ export default class NMEA extends React.Component {
 	constructor(props) {
 		super(props);
 		this.mapRef = React.createRef();
+		this.overlayRef = React.createRef();
 		this.data = { "type": "LineString", "coordinates": [] };
 		this.boatMarker;
 	}
@@ -20,6 +21,11 @@ export default class NMEA extends React.Component {
 
 		this.boatMarker
 			.setLngLat(getParamValueFromChannel(this.props.channelObj, 8, [0,0,0]));
+
+		var satellites = getParamValueFromChannel(this.props.channelObj, 9, [0])[0];
+		var HDOP = getParamValueFromChannel(this.props.channelObj, 12, [0])[0];
+		this.overlayRef.current.innerHTML = 'Sat: ' + satellites.toFixed(0) + '<br/>hDOP: '+HDOP.toFixed(0);
+
 
 		// update trace from sparkLine
 		try {
@@ -72,6 +78,9 @@ export default class NMEA extends React.Component {
 	}
 
 	render() {
-    return e('div', { ref: this.mapRef, className:'NMEA' });
+		return e('div', { className:'NMEAContainer' },
+      e('div', { key: 'NMEAOverlay', ref: this.overlayRef, className:'NMEAOverlay'} ),
+      e('div', { key:'NMEAMap', ref: this.mapRef, className:'NMEA' })
+    );
   }
 }

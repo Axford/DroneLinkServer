@@ -35,10 +35,10 @@ export default class INA219 extends React.Component {
 
     // 10 = turnRate
     var ina = {
-      current: getParamValueFromChannel(this.props.channelObj, 32, [0])[0],
-      power: getParamValueFromChannel(this.props.channelObj, 64, [0])[0],
-      loadV: getParamValueFromChannel(this.props.channelObj, 128, [0])[0],
-			alarm: getParamValueFromChannel(this.props.channelObj, 10, [0])[0]
+      current: getParamValueFromChannel(this.props.channelObj, 12, [0])[0],
+      power: getParamValueFromChannel(this.props.channelObj, 13, [0])[0],
+      loadV: getParamValueFromChannel(this.props.channelObj, 14, [0])[0],
+			alarm: getParamValueFromChannel(this.props.channelObj, 16, [0])[0]
     }
 
     var c = this.canvasRef.current;

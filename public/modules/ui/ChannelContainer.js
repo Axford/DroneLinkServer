@@ -12,7 +12,7 @@ import Motor from '../interfaces/Motor.js';
 import NMEA from '../interfaces/NMEA.js';
 import Servo from '../interfaces/Servo.js';
 import TurnRate from '../interfaces/TurnRate.js';
-import WaypointNav from '../interfaces/WaypointNav.js';
+import Nav from '../interfaces/Nav.js';
 import TankSteer from '../interfaces/TankSteer.js';
 import Joystick from '../interfaces/Joystick.js';
 import INA219 from '../interfaces/INA219.js';
@@ -53,6 +53,7 @@ export default class ChannelContainer extends React.Component {
       //console.log(modType);
 
 
+
 			if (modType == 'BasicNav') {
 				customUI.push(e(BasicNav, { key:'BasicNav', zoom:15, channelObj: this.props.value, addr: this.props.node + '>' + this.props.id + '.8'  }));
 			}
@@ -78,6 +79,7 @@ export default class ChannelContainer extends React.Component {
 				customUI.push(e(Motor, { key:'Motor', node: this.props.node, channel: this.props.id, channelObj: this.props.value  }));
 			}
 
+
       if (modType == 'NMEA') {
 				customUI.push(e(NMEA, { key:'NMEA', zoom:15, channelObj: this.props.value  }));
 			}
@@ -94,9 +96,11 @@ export default class ChannelContainer extends React.Component {
 				customUI.push(e(TurnRate, { key:'TurnRate', node: this.props.node, channel: this.props.id, channelObj: this.props.value  }));
 			}
 
-			if (modType == 'WaypointNav') {
-				customUI.push(e(WaypointNav, { key:'WaypointNav', value: this.props.value, node: this.props.node, channel: this.props.id, addr: this.props.node + '>' + this.props.id + '.8'  }));
+			if (modType == 'Nav') {
+				customUI.push(e(Nav, { key:'Nav', value: this.props.value, node: this.props.node, channel: this.props.id, addr: this.props.node + '>' + this.props.id + '.8'  }));
 			}
+
+      
 
 
       // ------------------  Generic parameter UI ------------------
@@ -104,7 +108,7 @@ export default class ChannelContainer extends React.Component {
 				var hideMe = false;
 
 				if (this.props.value.name == 'BasicNav' && key == 8) hideMe = true;
-				//if (this.props.value.name == 'WaypointNav' && key == 8) hideMe = true;
+				//if (this.props.value.name == 'Nav' && key == 8) hideMe = true;
 
         if (key > DLM.DRONE_MODULE_PARAM_RESETCOUNT && !hideMe)
           items.push(e(ParameterContainer, {key:key, node: this.props.node, channel: this.props.id, id:key, value:value, cs:this.props.cs}));

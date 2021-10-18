@@ -17,7 +17,7 @@ export default class TurnRate extends React.Component {
   componentDidUpdate() {
     // redraw canvas
 
-    var heading = (getParamValueFromChannel(this.props.channelObj, 16, [0])[0]);
+    var heading = (getParamValueFromChannel(this.props.channelObj, 11, [0])[0]);
     var h2 = (heading - 90) * Math.PI / 180;
 
     var c = this.canvasRef.current;
