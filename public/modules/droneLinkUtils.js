@@ -24,12 +24,12 @@ export function getParamObjFromChannel(channelObj, param) {
 // addr = address in array form, e.g. [ node, channel, param ]
 export function getObjectsForAddress(cs, addr) {
   var node, channel, param;
-  if (cs[addr[0]]) {
-    node = cs[addr[0]];
+  if (cs[addr[1]]) {
+    node = cs[addr[1]];
 
-    if (node.channels && node.channels[addr[1]]) {
-      channel = node.channels[addr[1]];
-      param = getParamObjFromChannel(channel, addr[2]);
+    if (node.channels && node.channels[addr[2]]) {
+      channel = node.channels[addr[2]];
+      param = getParamObjFromChannel(channel, addr[3]);
 
       if (param) {
         return {

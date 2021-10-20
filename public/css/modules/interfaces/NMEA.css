@@ -11,3 +11,11 @@
   cursor: pointer;
   border:1px solid black;
 }
+
+
+.NMEAOverlay {
+  position:absolute;
+  z-index: 2000;
+  background-color:rgba(255,255,255,0.8);
+  padding: 2px 4px;
+}

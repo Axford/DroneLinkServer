@@ -297,15 +297,20 @@ class DroneLinkMsg {
     var doWrite = false;
 
     const addr = this.node + '>' + this.channel + '.' + this.param;
+    var paramName = '';
+    if (channelState[this.node].channels[this.channel].params[this.param] &&
+       channelState[this.node].channels[this.channel].params[this.param].name)
+      paramName += channelState[this.node].channels[this.channel].params[this.param].name;
+
     // save this message to the InfluxDB
     const point = new Point(addr)
-      .tag('node', this.node)
-      .tag('channel', this.channel)
-      .tag('param', this.param)
+      //.tag('node', this.node)
+      //.tag('channel', this.channel)
+      //.tag('param', this.param)
       .tag('addr', addr)
       .tag('type', this.msgType)
-      .tag('writable', this.writable)
-      .tag('name', channelState[this.node].channels[this.channel].params[this.param].name)
+      //.tag('writable', this.writable)
+      .tag('name', paramName)
       //.intField('length',this.msgLength)
       .intField('num', numValues);
 
@@ -341,7 +346,8 @@ class DroneLinkMsg {
       //console.log('cant store msg type:', this.msgType);
     }
 
-    if (doWrite && false) {
+    // TODO: enable /disable here
+    if (doWrite && true) {
       writeApi.writePoint(point);
       writeApi.flush();
     }
@@ -352,7 +358,7 @@ class DroneLinkMsg {
 
 function handleLinkMsg(msg, interface) {
 
-  var doStore = false;
+  var doStore = true;
 
   var newState = {};
 
@@ -890,6 +896,9 @@ function discovery() {
 function sendMessages() {
   if (msgQueue.length > 0) {
     var msg = msgQueue.shift();
+
+    // dont send messages addressed to ourself!
+    if (msg.node == 254) return;
 
     // lookup target node and associated interface
     if (channelState[msg.node] && channelState[msg.node].interface) {

@@ -21,10 +21,10 @@ export default class Joystick extends React.Component {
 
     // 10 = turnRate
     var joy = {
-      x: getParamValueFromChannel(this.props.channelObj, 8, [0])[0],
-      y: getParamValueFromChannel(this.props.channelObj, 9, [0])[0],
-      z: getParamValueFromChannel(this.props.channelObj, 10, [0])[0],
-      button: getParamValueFromChannel(this.props.channelObj, 11, [0])[0]
+      x: getParamValueFromChannel(this.props.channelObj, 10, [0])[0],
+      y: getParamValueFromChannel(this.props.channelObj, 11, [0])[0],
+      z: getParamValueFromChannel(this.props.channelObj, 12, [0])[0],
+      button: getParamValueFromChannel(this.props.channelObj, 13, [0])[0]
     }
 
     var c = this.canvasRef.current;

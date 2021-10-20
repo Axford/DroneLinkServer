@@ -1,10 +1,10 @@
 
-.WaypointNav {
+.Nav {
   height:400px;
 }
 
 
-.WaypointNav .boatMarker {
+.Nav .boatMarker {
   background-color: #00ff00;
   width: 15px;
   height: 15px;
@@ -14,8 +14,8 @@
 }
 
 
-.WaypointNav .marker {
-  background-image: radial-gradient(circle at center, rgba(0,0,0,0.8) 0, rgba(0,0,0,0) 100%);
+.Nav .marker {
+  background-image: radial-gradient(circle at center, rgba(255,255,0,0.8) 0, rgba(0,0,0,0) 100%);
   background-size: cover;
   width: 20px;
   height: 20px;
@@ -31,14 +31,21 @@
   white-space:nowrap;
 }
 
-.WaypointNav .marker.updating {
+.Nav .marker.updating {
   background-image: radial-gradient(circle at center, rgba(128,128,128,0.8) 0, rgba(0,0,0,0) 100%) !important;
 }
 
-.WaypointNav .marker.active {
+.Nav .marker.active {
   background-image: radial-gradient(circle at center, rgba(255,0,0,0.8) 0, rgba(0,0,0,0) 100%);
   color:yellow;
   font-weight: bold;
   font-size:20px;
   text-shadow: -2px -2px 5 #000;
+}
+
+.NavOverlay {
+  position:absolute;
+  z-index: 2000;
+  background-color:rgba(255,255,255,0.8);
+  padding: 2px 4px;
 }

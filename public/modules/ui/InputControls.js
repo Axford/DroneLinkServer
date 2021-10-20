@@ -114,12 +114,12 @@ export class AddrInputControl extends React.Component {
 
   render() {
     var obj = getObjectsForAddress(this.props.cs, this.props.values);
-    //console.log(this.props.values, obj);
+    //console.log('addr',this.props.values, obj);
 
     return e(
       'span',
       { key: 'num', className: 'value valueAddr'},
-      obj ? (this.props.values[0] + '> ' + obj.channel.name + ' .' + obj.param.name) : 'not connected'
+      obj ? (this.props.values[1] + '> ' + obj.channel.name + ' .' + obj.param.name) : (this.props.values[1] + '>' + this.props.values[2] + '.' + this.props.values[3])
     );
   }
 }
