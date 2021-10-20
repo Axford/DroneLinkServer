@@ -20,44 +20,51 @@ export default class TankSteer extends React.Component {
     // 10 = turnRate
     var turnRate = (getParamValueFromChannel(this.props.channelObj, 10, [0])[0]);
 
+
     // 12 = speed
     var speed = (getParamValueFromChannel(this.props.channelObj, 12, [0])[0]);
 
-    var c = this.canvasRef.current;
-    var ctx = c.getContext("2d");
-    ctx.fillStyle = '#343a40';
-    ctx.fillRect(0,0,200,200);
+		if (turnRate > 0 && speed > 0) {
 
-    // background cross-hair
-    ctx.strokeStyle = '#888';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(0,100);
-    ctx.lineTo(200,100);
-    ctx.moveTo(100,0);
-    ctx.lineTo(100,200);
-    ctx.stroke();
+					console.log(turnRate, speed);
 
-    // current settings
-    ctx.strokeStyle = '#5F5';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(100,100);
-    ctx.lineTo(100 + turnRate*100, 100 - speed*100);
-    ctx.stroke();
+			    var c = this.canvasRef.current;
+			    var ctx = c.getContext("2d");
+			    ctx.fillStyle = '#343a40';
+			    ctx.fillRect(0,0,200,200);
 
-		// turnRate
-    ctx.fillStyle = '#8F8';
-    ctx.lineWidth = 5;
-    ctx.font = '20px serif';
-    ctx.textAlign = 'left';
-    ctx.fillText('TR: ' + turnRate.toFixed(1), 10, 25);
+			    // background cross-hair
+			    ctx.strokeStyle = '#888';
+			    ctx.lineWidth = 1;
+			    ctx.beginPath();
+			    ctx.moveTo(0,100);
+			    ctx.lineTo(200,100);
+			    ctx.moveTo(100,0);
+			    ctx.lineTo(100,200);
+			    ctx.stroke();
 
-    // speed
-    ctx.fillStyle = '#8F8';
-    ctx.font = '20px serif';
-    ctx.textAlign = 'right';
-    ctx.fillText('S: '+speed.toFixed(1), 190, 25);
+			    // current settings
+			    ctx.strokeStyle = '#5F5';
+			    ctx.lineWidth = 1;
+			    ctx.beginPath();
+			    ctx.moveTo(100,100);
+			    ctx.lineTo(100 + turnRate*100, 100 - speed*100);
+			    ctx.stroke();
+
+					// turnRate
+			    ctx.fillStyle = '#8F8';
+			    ctx.lineWidth = 5;
+			    ctx.font = '20px serif';
+			    ctx.textAlign = 'left';
+			    ctx.fillText('TR: ' + turnRate.toFixed(1), 10, 25);
+
+			    // speed
+			    ctx.fillStyle = '#8F8';
+			    ctx.font = '20px serif';
+			    ctx.textAlign = 'right';
+			    ctx.fillText('S: '+speed.toFixed(1), 190, 25);
+		}
+
   }
 
   componentDidMount() {

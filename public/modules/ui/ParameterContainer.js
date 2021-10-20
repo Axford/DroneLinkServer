@@ -43,7 +43,7 @@ export default class ParameterContainer extends React.Component {
             case DLM.DRONE_LINK_MSG_TYPE_FLOAT:  valueControls.push(e(FloatInputControl, {key:'float'+addr+i, value: this.props.value, addr:addr })); break;
 
 	        default:
-	          valueControls.push(e('div',{key:'control'+addr+i},'No control available'));
+	          valueControls.push(e('div',{key:'control'+addr+i}, this.props.value.values));
 	        }
 				} else {
 					// read-only
