@@ -223,10 +223,18 @@ export default class Nav extends React.Component {
 
         console.log('Moved target: ' + lngLat);
 
+        // write the new target
         DLM.sendDroneLinkMsg({
           addr: this.props.node + '>' + this.props.channel + '.12',
           msgType: DLM.DRONE_LINK_MSG_TYPE_FLOAT,
           values: [ lngLat.lng, lngLat.lat , getParamValueFromChannel(this.props.value, 12, [0,0,0])[2] ]
+        });
+
+        // then send a query for the new target value
+        DLM.sendDroneLinkMsg({
+          addr: this.props.node + '>' + this.props.channel + '.12',
+          msgType: DLM.DRONE_LINK_MSG_TYPE_QUERY,
+          values: [ 0 ]
         });
 
         e.target.dragging = false;

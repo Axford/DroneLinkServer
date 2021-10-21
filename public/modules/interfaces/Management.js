@@ -28,6 +28,7 @@ export default class Management extends React.Component {
 
     // uptime
     var uptime = getParamValueFromChannel(this.props.channelObj, 13, [0])[0];
+		if (uptime == undefined) uptime = '0';
     uptime = new Date(uptime * 1000).toISOString().substr(11, 8);
     items.push(e('div',{key:'uptime', className:'uptime'}, 'Uptime: '+uptime));
 

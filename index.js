@@ -1,10 +1,8 @@
 const udp = require('dgram');
-
 const _ = require('lodash');
-
 const path = require('path')
-
 const colors = require('colors');
+const { Server } = require("socket.io");
 
 //const broadcastAddress = require('broadcast-address');
 
@@ -20,7 +18,9 @@ const fs = require('fs');
 const express = require('express');
 const app = express();
 const router = express.Router();
-const cors = require('cors')
+const cors = require('cors');
+const http = require('http');
+const httpServer = http.createServer(app);
 
 const {InfluxDB} = require('@influxdata/influxdb-client')
 
@@ -130,7 +130,7 @@ const DRONE_LINK_MSG_TYPE_NAMES = [
 
 const DRONE_LINK_MSG_WRITABLE      = 0b10000000;
 
-const DRONE_LINK_MSG_TYPE_SIZES = [1,1,4,4, 1,1,1,1, 1,1,1,1, 1,1,1,1];
+const DRONE_LINK_MSG_TYPE_SIZES = [1,4,4,4, 1,1,1,1, 1,1,1,1, 1,1,1,1];
 
 class DroneLinkMsg {
   constructor(buffer) {
@@ -273,6 +273,7 @@ class DroneLinkMsg {
   valueArray() {
     const numValues = this.numValues();
     var valueView = [];
+    if (numValues == 0) console.log("WTF", this.asString());
 
     if (this.msgType == DRONE_LINK_MSG_TYPE_UINT8_T ||
         this.msgType == DRONE_LINK_MSG_TYPE_ADDR) {
@@ -358,7 +359,7 @@ class DroneLinkMsg {
 
 function handleLinkMsg(msg, interface) {
 
-  var doStore = true;
+  var doStore = false;
 
   var newState = {};
 
@@ -413,6 +414,7 @@ function handleLinkMsg(msg, interface) {
     const paramName = msg.payloadToString();
     //console.log('Received param name: ', paramName)
     newState[msg.node].channels[msg.channel].params[msg.param].name = paramName;
+    io.emit('DLM.name', newState);
 
   } else if (msg.msgType == DRONE_LINK_MSG_TYPE_QUERY || msg.msgType == DRONE_LINK_MSG_TYPE_NAMEQUERY) {
     // do nothing
@@ -429,8 +431,13 @@ function handleLinkMsg(msg, interface) {
     // is this a module name?
     if (msg.msgType == DRONE_LINK_MSG_TYPE_CHAR && msg.param == 2) {
       newState[msg.node].channels[msg.channel].name = msg.payloadToString();
+    } else {
+      // send state fragment by socket.io
+      if (Array.isArray(newState[msg.node].channels[msg.channel].params[msg.param].values))
+        io.emit('DLM.value', newState);
     }
   }
+
 
   _.merge(channelState, newState);
 
@@ -636,7 +643,7 @@ app.post('/send', (req, res) => {
   newMsg.source = sourceId;
   newMsg.setAddress(req.body.addr);
   newMsg.msgType = req.body.msgType;
-  newMsg.writable = true;
+  newMsg.writable = req.body.msgType <= DRONE_LINK_MSG_TYPE_CHAR;
   newMsg.msgLength = DRONE_LINK_MSG_TYPE_SIZES[req.body.msgType] * req.body.values.length;
 
 
@@ -693,9 +700,26 @@ app.get('/query', (req, res) => {
 
 app.use(express.static('public'));
 
-app.listen(webPort, () => {
+httpServer.listen(webPort, () => {
   console.log(`Listening at http://localhost:${webPort}`)
 })
+
+// -----------------------------------------------------------
+// Socket.IO
+// -----------------------------------------------------------
+
+const io = new Server(httpServer);
+
+io.on('connection', (socket) => {
+  console.log('a user connected');
+});
+
+/*
+httpServer.listen(8003, () => {
+  console.log('listening on *:8003');
+});
+*/
+
 
 // -----------------------------------------------------------
 
