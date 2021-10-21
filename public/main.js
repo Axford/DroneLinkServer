@@ -8,6 +8,9 @@ import { controllers, initGamepads } from './modules/gamepads.js';
 import NodeTabs from './modules/ui/NodeTabs.js';
 import Gamepads from './modules/ui/Gamepads.js'
 
+// SOCKET
+import io from './libs/socketio/socket.io.esm.min.js';
+var socket = io();
 
 loadStylesheet('./css/main.css');
 
@@ -96,23 +99,52 @@ function fetchSparkData() {
 }
 
 
+var updatesNeeded = false;
 
-// load linkConfig
+socket.on('DLM.name', function(msg) {
+    console.log('DLM.name');
+    _.merge(channelState, msg);
+    updatesNeeded = true;
+    //renderAll();
+  });
+
+socket.on('DLM.value', function(msg) {
+    console.log('DLM.value', JSON.stringify(msg, null, 2));
+    _.merge(channelState, msg);
+    updatesNeeded = true;
+    //renderAll();
+  });
+
+
+function renderUpdates() {
+  if (updatesNeeded) {
+    console.log('r');
+    renderAll();
+    updatesNeeded = false;
+  }
+}
+
+setInterval(renderUpdates, 500);
+
+
+// sync overall state once every 30sec in case we miss stuff
 function updateState() {
   fetch("state")
     .then(response => response.json())
     .then(json => {
       //console.log(json);
 
-      _.merge(channelState, json);
+      //_.merge(channelState, json);
 
-      renderAll();
+      updatesNeeded = true;
+      //renderAll();
     });
 
-	setTimeout(updateState, 1000);
+	setTimeout(updateState, 10000);
 }
 
 updateState();
+
 
 setTimeout(fetchSparkData,2000);
 
