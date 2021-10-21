@@ -102,14 +102,14 @@ function fetchSparkData() {
 var updatesNeeded = false;
 
 socket.on('DLM.name', function(msg) {
-    console.log('DLM.name');
+    console.log('DLM.name', JSON.stringify(msg, null, 2));
     _.merge(channelState, msg);
     updatesNeeded = true;
     //renderAll();
   });
 
 socket.on('DLM.value', function(msg) {
-    console.log('DLM.value', JSON.stringify(msg, null, 2));
+    //console.log('DLM.value', JSON.stringify(msg, null, 2));
     _.merge(channelState, msg);
     updatesNeeded = true;
     //renderAll();
@@ -118,7 +118,7 @@ socket.on('DLM.value', function(msg) {
 
 function renderUpdates() {
   if (updatesNeeded) {
-    console.log('r');
+    //console.log('r');
     renderAll();
     updatesNeeded = false;
   }
@@ -134,7 +134,7 @@ function updateState() {
     .then(json => {
       //console.log(json);
 
-      //_.merge(channelState, json);
+      _.merge(channelState, json);
 
       updatesNeeded = true;
       //renderAll();

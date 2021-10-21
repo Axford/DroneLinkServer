@@ -27,15 +27,37 @@ export default class ParameterContainer extends React.Component {
 
     var addr = this.props.node + '>' + this.props.channel + '.' + this.props.id;
 
+    var valueView = [];
+    if (this.props.value.values instanceof ArrayBuffer) {
+      if (this.props.value.msgType == DLM.DRONE_LINK_MSG_TYPE_UINT8_T ||
+          this.props.value.msgType == DLM.DRONE_LINK_MSG_TYPE_ADDR) {
+        var temp = new Uint8Array(this.props.value.values, 0, this.props.numValues);
+        temp.forEach((v)=>{ valueView.push(v)} );
+
+      } else if (this.props.value.msgType == DLM.DRONE_LINK_MSG_TYPE_UINT32_T) {
+        valueView = new Uint32Array(this.props.value.values, 0, this.props.numValues);
+        //console.log("u32", valueView);
+
+      } else if (this.props.value.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
+        valueView = new Float32Array(this.props.value.values, 0, this.props.numValues);
+        //console.log("F", valueView);
+
+      } else if (this.props.value.msgType == DLM.DRONE_LINK_MSG_TYPE_CHAR) {
+        valueView = [ this.props.value.values ];
+      }
+    } else {
+      valueView = this.props.value.values;
+    }
+
 
     // iterate over values, build an appropriate control for each
 
     if (this.props.value.msgType == DLM.DRONE_LINK_MSG_TYPE_ADDR) {
       valueControls.push(e(AddrInputControl, {key:'addr'+addr, values: this.props.value.values, addr:addr, cs:this.props.cs }));
 
-    } else if (this.props.value.values && this.props.value.values.length > 0) {
+    } else if (valueView && valueView.length > 0) {
 
-      this.props.value.values.forEach((v, i)=> {
+      valueView.forEach((v, i)=> {
 				if (this.props.value.writable && this.props.value.values.length == 1) {
 					// writable
 					switch(this.props.value.msgType) {
@@ -56,6 +78,8 @@ export default class ParameterContainer extends React.Component {
 	        }
 				}
       });
+    } else {
+      console.log('errrrrr', addr, valueView);
     }
 
     // sparkline
