@@ -183,10 +183,17 @@ export default class Nav extends React.Component {
 	}
 
 	componentDidMount() {
+
+    var locationC = getParamValueFromChannel(this.props.value, 10, [0,0,0]);
+    var targetC = getParamValueFromChannel(this.props.value, 12, [0,0,0]);
+
+    console.log(locationC, targetC);
+
+
 		this.map = new mapboxgl.Map({
 			container: this.mapRef.current,
 			style: 'mapbox://styles/mapbox/satellite-v9',
-			center: getParamValueFromChannel(this.props.value, 10, [0,0,0]),
+			center: locationC,
 			zoom: 12
 		});
 
@@ -195,7 +202,7 @@ export default class Nav extends React.Component {
     el.className = 'boatMarker';
 
     this.boatMarker = new mapboxgl.Marker(el)
-      .setLngLat(getParamValueFromChannel(this.props.value, 10, [0,0,0]))
+      .setLngLat(locationC)
       .addTo(this.map);
 
 
@@ -204,7 +211,7 @@ export default class Nav extends React.Component {
     el2.className = 'marker';
 
     this.targetMarker = new mapboxgl.Marker(el2)
-      .setLngLat(getParamValueFromChannel(this.props.value, 12, [0,0,0]).slice(0,2))
+      .setLngLat(targetC.slice(0,2))
       .addTo(this.map)
       .setDraggable(true);
 
@@ -227,7 +234,7 @@ export default class Nav extends React.Component {
         DLM.sendDroneLinkMsg({
           addr: this.props.node + '>' + this.props.channel + '.12',
           msgType: DLM.DRONE_LINK_MSG_TYPE_FLOAT,
-          values: [ lngLat.lng, lngLat.lat , getParamValueFromChannel(this.props.value, 12, [0,0,0])[2] ]
+          values: [ lngLat.lng, lngLat.lat , targetC[2] ]
         });
 
         // then send a query for the new target value

@@ -12,11 +12,13 @@ export function getParamValueFromChannel(channelObj, param, defaultVal) {
             temp.forEach((v)=>{ valueView.push(v)} );
 
           } else if (p.msgType == DLM.DRONE_LINK_MSG_TYPE_UINT32_T) {
-            valueView = new Uint32Array(p.values, 0, p.numValues);
+            temp = new Uint32Array(p.values, 0, p.numValues);
+            temp.forEach((v)=>{ valueView.push(v)} );
             //console.log("u32", valueView);
 
           } else if (p.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
-            valueView = new Float32Array(p.values, 0, p.numValues);
+            temp = new Float32Array(p.values, 0, p.numValues);
+            temp.forEach((v)=>{ valueView.push(v)} );
             //console.log("F", valueView);
 
           } else if (p.msgType == DLM.DRONE_LINK_MSG_TYPE_CHAR) {

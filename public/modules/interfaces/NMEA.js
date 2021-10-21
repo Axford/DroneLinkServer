@@ -49,7 +49,7 @@ export default class NMEA extends React.Component {
 		this.map = new mapboxgl.Map({
 			container: this.mapRef.current,
 			style: 'mapbox://styles/mapbox/satellite-v9',
-			center: this.props.location,
+			center: [-1.8, 52],
 			zoom: this.props.zoom
 		});
 
