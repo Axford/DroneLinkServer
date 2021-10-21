@@ -623,6 +623,10 @@ app.get('/state', (req, res) => {
   res.json(fakeMode ? fakeState : channelState);
 });
 
+app.get('/file', (req, res) => {
+  res.json(channelState);
+});
+
 
 app.post('/send', (req, res) => {
   //res.json(channelState);

@@ -1,0 +1,108 @@
+<html>
+  <head>
+
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.5.1/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.5.1/mapbox-gl.js"></script>
+<style>
+body { margin: 0; padding: 0; }
+#map { position: absolute; top: 0; bottom: 0; width: 100%; }
+</style>
+  </head>
+
+  <body>
+    <div id="map"></div>
+
+<script>
+
+mapboxgl.accessToken = 'pk.eyJ1IjoiYXhmb3JkIiwiYSI6ImNqMWMwYXI5MDAwNG8zMm5uanFyeThmZDEifQ.paAXk3S29-VVw1bhk458Iw';
+
+var fetchList = [];
+
+fetchList.push({
+  query: '/query?addr=1>5.8&start=30m&aggr=1s&valueName=value0',
+  index:0
+});
+
+fetchList.push({
+  query: '/query?addr=1>5.8&start=30m&aggr=1s&valueName=value1',
+  index:1
+});
+
+Promise.all(
+    fetchList.map(fetchTask =>
+      fetch(fetchTask.query)
+        .then(response => response.json() )
+    )
+  ).then(sparks => {
+    sparks.forEach((spark, i) => {
+      fetchList[i].data = spark;
+    });
+
+    //console.log(fetchList);
+
+    var data = fetchList[0].data.map(function(e, i) {
+       //return { x: e._value, y: fetchList[1].data[i]._value }
+       return [ e._value, fetchList[1].data[i]._value ];
+    });
+
+    console.log(data);
+
+    const map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/mapbox/satellite-v9',
+      center: data[ data.length-1 ],
+      zoom: 15
+    });
+
+
+
+    map.on('load', () => {
+      var config = {
+        'type': 'geojson',
+        'data': {
+          'type': 'Feature',
+          'properties': {},
+          'geometry': {
+            'type': 'LineString',
+            'coordinates': [ ]
+          }
+        }
+      };
+
+      // push coordinates
+      config.data.geometry.coordinates = data;
+
+      map.addSource('route', config);
+
+
+
+      map.addLayer({
+        'id': 'route',
+        'type': 'line',
+        'source': 'route',
+        'layout': {
+          'line-join': 'round',
+          'line-cap': 'round'
+        },
+        'paint': {
+					'line-color': '#00ff00',
+					'line-opacity': 0.5,
+					'line-width': 3
+				}
+      });
+    });
+
+  });
+
+
+    /*
+
+    var data = json.map(function(e) {
+       return e._value;
+    });;
+    */
+
+
+</script>
+  </body>
+</html>
