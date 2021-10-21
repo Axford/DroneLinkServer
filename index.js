@@ -273,8 +273,6 @@ class DroneLinkMsg {
   valueArray() {
     const numValues = this.numValues();
     var valueView = [];
-    if (numValues == 0) console.log("WTF", this.asString());
-
     if (this.msgType == DRONE_LINK_MSG_TYPE_UINT8_T ||
         this.msgType == DRONE_LINK_MSG_TYPE_ADDR) {
       var temp = new Uint8Array(this.rawPayload, 0, numValues);
@@ -282,9 +280,11 @@ class DroneLinkMsg {
 
     } else if (this.msgType == DRONE_LINK_MSG_TYPE_UINT32_T) {
       valueView = new Uint32Array(this.rawPayload, 0, numValues);
+      //console.log("u32", valueView);
 
     } else if (this.msgType == DRONE_LINK_MSG_TYPE_FLOAT) {
       valueView = new Float32Array(this.rawPayload, 0, numValues);
+      //console.log("F", valueView);
 
     } else if (this.msgType == DRONE_LINK_MSG_TYPE_CHAR) {
       valueView = [ this.payloadToString() ];
@@ -415,6 +415,7 @@ function handleLinkMsg(msg, interface) {
     //console.log('Received param name: ', paramName)
     newState[msg.node].channels[msg.channel].params[msg.param].name = paramName;
     io.emit('DLM.name', newState);
+    console.log('DLN.name');
 
   } else if (msg.msgType == DRONE_LINK_MSG_TYPE_QUERY || msg.msgType == DRONE_LINK_MSG_TYPE_NAMEQUERY) {
     // do nothing
@@ -433,8 +434,11 @@ function handleLinkMsg(msg, interface) {
       newState[msg.node].channels[msg.channel].name = msg.payloadToString();
     } else {
       // send state fragment by socket.io
-      if (Array.isArray(newState[msg.node].channels[msg.channel].params[msg.param].values))
+      if (newState[msg.node].channels[msg.channel].params[msg.param].values.length > 0) {
         io.emit('DLM.value', newState);
+        console.log('DLM.value');
+      }
+
     }
   }
 
