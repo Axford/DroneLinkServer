@@ -49,9 +49,10 @@ export default class Management extends React.Component {
 							this.setState({ logfile: { __html: data } });
 						});
         }
-    }, 'View Startup Log'));
+    }, 'Startup Log'));
 
 		// config button
+		/*
     items.push(e(ReactBootstrap.Button, {
         key:'configButton',
         variant:'primary',
@@ -59,7 +60,17 @@ export default class Management extends React.Component {
         onClick: (e) => {
 					window.open('/configurator.htm?address=' + ipString);
         }
-    }, 'Configurator'));
+    }, 'Configurator'));*/
+
+		// config button
+    items.push(e(ReactBootstrap.Button, {
+        key:'configButton',
+        variant:'primary',
+        className:'configButton',
+        onClick: (e) => {
+					window.open('http://' + ipString);
+        }
+    }, 'Node Mgmt'));
 
     // reset button
     items.push(e(ReactBootstrap.Button, {
