@@ -14,17 +14,23 @@ body { margin: 0; padding: 0; }
 
 <script>
 
+const urlSearchParams = new URLSearchParams(window.location.search);
+var addr = "1>7.10";
+if (urlSearchParams.has("addr")) {
+  addr = urlSearchParams.get("addr");
+}
+
 mapboxgl.accessToken = 'pk.eyJ1IjoiYXhmb3JkIiwiYSI6ImNqMWMwYXI5MDAwNG8zMm5uanFyeThmZDEifQ.paAXk3S29-VVw1bhk458Iw';
 
 var fetchList = [];
 
 fetchList.push({
-  query: '/query?addr=1>5.8&start=30m&aggr=1s&valueName=value0',
+  query: '/query?addr='+addr+'&start=30m&aggr=1s&valueName=value0',
   index:0
 });
 
 fetchList.push({
-  query: '/query?addr=1>5.8&start=30m&aggr=1s&valueName=value1',
+  query: '/query?addr='+addr+'&start=30m&aggr=1s&valueName=value1',
   index:1
 });
 

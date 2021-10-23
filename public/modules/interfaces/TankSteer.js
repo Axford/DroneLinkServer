@@ -1,5 +1,5 @@
 import loadStylesheet from '../loadStylesheet.js';
-import * as DLM from '../droneLinkMsg.js';
+import * as DLM from '../droneLinkMsg.mjs';
 import { getParamValueFromChannel, getParamObjFromChannel } from '../droneLinkUtils.js';
 
 // shortcut
@@ -26,7 +26,7 @@ export default class TankSteer extends React.Component {
 
 		if (turnRate > 0 && speed > 0) {
 
-					console.log(turnRate, speed);
+					//console.log(turnRate, speed);
 
 			    var c = this.canvasRef.current;
 			    var ctx = c.getContext("2d");

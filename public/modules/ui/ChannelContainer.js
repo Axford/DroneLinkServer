@@ -1,6 +1,6 @@
 
 import loadStylesheet from '../loadStylesheet.js';
-import * as DLM from '../droneLinkMsg.js';
+import * as DLM from '../droneLinkMsg.mjs';
 import { colorArray, paleColorArray } from '../colors.js';
 import { getParamValueFromChannel } from '../droneLinkUtils.js';
 

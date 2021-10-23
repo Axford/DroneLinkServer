@@ -1,6 +1,6 @@
 
 import loadStylesheet from '../loadStylesheet.js';
-import * as DLM from '../droneLinkMsg.js';
+import * as DLM from '../droneLinkMsg.mjs';
 import { colorArray, paleColorArray } from '../colors.js';
 
 import SparkContainer from './SparkContainer.js';
@@ -53,7 +53,8 @@ export default class ParameterContainer extends React.Component {
     // iterate over values, build an appropriate control for each
 
     if (this.props.value.msgType == DLM.DRONE_LINK_MSG_TYPE_ADDR) {
-      valueControls.push(e(AddrInputControl, {key:'addr'+addr, values: this.props.value.values, addr:addr, cs:this.props.cs }));
+      //console.log(this.props.value);
+      valueControls.push(e(AddrInputControl, {key:'addr'+addr, values: valueView, addr:addr, cs:this.props.cs }));
 
     } else if (valueView && valueView.length > 0) {
 

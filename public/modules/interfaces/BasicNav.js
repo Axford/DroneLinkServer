@@ -1,5 +1,5 @@
 import loadStylesheet from '../loadStylesheet.js';
-import * as DLM from '../droneLinkMsg.js';
+import * as DLM from '../droneLinkMsg.mjs';
 
 
 // shortcut

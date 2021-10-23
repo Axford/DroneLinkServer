@@ -1,6 +1,6 @@
 import loadStylesheet from '../loadStylesheet.js';
-import * as DLM from '../droneLinkMsg.js';
-import { getParamValueFromChannel } from '../droneLinkUtils.js';
+import * as DLM from '../droneLinkMsg.mjs';
+import { getParamValueFromChannel, getParamObjFromChannel } from '../droneLinkUtils.js';
 
 // shortcut
 const e = React.createElement;
@@ -164,21 +164,28 @@ export default class Nav extends React.Component {
     */
 
     // update boat trace from sparkLine
-    /*
+
 		try {
-			if (this.props.value.sparkLine && this.props.value.sparkLine.length>1) {
+      // get location param Object
+      var locParam = getParamObjFromChannel(this.props.value, 10);
+      //console.log(locParam);
+
+			if (locParam.sparkLine && locParam.sparkLine.length>1) {
+        //console.log('updating trace');
 				this.boatTrace.coordinates = [];
-				this.props.value.sparkLine[0].forEach((e,i)=>{
-					this.boatTrace.coordinates.push([e._value, this.props.value.sparkLine[1][i]._value]);
+				locParam.sparkLine[0].forEach((e,i)=>{
+					this.boatTrace.coordinates.push([e._value, locParam.sparkLine[1][i]._value]);
 				});
 
 				var src = this.map.getSource('boatTrace');
 				if (src) src.setData(this.boatTrace);
-			}
+			} else {
+        //console.log('no spark');
+      }
 		} catch(err) {
 			console.error(err.message);
 		}
-    */
+
 
 	}
 
@@ -187,7 +194,7 @@ export default class Nav extends React.Component {
     var locationC = getParamValueFromChannel(this.props.value, 10, [0,0,0]);
     var targetC = getParamValueFromChannel(this.props.value, 12, [0,0,0]);
 
-    console.log(locationC, targetC);
+    //console.log(locationC, targetC);
 
 
 		this.map = new mapboxgl.Map({

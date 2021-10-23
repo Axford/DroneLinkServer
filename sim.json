@@ -1,0 +1,15 @@
+{
+  "nodes": [
+    {
+      "name":"paddle",
+      "type":"TankSteerBoat",
+      "interval":100,
+      "node":2,
+      "module":50,
+      "location":[-1.8039332444, 51.575142282, 0],
+      "heading":[30],
+      "left": "2>10.8",
+      "right": "2>10.9"
+    }
+  ]
+}

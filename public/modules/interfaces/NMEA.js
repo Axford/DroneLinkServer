@@ -28,6 +28,7 @@ export default class NMEA extends React.Component {
 
 
 		// update trace from sparkLine
+		/*
 		try {
 			var p = getParamObjFromChannel(this.props.channelObj, 8);
 			if (p.sparkLine && p.sparkLine.length>1) {
@@ -42,6 +43,7 @@ export default class NMEA extends React.Component {
 		} catch(err) {
 			console.error(err.message);
 		}
+		*/
 
 	}
 

@@ -1,4 +1,4 @@
-import * as DLM from './droneLinkMsg.js';
+import * as DLM from './droneLinkMsg.mjs';
 
 export function getParamValueFromChannel(channelObj, param, defaultVal) {
   var p = getParamObjFromChannel(channelObj, param);

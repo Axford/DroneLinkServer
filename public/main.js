@@ -1,7 +1,7 @@
 import loadStylesheet from './modules/loadStylesheet.js';
 import { colorArray, paleColorArray } from './modules/colors.js';
 import { bufferToHex } from './modules/bufferUtils.js';
-import * as DLM from './modules/droneLinkMsg.js';
+import * as DLM from './modules/droneLinkMsg.mjs';
 import { controllers, initGamepads } from './modules/gamepads.js';
 
 // UI
@@ -22,7 +22,7 @@ const e = React.createElement;
 
 var channelState = {};
 var msgQueue = [];
-
+var updatesNeeded = false;
 
 function renderAll() {
   const domContainer = document.querySelector('#DroneLinkUI');
@@ -45,7 +45,7 @@ function fetchSparkData() {
 
       _.forOwn(channelState[nodeKey].channels[chanKey].params, function(paramVal, paramKey) {
 
-        if (paramVal.msgType <= DLM.DRONE_LINK_MSG_TYPE_FLOAT && !paramVal.writable && paramVal.numValues < 4) {
+        if (paramVal.msgType <= DLM.DRONE_LINK_MSG_TYPE_FLOAT && paramVal.numValues < 4) {
           var addr = nodeKey + '>' + chanKey + '.' + paramKey;
 
           // size sparkLine array
@@ -59,7 +59,7 @@ function fetchSparkData() {
 
           for (var i=0; i<paramVal.numValues; i++) {
             fetchList.push({
-              query: "/query?addr=" + addr + '&start=10m&aggr=10s&valueName=value' + i,
+              query: "/query?addr=" + addr + '&start=10m&aggr=5s&valueName=value' + i,
               paramVal: paramVal,
               index:i
             })
@@ -88,7 +88,9 @@ function fetchSparkData() {
         });
         //console.log(fetchList);
 
-        renderAll();
+        console.log('sparks updated');
+        updatesNeeded =true;
+        //renderAll();
 
   			setTimeout(fetchSparkData, 5000);
       });
@@ -99,10 +101,8 @@ function fetchSparkData() {
 }
 
 
-var updatesNeeded = false;
-
 socket.on('DLM.name', function(msg) {
-    console.log('DLM.name', JSON.stringify(msg, null, 2));
+    //console.log('DLM.name', JSON.stringify(msg, null, 2));
     _.merge(channelState, msg);
     updatesNeeded = true;
     //renderAll();

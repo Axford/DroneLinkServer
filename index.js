@@ -279,11 +279,13 @@ class DroneLinkMsg {
       temp.forEach((v)=>{ valueView.push(v)} );
 
     } else if (this.msgType == DRONE_LINK_MSG_TYPE_UINT32_T) {
-      valueView = new Uint32Array(this.rawPayload, 0, numValues);
+      var temp = new Uint32Array(this.rawPayload, 0, numValues);
+      temp.forEach((v)=>{ valueView.push(v)} );
       //console.log("u32", valueView);
 
     } else if (this.msgType == DRONE_LINK_MSG_TYPE_FLOAT) {
-      valueView = new Float32Array(this.rawPayload, 0, numValues);
+      var temp = new Float32Array(this.rawPayload, 0, numValues);
+      temp.forEach((v)=>{ valueView.push(v)} );
       //console.log("F", valueView);
 
     } else if (this.msgType == DRONE_LINK_MSG_TYPE_CHAR) {
@@ -335,6 +337,7 @@ class DroneLinkMsg {
         var fv = floatView[i];
         if (fv != undefined) {
           point.floatField('value'+i, fv);
+          //console.log(('fv: '+ fv).blue);
           doWrite = true;
         }
       }
@@ -348,7 +351,7 @@ class DroneLinkMsg {
     }
 
     // TODO: enable /disable here
-    if (doWrite && true) {
+    if (doWrite) {
       writeApi.writePoint(point);
       writeApi.flush();
     }
@@ -364,6 +367,12 @@ function handleLinkMsg(msg, interface) {
   var newState = {};
 
   var now = (new Date()).getTime();
+
+  // emit raw
+  if (interface != 'socket') {
+    //console.log(('emit: ' + msg.asString()).red);
+    io.emit('DLM.msg', msg.encodeUnframed());
+  }
 
   // decide which interface to listen to
   if (channelState[msg.node] && channelState[msg.node].interface) {
@@ -415,7 +424,7 @@ function handleLinkMsg(msg, interface) {
     //console.log('Received param name: ', paramName)
     newState[msg.node].channels[msg.channel].params[msg.param].name = paramName;
     io.emit('DLM.name', newState);
-    console.log('DLN.name');
+    //console.log('DLN.name');
 
   } else if (msg.msgType == DRONE_LINK_MSG_TYPE_QUERY || msg.msgType == DRONE_LINK_MSG_TYPE_NAMEQUERY) {
     // do nothing
@@ -436,7 +445,7 @@ function handleLinkMsg(msg, interface) {
       // send state fragment by socket.io
       if (newState[msg.node].channels[msg.channel].params[msg.param].values.length > 0) {
         io.emit('DLM.value', newState);
-        console.log('DLM.value');
+        //console.log('DLM.value');
       }
 
     }
@@ -716,7 +725,18 @@ const io = new Server(httpServer);
 
 io.on('connection', (socket) => {
   console.log('a user connected');
+
+  socket.on('sendMsg', (msgBuffer)=>{
+    var msg = new DroneLinkMsg(msgBuffer);
+    console.log(('[.sM] recv: ' + msg.asString()).green );
+    handleLinkMsg(msg, 'socket');
+
+    // queue for retransmission
+    queueMsg(msg);
+  });
 });
+
+
 
 /*
 httpServer.listen(8003, () => {
@@ -934,6 +954,10 @@ function sendMessages() {
 
     // lookup target node and associated interface
     if (channelState[msg.node] && channelState[msg.node].interface) {
+
+
+      // emit everything over socket.io
+      io.emit('DLM.msg', msg.encodeUnframed());
 
       if (channelState[msg.node].interface == 'Telemetry') {
 

@@ -1,5 +1,5 @@
 import loadStylesheet from '../loadStylesheet.js';
-import * as DLM from '../droneLinkMsg.js';
+import * as DLM from '../droneLinkMsg.mjs';
 import { getObjectsForAddress } from '../droneLinkUtils.js';
 
 // shortcut
@@ -116,10 +116,19 @@ export class AddrInputControl extends React.Component {
     var obj = getObjectsForAddress(this.props.cs, this.props.values);
     //console.log('addr',this.props.values, obj);
 
+
+
+    var addrString = '?';
+    if (obj && obj.channel.name != undefined) {
+      addrString = (this.props.values[1] + '> ' + obj.channel.name + ' .' + obj.param.name);
+    } else if (this.props.values.length == 4) {
+      addrString = (this.props.values[1] + '>' + this.props.values[2] + '.' + this.props.values[3]);
+    }
+
     return e(
       'span',
       { key: 'num', className: 'value valueAddr'},
-      obj ? (this.props.values[1] + '> ' + obj.channel.name + ' .' + obj.param.name) : (this.props.values[1] + '>' + this.props.values[2] + '.' + this.props.values[3])
+      addrString
     );
   }
 }
