@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "sim": "node -r esm sim.mjs"
   },
   "author": "",
   "license": "ISC",
@@ -14,9 +15,11 @@
     "broadcast-address": "^1.0.2",
     "colors": "^1.4.0",
     "cors": "^2.8.5",
+    "esm": "^3.2.25",
     "express": "^4.17.1",
     "lodash": "^4.17.21",
     "serialport": "^9.2.4",
-    "socket.io": "^4.3.1"
+    "socket.io": "^4.3.1",
+    "socket.io-client": "^4.3.2"
   }
 }
