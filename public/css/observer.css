@@ -1,0 +1,113 @@
+html {
+  font-size:12px;
+}
+
+body {
+  font-size: .875rem;
+  background-color: #888;
+}
+
+#map { height: calc(100vh - 60px); width: 100%; }
+
+.navPadding {
+  padding-top: 48px; /* Space for fixed navbar */
+}
+
+
+.mapboxgl-ctrl-logo {
+  display: none !important;
+}
+
+.mapboxgl-ctrl-attrib {
+  display: none !important;
+}
+
+.navbar-brand {
+ padding-top: .75rem;
+ padding-bottom: .75rem;
+ padding-left: 1em;
+ font-size: 1rem;
+}
+
+.navbar .form-control {
+ padding: .75rem 1rem;
+ border-width: 0;
+ border-radius: 0;
+}
+
+.form-control-dark {
+ color: #fff;
+ background-color: rgba(255, 255, 255, .1);
+ border-color: rgba(255, 255, 255, .1);
+}
+
+.form-control-dark:focus {
+ border-color: transparent;
+ box-shadow: 0 0 0 3px rgba(255, 255, 255, .25);
+}
+
+#nodes {
+  position:absolute;
+  margin-left:8px;
+  margin-top:8px;
+  z-index:2000;
+}
+
+#nodes .node {
+  background-color: rgba(255,255,255,0.8);
+  padding: 4px 8px;
+  border-radius: 6px;
+  margin-bottom:8px;
+  cursor:pointer;
+  font-weight:bold;
+}
+
+#nodes .node i {
+  margin-left:0.5em;
+}
+
+#nodes .node .lastHeard {
+  display:inline-block;
+  margin-left: 4px;
+  color: black;
+  border-radius: 2px;
+  background-color: white;
+  padding: 0px 6px 2px 6px;
+  font-weight:normal;
+  font-size: 0.8em;
+}
+
+
+.marker {
+  background-image: radial-gradient(circle at center, rgba(0,255,0,0.8) 0, rgba(0,0,0,0) 100%);
+  background-size: cover;
+  width: 20px;
+  height: 20px;
+  text-align:center;
+  font-size:14px;
+  font-weight:normal;
+  color:white;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid rgba(255,255,0,0.5);
+  text-shadow: -1px -1px 3 #000;
+  overflow:visible;
+  white-space:nowrap;
+}
+
+.targetMarker {
+  background-image: radial-gradient(circle at center, rgba(255,255,0,0.8) 0, rgba(0,0,0,0) 100%);
+  background-size: cover;
+  width: 20px;
+  height: 20px;
+  text-align:center;
+  font-size:14px;
+  font-weight:normal;
+  color:white;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid rgba(255,255,0,0.5);
+  text-shadow: -1px -1px 3 #000;
+  overflow:visible;
+  white-space:nowrap;
+}

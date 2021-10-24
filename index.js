@@ -441,14 +441,14 @@ function handleLinkMsg(msg, interface) {
     // is this a module name?
     if (msg.msgType == DRONE_LINK_MSG_TYPE_CHAR && msg.param == 2) {
       newState[msg.node].channels[msg.channel].name = msg.payloadToString();
-    } else {
-      // send state fragment by socket.io
-      if (newState[msg.node].channels[msg.channel].params[msg.param].values.length > 0) {
-        io.emit('DLM.value', newState);
-        //console.log('DLM.value');
-      }
-
     }
+  
+    // send state fragment by socket.io
+    if (newState[msg.node].channels[msg.channel].params[msg.param].values.length > 0) {
+      io.emit('DLM.value', newState);
+      //console.log('DLM.value');
+    }
+
   }
 
 

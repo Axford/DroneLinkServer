@@ -18,7 +18,6 @@ export const DRONE_MODULE_PARAM_ERROR       =3;  // text or error code, module d
 export const DRONE_MODULE_PARAM_RESETCOUNT  =4;  // resetCount
 export const DRONE_MODULE_PARAM_TYPE        =5;  // module type
 
-
 export const DRONE_LINK_MSG_TYPE_NAMES = [
   'u8',
   'a',
@@ -114,6 +113,20 @@ export class DroneLinkMsg {
     }
   }
 
+  copy(msg) {
+    this.source = msg.source;
+    this.node = msg.node;
+    this.channel = msg.channel;
+    this.param = msg.param;
+    this.msgType = msg.msgType;
+    this.msgLength = msg.msgLength;
+    this.writable = msg.writable;
+    //console.log('msgTypeLength: ', buffer[3].toString(2));
+    for (var i=0; i < this.msgLength; i++) {
+      this.uint8_tPayload[i] = msg.uint8_tPayload[i];
+    }
+  }
+
 	setUint8(values) {
 		this.msgType = DRONE_LINK_MSG_TYPE_UINT8_T;
 		this.msgLength = values.length;
@@ -184,6 +197,25 @@ export class DroneLinkMsg {
       buffer[5+i] = this.uint8_tPayload[i];
     }
     return buffer;
+  }
+
+  // returns true if values in this message match those of msg
+  valuesEqual(msg) {
+    var a = this.valueArray();
+    var b = msg.valueArray();
+    if (a === b) return true;
+    if (a == null || b == null) return false;
+    if (a.length !== b.length) return false;
+
+    // If you don't care about the order of the elements inside
+    // the array, you should sort both arrays here.
+    // Please note that calling sort on an array will modify that array.
+    // you might want to clone your array first.
+
+    for (var i = 0; i < a.length; ++i) {
+      if (a[i] !== b[i]) return false;
+    }
+    return true;
   }
 
 	bytesPerValue() {
