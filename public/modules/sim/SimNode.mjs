@@ -57,7 +57,6 @@ export default class SimNode {
     // apply friction
     this.physics.v.multiply(1-this.physics.friction);
     this.physics.angV *= (1-this.physics.angFriction);
-
   }
 
   calcNewCoordinatesFromTranslation(coord, dp) {

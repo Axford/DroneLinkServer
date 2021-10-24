@@ -10,7 +10,7 @@ loadStylesheet('./css/modules/interfaces/Nav.css');
 const metersToPixels = (meters, latitude, zoom) =>
   meters / (78271.484 / 2 ** zoom) / Math.cos(latitude * Math.PI / 180);
 
-
+const R_EARTH = 6378 * 1000;
 
 
 
@@ -20,11 +20,18 @@ export default class Nav extends React.Component {
 		this.mapRef = React.createRef();
     this.overlayRef = React.createRef();
     this.boatMarker;
+    this.boatVector = { "type": "LineString", "coordinates": [ [0,0], [0,0]] };
     this.targetMarker;
-		this.markers = [];
+		this.markers = { "type": "LineString", "coordinates":  [] };
 		this.markerTrace = { "type": "LineString", "coordinates": [ [0,0], [0,0]] };
     this.boatTrace = { "type": "LineString", "coordinates": [] };
 	}
+
+  calcNewCoordinatesFromTranslation(coord, dp) {
+    var newLatitude  = coord[1]  + (dp[1] / R_EARTH) * (180 / Math.PI);
+    var newLongitude = coord[0] + (dp[0] / R_EARTH) * (180 / Math.PI) / Math.cos(coord[1] * Math.PI/180);
+    return [newLongitude, newLatitude];
+  }
 
 	componentDidUpdate() {
 
@@ -54,16 +61,21 @@ export default class Nav extends React.Component {
 
 
       // update marker trace
-
-  		var src = this.map.getSource('markerTrace');
-  		if (src) src.setData(this.markerTrace);
-
       this.markerTrace.coordinates[0] = boatLoc;
       this.markerTrace.coordinates[1] = target;
+      var src = this.map.getSource('markerTrace');
+      if (src) src.setData(this.markerTrace);
 
+      // update boat vector
+      this.boatVector.coordinates[0] = boatLoc;
+      var vec = [ 5 * Math.cos(-heading * Math.PI/180 + Math.PI/2), 5 * Math.sin(-heading * Math.PI/180 + Math.PI/2) ];
+      this.boatVector.coordinates[1] = this.calcNewCoordinatesFromTranslation(boatLoc, vec);
+      //console.log(this.boatVector.coordinates);
+      src = this.map.getSource('boatVector');
+      if (src) src.setData(this.boatVector);
 
     } catch(err) {
-      consolg.error(err);
+      console.error(err);
     }
 
 
@@ -266,6 +278,18 @@ export default class Nav extends React.Component {
 					'line-color': 'yellow',
 					'line-opacity': 0.5,
 					'line-width': 2
+				}
+			});
+
+      this.map.addSource('boatVector', { type: 'geojson', data: this.boatVector });
+			this.map.addLayer({
+				'id': 'boatVector',
+				'type': 'line',
+				'source': 'boatVector',
+				'paint': {
+					'line-color': '#0f0',
+					'line-opacity': 1,
+					'line-width': 4
 				}
 			});
 

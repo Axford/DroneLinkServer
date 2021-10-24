@@ -8,6 +8,10 @@
   margin-left:1em;
 }
 
+.Management .mainButton {
+  margin-left:1em;
+}
+
 .Management .uptime {
   background-color:white;
   padding: .375rem .75rem;

@@ -90,6 +90,23 @@ export default class Management extends React.Component {
         }
     }, 'Reset Node'));
 
+		// re-run main button
+    items.push(e(ReactBootstrap.Button, {
+        key:'mainButton',
+        variant:'primary',
+        className:'mainButton',
+        size:'',
+        onClick: (e) => {
+          e.preventDefault();
+
+          DLM.sendDroneLinkMsg({
+            addr: this.props.node + '>1.17',
+            msgType: DLM.DRONE_LINK_MSG_TYPE_CHAR,
+            values: '/main.txt'
+          });
+        }
+    }, 'Re-run Main'));
+
 		// modal
 		items.push(e(ReactBootstrap.Modal,{
 			key:'modal',

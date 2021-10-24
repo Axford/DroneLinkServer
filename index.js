@@ -660,7 +660,11 @@ app.post('/send', (req, res) => {
   newMsg.msgLength = DRONE_LINK_MSG_TYPE_SIZES[req.body.msgType] * req.body.values.length;
 
 
-  if (newMsg.msgType == DRONE_LINK_MSG_TYPE_UINT8_T) {
+
+  if (newMsg.msgType == DRONE_LINK_MSG_TYPE_CHAR) {
+    newMsg.setString(req.body.values);
+
+  } else if (newMsg.msgType == DRONE_LINK_MSG_TYPE_UINT8_T) {
     for (var i=0; i<req.body.values.length; i++)
       newMsg.uint8_tPayload[i] = req.body.values[i];
   } else {
