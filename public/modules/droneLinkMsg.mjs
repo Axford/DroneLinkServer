@@ -101,12 +101,13 @@ export class DroneLinkMsg {
     return this.addressAsString() + ' ('+DRONE_LINK_MSG_TYPE_NAMES[this.msgType]+')=' + this.payloadToString();
   }
 
-  parse(buffer) {
+  parse(rawBuffer) {
+    var buffer = new Uint8Array(rawBuffer, 0);
 		this.source = buffer[0];
     this.node = buffer[1];
     this.channel = buffer[2];
     this.param = buffer[3];
-    this.msgType = (buffer[4] >> 4) & 0x0F;
+    this.msgType = (buffer[4] >> 4) & 0x07;
     this.msgLength = (buffer[4] & 0x0F) + 1;
     for (var i=0; i < this.msgLength; i++) {
       this.uint8_tPayload[i] = buffer[5+i];
@@ -130,8 +131,19 @@ export class DroneLinkMsg {
 	setUint8(values) {
 		this.msgType = DRONE_LINK_MSG_TYPE_UINT8_T;
 		this.msgLength = values.length;
+    this.writable = false;
 		for (var i=0; i < values.length; i++) {
       this.uint8_tPayload[i] =values[i];
+    }
+	}
+
+  setFloat(values) {
+		this.msgType = DRONE_LINK_MSG_TYPE_FLOAT;
+		this.msgLength = values.length * 4;
+    this.writable = false;
+    var vv = new Float32Array(this.rawPayload, 0, values.length);
+		for (var i=0; i < values.length; i++) {
+      vv[i] =values[i];
     }
 	}
 
@@ -250,7 +262,15 @@ export class DroneLinkMsg {
     } else if (this.msgType == DRONE_LINK_MSG_TYPE_CHAR) {
       valueView = [ this.payloadToString() ];
     }
-    return valueView;
+    return Array.from(valueView);
+  }
+
+  trimNull(a) {
+    var c = a.indexOf('\0');
+    if (c>-1) {
+      return a.substr(0, c);
+    }
+    return a;
   }
 
   payloadToString() {
@@ -266,7 +286,7 @@ export class DroneLinkMsg {
       }
     }
 
-    return s;
+    return this.trimNull(s);
   }
 
   payloadAsFloat() {

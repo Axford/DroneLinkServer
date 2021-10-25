@@ -55,8 +55,9 @@ body {
 
 #nodes .node {
   background-color: rgba(255,255,255,0.8);
-  padding: 4px 8px;
-  border-radius: 6px;
+  min-width:120px;
+  padding: 4px 4px;
+  border-radius: 4px;
   margin-bottom:8px;
   cursor:pointer;
   font-weight:bold;
@@ -77,6 +78,37 @@ body {
   font-size: 0.8em;
 }
 
+.widgets {
+  margin-top: 4px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
+  grid-gap: 4px;
+}
+
+.widget {
+  color: black;
+  border-radius: 2px;
+  background-color: white;
+  padding: 2px 4px 2px 4px;
+  font-weight:normal;
+  font-size: 0.8em;
+  text-align:center;
+}
+
+.widget.warning {
+  background-color: #ffc107!important;
+  box-shadow: 1px 1px 3px #000;
+}
+
+.widget.danger {
+  background-color: #dc3545!important;
+  box-shadow: 1px 1px 3px #000;
+}
+
+#nodes .node .widgets div i {
+  margin-right: 0.5em;
+  margin-left:0;
+}
 
 .marker {
   background-image: radial-gradient(circle at center, rgba(0,255,0,0.8) 0, rgba(0,0,0,0) 100%);
@@ -88,7 +120,7 @@ body {
   font-weight:normal;
   color:white;
   border-radius: 50%;
-  cursor: pointer;
+  cursor: arrow;
   border: 2px solid rgba(255,255,0,0.5);
   text-shadow: -1px -1px 3 #000;
   overflow:visible;
@@ -110,4 +142,8 @@ body {
   text-shadow: -1px -1px 3 #000;
   overflow:visible;
   white-space:nowrap;
+}
+
+.targetMarker .updating {
+  background-image: radial-gradient(circle at center, rgba(80,80,80,0.8) 0, rgba(0,0,0,0) 100%);
 }

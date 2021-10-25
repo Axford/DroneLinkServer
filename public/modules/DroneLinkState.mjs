@@ -38,11 +38,15 @@ export default class DroneLinkState {
     this.discoveryQueue = new DroneLinkMsgQueue();
     this.callbacks = {}; // each key is an event type, values are an array of callback functions
 
-    this.socket.on('DLM.name', function(msg) {
-        //console.log('DLM.name', JSON.stringify(msg, null, 2));
-        //_.merge(me.state, msg);
-      });
 
+    this.socket.on('DLM.msg',function(msgBuffer) {
+      var msg = new DLM.DroneLinkMsg(msgBuffer);
+      //console.log(msg.asString());
+      me.handleLinkMsg(msg);
+    });
+
+
+    /*
     this.socket.on('DLM.value', function(msg) {
         //console.log('DLM.value', JSON.stringify(msg, null, 2));
 
@@ -149,14 +153,146 @@ export default class DroneLinkState {
 
         _.merge(me.state, msg);
       });
+      */
 
     setInterval( ()=>{
       me.discovery();
       me.processDiscoveryQueue();
     }, 1000);
+  }
 
+
+  handleLinkMsg(msg) {
+    var me = this;
+    var now = (new Date()).getTime();
+    //console.log('hLM', msg.asString());
+
+    // new node?
+    if (!me.state.hasOwnProperty(msg.node)) {
+      // trigger node.new event
+      me.trigger('node.new', msg.node);
+
+      // speculative hostname query
+      var qm = new DLM.DroneLinkMsg();
+      qm.source = 253;
+      qm.node = msg.node;
+      qm.channel = 1;
+      qm.param = 8;
+      qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
+      qm.msgLength = 1;
+      me.send(qm);
+
+      // speculative Nav type query
+      qm = new DLM.DroneLinkMsg();
+      qm.source = 253;
+      qm.node = msg.node;
+      qm.channel = 7;
+      qm.param = DLM.DRONE_MODULE_PARAM_TYPE;
+      qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
+      qm.msgLength = 1;
+      me.send(qm);
+    }
+
+    //console.log(msg.channel, mvalue);
+    // new channel (module) ?
+    if (!me.state.hasOwnProperty(msg.node) ||
+        !me.state[msg.node].channels.hasOwnProperty(msg.channel)) {
+      //console.log('module.new: ' + msg.node + '>' + msg.channel);
+      //me.trigger('module.new', { node: msg.node, channel:msg.channel });
+
+      // queue a type query
+      var qm = new DLM.DroneLinkMsg();
+      qm.source = 253;
+      qm.node = msg.node;
+      qm.channel = msg.channel;
+      qm.param = DLM.DRONE_MODULE_PARAM_TYPE;
+      qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
+      qm.msgLength = 1;
+      me.send(qm);
+
+      // queue a name query
+      qm = new DLM.DroneLinkMsg();
+      qm.source = 253;
+      qm.node = msg.node;
+      qm.channel = msg.channel;
+      qm.param = DLM.DRONE_MODULE_PARAM_NAME;
+      qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
+      qm.msgLength = 1;
+      me.send(qm);
+    }
+
+
+    var newParam = false;
+
+    // new param?
+    if (!me.state.hasOwnProperty(msg.node) ||
+        !me.state[msg.node].channels.hasOwnProperty(msg.channel) ||
+        (!me.state[msg.node].channels[msg.channel].params.hasOwnProperty(msg.param))) {
+      //console.log('param.new: ' + msg.node + '>' + msg.channel + '.' + msg.param);
+      me.trigger('param.new', { node: msg.node, channel:msg.channel, param:msg.param });
+      newParam = true;
+
+      if (msg.msgType <= DLM.DRONE_LINK_MSG_TYPE_CHAR) {
+        // new module type?
+        if (msg.param == DLM.DRONE_MODULE_PARAM_TYPE) {
+          //console.log('module.type: ' + msg.valueArray());
+          me.trigger('module.type', { node: msg.node, channel:msg.channel, type:msg.valueArray()[0] });
+        }
+
+        // new module name?
+        if (msg.param == DLM.DRONE_MODULE_PARAM_NAME) {
+          //console.log('module.name: ' + msg.valueArray);
+          me.trigger('module.name', { node: msg.node, channel:msg.channel, name:msg.valueArray()[0] });
+        }
+      }
+    }
+
+    // normal value?
+    if (msg.msgType <= DLM.DRONE_LINK_MSG_TYPE_CHAR) {
+      // new value?
+      if (newParam ||
+          !arraysEqual(me.state[msg.node].channels[msg.channel].params[msg.param].values, msg.valueArray()) ) {
+        //console.log('param.value: ' + msg.node + '>' + msg.channel + '.' + msg.param, msg[msg.node].channels[msg.channel].params[msg.param].values);
+        me.trigger('param.value', { node: msg.node, channel:msg.channel, param: msg.param, msgType: msg.msgType, values:msg.valueArray() });
+      }
+    }
+
+    // create newState object and merge
+    if (msg.msgType != DLM.DRONE_LINK_MSG_TYPE_QUERY && msg.msgType != DLM.DRONE_LINK_MSG_TYPE_NAMEQUERY) {
+      var newState ={};
+      newState[msg.node] = {
+        channels: {},
+        lastHeard: now,
+        interface: 'socket',
+        lastHeard:now
+      }
+      newState[msg.node].channels[msg.channel] = {
+        params: {},
+        lastHeard: now
+      }
+      newState[msg.node].channels[msg.channel].params[msg.param] = { };
+
+      if (msg.msgType == DLM.DRONE_LINK_MSG_TYPE_NAME) {
+        newState[msg.node].channels[msg.channel].params[msg.param].name = msg.payloadToString();;
+      } else {
+        // update channel state
+        newState[msg.node].channels[msg.channel].params[msg.param].msgType = msg.msgType;
+        newState[msg.node].channels[msg.channel].params[msg.param].bytesPerValue = msg.bytesPerValue();
+        newState[msg.node].channels[msg.channel].params[msg.param].numValues = msg.numValues();
+        newState[msg.node].channels[msg.channel].params[msg.param].values = msg.valueArray();
+        newState[msg.node].channels[msg.channel].params[msg.param].writable = msg.writable;
+
+        // is this a module name?
+        if (msg.msgType == DLM.DRONE_LINK_MSG_TYPE_CHAR && msg.param == 2) {
+          newState[msg.node].channels[msg.channel].name = msg.payloadToString();
+        }
+      }
+
+      _.merge(me.state, newState);
+    }
 
   }
+
 
   on(name, cb) {
     if (!this.callbacks.hasOwnProperty(name)) {

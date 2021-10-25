@@ -39,6 +39,9 @@ export default class SimManager {
 
 
   handleLinkMessage(msg) {
+    // ignore stuff that originated from us
+    if (msg.source == 253) return;
+    
     console.log(('[SimMgr.hLM] ' + msg.asString()).grey);
     this.nodes.forEach((node)=>{
       node.handleLinkMessage(msg);

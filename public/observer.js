@@ -7,6 +7,12 @@ import * as DLM from './modules/droneLinkMsg.mjs';
 import DroneLinkState from './modules/DroneLinkState.mjs';
 var state = new DroneLinkState();
 
+// widgets
+import NavWidget from './modules/widgets/NavWidget.mjs';
+import RFM69TelemetryWidget from './modules/widgets/RFM69TelemetryWidget.mjs';
+import INA219Widget from './modules/widgets/INA219Widget.mjs';
+import NMEAWidget from './modules/widgets/NMEAWidget.mjs';
+
 // object of nodes, keyed on id, with associated UI objects
 // populated based on events from state object
 var nodes = {};
@@ -41,12 +47,13 @@ function initNodeLocation(node) {
         .addTo(map);
 
   // -- snailTrail --
+  var trailName = 'snailTrail' + node.id;
   node.snailTrail = { "type": "LineString", "coordinates": [ node.location ] };
-  map.addSource('snailTrail', { type: 'geojson', lineMetrics: true, data: node.snailTrail });
+  map.addSource(trailName, { type: 'geojson', lineMetrics: true, data: node.snailTrail });
   map.addLayer({
-    'id': 'snailTrail',
+    'id': trailName,
     'type': 'line',
-    'source': 'snailTrail',
+    'source': trailName,
     'paint': {
       'line-color': 'green',
       'line-opacity': 0.5,
@@ -65,6 +72,7 @@ function initNodeLocation(node) {
 }
 
 function updateLocation(node, newLoc) {
+  //console.log(newLoc);
   node.location = newLoc;
   // update snailTrail
   if (node.snailTrail) {
@@ -72,14 +80,14 @@ function updateLocation(node, newLoc) {
     if (node.snailTrail.coordinates.length > 100) {
       node.snailTrail.coordinates.shift();
     }
-    var src = map.getSource('snailTrail');
+    var src = map.getSource('snailTrail' + node.id);
     if (src) src.setData(node.snailTrail);
   }
 
   // update target
   if (node.targetTrace) {
     node.targetTrace.coordinates[0] = node.location;
-    var src = map.getSource('targetTrace');
+    var src = map.getSource('targetTrace' + node.id);
     if (src) src.setData(node.targetTrace);
   }
 
@@ -92,12 +100,15 @@ function updateLocation(node, newLoc) {
 }
 
 function updateHeading(node, heading) {
+  //console.log(heading);
   if (node.gotLocation) {
     node.marker.setRotation(heading);
   }
 }
 
 function updateTarget(node, target) {
+  if (target.length <3) return;
+
   node.target = target;
   console.log('new target');
 
@@ -117,15 +128,48 @@ function updateTarget(node, target) {
 
       node.targetMarker = new mapboxgl.Marker(el)
           .setLngLat(target)
+          .setDraggable(true)
           .addTo(map);
 
+
+      node.targetMarker.on('dragend', (e)=>{
+        // e.target
+        const lngLat = e.target.getLngLat();
+
+        // clear radius to indicate an update is in progress
+        //e.target.values[2] = 0;
+        e.target.getElement().classList.add('updating');
+
+        console.log('Moved target: ' + lngLat);
+
+        // write the new target
+        var qm = new DLM.DroneLinkMsg();
+        qm.source = 252;
+        qm.node = node.id;
+        qm.channel = node.targetModule;
+        qm.param = 12;
+        qm.setFloat([ lngLat.lng, lngLat.lat, node.target[2] ])
+        state.send(qm);
+
+        // then send a query for the new target value
+        qm = new DLM.DroneLinkMsg();
+        qm.source = 252;
+        qm.node = node.id;
+        qm.channel = node.targetModule;
+        qm.param = 12;
+        qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
+        qm.msgLength = 1;
+        state.send(qm);
+      });
+
       // -- target trace --
+      var traceName = 'targetTrace' + node.id;
       node.targetTrace = { "type": "LineString", "coordinates": [ node.location, node.target ] };
-      map.addSource('targetTrace', { type: 'geojson', data: node.targetTrace });
+      map.addSource(traceName, { type: 'geojson', data: node.targetTrace });
 			map.addLayer({
-				'id': 'targetTrace',
+				'id': traceName,
 				'type': 'line',
-				'source': 'targetTrace',
+				'source': traceName,
 				'paint': {
 					'line-color': 'yellow',
 					'line-opacity': 0.5,
@@ -143,6 +187,7 @@ function updateTarget(node, target) {
       el.style.width = pixelRadius + 'px';
       el.style.height = pixelRadius + 'px';
       el.style.lineHeight = pixelRadius + 'px';
+      el.classList.remove('updating');
 
       // -- target trace --
       node.targetTrace.coordinates[1] = node.target;
@@ -151,6 +196,7 @@ function updateTarget(node, target) {
     }
   }
 }
+
 
 function init() {
   map = new mapboxgl.Map({
@@ -161,18 +207,8 @@ function init() {
   });
 
   map.on('style.load', () => {
-    var config = {
-      'type': 'geojson',
-      'data': {
-        'type': 'Feature',
-        'properties': {},
-        'geometry': {
-          'type': 'LineString',
-          'coordinates': [ ]
-        }
-      }
-    };
 
+    /*
     map.on('click', function(e) {
       var coordinates = e.lngLat;
       new mapboxgl.Popup()
@@ -180,6 +216,7 @@ function init() {
         .setHTML(coordinates)
         .addTo(map);
     });
+    */
 
     // check we've resized
     map.resize();
@@ -191,13 +228,12 @@ function init() {
     // create new node entry
     var node = nodes[id] = {
       location: [0,0],
+      id: id,
 
       gotLocationModule: false,
       gotLocation:false,
       locationType: '',
       locationModule: 0,
-
-      gotRFM69: false,
 
       gotCompass:false,
       compassModule:0,
@@ -229,6 +265,12 @@ function init() {
     node.uiLastHeard.innerHTML = '0s';
     node.ui.appendChild(node.uiLastHeard);
 
+    node.uiWidgets = document.createElement('div');
+    node.uiWidgets.className = 'widgets';
+    node.ui.appendChild(node.uiWidgets);
+
+    node.widgets = {};
+
     // create event handler
     node.ui.onclick = (e)=> {
       if (node.gotLocation && node.location[0] != 0) {
@@ -242,10 +284,26 @@ function init() {
     document.getElementById('nodes').appendChild(node.ui);
   });
 
+
   // listen for key node types
   state.on('module.type', (data)=>{
-    //console.log('module.type', data);
+    console.log('module.type: ' + data.node + '> '+ data.type + '[' + data.type.length + ']');
     var node = nodes[data.node];
+
+    // create Widget
+    if (!node.widgets[data.channel]) {
+      if (data.type == 'Nav') {
+        node.widgets[data.channel] = new NavWidget(node);
+      } else if (data.type == 'RFM69Telemetry') {
+        node.widgets[data.channel] = new RFM69TelemetryWidget(node);
+      } else if (data.type == 'INA219') {
+        node.widgets[data.channel] = new INA219Widget(node);
+      } else if (data.type == 'NMEA') {
+        node.widgets[data.channel] = new NMEAWidget(node);
+      }
+    }
+
+
     if (data.type == 'Nav' && !node.getLocationModule) {
       console.log('Found Nav: '+data.channel);
       node.gotLocationModule = true;
@@ -255,7 +313,7 @@ function init() {
 
       // speculative query for location
       var qm = new DLM.DroneLinkMsg();
-      qm.source = 253;
+      qm.source = 252;
       qm.node = data.node;
       qm.channel = 7;
       qm.param = 10;
@@ -265,7 +323,7 @@ function init() {
 
       // speculative query for target
       var qm = new DLM.DroneLinkMsg();
-      qm.source = 253;
+      qm.source = 252;
       qm.node = data.node;
       qm.channel = 7;
       qm.param = 12;
@@ -280,13 +338,6 @@ function init() {
       node.locationType = 'NMEA';
     }
 
-    if (data.type == 'RFM69Telemetry') {
-      node.gotRFM69 = true;
-      var icon = document.createElement('i');
-      icon.className = 'fas fa-broadcast-tower';
-      node.uiIcons.appendChild(icon);
-    }
-
     if (data.type == 'TurnRate' && node.compassType == '') {
       node.compassModule = data.channel;
       node.compassType = 'TurnRate';
@@ -296,6 +347,14 @@ function init() {
   // listen for values
   state.on('param.value', (data)=>{
     var node = nodes[data.node];
+    //console.log('pv', data);
+
+    /*
+       Update widgets
+    */
+    if (node.widgets[data.channel]) {
+      node.widgets[data.channel].newParamValue(data);
+    }
 
     // listen for hostname
     if (data.channel == 1 && data.param == 8) {
@@ -316,7 +375,7 @@ function init() {
           14. mode
         */
         //console.log(data.param, data.values);
-        if (data.param == 10) {
+        if (data.param == 10 && data.values[0] != 0) {
           updateLocation(node, data.values);
         }
       }
@@ -331,7 +390,7 @@ function init() {
         #define NMEA_PARAM_PORT               13
         #define NMEA_PARAM_BAUD               14
         */
-        if (data.param == 8) {
+        if (data.param == 8 && data.values[0] != 0) {
           updateLocation(node, data.values);
         }
       }
@@ -344,7 +403,7 @@ function init() {
 
       if (node.compassType == 'TurnRate') {
         if (data.param == 12) {
-          updateHeading(node, data.values);
+          updateHeading(node, data.values[0]);
         }
       }
 
@@ -352,12 +411,10 @@ function init() {
 
     // target
     if (node.targetModule == data.channel) {
-      // Nav.target = 12
       if (data.param == 12) {
+        // 12 - target
         updateTarget(node, data.values);
       }
-
-
     }
 
     // update lastHeard
@@ -372,6 +429,15 @@ function init() {
 
     for (const [id, node] of Object.entries(nodes)) {
       var dt = (now - node.lastHeard)/1000;
+      if (dt > 120) {
+        node.uiLastHeard.classList.add('danger');
+      } else if (dt > 60) {
+        node.uiLastHeard.classList.add('warning');
+        node.uiLastHeard.classList.remove('danger');
+      } else {
+        node.uiLastHeard.classList.remove('danger');
+        node.uiLastHeard.classList.remove('warning');
+      }
       node.uiLastHeard.innerHTML = dt.toFixed(0)+ 's';
     }
   }, 1000)
