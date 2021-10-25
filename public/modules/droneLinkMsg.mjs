@@ -66,6 +66,7 @@ export class DroneLinkMsg {
     this.param = 0;
     this.msgType = 0;
     this.msgLength = 0;
+    this.writable = false;
     this.rawPayload = new ArrayBuffer(16);
     this.uint8_tPayload = new Uint8Array(this.rawPayload);
     this.values = [];
@@ -98,7 +99,7 @@ export class DroneLinkMsg {
 	}
 
   asString() {
-    return this.addressAsString() + ' ('+DRONE_LINK_MSG_TYPE_NAMES[this.msgType]+')=' + this.payloadToString();
+    return this.addressAsString() + ' ('+DRONE_LINK_MSG_TYPE_NAMES[this.msgType]+ (this.writable ? ',W':'') +')=' + this.payloadToString();
   }
 
   parse(rawBuffer) {
@@ -109,6 +110,7 @@ export class DroneLinkMsg {
     this.param = buffer[3];
     this.msgType = (buffer[4] >> 4) & 0x07;
     this.msgLength = (buffer[4] & 0x0F) + 1;
+    this.writable = (buffer[4] & DRONE_LINK_MSG_WRITABLE) > 0;
     for (var i=0; i < this.msgLength; i++) {
       this.uint8_tPayload[i] = buffer[5+i];
     }
@@ -186,7 +188,7 @@ export class DroneLinkMsg {
     buffer[2] = this.node;
     buffer[3] = this.channel;
     buffer[4] = this.param;
-    buffer[5] = (this.msgType << 4) | ((this.msgLength-1) & 0x0F);
+    buffer[5] = (this.writable ? DRONE_LINK_MSG_WRITABLE : 0) | (this.msgType << 4) | ((this.msgLength-1) & 0x0F);
 
     for (var i=0; i<this.msgLength; i++) {
       buffer[6+i] = this.uint8_tPayload[i];

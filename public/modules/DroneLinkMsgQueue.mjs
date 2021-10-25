@@ -26,8 +26,12 @@ export default class DroneLinkMsgQueue {
     this.queue.push(msg);
   }
 
-  unshift() {
-    return this.queue.unshift();
+  length() {
+    return this.queue.length;
+  }
+
+  shift() {
+    return this.queue.shift();
   }
 
   process(socket) {

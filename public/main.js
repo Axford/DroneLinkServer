@@ -9,7 +9,7 @@ import NodeTabs from './modules/ui/NodeTabs.js';
 import Gamepads from './modules/ui/Gamepads.js'
 
 // SOCKET
-import io from './libs/socketio/socket.io.esm.min.js';
+import io from './libs/socketio/socket.io.esm.min.mjs';
 var socket = io();
 
 loadStylesheet('./css/main.css');
@@ -127,7 +127,7 @@ function renderUpdates() {
 setInterval(renderUpdates, 500);
 
 
-// sync overall state once every 30sec in case we miss stuff
+// sync overall state once every xx sec in case we miss stuff
 function updateState() {
   fetch("state")
     .then(response => response.json())
@@ -146,7 +146,7 @@ function updateState() {
 updateState();
 
 
-setTimeout(fetchSparkData,2000);
+//setTimeout(fetchSparkData,2000);
 
 initGamepads(() => {
   renderAll();

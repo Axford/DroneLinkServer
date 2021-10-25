@@ -121,7 +121,7 @@ body {
   color:white;
   border-radius: 50%;
   cursor: arrow;
-  border: 2px solid rgba(255,255,0,0.5);
+  border: 2px solid rgba(0,255,0,0.5);
   text-shadow: -1px -1px 3 #000;
   overflow:visible;
   white-space:nowrap;
@@ -138,7 +138,7 @@ body {
   color:white;
   border-radius: 50%;
   cursor: pointer;
-  border: 2px solid rgba(255,255,0,0.5);
+  /* border: 2px solid rgba(255,255,0,0.5); */
   text-shadow: -1px -1px 3 #000;
   overflow:visible;
   white-space:nowrap;

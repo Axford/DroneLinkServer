@@ -25,6 +25,40 @@ const metersToPixels = (meters, latitude, zoom) =>
   meters / (78271.484 / 2 ** zoom) / Math.cos(latitude * Math.PI / 180);
 
 
+function createGeoJSONCircle(center, radius) {
+  var points = 32;
+
+  var coords = {
+      latitude: center[1],
+      longitude: center[0]
+  };
+
+  var km = radius / 1000;
+
+  var ret = [];
+  var distanceX = km/(111.320*Math.cos(coords.latitude*Math.PI/180));
+  var distanceY = km/110.574;
+
+  var theta, x, y;
+  for(var i=0; i<points; i++) {
+      theta = (i/points)*(2*Math.PI);
+      x = distanceX*Math.cos(theta);
+      y = distanceY*Math.sin(theta);
+
+      ret.push([coords.longitude+x, coords.latitude+y]);
+  }
+  ret.push(ret[0]);
+
+  return {
+    "type": "Feature",
+    "geometry": {
+        "type": "Polygon",
+        "coordinates":  [ ret ]
+    }
+  };
+};
+
+
 function initNodeLocation(node) {
   console.log('Adding node');
 
@@ -71,17 +105,40 @@ function initNodeLocation(node) {
   });
 }
 
+function distanceBetweenCoordinates(c1, c2) {
+  var lat1 = c1[1];
+  var lon1 = c1[0];
+  var lat2 = c2[1];
+  var lon2 = c2[0];
+
+  var R = 6371e3; // metres
+  var lat1r = lat1 * Math.PI/180; // φ, λ in radians
+  var lat2r = lat2 * Math.PI/180;
+  var lon1r = lon1 * Math.PI/180; // φ, λ in radians
+  var lon2r = lon2 * Math.PI/180;
+
+  var x = (lon2r-lon1r) * Math.cos((lat1r+lat2r)/2);
+  var y = (lat2r-lat1r);
+  var d = Math.sqrt(x*x + y*y) * R;
+
+  return d;
+}
+
 function updateLocation(node, newLoc) {
   //console.log(newLoc);
   node.location = newLoc;
   // update snailTrail
   if (node.snailTrail) {
-    node.snailTrail.coordinates.push(node.location);
-    if (node.snailTrail.coordinates.length > 100) {
-      node.snailTrail.coordinates.shift();
+    // check distance between nodes, update if moved a sig distance
+    var d = distanceBetweenCoordinates(node.location, node.snailTrail.coordinates[node.snailTrail.coordinates.length-1]);
+    if (d > 0.5) {
+      node.snailTrail.coordinates.push(node.location);
+      if (node.snailTrail.coordinates.length > 100) {
+        node.snailTrail.coordinates.shift();
+      }
+      var src = map.getSource('snailTrail' + node.id);
+      if (src) src.setData(node.snailTrail);
     }
-    var src = map.getSource('snailTrail' + node.id);
-    if (src) src.setData(node.snailTrail);
   }
 
   // update target
@@ -110,27 +167,21 @@ function updateTarget(node, target) {
   if (target.length <3) return;
 
   node.target = target;
-  console.log('new target');
+  //console.log('new target');
 
   if (node.gotLocation) {
     if (!node.gotTarget) {
-      console.log('Adding target');
+      //console.log('Adding target');
       node.gotTarget = true;
 
       // -- target marker --
       var el = document.createElement('div');
       el.className = 'targetMarker';
 
-      var pixelRadius = metersToPixels(target[2], target[1], map.getZoom() );
-      el.style.width = pixelRadius + 'px';
-      el.style.height = pixelRadius + 'px';
-      el.style.lineHeight = pixelRadius + 'px';
-
       node.targetMarker = new mapboxgl.Marker(el)
           .setLngLat(target)
           .setDraggable(true)
           .addTo(map);
-
 
       node.targetMarker.on('dragend', (e)=>{
         // e.target
@@ -140,7 +191,7 @@ function updateTarget(node, target) {
         //e.target.values[2] = 0;
         e.target.getElement().classList.add('updating');
 
-        console.log('Moved target: ' + lngLat);
+        //console.log('Moved target: ' + lngLat);
 
         // write the new target
         var qm = new DLM.DroneLinkMsg();
@@ -161,6 +212,22 @@ function updateTarget(node, target) {
         qm.msgLength = 1;
         state.send(qm);
       });
+
+      // -- target outline --
+      var outlineName = 'targetOutline' + node.id;
+      node.targetOutline = createGeoJSONCircle(node.target, node.target[2]);
+      map.addSource(outlineName, { type: 'geojson', data: node.targetOutline });
+      map.addLayer({
+				'id': outlineName,
+				'type': 'line',
+				'source': outlineName,
+        'layout': {},
+				'paint': {
+          'line-color': 'yellow',
+					'line-opacity': 0.5,
+					'line-width': 2
+				}
+			});
 
       // -- target trace --
       var traceName = 'targetTrace' + node.id;
@@ -183,15 +250,18 @@ function updateTarget(node, target) {
       node.targetMarker.setLngLat(target);
 
       var el = node.targetMarker.getElement();
-      var pixelRadius = metersToPixels(target[2], target[1], map.getZoom() );
-      el.style.width = pixelRadius + 'px';
-      el.style.height = pixelRadius + 'px';
-      el.style.lineHeight = pixelRadius + 'px';
       el.classList.remove('updating');
+
+      // -- target outline --
+      var outlineName = 'targetOutline' + node.id;
+      node.targetOutline = createGeoJSONCircle(node.target, node.target[2]);
+      var src = map.getSource(outlineName);
+      if (src) src.setData(node.targetOutline);
 
       // -- target trace --
       node.targetTrace.coordinates[1] = node.target;
-      var src = map.getSource('targetTrace');
+      var traceName = 'targetTrace' + node.id;
+      var src = map.getSource(traceName);
       if (src) src.setData(node.targetTrace);
     }
   }
@@ -293,7 +363,7 @@ function init() {
       qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
       qm.msgLength = 1;
       state.send(qm);
-    }, 1000)
+    }, 5000)
   });
 
 

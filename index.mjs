@@ -7,6 +7,7 @@ import socket_io from 'socket.io';
 const { Server} = socket_io;
 
 import * as DLM from './public/modules/droneLinkMsg.mjs';
+import DroneLinkMsgQueue from './public/modules/DroneLinkMsgQueue.mjs';
 
 //const broadcastAddress = require('broadcast-address');
 
@@ -60,7 +61,7 @@ var channelState = {
     networkInterface:'UDP'
   }
 };
-var msgQueue = [];
+var msgQueue = new DroneLinkMsgQueue();
 
 var lastDiscovered;
 
@@ -520,33 +521,7 @@ httpServer.listen(8003, () => {
 
 
 function queueMsg(msg) {
-  if (!fakeMode) {
-    // check a message with same signature isn't already in the queue,
-    // if there is, overwrite it
-
-    //console.log('[.qM]  ['+msgQueue.length+']: ' + msg.asString());
-
-    var found  = false;
-
-    msgQueue.forEach((m)=>{
-      if (msg.source == m.source &&
-          msg.node == m.node &&
-          msg.channel == m.channel &&
-          msg.param == m.param &&
-          msg.msgType == m.msgType) {
-            //console.log('[.qM] update: ' + m.asString() );
-            m.copy(msg);
-            found = true;
-            return;
-          }
-    })
-
-    if (!found) {
-      //console.log('[.qM] queue');
-      msgQueue.push(msg);
-    }
-
-  }
+  msgQueue.add(msg);
 }
 
 
@@ -555,9 +530,6 @@ var discoveryNodeIndex = 0,
 
 function discovery() {
   if (fakeMode) return;
-
-  // only initiate if msgQueue empty
-  if (msgQueue.length > 0) return;
 
   //console.log('Discovering...');
 
@@ -572,130 +544,101 @@ function discovery() {
 
       if (key > maxChannel) maxChannel = key;
 
-      if (msgQueue.length < 1) {
-        // check status
-        if (channelState[nodeKey].channels[key].params[1] == undefined) {
-          console.log('Unknown status for: ' + key);
+      // check status
+      if (channelState[nodeKey].channels[key].params[1] == undefined) {
+        console.log('Unknown status for: ' + key);
 
-          var newMsg = new DLM.DroneLinkMsg();
+        var newMsg = new DLM.DroneLinkMsg();
 
-          newMsg.source = sourceId;
-          newMsg.node = nodeKey;
-          newMsg.channel = key;
-          newMsg.param = 1;
-          newMsg.msgType =DLM.DRONE_LINK_MSG_TYPE_QUERY;
-          newMsg.msgLength = 1;
-          newMsg.uint8_tPayload[0] = 0;
+        newMsg.source = sourceId;
+        newMsg.node = nodeKey;
+        newMsg.channel = key;
+        newMsg.param = 1;
+        newMsg.msgType =DLM.DRONE_LINK_MSG_TYPE_QUERY;
+        newMsg.msgLength = 1;
+        newMsg.uint8_tPayload[0] = 0;
 
-          if (!newMsg.sameSignature(lastDiscovered)) {
-            queueMsg(newMsg);
-            lastDiscovered = newMsg;
-          }
-
+        if (!newMsg.sameSignature(lastDiscovered)) {
+          queueMsg(newMsg);
+          lastDiscovered = newMsg;
         }
 
-        // check name
-        if (!channelState[nodeKey].channels[key].params[2]) {
-          //console.log('Unknown name for: ' + key);
+      }
 
-          var newMsg = new DLM.DroneLinkMsg();
+      // check name
+      if (!channelState[nodeKey].channels[key].params[2]) {
+        //console.log('Unknown name for: ' + key);
 
-          newMsg.source = sourceId;
-          newMsg.node = nodeKey;
-          newMsg.channel = key;
-          newMsg.param = 2;
-          newMsg.msgType =DLM.DRONE_LINK_MSG_TYPE_QUERY;
-          newMsg.msgLength = 1;
-          newMsg.uint8_tPayload[0] = 0;
+        var newMsg = new DLM.DroneLinkMsg();
 
-          if (!newMsg.sameSignature(lastDiscovered)) {
-            queueMsg(newMsg);
-            lastDiscovered = newMsg;
-          }
-        }
+        newMsg.source = sourceId;
+        newMsg.node = nodeKey;
+        newMsg.channel = key;
+        newMsg.param = 2;
+        newMsg.msgType =DLM.DRONE_LINK_MSG_TYPE_QUERY;
+        newMsg.msgLength = 1;
+        newMsg.uint8_tPayload[0] = 0;
 
-        // check type
-        if (!channelState[nodeKey].channels[key].params[5]) {
-          //console.log('Unknown name for: ' + key);
-
-          var newMsg = new DLM.DroneLinkMsg();
-
-          newMsg.source = sourceId;
-          newMsg.node = nodeKey;
-          newMsg.channel = key;
-          newMsg.param = 5;
-          newMsg.msgType =DLM.DRONE_LINK_MSG_TYPE_QUERY;
-          newMsg.msgLength = 1;
-          newMsg.uint8_tPayload[0] = 0;
-
-          if (!newMsg.sameSignature(lastDiscovered)) {
-            queueMsg(newMsg);
-            lastDiscovered = newMsg;
-          }
-        }
-
-        // check error
-        if (!channelState[nodeKey].channels[key].params[3]) {
-          //console.log('Unknown error code for: ' + key);
-
-          var newMsg = new DLM.DroneLinkMsg();
-
-          newMsg.source = sourceId;
-          newMsg.node = nodeKey;
-          newMsg.channel = key;
-          newMsg.param = 3;
-          newMsg.msgType =DLM.DRONE_LINK_MSG_TYPE_QUERY;
-          newMsg.msgLength = 1;
-          newMsg.uint8_tPayload[0] = 0;
-
-          if (!newMsg.sameSignature(lastDiscovered)) {
-            queueMsg(newMsg);
-            lastDiscovered = newMsg;
-          }
+        if (!newMsg.sameSignature(lastDiscovered)) {
+          queueMsg(newMsg);
+          lastDiscovered = newMsg;
         }
       }
+
+      // check type
+      if (!channelState[nodeKey].channels[key].params[5]) {
+        //console.log('Unknown name for: ' + key);
+
+        var newMsg = new DLM.DroneLinkMsg();
+
+        newMsg.source = sourceId;
+        newMsg.node = nodeKey;
+        newMsg.channel = key;
+        newMsg.param = 5;
+        newMsg.msgType =DLM.DRONE_LINK_MSG_TYPE_QUERY;
+        newMsg.msgLength = 1;
+        newMsg.uint8_tPayload[0] = 0;
+
+        if (!newMsg.sameSignature(lastDiscovered)) {
+          queueMsg(newMsg);
+          lastDiscovered = newMsg;
+        }
+      }
+
+      // check error
+      if (!channelState[nodeKey].channels[key].params[3]) {
+        //console.log('Unknown error code for: ' + key);
+
+        var newMsg = new DLM.DroneLinkMsg();
+
+        newMsg.source = sourceId;
+        newMsg.node = nodeKey;
+        newMsg.channel = key;
+        newMsg.param = 3;
+        newMsg.msgType =DLM.DRONE_LINK_MSG_TYPE_QUERY;
+        newMsg.msgLength = 1;
+        newMsg.uint8_tPayload[0] = 0;
+
+        if (!newMsg.sameSignature(lastDiscovered)) {
+          queueMsg(newMsg);
+          lastDiscovered = newMsg;
+        }
+      }
+
 
       // check params
       _.forOwn(channelState[nodeKey].channels[key].params, function(mvalue, mkey) {
 
-        if (msgQueue.length < 1) {
-          if (!channelState[nodeKey].channels[key].params[mkey].name) {
-            //console.log('Undefined param name for: '+ nodeKey + '>' + key +'.' + mkey);
+        if (!channelState[nodeKey].channels[key].params[mkey].name) {
+          //console.log('Undefined param name for: '+ nodeKey + '>' + key +'.' + mkey);
 
-            var newMsg = new DLM.DroneLinkMsg();
-
-            newMsg.source = sourceId;
-            newMsg.node = nodeKey;
-            newMsg.channel = key;
-            newMsg.param = mkey;
-            newMsg.msgType =DLM.DRONE_LINK_MSG_TYPE_NAMEQUERY;
-            newMsg.msgLength = 1;
-            newMsg.uint8_tPayload[0] = 0;
-
-            if (!newMsg.sameSignature(lastDiscovered)) {
-              queueMsg(newMsg);
-              lastDiscovered = newMsg;
-            }
-
-            //return false; // stop iterating
-          }
-        }
-
-      });
-    });
-
-    // now check for missing modules and query their existance
-    /*
-    for (var i=1; i<maxChannel; i++) {
-      if (msgQueue.length < 1) {
-        if (!channelState[nodeKey].channels[i]) {
           var newMsg = new DLM.DroneLinkMsg();
 
           newMsg.source = sourceId;
           newMsg.node = nodeKey;
-          newMsg.channel = i;
-          newMsg.param = 1;
-          newMsg.msgType =DLM.DRONE_LINK_MSG_TYPE_QUERY;
+          newMsg.channel = key;
+          newMsg.param = mkey;
+          newMsg.msgType =DLM.DRONE_LINK_MSG_TYPE_NAMEQUERY;
           newMsg.msgLength = 1;
           newMsg.uint8_tPayload[0] = 0;
 
@@ -703,11 +646,12 @@ function discovery() {
             queueMsg(newMsg);
             lastDiscovered = newMsg;
           }
-        }
-      }
 
-    }
-    */
+          //return false; // stop iterating
+        }
+
+      });
+    });
 
   });
 
@@ -729,7 +673,7 @@ function discovery() {
 
 
 function sendMessages() {
-  if (msgQueue.length > 0) {
+  if (msgQueue.length() > 0) {
     var msg = msgQueue.shift();
 
     // dont send messages addressed to ourself!
@@ -777,7 +721,6 @@ function sendMessages() {
   }
 }
 
-
-//setInterval(discovery, 500);
+setInterval(discovery, 500);
 
 setInterval(sendMessages, 100);
