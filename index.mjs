@@ -111,263 +111,6 @@ function bufferToHex (buffer) {
         .join (" ");
 }
 
-// -----------------------------------------------------------
-/*
-const DRONE_LINK_SOURCE_OWNER  = 0;
-
-const DRONE_LINK_MSG_TYPE_UINT8_T  = 0;
-const DRONE_LINK_MSG_TYPE_ADDR = 1;
-const DRONE_LINK_MSG_TYPE_UINT32_T = 2;
-const DRONE_LINK_MSG_TYPE_FLOAT    = 3;
-const DRONE_LINK_MSG_TYPE_CHAR     = 4;
-const DRONE_LINK_MSG_TYPE_NAME     = 5  // reply with param name
-const DRONE_LINK_MSG_TYPE_NAMEQUERY= 6;  // query param name
-const DRONE_LINK_MSG_TYPE_QUERY    = 7;
-
-const DRONE_LINK_MSG_TYPE_NAMES = [
-  'u8',
-  'a',
-  'u32',
-  'f',
-  'c',
-  'n',
-  'nq',
-  'q'
-];
-
-const DRONE_LINK_MSG_WRITABLE      = 0b10000000;
-
-const DRONE_LINK_MSG_TYPE_SIZES = [1,4,4,4, 1,1,1,1, 1,1,1,1, 1,1,1,1];
-
-
-class DroneLinkMsg {
-  constructor(buffer) {
-    this.source = 0;
-    this.node = 0;
-    this.channel = 0;
-    this.param = 0;
-    this.msgType = 0;
-    this.msgLength = 0;
-    this.writable = false;
-    this.rawPayload = new ArrayBuffer(16);
-    this.uint8_tPayload = new Uint8Array(this.rawPayload);
-    this.values = [];
-
-    if (buffer) this.parse(buffer);
-  }
-
-  sameSignature(msg) {
-    if (msg == undefined) return false;
-
-  // returns true if channel, param and type match
-    return (this.source == msg.source) &&
-           (this.node == msg.node) &&
-           (this.channel == msg.channel) &&
-           (this.param == msg.param) &&
-           (this.msgType == msg.msgType);
-  }
-
-  setAddress(addr) {
-    var gti = addr.indexOf('>');
-    var pi = addr.indexOf('.');
-    this.node = parseInt(addr.substring(0,gti));
-    this.channel = parseInt(addr.substring(gti+1,pi));
-    this.param = parseInt(addr.substring(pi+1, addr.length));
-  }
-
-  setString(s) {
-    this.msgLength = s.length;
-    for (var i=0; i < this.msgLength; i++) {
-      this.uint8_tPayload[i] = s.charCodeAt(i);
-    }
-  }
-
-  asString() {
-    return this.source + ':' + this.node + '>' + this.channel + '.' + this.param + '('+DRONE_LINK_MSG_TYPE_NAMES[this.msgType]+', '+(this.writable ? 'RW' : 'R')+')=' + this.payloadToString();
-  }
-
-  parse(buffer) {
-    this.source = buffer[0]
-    this.node = buffer[1];
-    this.channel = buffer[2];
-    this.param = buffer[3];
-    this.msgType = (buffer[4] >> 4) & 0x07;
-    this.msgLength = (buffer[4] & 0x0F) + 1;
-    this.writable = (buffer[4] & DRONE_LINK_MSG_WRITABLE) == DRONE_LINK_MSG_WRITABLE;
-    //console.log('msgTypeLength: ', buffer[3].toString(2));
-    for (var i=0; i < this.msgLength; i++) {
-      this.uint8_tPayload[i] = buffer[5+i];
-    }
-  }
-
-  copy(msg) {
-    this.source = msg.source;
-    this.node = msg.node;
-    this.channel = msg.channel;
-    this.param = msg.param;
-    this.msgType = msg.msgType;
-    this.msgLength = msg.msgLength;
-    this.writable = msg.writable;
-    //console.log('msgTypeLength: ', buffer[3].toString(2));
-    for (var i=0; i < this.msgLength; i++) {
-      this.uint8_tPayload[i] = msg.uint8_tPayload[i];
-    }
-  }
-
-  encode() {
-    // return Uint8Array
-    var buffer = new Uint8Array(this.msgLength + 5 + 2);
-    buffer[0] = 0xFE;
-    buffer[1] = this.source;
-    buffer[2] = this.node;
-    buffer[3] = this.channel;
-    buffer[4] = this.param;
-    buffer[5] = (this.writable ? DRONE_LINK_MSG_WRITABLE : 0) | (this.msgType << 4) | ((this.msgLength-1) & 0x0F);
-
-    for (var i=0; i<this.msgLength; i++) {
-      buffer[6+i] = this.uint8_tPayload[i];
-    }
-    buffer[buffer.length-1] = crc8.calc(buffer.slice(1,this.msgLength+6), this.msgLength + 5);
-    //console.log('Sending: '+bufferToHex(buffer));
-    return buffer;
-  }
-
-  encodeUnframed() {
-    // return Uint8Array
-    var buffer = new Uint8Array(this.msgLength + 5);
-    buffer[0] = this.source;
-    buffer[1] = this.node;
-    buffer[2] = this.channel;
-    buffer[3] = this.param;
-    buffer[4] = (this.writable ? DRONE_LINK_MSG_WRITABLE : 0) | (this.msgType << 4) | ((this.msgLength-1) & 0x0F);
-
-    for (var i=0; i<this.msgLength; i++) {
-      buffer[5+i] = this.uint8_tPayload[i];
-    }
-    return buffer;
-  }
-
-  payloadToString() {
-    var s = '';
-    //console.log(this.msgType);
-
-    if (this.msgType == DRONE_LINK_MSG_TYPE_CHAR || this.msgType == DRONE_LINK_MSG_TYPE_NAME) {
-      for (var i=0; i<this.msgLength; i++) {
-        var c = String.fromCharCode(this.uint8_tPayload[i]);
-        if (c != '\u0000') s += c;
-      }
-    } else {
-      for (var i=0; i<this.msgLength; i++) {
-        s += this.uint8_tPayload[i].toString(16) + ' ';
-      }
-    }
-
-    return s;
-  }
-
-  bytesPerValue() {
-    return DRONE_LINK_MSG_TYPE_SIZES[this.msgType];
-  }
-
-  numValues() {
-    return this.msgLength / this.bytesPerValue();
-  }
-
-  payloadAsFloat() {
-    let floatView = new Float32Array(this.rawPayload, 0, this.msgLength/4);
-    return floatView;
-  }
-
-  valueArray() {
-    const numValues = this.numValues();
-    var valueView = [];
-    if (this.msgType == DRONE_LINK_MSG_TYPE_UINT8_T ||
-        this.msgType == DRONE_LINK_MSG_TYPE_ADDR) {
-      var temp = new Uint8Array(this.rawPayload, 0, numValues);
-      temp.forEach((v)=>{ valueView.push(v)} );
-
-    } else if (this.msgType == DRONE_LINK_MSG_TYPE_UINT32_T) {
-      var temp = new Uint32Array(this.rawPayload, 0, numValues);
-      temp.forEach((v)=>{ valueView.push(v)} );
-      //console.log("u32", valueView);
-
-    } else if (this.msgType == DRONE_LINK_MSG_TYPE_FLOAT) {
-      var temp = new Float32Array(this.rawPayload, 0, numValues);
-      temp.forEach((v)=>{ valueView.push(v)} );
-      //console.log("F", valueView);
-
-    } else if (this.msgType == DRONE_LINK_MSG_TYPE_CHAR) {
-      valueView = [ this.payloadToString() ];
-    }
-    return valueView;
-  }
-
-  store() {
-    const numValues = this.numValues();
-
-    var doWrite = false;
-
-    const addr = this.node + '>' + this.channel + '.' + this.param;
-    var paramName = '';
-    if (channelState[this.node].channels[this.channel].params[this.param] &&
-       channelState[this.node].channels[this.channel].params[this.param].name)
-      paramName += channelState[this.node].channels[this.channel].params[this.param].name;
-
-    // save this message to the InfluxDB
-    const point = new Point(addr)
-      //.tag('node', this.node)
-      //.tag('channel', this.channel)
-      //.tag('param', this.param)
-      .tag('addr', addr)
-      .tag('type', this.msgType)
-      //.tag('writable', this.writable)
-      .tag('name', paramName)
-      //.intField('length',this.msgLength)
-      .intField('num', numValues);
-
-    if (this.msgType == DRONE_LINK_MSG_TYPE_UINT8_T ||
-        this.msgType == DRONE_LINK_MSG_TYPE_ADDR) {
-      for (var i=0; i<numValues; i++) {
-        point.intField('value'+i, this.uint8_tPayload[i]);
-      }
-      doWrite = true;
-
-    } else if (this.msgType == DRONE_LINK_MSG_TYPE_UINT32_T) {
-      let int32view = new Uint32Array(this.rawPayload, 0, numValues);
-      for (var i=0; i<numValues; i++) {
-        point.intField('value'+i, int32view[i]);
-      }
-      doWrite = true;
-
-    } else if (this.msgType == DRONE_LINK_MSG_TYPE_FLOAT) {
-      let floatView = new Float32Array(this.rawPayload, 0, numValues);
-      for (var i=0; i<numValues; i++) {
-        var fv = floatView[i];
-        if (fv != undefined) {
-          point.floatField('value'+i, fv);
-          //console.log(('fv: '+ fv).blue);
-          doWrite = true;
-        }
-      }
-
-    } else if (this.msgType == DRONE_LINK_MSG_TYPE_CHAR) {
-      point.stringField('value0', this.payloadToString() );
-      doWrite = true;
-
-    } else {
-      //console.log('cant store msg type:', this.msgType);
-    }
-
-    // TODO: enable /disable here
-    if (doWrite) {
-      writeApi.writePoint(point);
-      writeApi.flush();
-    }
-  }
-}
-
-*/
-
 // -------------------------------------------------------------------------
 
 function handleLinkMsg(msg, networkInterface) {
@@ -411,7 +154,7 @@ function handleLinkMsg(msg, networkInterface) {
 
   console.log(networkInterface + ': '+ msg.asString());
 
-  if (msg.msgType != DRONE_LINK_MSG_TYPE_QUERY && msg.msgType != DRONE_LINK_MSG_TYPE_NAMEQUERY) {
+  if (msg.msgType !=DLM.DRONE_LINK_MSG_TYPE_QUERY && msg.msgType !=DLM.DRONE_LINK_MSG_TYPE_NAMEQUERY) {
     newState[msg.node] = {
       channels: {},
       lastHeard: now,
@@ -429,14 +172,14 @@ function handleLinkMsg(msg, networkInterface) {
 
 
   // handle param types
-  if (msg.msgType == DRONE_LINK_MSG_TYPE_NAME) {
+  if (msg.msgType ==DLM.DRONE_LINK_MSG_TYPE_NAME) {
     const paramName = msg.payloadToString();
     //console.log('Received param name: ', paramName)
     newState[msg.node].channels[msg.channel].params[msg.param].name = paramName;
     io.emit('DLM.name', newState);
     //console.log('DLN.name');
 
-  } else if (msg.msgType == DRONE_LINK_MSG_TYPE_QUERY || msg.msgType == DRONE_LINK_MSG_TYPE_NAMEQUERY) {
+  } else if (msg.msgType ==DLM.DRONE_LINK_MSG_TYPE_QUERY || msg.msgType ==DLM.DRONE_LINK_MSG_TYPE_NAMEQUERY) {
     // do nothing
   } else {
     // update channel state
@@ -449,7 +192,7 @@ function handleLinkMsg(msg, networkInterface) {
     doStore = true;
 
     // is this a module name?
-    if (msg.msgType == DRONE_LINK_MSG_TYPE_CHAR && msg.param == 2) {
+    if (msg.msgType ==DLM.DRONE_LINK_MSG_TYPE_CHAR && msg.param == 2) {
       newState[msg.node].channels[msg.channel].name = msg.payloadToString();
     }
 
@@ -464,7 +207,14 @@ function handleLinkMsg(msg, networkInterface) {
 
   _.merge(channelState, newState);
 
-  if (doStore) msg.store();
+  var paramName = '';
+  if (channelState[msg.node] &&
+    channelState[msg.node].channels[msg.channel] &&
+    channelState[msg.node].channels[msg.channel].params[msg.param] &&
+     channelState[msg.node].channels[msg.channel].params[msg.param].name)
+    paramName += channelState[msg.node].channels[msg.channel].params[msg.param].name;
+
+  if (doStore) msg.store(writeApi, Point, paramName);
 }
 
 // -------------------- telemetry decoder --------------------
@@ -524,7 +274,7 @@ class TelemetryDecoder {
           //console.log('CRC: ' + crc + ' vs ' + buffer[i]);
           if (crc == buffer[i]) {
             //console.log('CRC matches');
-            var newMsg = new DroneLinkMsg(this.msgBuffer);
+            var newMsg = new DLM.DroneLinkMsg(this.msgBuffer);
             handleLinkMsg(newMsg, 'Telemetry');
             //console.log(newMsg);
           } else {
@@ -600,7 +350,7 @@ server.on('error',function(error){
 
 // emits on new datagram msg
 server.on('message',function(msg,info){
-  var newMsg = new DroneLinkMsg(msg);
+  var newMsg = new DLM.DroneLinkMsg(msg);
 
   // ignore messages from ourself!
   if (newMsg.source != 254) handleLinkMsg(newMsg, 'UDP');
@@ -662,19 +412,19 @@ app.post('/send', (req, res) => {
   //res.json(channelState);
   console.log('Send got json: ',req.body);      // your JSON
 
-  var newMsg = new DroneLinkMsg();
+  var newMsg = new DLM.DroneLinkMsg();
   newMsg.source = sourceId;
   newMsg.setAddress(req.body.addr);
   newMsg.msgType = req.body.msgType;
-  newMsg.writable = req.body.msgType <= DRONE_LINK_MSG_TYPE_CHAR;
-  newMsg.msgLength = DRONE_LINK_MSG_TYPE_SIZES[req.body.msgType] * req.body.values.length;
+  newMsg.writable = req.body.msgType <=DLM.DRONE_LINK_MSG_TYPE_CHAR;
+  newMsg.msgLength =DLM.DRONE_LINK_MSG_TYPE_SIZES[req.body.msgType] * req.body.values.length;
 
 
 
-  if (newMsg.msgType == DRONE_LINK_MSG_TYPE_CHAR) {
+  if (newMsg.msgType ==DLM.DRONE_LINK_MSG_TYPE_CHAR) {
     newMsg.setString(req.body.values);
 
-  } else if (newMsg.msgType == DRONE_LINK_MSG_TYPE_UINT8_T) {
+  } else if (newMsg.msgType ==DLM.DRONE_LINK_MSG_TYPE_UINT8_T) {
     for (var i=0; i<req.body.values.length; i++)
       newMsg.uint8_tPayload[i] = req.body.values[i];
   } else {
@@ -741,7 +491,7 @@ io.on('connection', (socket) => {
   console.log('a user connected');
 
   socket.on('sendMsg', (msgBuffer)=>{
-    var msg = new DroneLinkMsg(msgBuffer);
+    var msg = new DLM.DroneLinkMsg(msgBuffer);
     console.log(('[.sM] recv: ' + msg.asString()).green );
     handleLinkMsg(msg, 'socket');
 
@@ -810,13 +560,13 @@ function discovery() {
         if (channelState[nodeKey].channels[key].params[1] == undefined) {
           console.log('Unknown status for: ' + key);
 
-          var newMsg = new DroneLinkMsg();
+          var newMsg = new DLM.DroneLinkMsg();
 
           newMsg.source = sourceId;
           newMsg.node = nodeKey;
           newMsg.channel = key;
           newMsg.param = 1;
-          newMsg.msgType = DRONE_LINK_MSG_TYPE_QUERY;
+          newMsg.msgType =DLM.DRONE_LINK_MSG_TYPE_QUERY;
           newMsg.msgLength = 1;
           newMsg.uint8_tPayload[0] = 0;
 
@@ -831,13 +581,13 @@ function discovery() {
         if (!channelState[nodeKey].channels[key].params[2]) {
           //console.log('Unknown name for: ' + key);
 
-          var newMsg = new DroneLinkMsg();
+          var newMsg = new DLM.DroneLinkMsg();
 
           newMsg.source = sourceId;
           newMsg.node = nodeKey;
           newMsg.channel = key;
           newMsg.param = 2;
-          newMsg.msgType = DRONE_LINK_MSG_TYPE_QUERY;
+          newMsg.msgType =DLM.DRONE_LINK_MSG_TYPE_QUERY;
           newMsg.msgLength = 1;
           newMsg.uint8_tPayload[0] = 0;
 
@@ -851,13 +601,13 @@ function discovery() {
         if (!channelState[nodeKey].channels[key].params[5]) {
           //console.log('Unknown name for: ' + key);
 
-          var newMsg = new DroneLinkMsg();
+          var newMsg = new DLM.DroneLinkMsg();
 
           newMsg.source = sourceId;
           newMsg.node = nodeKey;
           newMsg.channel = key;
           newMsg.param = 5;
-          newMsg.msgType = DRONE_LINK_MSG_TYPE_QUERY;
+          newMsg.msgType =DLM.DRONE_LINK_MSG_TYPE_QUERY;
           newMsg.msgLength = 1;
           newMsg.uint8_tPayload[0] = 0;
 
@@ -871,13 +621,13 @@ function discovery() {
         if (!channelState[nodeKey].channels[key].params[3]) {
           //console.log('Unknown error code for: ' + key);
 
-          var newMsg = new DroneLinkMsg();
+          var newMsg = new DLM.DroneLinkMsg();
 
           newMsg.source = sourceId;
           newMsg.node = nodeKey;
           newMsg.channel = key;
           newMsg.param = 3;
-          newMsg.msgType = DRONE_LINK_MSG_TYPE_QUERY;
+          newMsg.msgType =DLM.DRONE_LINK_MSG_TYPE_QUERY;
           newMsg.msgLength = 1;
           newMsg.uint8_tPayload[0] = 0;
 
@@ -895,13 +645,13 @@ function discovery() {
           if (!channelState[nodeKey].channels[key].params[mkey].name) {
             //console.log('Undefined param name for: '+ nodeKey + '>' + key +'.' + mkey);
 
-            var newMsg = new DroneLinkMsg();
+            var newMsg = new DLM.DroneLinkMsg();
 
             newMsg.source = sourceId;
             newMsg.node = nodeKey;
             newMsg.channel = key;
             newMsg.param = mkey;
-            newMsg.msgType = DRONE_LINK_MSG_TYPE_NAMEQUERY;
+            newMsg.msgType =DLM.DRONE_LINK_MSG_TYPE_NAMEQUERY;
             newMsg.msgLength = 1;
             newMsg.uint8_tPayload[0] = 0;
 
@@ -922,13 +672,13 @@ function discovery() {
     for (var i=1; i<maxChannel; i++) {
       if (msgQueue.length < 1) {
         if (!channelState[nodeKey].channels[i]) {
-          var newMsg = new DroneLinkMsg();
+          var newMsg = new DLM.DroneLinkMsg();
 
           newMsg.source = sourceId;
           newMsg.node = nodeKey;
           newMsg.channel = i;
           newMsg.param = 1;
-          newMsg.msgType = DRONE_LINK_MSG_TYPE_QUERY;
+          newMsg.msgType =DLM.DRONE_LINK_MSG_TYPE_QUERY;
           newMsg.msgLength = 1;
           newMsg.uint8_tPayload[0] = 0;
 
@@ -945,13 +695,13 @@ function discovery() {
   });
 
   // publish own name
-  var newMsg = new DroneLinkMsg();
+  var newMsg = new DLM.DroneLinkMsg();
 
   newMsg.source = sourceId;
   newMsg.node = sourceId;
   newMsg.channel = 1;
   newMsg.param = 8;
-  newMsg.msgType = DRONE_LINK_MSG_TYPE_CHAR;
+  newMsg.msgType =DLM.DRONE_LINK_MSG_TYPE_CHAR;
   newMsg.setString('Server');
 
   queueMsg(newMsg);

@@ -5,7 +5,7 @@
 
 */
 
-import io from '../libs/socketio/socket.io.esm.min.js';
+import io from '../libs/socketio/socket.io.esm.min.mjs';
 import * as DLM from './droneLinkMsg.mjs';
 import DroneLinkMsgQueue from './DroneLinkMsgQueue.mjs';
 

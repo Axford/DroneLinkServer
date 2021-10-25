@@ -72,7 +72,7 @@ function initNodeLocation(node) {
 }
 
 function updateLocation(node, newLoc) {
-  //console.log(newLoc);
+  console.log(newLoc);
   node.location = newLoc;
   // update snailTrail
   if (node.snailTrail) {

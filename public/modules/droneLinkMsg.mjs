@@ -103,7 +103,7 @@ export class DroneLinkMsg {
 
   parse(rawBuffer) {
     var buffer = new Uint8Array(rawBuffer, 0);
-		this.source = buffer[0];
+    this.source = buffer[0];
     this.node = buffer[1];
     this.channel = buffer[2];
     this.param = buffer[3];
@@ -292,5 +292,64 @@ export class DroneLinkMsg {
   payloadAsFloat() {
     let floatView = new Float32Array(this.rawPayload, 0, this.msgLength/4);
     return floatView;
+  }
+
+  store(writeApi, Point, paramName) {
+    const numValues = this.numValues();
+
+    var doWrite = false;
+
+    const addr = this.node + '>' + this.channel + '.' + this.param;
+
+    // save this message to the InfluxDB
+    const point = new Point(addr)
+      //.tag('node', this.node)
+      //.tag('channel', this.channel)
+      //.tag('param', this.param)
+      .tag('addr', addr)
+      .tag('type', this.msgType)
+      //.tag('writable', this.writable)
+      .tag('name', paramName)
+      //.intField('length',this.msgLength)
+      .intField('num', numValues);
+
+    if (this.msgType == DRONE_LINK_MSG_TYPE_UINT8_T ||
+        this.msgType == DRONE_LINK_MSG_TYPE_ADDR) {
+      for (var i=0; i<numValues; i++) {
+        point.intField('value'+i, this.uint8_tPayload[i]);
+      }
+      doWrite = true;
+
+    } else if (this.msgType == DRONE_LINK_MSG_TYPE_UINT32_T) {
+      let int32view = new Uint32Array(this.rawPayload, 0, numValues);
+      for (var i=0; i<numValues; i++) {
+        point.intField('value'+i, int32view[i]);
+      }
+      doWrite = true;
+
+    } else if (this.msgType == DRONE_LINK_MSG_TYPE_FLOAT) {
+      let floatView = new Float32Array(this.rawPayload, 0, numValues);
+      for (var i=0; i<numValues; i++) {
+        var fv = floatView[i];
+        if (fv != undefined) {
+          point.floatField('value'+i, fv);
+          //console.log(('fv: '+ fv).blue);
+          doWrite = true;
+        }
+      }
+
+    } else if (this.msgType == DRONE_LINK_MSG_TYPE_CHAR) {
+      point.stringField('value0', this.payloadToString() );
+      doWrite = true;
+
+    } else {
+      //console.log('cant store msg type:', this.msgType);
+    }
+
+    // TODO: enable /disable here
+    if (doWrite) {
+      writeApi.writePoint(point);
+      writeApi.flush();
+    }
   }
 }
