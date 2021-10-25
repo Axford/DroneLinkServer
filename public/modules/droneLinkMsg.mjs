@@ -262,7 +262,7 @@ export class DroneLinkMsg {
     } else if (this.msgType == DRONE_LINK_MSG_TYPE_CHAR) {
       valueView = [ this.payloadToString() ];
     }
-    return Array.from(valueView);
+    return valueView;
   }
 
   trimNull(a) {

@@ -125,6 +125,13 @@ function handleLinkMsg(msg, networkInterface) {
   if (networkInterface != 'socket') {
     //console.log(('emit: ' + msg.asString()).red);
     io.emit('DLM.msg', msg.encodeUnframed());
+  } else {
+    // rewrite networkInterface to existing value
+    if (channelState[msg.node].networkInterface) {
+      networkInterface = channelState[msg.node].networkInterface;
+    } else {
+      networkInterface = '';
+    }
   }
 
   // decide which networkInterface to listen to
@@ -136,7 +143,7 @@ function handleLinkMsg(msg, networkInterface) {
 
     // switch to telemetry
     if (networkInterface == 'Telemetry' && channelState[msg.node].networkInterface == 'UDP') {
-      if (networkInterfaceAge < 10000) {
+      if (networkInterfaceAge < 5000) {
         // UDP still seems to be active, so stick with it and ignore this msg
         return;
       } else {
@@ -145,7 +152,7 @@ function handleLinkMsg(msg, networkInterface) {
     }
 
     // switch to UDP
-    if (networkInterface == 'UDP' && channelState[msg.node].networkInterface == 'Telemetry') {
+    if (networkInterface == 'UDP' && channelState[msg.node].networkInterface != 'UDP') {
       // yup...  lets stick with this msg and let it override the active networkInterface
       console.log('Switch to '+networkInterface);
     }
@@ -186,7 +193,7 @@ function handleLinkMsg(msg, networkInterface) {
     newState[msg.node].channels[msg.channel].params[msg.param].msgType = msg.msgType;
     newState[msg.node].channels[msg.channel].params[msg.param].bytesPerValue = msg.bytesPerValue();
     newState[msg.node].channels[msg.channel].params[msg.param].numValues = msg.numValues();
-    newState[msg.node].channels[msg.channel].params[msg.param].values = msg.valueArray();
+    newState[msg.node].channels[msg.channel].params[msg.param].values = Array.from( msg.valueArray() );
     newState[msg.node].channels[msg.channel].params[msg.param].writable = msg.writable;
 
     doStore = true;
@@ -517,18 +524,28 @@ function queueMsg(msg) {
     // check a message with same signature isn't already in the queue,
     // if there is, overwrite it
 
+    //console.log('[.qM]  ['+msgQueue.length+']: ' + msg.asString());
+
+    var found  = false;
+
     msgQueue.forEach((m)=>{
       if (msg.source == m.source &&
           msg.node == m.node &&
           msg.channel == m.channel &&
           msg.param == m.param &&
           msg.msgType == m.msgType) {
+            //console.log('[.qM] update: ' + m.asString() );
             m.copy(msg);
+            found = true;
             return;
           }
     })
 
-    msgQueue.push(msg);
+    if (!found) {
+      //console.log('[.qM] queue');
+      msgQueue.push(msg);
+    }
+
   }
 }
 
@@ -748,6 +765,8 @@ function sendMessages() {
 
           });
         }
+      } else {
+        console.log( ('unknwon interface ' + channelState[msg.node].networkInterface + ' for ' + msg.asString()).red );
       }
 
 
@@ -759,6 +778,6 @@ function sendMessages() {
 }
 
 
-setInterval(discovery, 500);
+//setInterval(discovery, 500);
 
 setInterval(sendMessages, 100);

@@ -72,7 +72,7 @@ export default class SimTankSteerBoat extends SimNode {
     var dt = (loopTime - this.lastLoop) / 1000;
     if (dt > 2*this.interval) dt = 2*this.interval;
     if (dt > this.interval) {
-      console.log(('dt: '+dt).white);
+      //console.log(('dt: '+dt).white);
 
       // convert motor speeds to impulse vectors
       var fv = 0.5;
@@ -100,6 +100,8 @@ export default class SimTankSteerBoat extends SimNode {
 
       // invert heading
       this.pubs['compass.heading'].values[0] = -this.physics.aDeg;
+
+      console.log('new loc: ', this.pubs['gps.location'].values);
 
       this.publishParams();
 

@@ -251,9 +251,9 @@ export default class DroneLinkState {
     if (msg.msgType <= DLM.DRONE_LINK_MSG_TYPE_CHAR) {
       // new value?
       if (newParam ||
-          !arraysEqual(me.state[msg.node].channels[msg.channel].params[msg.param].values, msg.valueArray()) ) {
+          !arraysEqual(me.state[msg.node].channels[msg.channel].params[msg.param].values, Array.from(msg.valueArray()) ) ) {
         //console.log('param.value: ' + msg.node + '>' + msg.channel + '.' + msg.param, msg[msg.node].channels[msg.channel].params[msg.param].values);
-        me.trigger('param.value', { node: msg.node, channel:msg.channel, param: msg.param, msgType: msg.msgType, values:msg.valueArray() });
+        me.trigger('param.value', { node: msg.node, channel:msg.channel, param: msg.param, msgType: msg.msgType, values:Array.from(msg.valueArray()) });
       }
     }
 
@@ -279,7 +279,7 @@ export default class DroneLinkState {
         newState[msg.node].channels[msg.channel].params[msg.param].msgType = msg.msgType;
         newState[msg.node].channels[msg.channel].params[msg.param].bytesPerValue = msg.bytesPerValue();
         newState[msg.node].channels[msg.channel].params[msg.param].numValues = msg.numValues();
-        newState[msg.node].channels[msg.channel].params[msg.param].values = msg.valueArray();
+        newState[msg.node].channels[msg.channel].params[msg.param].values = Array.from(msg.valueArray());
         newState[msg.node].channels[msg.channel].params[msg.param].writable = msg.writable;
 
         // is this a module name?

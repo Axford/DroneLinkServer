@@ -72,7 +72,7 @@ function initNodeLocation(node) {
 }
 
 function updateLocation(node, newLoc) {
-  console.log(newLoc);
+  //console.log(newLoc);
   node.location = newLoc;
   // update snailTrail
   if (node.snailTrail) {
@@ -282,6 +282,18 @@ function init() {
 
     // add to UI
     document.getElementById('nodes').appendChild(node.ui);
+
+    // query for target regularly
+    setInterval(()=>{
+      var qm = new DLM.DroneLinkMsg();
+      qm.source = 252;
+      qm.node = node.id;
+      qm.channel = 7;
+      qm.param = 12;
+      qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
+      qm.msgLength = 1;
+      state.send(qm);
+    }, 1000)
   });
 
 
