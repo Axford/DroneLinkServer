@@ -248,10 +248,13 @@ export class DroneLinkMsg {
   valueArray() {
     const numValues = this.numValues();
     var valueView = [];
-    if (this.msgType == DRONE_LINK_MSG_TYPE_UINT8_T ||
-        this.msgType == DRONE_LINK_MSG_TYPE_ADDR) {
+    if (this.msgType == DRONE_LINK_MSG_TYPE_UINT8_T) {
       var temp = new Uint8Array(this.rawPayload, 0, numValues);
       temp.forEach((v)=>{ valueView.push(v)} );
+
+    } else if (this.msgType == DRONE_LINK_MSG_TYPE_ADDR) {
+      var temp = new Uint8Array(this.rawPayload, 0, 4);
+      valueView = Array.from(temp);
 
     } else if (this.msgType == DRONE_LINK_MSG_TYPE_UINT32_T) {
       valueView = new Uint32Array(this.rawPayload, 0, numValues);

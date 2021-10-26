@@ -128,7 +128,7 @@ function handleLinkMsg(msg, networkInterface) {
     io.emit('DLM.msg', msg.encodeUnframed());
   } else {
     // rewrite networkInterface to existing value
-    if (channelState[msg.node].networkInterface) {
+    if (channelState[msg.node] && channelState[msg.node].networkInterface) {
       networkInterface = channelState[msg.node].networkInterface;
     } else {
       networkInterface = '';

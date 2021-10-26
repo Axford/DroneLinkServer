@@ -4,7 +4,7 @@ import * as DLM from '../droneLinkMsg.mjs';
 import { colorArray, paleColorArray } from '../colors.js';
 
 import SparkContainer from './SparkContainer.js';
-import { HexControl, NumberControl, StringControl, FloatControl } from './Controls.js';
+import { HexControl, NumberControl, StringControl, FloatControl, AddrControl } from './Controls.js';
 import {IntInputControl, FloatInputControl, AddrInputControl } from './InputControls.js';
 
 // shortcut
@@ -27,7 +27,8 @@ export default class ParameterContainer extends React.Component {
 
     var addr = this.props.node + '>' + this.props.channel + '.' + this.props.id;
 
-    var valueView = [];
+    var valueView = Array.from(this.props.value.values);
+    /*
     if (this.props.value.values instanceof ArrayBuffer) {
       if (this.props.value.msgType == DLM.DRONE_LINK_MSG_TYPE_UINT8_T ||
           this.props.value.msgType == DLM.DRONE_LINK_MSG_TYPE_ADDR) {
@@ -48,17 +49,19 @@ export default class ParameterContainer extends React.Component {
     } else {
       valueView = this.props.value.values;
     }
+    */
 
 
     // iterate over values, build an appropriate control for each
 
     if (this.props.value.msgType == DLM.DRONE_LINK_MSG_TYPE_ADDR) {
       //console.log(this.props.value);
-      valueControls.push(e(AddrInputControl, {key:'addr'+addr, values: valueView, addr:addr, cs:this.props.cs }));
+      valueControls.push(e(AddrControl, {key:'addr'+addr, values: valueView, addr:addr, cs:this.props.cs }));
 
     } else if (valueView && valueView.length > 0) {
 
       valueView.forEach((v, i)=> {
+        /*
 				if (this.props.value.writable && this.props.value.values.length == 1) {
 					// writable
 					switch(this.props.value.msgType) {
@@ -68,16 +71,14 @@ export default class ParameterContainer extends React.Component {
 	        default:
 	          valueControls.push(e('div',{key:'control'+addr+i}, this.props.value.values));
 	        }
-				} else {
-					// read-only
-
-					switch(this.props.value.msgType) {
-	          case DLM.DRONE_LINK_MSG_TYPE_CHAR:  valueControls.push(e(StringControl, {key:'string'+addr+i, value: v, color: colorArray[i] })); break;
-	          case DLM.DRONE_LINK_MSG_TYPE_FLOAT:  valueControls.push(e(FloatControl, {key:'float'+addr+i, value: v, color: colorArray[i] })); break;
-	        default:
-	          valueControls.push(e(NumberControl, {key:'num'+addr+i, value: v, color: colorArray[i] }));
-	        }
-				}
+				} else {*/
+				// read-only
+				switch(this.props.value.msgType) {
+          case DLM.DRONE_LINK_MSG_TYPE_CHAR:  valueControls.push(e(StringControl, {key:'string'+addr+i, value: v, color: colorArray[i] })); break;
+          case DLM.DRONE_LINK_MSG_TYPE_FLOAT:  valueControls.push(e(FloatControl, {key:'float'+addr+i, value: v, color: colorArray[i] })); break;
+        default:
+          valueControls.push(e(NumberControl, {key:'num'+addr+i, value: v, color: colorArray[i] }));
+        }
       });
     } else {
       console.log('errrrrr', addr, valueView);
