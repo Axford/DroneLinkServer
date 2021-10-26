@@ -78,6 +78,10 @@ export default class SimTankSteerBoat extends SimNode {
       // convert motor speeds to impulse vectors
       var fv = 0.5;
 
+      // apply deadband
+      if (this.leftSub.values[0] < 0.3) this.leftSub.values[0] = 0;
+      if (this.rightSub.values[0] < 0.3) this.rightSub.values[0] = 0;
+
       var forces = [
         this.leftSub.values[0] * fv,
         this.rightSub.values[0] * fv
