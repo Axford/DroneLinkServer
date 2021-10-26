@@ -100,7 +100,7 @@ export default class ChannelContainer extends React.Component {
 				customUI.push(e(Nav, { key:'Nav', value: this.props.value, node: this.props.node, channel: this.props.id, addr: this.props.node + '>' + this.props.id + '.8'  }));
 			}
 
-      
+
 
 
       // ------------------  Generic parameter UI ------------------

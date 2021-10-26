@@ -424,7 +424,7 @@ app.post('/send', (req, res) => {
   newMsg.source = sourceId;
   newMsg.setAddress(req.body.addr);
   newMsg.msgType = req.body.msgType;
-  newMsg.writable = req.body.msgType <=DLM.DRONE_LINK_MSG_TYPE_CHAR;
+  newMsg.writable = false;
   newMsg.msgLength =DLM.DRONE_LINK_MSG_TYPE_SIZES[req.body.msgType] * req.body.values.length;
 
   if (newMsg.msgType ==DLM.DRONE_LINK_MSG_TYPE_CHAR) {
