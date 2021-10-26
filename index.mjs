@@ -415,7 +415,7 @@ app.get('/file', (req, res) => {
   res.json(channelState);
 });
 
-
+// TODO - retire /send
 app.post('/send', (req, res) => {
   //res.json(channelState);
   console.log('Send got json: ',req.body);      // your JSON
@@ -426,8 +426,6 @@ app.post('/send', (req, res) => {
   newMsg.msgType = req.body.msgType;
   newMsg.writable = req.body.msgType <=DLM.DRONE_LINK_MSG_TYPE_CHAR;
   newMsg.msgLength =DLM.DRONE_LINK_MSG_TYPE_SIZES[req.body.msgType] * req.body.values.length;
-
-
 
   if (newMsg.msgType ==DLM.DRONE_LINK_MSG_TYPE_CHAR) {
     newMsg.setString(req.body.values);
@@ -440,8 +438,6 @@ app.post('/send', (req, res) => {
     for (var i=0; i<req.body.values.length; i++)
       va[i] = req.body.values[i];
   }
-
-
 
   console.log('Queuing: ' + newMsg.asString() );
 

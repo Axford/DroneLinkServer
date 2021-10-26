@@ -26,7 +26,7 @@ const metersToPixels = (meters, latitude, zoom) =>
 
 
 function createGeoJSONCircle(center, radius) {
-  var points = 32;
+  var points = 64;
 
   var coords = {
       latitude: center[1],
@@ -414,10 +414,19 @@ function init() {
       state.send(qm);
     }
 
-    if (data.type == 'NMEA' && !node.getLocationModule) {
+    if (data.type == 'NMEA') {
       node.gotLocationModule = true;
       node.locationModule = data.channel;
       node.locationType = 'NMEA';
+    }
+
+    if (data.type == 'TankSteerBoat') {
+      console.log('using TankSteerBoat');
+      node.gotLocationModule = true;
+      node.locationModule = data.channel;
+      node.locationType = 'TankSteerBoat';
+      node.compassModule = data.channel;
+      node.compassType = 'TankSteerBoat';
     }
 
     if (data.type == 'TurnRate' && node.compassType == '') {
@@ -476,6 +485,15 @@ function init() {
           updateLocation(node, data.values);
         }
       }
+
+      if (node.locationType == 'TankSteerBoat') {
+        /*
+        location .9
+        */
+        if (data.param == 9 && data.values[0] != 0) {
+          updateLocation(node, data.values);
+        }
+      }
     }
 
     // compass heading
@@ -485,6 +503,12 @@ function init() {
 
       if (node.compassType == 'TurnRate') {
         if (data.param == 12) {
+          updateHeading(node, data.values[0]);
+        }
+      }
+
+      if (node.compassType == 'TankSteerBoat') {
+        if (data.param == 8) {
           updateHeading(node, data.values[0]);
         }
       }

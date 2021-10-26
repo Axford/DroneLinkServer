@@ -11,6 +11,7 @@ const R_EARTH = 6378 * 1000;
 export default class SimNode {
   constructor(config, mgr) {
     this.config = config;
+    this.moduleType = 'SimNode';
     this.name = config.name;
     this.node = config.node; // node id
     this.module = config.module; // module id
@@ -183,6 +184,11 @@ export default class SimNode {
       // send name
       this.mgmtMsg.param = DLM.DRONE_MODULE_PARAM_NAME;
       this.mgmtMsg.setString(this.config.type);
+      this.send(this.mgmtMsg);
+
+      // send type
+      this.mgmtMsg.param = DLM.DRONE_MODULE_PARAM_TYPE;
+      this.mgmtMsg.setString(this.moduleType);
       this.send(this.mgmtMsg);
 
       this.publishParams();

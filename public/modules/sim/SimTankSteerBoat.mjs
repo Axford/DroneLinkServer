@@ -11,6 +11,7 @@ import Vector from '../Vector.mjs';
 export default class SimTankSteerBoat extends SimNode {
   constructor(config, mgr) {
     super(config, mgr);
+    this.moduleType = 'TankSteerBoat';
     this.lastLoop = 0;
 
     // pubs
