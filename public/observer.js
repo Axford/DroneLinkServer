@@ -167,11 +167,11 @@ function updateTarget(node, target) {
   if (target.length <3) return;
 
   node.target = target;
-  //console.log('new target');
+  console.log('new target');
 
   if (node.gotLocation) {
     if (!node.gotTarget) {
-      //console.log('Adding target');
+      console.log('Adding target');
       node.gotTarget = true;
 
       // -- target marker --
@@ -386,12 +386,11 @@ function init() {
     }
 
 
-    if (data.type == 'Nav' && !node.getLocationModule) {
+    if (data.type == 'Nav' && !node.gotLocationModule) {
       console.log('Found Nav: '+data.channel);
       node.gotLocationModule = true;
       node.locationModule = data.channel;
       node.locationType = 'Nav';
-      node.targetModule = data.channel;
 
       // speculative query for location
       var qm = new DLM.DroneLinkMsg();
@@ -402,6 +401,12 @@ function init() {
       qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
       qm.msgLength = 1;
       state.send(qm);
+
+
+    }
+
+    if (data.type == 'Nav' && node.targetModule == 0) {
+      node.targetModule = data.channel;
 
       // speculative query for target
       var qm = new DLM.DroneLinkMsg();
@@ -438,7 +443,7 @@ function init() {
   // listen for values
   state.on('param.value', (data)=>{
     var node = nodes[data.node];
-    //console.log('pv', data);
+    //console.log('param.value', data);
 
     /*
        Update widgets

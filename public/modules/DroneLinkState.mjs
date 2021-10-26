@@ -41,7 +41,8 @@ export default class DroneLinkState {
 
     this.socket.on('DLM.msg',function(msgBuffer) {
       var msg = new DLM.DroneLinkMsg(msgBuffer);
-      //console.log(msg.asString());
+      //if (msg.node == 2 && msg.channel == 7)
+      //  console.log('DLM.msg: ' + msg.asString());
       me.handleLinkMsg(msg);
     });
 

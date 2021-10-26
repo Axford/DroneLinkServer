@@ -124,7 +124,7 @@ function handleLinkMsg(msg, networkInterface) {
 
   // emit raw
   if (networkInterface != 'socket') {
-    //console.log(('emit: ' + msg.asString()).red);
+    //if (msg.node == 2 && msg.channel == 7) console.log(('emit: ' + msg.asString()).red);
     io.emit('DLM.msg', msg.encodeUnframed());
   } else {
     // rewrite networkInterface to existing value
