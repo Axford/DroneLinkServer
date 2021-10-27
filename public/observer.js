@@ -169,6 +169,16 @@ function updateTarget(node, target) {
   node.target = target;
   console.log('new target');
 
+  // speculative query for last
+  var qm = new DLM.DroneLinkMsg();
+  qm.source = 252;
+  qm.node = node.id;
+  qm.channel = 7;
+  qm.param = 15;
+  qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
+  qm.msgLength = 1;
+  state.send(qm);
+
   if (node.gotLocation) {
     if (!node.gotTarget) {
       console.log('Adding target');
@@ -263,6 +273,88 @@ function updateTarget(node, target) {
       var traceName = 'targetTrace' + node.id;
       var src = map.getSource(traceName);
       if (src) src.setData(node.targetTrace);
+
+      // -- last trace --
+      if (node.gotLast) {
+        node.lastTrace.coordinates[1] = node.target;
+        var traceName = 'lastTrace' + node.id;
+        var src = map.getSource(traceName);
+        if (src) src.setData(node.lastTrace);
+      }
+    }
+  }
+}
+
+
+function updateLast(node, last) {
+  if (last.length <3) return;
+
+  node.last = last;
+  console.log('new last');
+
+  if (node.gotLocation && node.gotTarget) {
+    if (!node.gotLast) {
+      console.log('Adding last');
+      node.gotLast = true;
+
+      // -- last marker --
+      var el = document.createElement('div');
+      el.className = 'lastMarker';
+
+      node.lastMarker = new mapboxgl.Marker(el)
+          .setLngLat(last)
+          .addTo(map);
+
+      // -- last outline --
+      var outlineName = 'lastOutline' + node.id;
+      node.lastOutline = createGeoJSONCircle(node.last, node.last[2]);
+      map.addSource(outlineName, { type: 'geojson', data: node.lastOutline });
+      map.addLayer({
+				'id': outlineName,
+				'type': 'line',
+				'source': outlineName,
+        'layout': {},
+				'paint': {
+          'line-color': 'red',
+					'line-opacity': 0.5,
+					'line-width': 2
+				}
+			});
+
+      // -- last trace --
+      var traceName = 'lastTrace' + node.id;
+      node.lastTrace = { "type": "LineString", "coordinates": [ node.last, node.target ] };
+      map.addSource(traceName, { type: 'geojson', data: node.lastTrace });
+			map.addLayer({
+				'id': traceName,
+				'type': 'line',
+				'source': traceName,
+				'paint': {
+					'line-color': 'red',
+					'line-opacity': 0.5,
+					'line-width': 2
+				}
+			});
+
+
+    } else {
+      // -- last marker --
+      node.lastMarker.setLngLat(last);
+
+      var el = node.lastMarker.getElement();
+      el.classList.remove('updating');
+
+      // -- last outline --
+      var outlineName = 'lastOutline' + node.id;
+      node.lastOutline = createGeoJSONCircle(node.last, node.last[2]);
+      var src = map.getSource(outlineName);
+      if (src) src.setData(node.lastOutline);
+
+      // -- last trace --
+      node.lastTrace.coordinates[0] = node.last;
+      var traceName = 'lastTrace' + node.id;
+      var src = map.getSource(traceName);
+      if (src) src.setData(node.lastTrace);
     }
   }
 }
@@ -298,6 +390,8 @@ function init() {
     // create new node entry
     var node = nodes[id] = {
       location: [0,0],
+      target: [0,0,0],
+      last: [0,0,0],
       id: id,
 
       gotLocationModule: false,
@@ -312,6 +406,7 @@ function init() {
 
       gotTarget:false,
       targetModule:0,
+      gotLast:false,
 
       lastHeard: (new Date()).getTime()
     };
@@ -525,6 +620,9 @@ function init() {
       if (data.param == 12) {
         // 12 - target
         updateTarget(node, data.values);
+      } else if (data.param == 15) {
+        // 15 - last waypoint/location
+        updateLast(node, data.values);
       }
     }
 
