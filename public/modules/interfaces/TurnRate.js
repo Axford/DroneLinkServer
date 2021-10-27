@@ -90,7 +90,37 @@ export default class HMC5883L extends React.Component {
 
 
     return e('div', {className:'HMC5883L'},
-      e('canvas', { ref: this.canvasRef })
+      e('canvas', {
+				ref: this.canvasRef,
+				onClick: (e) => {
+
+					var offsetX = $( e.target ).offset().left;
+					var offsetY = $( e.target ).offset().top;
+					var w = $(e.target).innerWidth();
+					var h = $(e.target).innerHeight();
+
+					var x = (e.pageX - offsetX) - w/2;
+					var y = (e.pageY - offsetY) - h/2;
+
+					var ang = 90 + Math.atan2(y,x) * 180 / Math.PI;
+
+					console.log(x,y, ang);
+
+
+					DLM.sendDroneLinkMsg({
+						addr: this.props.node + '>' + this.props.channel + '.10',
+						msgType: DLM.DRONE_LINK_MSG_TYPE_FLOAT,
+						values: [ ang ]
+					});
+
+					DLM.sendDroneLinkMsg({
+						addr: this.props.node + '>' + this.props.channel + '.10',
+						msgType: DLM.DRONE_LINK_MSG_TYPE_QUERY,
+						values: [ ang ]
+					});
+
+				}
+			})
     );
   }
 }
