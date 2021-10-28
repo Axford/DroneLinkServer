@@ -287,7 +287,7 @@ function updateTarget(node, target) {
 
 
 function updateLast(node, last) {
-  if (last.length <3) return;
+  if (last.length <3 || last[0] == 0) return;
 
   node.last = last;
   console.log('new last');
