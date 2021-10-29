@@ -133,7 +133,7 @@ function updateLocation(node, newLoc) {
     var d = distanceBetweenCoordinates(node.location, node.snailTrail.coordinates[node.snailTrail.coordinates.length-1]);
     if (d > 0.5) {
       node.snailTrail.coordinates.push(node.location);
-      if (node.snailTrail.coordinates.length > 100) {
+      if (node.snailTrail.coordinates.length > 200) {
         node.snailTrail.coordinates.shift();
       }
       var src = map.getSource('snailTrail' + node.id);
