@@ -10,6 +10,7 @@ import HMC5883L from '../interfaces/HMC5883L.js';
 import Management from '../interfaces/Management.js';
 import Motor from '../interfaces/Motor.js';
 import NMEA from '../interfaces/NMEA.js';
+import Sailor from '../interfaces/Sailor.js';
 import Servo from '../interfaces/Servo.js';
 import TurnRate from '../interfaces/TurnRate.js';
 import Nav from '../interfaces/Nav.js';
@@ -82,6 +83,10 @@ export default class ChannelContainer extends React.Component {
 
       if (modType == 'NMEA') {
 				customUI.push(e(NMEA, { key:'NMEA', zoom:15, channelObj: this.props.value  }));
+			}
+
+      if (modType == 'Sailor') {
+				customUI.push(e(Sailor, { key:'Sailor', node: this.props.node, channel: this.props.id, channelObj: this.props.value  }));
 			}
 
       if (modType == 'Servo') {
