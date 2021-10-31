@@ -272,9 +272,10 @@ export default class DroneLinkState {
       params: {},
       lastHeard: now
     }
-    newState[msg.node].channels[msg.channel].params[msg.param] = { };
 
     if (msg.msgType != DLM.DRONE_LINK_MSG_TYPE_QUERY && msg.msgType != DLM.DRONE_LINK_MSG_TYPE_NAMEQUERY) {
+      newState[msg.node].channels[msg.channel].params[msg.param] = { };
+
       if (msg.msgType == DLM.DRONE_LINK_MSG_TYPE_NAME) {
         newState[msg.node].channels[msg.channel].params[msg.param].name = msg.payloadToString();;
       } else {
@@ -329,7 +330,16 @@ export default class DroneLinkState {
   }
 
 
+  getParamValues(node, channel, param, def) {
+    if (this.state.hasOwnProperty(node) &&
+        this.state[node].channels.hasOwnProperty(channel) &&
+        this.state[node].channels[channel].params.hasOwnProperty(param))
+    {
+      return this.state[node].channels[channel].params[param].values;
+    } else
+      return def;
 
+  }
 
 
 }

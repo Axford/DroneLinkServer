@@ -77,6 +77,8 @@ export default class NodeUI {
 
     // create mgmt ui
     this.mui = $('<div class="NodeUI" style="display:none"/>');
+    //this.muiName = $('<div class="nodeName"></div>');
+    //this.mui.append(this.muiName);
     this.mui.node = this;
     this.muiChannels = {};
 
@@ -204,6 +206,7 @@ export default class NodeUI {
       // listen for hostname
       if (data.channel == 1 && data.param == 8) {
         this.uiLabel.innerHTML = data.node + ' > ' + data.values[0];
+        //this.muiName.html(data.node + ' > ' + data.values[0]);
       }
 
       // listen for location

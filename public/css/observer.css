@@ -7,6 +7,8 @@ body {
   background-color: #888;
 }
 
+html, body {margin: 0; height: 100%; overflow: hidden}
+
 .mainRow {
   height:100%;
 }
@@ -54,6 +56,8 @@ main {
 
 #nodeManager {
   padding: 8px 8px;
+  overflow-y:auto;
+  height:calc(100% - 36px);
 }
 
 

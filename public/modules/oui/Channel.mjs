@@ -2,6 +2,11 @@
 import loadStylesheet from '../loadStylesheet.js';
 import * as DLM from '../droneLinkMsg.mjs';
 
+// interfaces
+import Management from './interfaces/Management.mjs';
+import Sailor from './interfaces/Sailor.mjs';
+import TurnRate from './interfaces/TurnRate.mjs';
+
 
 loadStylesheet('./css/modules/oui/Channel.css');
 
@@ -15,6 +20,7 @@ export default class Channel {
     this.name = '?';
     this.type = '';
     this.lastHeard = (new Date()).getTime();
+    this.interface = null;
 
     this.ui = $('<div class="Channel"/>');
     this.ui.data('channel', data.channel);
@@ -61,6 +67,25 @@ export default class Channel {
     });
     this.ui.append(this.uiDisable);
 
+    // tab buttons
+    this.interfaceButton = $('<button class="btn btn-tiny btn-light float-right mr-1" style="display:none">Interface</button>');
+    this.interfaceButton.on('click',()=>{
+      this.interfaceButton.hide();
+      this.parametersButton.show();
+      this.interfaceTab.show();
+      this.parametersTab.hide();
+    });
+    this.ui.append(this.interfaceButton);
+
+    this.parametersButton = $('<button class="btn btn-tiny btn-light float-right mr-1" style="display:none">Parameters</button>');
+    this.parametersButton.on('click',()=>{
+      this.interfaceButton.show();
+      this.parametersButton.hide();
+      this.interfaceTab.hide();
+      this.parametersTab.show();
+    });
+    this.ui.append(this.parametersButton);
+
     // title
     this.uiTitleContainer = $('<h1 class="open"/>');
     this.isOpen = true;
@@ -101,32 +126,6 @@ export default class Channel {
     this.uiChannelTabs = $('<div class="channelTabs"/>');
     this.ui.append(this.uiChannelTabs);
 
-    this.uiTabs = $('<ul class="nav nav-tabs">');
-    this.uiChannelTabs.append(this.uiTabs);
-
-    var itab = $('<li class="nav-item" style="display:none"></li>');
-    this.uiTabs.append(itab);
-    this.interfaceButton = $('<button class="nav-link">Interface</button>');
-    this.interfaceButton.on('click',()=>{
-      this.interfaceButton.addClass('active');
-      this.parametersButton.removeClass('active');
-      this.interfaceTab.show();
-      this.parametersTab.hide();
-    });
-    itab.append(this.interfaceButton);
-
-    var ptab = $('<li class="nav-item"></li>');
-    this.uiTabs.append(ptab);
-    this.parametersButton = $('<button class="nav-link active">Parameters</button>');
-    this.parametersButton.on('click',()=>{
-      this.interfaceButton.removeClass('active');
-      this.parametersButton.addClass('active');
-      this.interfaceTab.hide();
-      this.parametersTab.show();
-    });
-    ptab.append(this.parametersButton);
-
-
     // tabs - these will be populated as params are detected, etc
     this.interfaceTab = $('<div class="tab-pane" style="display:none"></div>');
     this.uiChannelTabs.append(this.interfaceTab);
@@ -157,16 +156,27 @@ export default class Channel {
       if (data.node != this.node.id ||
          data.channel != this.channel) return;
 
+      console.log(data);
 
       // instance an interface if available
+      if (data.type == 'Management') {
+        this.interface = new Management(this, state);
+      } else if (data.type == 'Sailor') {
+        this.interface = new Sailor(this, state);
+      } else if (data.type == 'TurnRate') {
+        this.interface = new TurnRate(this, state);
+      }
 
 
-      // and show the new interface
-      this.interfaceButton.parent().show();
-      this.interfaceButton.addClass('active');
-      this.parametersButton.removeClass('active');
-      this.interfaceTab.show();
-      this.parametersTab.hide();
+      // and render / show the new interface
+      if (this.interface) {
+        this.interface.build();
+
+        this.interfaceButton.hide();
+        this.parametersButton.show();
+        this.interfaceTab.show();
+        this.parametersTab.hide();
+      }
     });
 
 
@@ -174,6 +184,11 @@ export default class Channel {
     this.state.on('param.value', (data)=>{
       if (data.node != this.node.id ||
          data.channel != this.channel) return;
+
+      // pass to interface
+      if (this.interface) {
+        this.interface.onParamValue(data);
+      }
 
       // status
       if (data.param == DLM.DRONE_MODULE_PARAM_STATUS) {
@@ -187,6 +202,12 @@ export default class Channel {
           this.uiEnable.show();
           this.uiDisable.hide();
         }
+      }
+
+      // name
+      if (data.param == DLM.DRONE_MODULE_PARAM_NAME) {
+        this.name = data.values[0];
+        this.uiTitle.html(data.channel + '. ' + this.name);
       }
 
       // resetCount
