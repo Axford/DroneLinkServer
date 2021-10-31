@@ -52,6 +52,13 @@ export default class Servo extends React.Component {
 					msgType: DLM.DRONE_LINK_MSG_TYPE_FLOAT,
 					values: [ v ]
 				});
+
+				// query new position
+				DLM.sendDroneLinkMsg({
+					addr: this.props.node + '>' + this.props.channel + '.8',
+					msgType: DLM.DRONE_LINK_MSG_TYPE_QUERY,
+					values: [ 0 ]
+				});
 			}
 		});
   }

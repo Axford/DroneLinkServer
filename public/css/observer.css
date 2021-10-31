@@ -7,10 +7,53 @@ body {
   background-color: #888;
 }
 
-#map { height: calc(100vh - 60px); width: 100%; }
+.mainRow {
+  height:100%;
+}
+
+main {
+  padding-left:0 !important;
+  padding-right:0 !important;
+  position:relative;
+  height:100%;
+}
+
+#leftPanel {
+   position: absolute;
+   left: 0;
+   top: 0;
+   bottom: 0;
+   right: 400px;
+   background: grey;
+}
+
+#rightPanel {
+   position: absolute;
+   right: 0;
+   top: 0;
+   bottom: 0;
+   width: 400px;
+   color:#fff;
+   background: #242a30;
+}
+#panelDrag {
+   position: absolute;
+   left: -8px;
+   top: 0;
+   bottom: 0;
+   width: 8px;
+   cursor: ew-resize;
+   background: linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,0.6) 100%);
+}
+
+#map { height: calc(100vh - 36px); width: 100%; }
 
 .navPadding {
-  padding-top: 48px; /* Space for fixed navbar */
+  padding-top: 36px; /* Space for fixed navbar */
+}
+
+#nodeManager {
+  padding: 8px 8px;
 }
 
 
@@ -26,7 +69,7 @@ body {
  padding-top: .75rem;
  padding-bottom: .75rem;
  padding-left: 1em;
- font-size: 1rem;
+ font-size: 1.2rem;
 }
 
 .navbar .form-control {
@@ -53,7 +96,7 @@ body {
   z-index:2000;
 }
 
-#nodes .node {
+#nodes .nodeOverlay {
   background-color: rgba(255,255,255,0.8);
   min-width:120px;
   padding: 4px 4px;
@@ -63,11 +106,15 @@ body {
   font-weight:bold;
 }
 
-#nodes .node i {
+#nodes .nodeOverlay.focus {
+  border-right: 8px solid #007bff;
+}
+
+#nodes .nodeOverlay i {
   margin-left:0.5em;
 }
 
-#nodes .node .lastHeard {
+#nodes .nodeOverlay .lastHeard {
   display:inline-block;
   margin-left: 4px;
   color: black;

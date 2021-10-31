@@ -27,6 +27,12 @@ export default class SimTankSteerBoat extends SimNode {
       values: config.location
     };
 
+    this.pubs['wind.direction'] = {
+      param: 10,
+      msgType: DLM.DRONE_LINK_MSG_TYPE_FLOAT,
+      values: config.wind
+    };
+
     // subs
     this.leftSub = new DLM.DroneLinkMsg();
     this.leftSub.setAddress(config.left);

@@ -198,8 +198,7 @@ export default class DroneLinkState {
     // new channel (module) ?
     if (!me.state.hasOwnProperty(msg.node) ||
         !me.state[msg.node].channels.hasOwnProperty(msg.channel)) {
-      //console.log('module.new: ' + msg.node + '>' + msg.channel);
-      //me.trigger('module.new', { node: msg.node, channel:msg.channel });
+      me.trigger('module.new', { node: msg.node, channel:msg.channel });
 
       // queue a type query
       var qm = new DLM.DroneLinkMsg();
@@ -220,6 +219,9 @@ export default class DroneLinkState {
       qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
       qm.msgLength = 1;
       me.send(qm);
+    } else {
+      // heard module
+      me.trigger('module.heard', { node: msg.node, channel:msg.channel });
     }
 
 
@@ -236,13 +238,13 @@ export default class DroneLinkState {
       if (msg.msgType <= DLM.DRONE_LINK_MSG_TYPE_CHAR) {
         // new module type?
         if (msg.param == DLM.DRONE_MODULE_PARAM_TYPE) {
-          //console.log('module.type: ' + msg.valueArray());
+          console.log('module.type: ' + msg.valueArray()[0]);
           me.trigger('module.type', { node: msg.node, channel:msg.channel, type:msg.valueArray()[0] });
         }
 
         // new module name?
         if (msg.param == DLM.DRONE_MODULE_PARAM_NAME) {
-          //console.log('module.name: ' + msg.valueArray);
+          console.log('module.name: ' + msg.valueArray()[0]);
           me.trigger('module.name', { node: msg.node, channel:msg.channel, name:msg.valueArray()[0] });
         }
       }
@@ -259,20 +261,20 @@ export default class DroneLinkState {
     }
 
     // create newState object and merge
-    if (msg.msgType != DLM.DRONE_LINK_MSG_TYPE_QUERY && msg.msgType != DLM.DRONE_LINK_MSG_TYPE_NAMEQUERY) {
-      var newState ={};
-      newState[msg.node] = {
-        channels: {},
-        lastHeard: now,
-        interface: 'socket',
-        lastHeard:now
-      }
-      newState[msg.node].channels[msg.channel] = {
-        params: {},
-        lastHeard: now
-      }
-      newState[msg.node].channels[msg.channel].params[msg.param] = { };
+    var newState ={};
+    newState[msg.node] = {
+      channels: {},
+      lastHeard: now,
+      interface: 'socket',
+      lastHeard:now
+    }
+    newState[msg.node].channels[msg.channel] = {
+      params: {},
+      lastHeard: now
+    }
+    newState[msg.node].channels[msg.channel].params[msg.param] = { };
 
+    if (msg.msgType != DLM.DRONE_LINK_MSG_TYPE_QUERY && msg.msgType != DLM.DRONE_LINK_MSG_TYPE_NAMEQUERY) {
       if (msg.msgType == DLM.DRONE_LINK_MSG_TYPE_NAME) {
         newState[msg.node].channels[msg.channel].params[msg.param].name = msg.payloadToString();;
       } else {
@@ -288,9 +290,10 @@ export default class DroneLinkState {
           newState[msg.node].channels[msg.channel].name = msg.payloadToString();
         }
       }
-
-      _.merge(me.state, newState);
     }
+
+    _.merge(me.state, newState);
+
 
   }
 
