@@ -6,6 +6,7 @@ import Parameter from './Parameter.mjs';
 
 // interfaces
 import Management from './interfaces/Management.mjs';
+import Nav from './interfaces/Nav.mjs';
 import Sailor from './interfaces/Sailor.mjs';
 import TurnRate from './interfaces/TurnRate.mjs';
 
@@ -161,6 +162,8 @@ export default class Channel {
       // instance an interface if available
       if (data.type == 'Management') {
         this.interface = new Management(this, state);
+      } else if (data.type == 'Nav') {
+        this.interface = new Nav(this, state);
       } else if (data.type == 'Sailor') {
         this.interface = new Sailor(this, state);
       } else if (data.type == 'TurnRate') {

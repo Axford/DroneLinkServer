@@ -32,7 +32,7 @@ function drawLabelledHand(ctx, ang, label, r1, r2, color) {
   ctx.fillText(label, cx + 4 + r2*Math.cos(angR), 100 + r2*Math.sin(angR));
 }
 
-export default class Sailor {
+export default class Nav {
 	constructor(channel, state) {
     this.channel = channel;
     this.state = state;
@@ -46,25 +46,14 @@ export default class Sailor {
     var channel = this.channel.channel;
 
     // redraw canvas
-		var target = this.state.getParamValues(node, channel, 8, [0])[0];
-    var t2 = (target - 90) * Math.PI / 180;
 
-    var heading = this.state.getParamValues(node, channel, 10, [0])[0];
-    var h2 = (heading - 90) * Math.PI / 180;
+    var heading = this.state.getParamValues(node, channel, 8, [0])[0];
 
-    var wind = this.state.getParamValues(node, channel, 12, [0])[0];
+    var adjHeading = this.state.getParamValues(node, channel, 20, [0])[0];
 
-    var crosstrack = this.state.getParamValues(node, channel, 14, [0])[0];
+    var wind = this.state.getParamValues(node, channel, 21, [0])[0];
 
-    var course = this.state.getParamValues(node, channel, 16, [0])[0];
-
-    var polar = this.state.getParamValues(node, channel, 18, [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
-
-
-    var speed1 = this.state.getParamValues(node, channel, 19, [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
-    var speed2 = this.state.getParamValues(node, channel, 20, [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
-
-    var sheet = this.state.getParamValues(node, channel, 17, [0])[0];
+    var crosstrack = this.state.getParamValues(node, channel, 17, [0])[0];
 
 
     var c = this.canvas[0];
@@ -78,41 +67,6 @@ export default class Sailor {
     ctx.fillStyle = '#343a40';
     ctx.fillRect(0,0,w,200);
 
-    // draw polar
-    ctx.strokeStyle = '#55f';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(cx,100);
-    var r = 0;
-    for (var i =0; i<32; i++) {
-      var ang = wind + (180/32) + (i*(180/16)) - 90;
-      ang = ang * Math.PI / 180;
-      if ( i<16) {
-        r = 80 * polar[i] /255;
-      } else {
-        r = 80 * polar[31-i] /255;
-      }
-      ctx.lineTo(cx + r*Math.cos(ang), 100 + r*Math.sin(ang) );
-    }
-    ctx.stroke();
-
-    // draw speed
-    ctx.strokeStyle = '#ff0';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(cx,100);
-    var r = 0;
-    for (var i =0; i<32; i++) {
-      var ang = (180/32) + (i*(180/16)) - 90;
-      ang = ang * Math.PI / 180;
-      if ( i<16) {
-        r = 80 * speed1[i] /255;
-      } else {
-        r = 80 * speed2[i-16] /255;
-      }
-      ctx.lineTo(cx + r*Math.cos(ang), 100 + r*Math.sin(ang) );
-    }
-    ctx.stroke();
 
     // fill central region
     ctx.beginPath();
@@ -139,8 +93,7 @@ export default class Sailor {
 
 		// hands
     drawLabelledHand(ctx, heading, '', 30,90, '#5F5');
-    drawLabelledHand(ctx, target, '', 30, 90, '#FF5');
-    drawLabelledHand(ctx, course, '', 30, 90, '#5FF');
+    drawLabelledHand(ctx, adjHeading, '', 30, 90, '#FF5');
     drawLabelledHand(ctx, wind, '', 60, 110, '#55F');
 
     // legend - top right
@@ -149,21 +102,13 @@ export default class Sailor {
     ctx.fillStyle = '#5F5';
     ctx.fillText('Heading', w-5, 12);
     ctx.fillStyle = '#FF5';
-    ctx.fillText('Target', w-5, 26);
-    ctx.fillStyle = '#5FF';
-    ctx.fillText('Course', w-5, 40);
+    ctx.fillText('Adj. Heading', w-5, 26);
     ctx.fillStyle = '#55F';
-    ctx.fillText('Wind', w-5, 54);
+    ctx.fillText('Wind', w-5, 40);
 
-    // sheet - center
-    ctx.fillStyle = '#FFF';
-    ctx.font = '20px bold serif';
-		ctx.textAlign = 'center';
-    ctx.fillText(sheet.toFixed(1), cx, 110);
-    ctx.font = '12px serif';
-    ctx.fillText('Sheet', cx, 92);
 
-    // crosstack  -top left
+
+    // crosstrack  -top left
     ctx.fillStyle = '#FFF';
 		ctx.textAlign = 'left';
     ctx.font = '12px serif';
