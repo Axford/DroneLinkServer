@@ -1,5 +1,6 @@
 
 import Widget from './Widget.mjs';
+import * as DLM from '../droneLinkMsg.mjs';
 
 export default class INA219Widget extends Widget {
   constructor(node) {
@@ -30,7 +31,7 @@ export default class INA219Widget extends Widget {
 
   newParamValue(data) {
     //console.log('INA219', data.param, data.values);
-    if (data.param == 15) {
+    if (data.param == 15 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
       // cellV
       var d = data.values[0];
       if (d < 3.3) {

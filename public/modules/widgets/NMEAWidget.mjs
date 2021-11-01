@@ -1,5 +1,6 @@
 
 import Widget from './Widget.mjs';
+import * as DLM from '../droneLinkMsg.mjs';
 
 export default class NMEAWidget extends Widget {
   constructor(node) {
@@ -26,7 +27,7 @@ export default class NMEAWidget extends Widget {
 */
 
   newParamValue(data) {
-    if (data.param == 9) {
+    if (data.param == 9 &&  data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
       // 9 - satellites
       var d = data.values[0];
       if (d < 4) {

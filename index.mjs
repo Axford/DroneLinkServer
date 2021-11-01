@@ -400,7 +400,7 @@ app.use(express.json());
 app.use(cors());
 
 app.get('/', function(req, res){
-  res.sendfile('./public/index.htm');
+  res.sendfile('./public/observer.htm');
 });
 
 app.get('/firmware', function(req, res){

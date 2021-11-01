@@ -112,6 +112,7 @@ main {
 
 #nodes .nodeOverlay.focus {
   border-right: 8px solid #007bff;
+  margin-right:-8px;
 }
 
 #nodes .nodeOverlay i {

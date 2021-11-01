@@ -1,5 +1,6 @@
 
 import Widget from './Widget.mjs';
+import * as DLM from '../droneLinkMsg.mjs';
 
 export default class RFM69TelemetryWidget extends Widget {
   constructor(node) {
@@ -15,7 +16,7 @@ export default class RFM69TelemetryWidget extends Widget {
 
 
   newParamValue(data) {
-    if (data.param == 8) {
+    if (data.param == 8 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
       // RSSI
       var d = data.values[0];
       if (d > 100) {

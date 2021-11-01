@@ -204,7 +204,7 @@ export default class NodeUI {
       }
 
       // listen for hostname
-      if (data.channel == 1 && data.param == 8) {
+      if (data.channel == 1 && data.param == 8 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_CHAR) {
         this.uiLabel.innerHTML = data.node + ' > ' + data.values[0];
         //this.muiName.html(data.node + ' > ' + data.values[0]);
       }
@@ -223,7 +223,7 @@ export default class NodeUI {
             14. mode
           */
           //console.log(data.param, data.values);
-          if (data.param == 10 && data.values[0] != 0) {
+          if (data.param == 10 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT && data.values[0] != 0) {
             this.updateLocation(data.values);
           }
         }
@@ -238,7 +238,7 @@ export default class NodeUI {
           #define NMEA_PARAM_PORT               13
           #define NMEA_PARAM_BAUD               14
           */
-          if (data.param == 8 && data.values[0] != 0) {
+          if (data.param == 8 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT&& data.values[0] != 0) {
             this.updateLocation(data.values);
           }
         }
@@ -247,7 +247,7 @@ export default class NodeUI {
           /*
           location .9
           */
-          if (data.param == 9 && data.values[0] != 0) {
+          if (data.param == 9 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT&& data.values[0] != 0) {
             this.updateLocation(data.values);
           }
         }
@@ -259,13 +259,13 @@ export default class NodeUI {
         //console.log('pv: '+ data.node + '>' + data.channel + '.' + data.param);
 
         if (this.compassType == 'TurnRate') {
-          if (data.param == 12) {
+          if (data.param == 12 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
             this.updateHeading(data.values[0]);
           }
         }
 
         if (this.compassType == 'TankSteerBoat') {
-          if (data.param == 8) {
+          if (data.param == 8 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
             this.updateHeading(data.values[0]);
           }
         }
@@ -274,10 +274,10 @@ export default class NodeUI {
 
       // target
       if (this.targetModule == data.channel) {
-        if (data.param == 12) {
+        if (data.param == 12 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
           // 12 - target
           this.updateTarget(data.values);
-        } else if (data.param == 15) {
+        } else if (data.param == 15 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
           // 15 - last waypoint/location
           this.updateLast(data.values);
         }
@@ -455,7 +455,8 @@ export default class NodeUI {
       this.gotLocation = true;
       this.initNodeLocation();
     } else {
-      this.marker.setLngLat(this.location);
+      if (this.location && this.location.length >=2)
+        this.marker.setLngLat(this.location);
     }
   }
 

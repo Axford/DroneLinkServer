@@ -109,6 +109,13 @@
   border-bottom-left-radius: 6px;
 }
 
+.Channel .parametersTab {
+  padding: 0 5px 0 5px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-gap: 5px;
+  margin-bottom:5px;
+}
 
 .Channel .params {
   display: grid;

@@ -2,6 +2,8 @@
 import loadStylesheet from '../loadStylesheet.js';
 import * as DLM from '../droneLinkMsg.mjs';
 
+import Parameter from './Parameter.mjs';
+
 // interfaces
 import Management from './interfaces/Management.mjs';
 import Sailor from './interfaces/Sailor.mjs';
@@ -21,6 +23,7 @@ export default class Channel {
     this.type = '';
     this.lastHeard = (new Date()).getTime();
     this.interface = null;
+    this.params = {};
 
     this.ui = $('<div class="Channel"/>');
     this.ui.data('channel', data.channel);
@@ -127,10 +130,10 @@ export default class Channel {
     this.ui.append(this.uiChannelTabs);
 
     // tabs - these will be populated as params are detected, etc
-    this.interfaceTab = $('<div class="tab-pane" style="display:none"></div>');
+    this.interfaceTab = $('<div class="tab-pane interfaceTab" style="display:none"></div>');
     this.uiChannelTabs.append(this.interfaceTab);
 
-    this.parametersTab = $('<div class="tab-pane"></div>');
+    this.parametersTab = $('<div class="tab-pane parametersTab"></div>');
     this.uiChannelTabs.append(this.parametersTab);
 
 
@@ -180,6 +183,29 @@ export default class Channel {
     });
 
 
+    // listen for new params
+    this.state.on('param.new', (data)=>{
+      if (data.node != this.node.id ||
+         data.channel != this.channel) return;
+
+     // construct Parameter (ignore system parameters)
+     if (data.param >= 8) {
+       var p = new Parameter(this, data.param, state);
+       this.params[data.param] = p;
+
+       // sort
+       var children = this.parametersTab.children();
+       var sortList = Array.prototype.sort.bind(children);
+
+       sortList((a,b)=>{
+         return $(a).data('param') - $(b).data('param');
+       });
+
+       this.parametersTab.append(children);
+     }
+    });
+
+
     // listen for values
     this.state.on('param.value', (data)=>{
       if (data.node != this.node.id ||
@@ -188,6 +214,11 @@ export default class Channel {
       // pass to interface
       if (this.interface) {
         this.interface.onParamValue(data);
+      }
+
+      // pass to parameter
+      if (this.params[data.param]) {
+        this.params[data.param].onParamValue(data);
       }
 
       // status

@@ -1,0 +1,68 @@
+
+
+.Parameter {
+  border:1px solid #ccc;
+  padding: 2px 8px;
+  background-color: #fff;
+  border-radius: 8px;
+  position:relative;
+  min-height:40px;
+}
+
+.Parameter.writable {
+  border:1px solid #89b !important;
+  background-color: #cdf;
+}
+
+.Parameter.type_a {
+  border:1px solid #89b !important;
+  background-color: #fc9 !important;
+}
+
+.Parameter .card-title {
+  font-size: 1em;
+  margin-bottom: 1px;
+  z-index: 10;
+}
+
+.Parameter .card-title .addr {
+  display: block;
+  position:absolute;
+  right:8px;
+  top: 3px;
+  margin-left:auto;
+  font-size: 0.8em;
+  color:#333;
+}
+
+.Parameter .card-subtitle {
+  font-size: 0.8em;
+  color:#aaa;
+  z-index: 10;
+}
+
+.Parameter .paramValueContainer {
+  z-index: 10;
+}
+
+.Parameter .paramValueContainer .form-control {
+  width: 100px;
+}
+
+.Parameter .paramValueContainer input[type=checkbox] {
+  height: 1em;
+}
+
+
+
+.Parameter .value {
+  display:inline-block;
+  font-size: 1.1em;
+  font-weight: bold;
+  color:#035;
+  margin-right:1px;
+  padding: 2px 4px;
+  border:1px solid #eee;
+  border-radius:4px;
+  background-color: rgba(255,255,255,0.4);
+}

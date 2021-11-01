@@ -156,10 +156,14 @@ export default class DroneLinkState {
       });
       */
 
+
     setInterval( ()=>{
       me.discovery();
-      me.processDiscoveryQueue();
     }, 1000);
+
+    setInterval( ()=>{
+      me.processDiscoveryQueue();
+    }, 200);
   }
 
 
@@ -231,30 +235,34 @@ export default class DroneLinkState {
     if (!me.state.hasOwnProperty(msg.node) ||
         !me.state[msg.node].channels.hasOwnProperty(msg.channel) ||
         (!me.state[msg.node].channels[msg.channel].params.hasOwnProperty(msg.param))) {
-      //console.log('param.new: ' + msg.node + '>' + msg.channel + '.' + msg.param);
-      me.trigger('param.new', { node: msg.node, channel:msg.channel, param:msg.param });
-      newParam = true;
 
-      if (msg.msgType <= DLM.DRONE_LINK_MSG_TYPE_CHAR) {
-        // new module type?
-        if (msg.param == DLM.DRONE_MODULE_PARAM_TYPE) {
-          console.log('module.type: ' + msg.valueArray()[0]);
-          me.trigger('module.type', { node: msg.node, channel:msg.channel, type:msg.valueArray()[0] });
-        }
+      // make sure we only trigger on proper data types
+      if (msg.msgType <= DLM.DRONE_LINK_MSG_TYPE_NAME) {
+        //console.log('param.new: ' + msg.node + '>' + msg.channel + '.' + msg.param);
+        me.trigger('param.new', { node: msg.node, channel:msg.channel, param:msg.param });
+        newParam = true;
 
-        // new module name?
-        if (msg.param == DLM.DRONE_MODULE_PARAM_NAME) {
-          console.log('module.name: ' + msg.valueArray()[0]);
-          me.trigger('module.name', { node: msg.node, channel:msg.channel, name:msg.valueArray()[0] });
+        if (msg.msgType <= DLM.DRONE_LINK_MSG_TYPE_CHAR) {
+          // new module type?
+          if (msg.param == DLM.DRONE_MODULE_PARAM_TYPE) {
+            console.log('module.type: ' + msg.valueArray()[0]);
+            me.trigger('module.type', { node: msg.node, channel:msg.channel, type:msg.valueArray()[0] });
+          }
+
+          // new module name?
+          if (msg.param == DLM.DRONE_MODULE_PARAM_NAME) {
+            console.log('module.name: ' + msg.valueArray()[0]);
+            me.trigger('module.name', { node: msg.node, channel:msg.channel, name:msg.valueArray()[0] });
+          }
         }
       }
     }
 
     // normal value?
-    if (msg.msgType <= DLM.DRONE_LINK_MSG_TYPE_CHAR) {
+    if (msg.msgType <= DLM.DRONE_LINK_MSG_TYPE_NAME) {
       // new value?
       if (newParam ||
-          !arraysEqual(me.state[msg.node].channels[msg.channel].params[msg.param].values, Array.from(msg.valueArray()) ) ) {
+          !arraysEqual(me.state[msg.node].channels[msg.channel].params[msg.param].values, Array.from(msg.valueArray()) )) {
         //console.log('param.value: ' + msg.node + '>' + msg.channel + '.' + msg.param, msg[msg.node].channels[msg.channel].params[msg.param].values);
         me.trigger('param.value', { node: msg.node, channel:msg.channel, param: msg.param, msgType: msg.msgType, values:Array.from(msg.valueArray()) });
       }
@@ -277,7 +285,8 @@ export default class DroneLinkState {
       newState[msg.node].channels[msg.channel].params[msg.param] = { };
 
       if (msg.msgType == DLM.DRONE_LINK_MSG_TYPE_NAME) {
-        newState[msg.node].channels[msg.channel].params[msg.param].name = msg.payloadToString();;
+        newState[msg.node].channels[msg.channel].params[msg.param].name = msg.payloadToString();
+        console.log('param name', newState[msg.node].channels[msg.channel].params[msg.param].name);
       } else {
         // update channel state
         newState[msg.node].channels[msg.channel].params[msg.param].msgType = msg.msgType;
@@ -289,6 +298,11 @@ export default class DroneLinkState {
         // is this a module name?
         if (msg.msgType == DLM.DRONE_LINK_MSG_TYPE_CHAR && msg.param == 2) {
           newState[msg.node].channels[msg.channel].name = msg.payloadToString();
+        }
+
+        // is this a node name (hostname)?
+        if (msg.msgType == DLM.DRONE_LINK_MSG_TYPE_CHAR && msg.channel == 1 && msg.param == 8) {
+          newState[msg.node].name = msg.payloadToString();
         }
       }
     }
@@ -331,15 +345,42 @@ export default class DroneLinkState {
 
 
   getParamValues(node, channel, param, def) {
+    var obj = this.getParamObj(node, channel, param);
+    if (obj != null && obj.values) {
+      return obj.values;
+    }
+    return def;
+  }
+
+  getParamObj(node, channel, param) {
     if (this.state.hasOwnProperty(node) &&
         this.state[node].channels.hasOwnProperty(channel) &&
         this.state[node].channels[channel].params.hasOwnProperty(param))
     {
-      return this.state[node].channels[channel].params[param].values;
+      return this.state[node].channels[channel].params[param];
     } else
-      return def;
-
+      return null;
   }
 
+  getObjectsForAddress(node, channel, param) {
+    var ret = {
+      node: null,
+      channel: null,
+      param: null
+    }
 
+    if (this.state.hasOwnProperty(node)) {
+      ret.node = this.state[node];
+
+      if (this.state[node].channels.hasOwnProperty(channel)) {
+        ret.channel = this.state[node].channels[channel];
+
+        if (this.state[node].channels[channel].params.hasOwnProperty(param)) {
+          ret.param = this.state[node].channels[channel].params[param];
+        }
+      }
+    }
+
+    return ret;
+  }
 }
