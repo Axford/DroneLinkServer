@@ -171,8 +171,7 @@ export default class Channel {
       // and render / show the new interface
       if (this.interface) {
         this.interface.build();
-
-        this.uiChannelTabs.show();
+        this.expand();
 
         this.interfaceButton.hide();
         this.parametersButton.show();

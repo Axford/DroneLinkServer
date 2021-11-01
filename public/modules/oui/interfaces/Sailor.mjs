@@ -4,6 +4,14 @@ import * as DLM from '../../droneLinkMsg.mjs';
 
 //loadStylesheet('./css/modules/interfaces/Sailor.css');
 
+function radiansToDegrees(a) {
+  return a * 180 / Math.PI;
+}
+
+function degreesToRadians(a) {
+  return a * Math.PI / 180;
+}
+
 
 function drawLabelledHand(ctx, ang, label, r1, r2, color) {
   var angR = (ang - 90) * Math.PI / 180;
@@ -50,6 +58,7 @@ export default class Sailor {
     var wind = this.state.getParamValues(node, channel, 12, [0])[0];
 
     var crosstrack = this.state.getParamValues(node, channel, 14, [0])[0];
+    var crosswind = this.state.getParamValues(node, channel, 21, [0])[0];
 
     var course = this.state.getParamValues(node, channel, 16, [0])[0];
 
@@ -60,6 +69,21 @@ export default class Sailor {
     var speed2 = this.state.getParamValues(node, channel, 20, [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
 
     var sheet = this.state.getParamValues(node, channel, 17, [0])[0];
+
+
+    //  sanity check - re-calc adj target
+    var windSpeed = 1;
+    var wr = degreesToRadians(wind);
+    var wv = [ crosswind * windSpeed * Math.cos(-wr), crosswind * windSpeed * Math.sin(-wr) ];
+
+    // calc current target vector
+    var tr = degreesToRadians(target);
+    var tv = [ 1 * Math.cos(-tr), 1 * Math.sin(-tr) ];
+
+    // calc adj vector by summing
+    var av = [ wv[0] + tv[0], wv[1] + tv[1] ];
+    // calc adjusted target
+    var adjT = radiansToDegrees(-Math.atan2(av[1], av[0]));
 
     var c = this.canvas[0];
     var ctx = c.getContext("2d");
@@ -135,6 +159,7 @@ export default class Sailor {
     drawLabelledHand(ctx, heading, '', 30,90, '#5F5');
     drawLabelledHand(ctx, target, '', 60, 90, '#AA0');
     drawLabelledHand(ctx, adjTarget, '', 30, 90, '#FF5');
+    //drawLabelledHand(ctx, adjT, '', 30, 90, '#F00');
     drawLabelledHand(ctx, course, '', 30, 90, '#5FF');
     drawLabelledHand(ctx, wind, '', 60, 110, '#55F');
 

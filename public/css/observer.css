@@ -116,7 +116,7 @@ main {
 }
 
 #nodes .nodeOverlay i {
-  margin-right:0.5em;
+  margin-left:0.5em;
 }
 
 #nodes .nodeOverlay .lastHeard {
@@ -157,7 +157,7 @@ main {
   box-shadow: 1px 1px 3px #000;
 }
 
-#nodes .node .widgets div i {
+#nodes .nodeOverlay .widgets i {
   margin-right: 0.5em;
   margin-left:0;
 }

@@ -105,7 +105,8 @@ export default class SimTankSteerBoat extends SimNode {
 
       // apply wind impulse
       var windVector = new Vector(0,0);
-      windVector.fromAngle( (this.pubs['wind.direction'].values[0] + 180) * Math.PI/180 ,0.2);
+      // NOTE: physics angles are inverted vs compass bearings
+      windVector.fromAngle( -(this.pubs['wind.direction'].values[0] + 180) * Math.PI/180 ,0.5);
       this.applyImpulse(windVector, new Vector(0,0));
 
       this.updatePhysics(dt);
