@@ -8,6 +8,7 @@ import Parameter from './Parameter.mjs';
 import Management from './interfaces/Management.mjs';
 import Nav from './interfaces/Nav.mjs';
 import Sailor from './interfaces/Sailor.mjs';
+import Servo from './interfaces/Servo.mjs';
 import TurnRate from './interfaces/TurnRate.mjs';
 
 
@@ -78,6 +79,9 @@ export default class Channel {
       this.parametersButton.show();
       this.interfaceTab.show();
       this.parametersTab.hide();
+      if (this.interface) {
+        this.interface.update();
+      }
     });
     this.ui.append(this.interfaceButton);
 
@@ -166,6 +170,8 @@ export default class Channel {
         this.interface = new Nav(this, state);
       } else if (data.type == 'Sailor') {
         this.interface = new Sailor(this, state);
+      } else if (data.type == 'Servo') {
+        this.interface = new Servo(this, state);
       } else if (data.type == 'TurnRate') {
         this.interface = new TurnRate(this, state);
       }
