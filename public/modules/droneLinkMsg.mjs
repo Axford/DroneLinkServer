@@ -139,6 +139,16 @@ export class DroneLinkMsg {
     }
 	}
 
+  setUint32(values) {
+		this.msgType = DRONE_LINK_MSG_TYPE_UINT32_T;
+		this.msgLength = values.length;
+    this.writable = false;
+    var vv = new Uint32Array(this.rawPayload, 0, values.length);
+		for (var i=0; i < values.length; i++) {
+      vv[i] =values[i];
+    }
+	}
+
   setFloat(values) {
 		this.msgType = DRONE_LINK_MSG_TYPE_FLOAT;
 		this.msgLength = values.length * 4;

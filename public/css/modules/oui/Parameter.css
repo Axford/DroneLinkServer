@@ -66,3 +66,13 @@
   border-radius:4px;
   background-color: rgba(255,255,255,0.4);
 }
+
+.modal.paramEditor {
+
+}
+
+.modal.paramEditor .modal-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  grid-gap: 8px;
+}

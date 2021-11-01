@@ -90,18 +90,15 @@ export default class Channel {
     this.ui.append(this.parametersButton);
 
     // title
-    this.uiTitleContainer = $('<h1 class="open"/>');
-    this.isOpen = true;
+    this.uiTitleContainer = $('<h1 class="closed"/>');
+    this.isOpen = false;
     this.uiTitle = $('<span>' +data.channel + '. ?'+ '</span>');
     this.uiTitleContainer.append(this.uiTitle);
     this.uiTitleContainer.on('click', ()=>{
       if (me.isOpen) {
         this.collapse();
       } else {
-        me.isOpen = true;
-        me.uiTitleContainer.addClass('open');
-        me.uiTitleContainer.removeClass('closed');
-        me.uiChannelTabs.show();
+        this.expand();
       }
     });
     this.ui.append(this.uiTitleContainer);
@@ -126,7 +123,7 @@ export default class Channel {
 
 
     // create tab nav for interface and params
-    this.uiChannelTabs = $('<div class="channelTabs"/>');
+    this.uiChannelTabs = $('<div class="channelTabs" style="display:none"/>');
     this.ui.append(this.uiChannelTabs);
 
     // tabs - these will be populated as params are detected, etc
@@ -174,6 +171,8 @@ export default class Channel {
       // and render / show the new interface
       if (this.interface) {
         this.interface.build();
+
+        this.uiChannelTabs.show();
 
         this.interfaceButton.hide();
         this.parametersButton.show();
@@ -262,6 +261,11 @@ export default class Channel {
     this.uiChannelTabs.hide();
   }
 
-
+  expand() {
+    this.isOpen = true;
+    this.uiTitleContainer.addClass('open');
+    this.uiTitleContainer.removeClass('closed');
+    this.uiChannelTabs.show();
+  }
 
 }

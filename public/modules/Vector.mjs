@@ -91,6 +91,10 @@ export default class Vector {
 	max() {
 		return Math.max(this.x, this.y);
 	}
+  fromAngle(ang,len) {
+    this.x = len * Math.cos(ang);
+    this.y = len * Math.sin(ang);
+  }
 	toAngles() {
 		return -Math.atan2(-this.y, this.x);
 	}

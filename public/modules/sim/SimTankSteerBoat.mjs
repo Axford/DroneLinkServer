@@ -103,6 +103,11 @@ export default class SimTankSteerBoat extends SimNode {
       for (var i=0; i<impulses.length; i++)
         this.applyImpulse(impulses[i], this.contactVectors[i]);
 
+      // apply wind impulse
+      var windVector = new Vector(0,0);
+      windVector.fromAngle( (this.pubs['wind.direction'].values[0] + 180) * Math.PI/180 ,0.2);
+      this.applyImpulse(windVector, new Vector(0,0));
+
       this.updatePhysics(dt);
 
       // update and publish

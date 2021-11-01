@@ -41,6 +41,9 @@ export default class Sailor {
 		var target = this.state.getParamValues(node, channel, 8, [0])[0];
     var t2 = (target - 90) * Math.PI / 180;
 
+    var adjTarget = this.state.getParamValues(node, channel, 22, [0])[0];
+    var at2 = (adjTarget - 90) * Math.PI / 180;
+
     var heading = this.state.getParamValues(node, channel, 10, [0])[0];
     var h2 = (heading - 90) * Math.PI / 180;
 
@@ -91,7 +94,7 @@ export default class Sailor {
     ctx.strokeStyle = '#ff0';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(100,100);
+    ctx.moveTo(cx,100);
     var r = 0;
     for (var i =0; i<32; i++) {
       var ang = (180/32) + (i*(180/16)) - 90;
@@ -129,13 +132,27 @@ export default class Sailor {
     ctx.stroke();
 
 		// hands
-    drawLabelledHand(ctx, heading, 'Heading', 30,90, '#5F5');
-    drawLabelledHand(ctx, target, 'Target', 30, 90, '#FF5');
-    drawLabelledHand(ctx, course, 'Course', 30, 90, '#5FF');
+    drawLabelledHand(ctx, heading, '', 30,90, '#5F5');
+    drawLabelledHand(ctx, target, '', 60, 90, '#AA0');
+    drawLabelledHand(ctx, adjTarget, '', 30, 90, '#FF5');
+    drawLabelledHand(ctx, course, '', 30, 90, '#5FF');
+    drawLabelledHand(ctx, wind, '', 60, 110, '#55F');
 
-    drawLabelledHand(ctx, wind, 'Wind', 60, 90, '#55F');
+    // legend - top right
+		ctx.textAlign = 'right';
+    ctx.font = '12px serif';
+    ctx.fillStyle = '#5F5';
+    ctx.fillText('Heading', w-5, 12);
+    ctx.fillStyle = '#AA0';
+    ctx.fillText('Target', w-5, 26);
+    ctx.fillStyle = '#FF5';
+    ctx.fillText('Adj. Target', w-5, 40);
+    ctx.fillStyle = '#5FF';
+    ctx.fillText('Course', w-5, 54);
+    ctx.fillStyle = '#55F';
+    ctx.fillText('Wind', w-5, 68);
 
-
+    // sheet - center
     ctx.fillStyle = '#FFF';
     ctx.font = '20px bold serif';
 		ctx.textAlign = 'center';
@@ -143,12 +160,13 @@ export default class Sailor {
     ctx.font = '12px serif';
     ctx.fillText('Sheet', cx, 92);
 
+    // crosstack  -top left
     ctx.fillStyle = '#FFF';
 		ctx.textAlign = 'left';
     ctx.font = '12px serif';
     ctx.fillText('Crosstrack', 5, 12);
     ctx.font = '20px bold serif';
-    ctx.fillText(crosstrack.toFixed(1), 5, 30);
+    ctx.fillText(crosstrack.toFixed(1), 5, 35);
   }
 
 

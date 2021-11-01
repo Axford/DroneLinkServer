@@ -73,15 +73,20 @@ export default class TurnRate {
     ctx.lineTo(cx + 90*Math.cos(t2), 100 + 90*Math.sin(t2) );
     ctx.stroke();
 
-    ctx.fillStyle = '#8F8';
-    ctx.font = '20px serif';
+
+		ctx.fillStyle = '#8F8';
 		ctx.textAlign = 'left';
-    ctx.fillText(heading.toFixed(0) + '°', 10, 25);
+    ctx.font = '12px serif';
+    ctx.fillText('Heading', 5, 12);
+    ctx.font = '20px bold serif';
+    ctx.fillText(heading.toFixed(0) + '°', 5, 35);
 
 		ctx.fillStyle = '#FF8';
-    ctx.font = '20px serif';
 		ctx.textAlign = 'right';
-    ctx.fillText(target.toFixed(0) + '°', w-10, 25);
+		ctx.font = '12px serif';
+    ctx.fillText('Target', w-5, 12);
+		ctx.font = '20px serif';
+    ctx.fillText(target.toFixed(0) + '°', w-5, 35);
 
 		ctx.fillStyle = '#FFF';
     ctx.font = '20px bold serif';
