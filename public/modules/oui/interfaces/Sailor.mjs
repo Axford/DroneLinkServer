@@ -106,9 +106,9 @@ export default class Sailor {
       var ang = (180/32) + (i*(180/16)) - 90;
       ang = ang * Math.PI / 180;
       if ( i<16) {
-        r = 80 * speed1[i] /255;
+        r = 30 + 50 * speed1[i] /255;
       } else {
-        r = 80 * speed2[i-16] /255;
+        r = 30 + 50 * speed2[i-16] /255;
       }
       ctx.lineTo(cx + r*Math.cos(ang), 100 + r*Math.sin(ang) );
     }
