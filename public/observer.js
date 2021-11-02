@@ -18,9 +18,6 @@ var map;
 
 mapboxgl.accessToken = 'pk.eyJ1IjoiYXhmb3JkIiwiYSI6ImNqMWMwYXI5MDAwNG8zMm5uanFyeThmZDEifQ.paAXk3S29-VVw1bhk458Iw';
 
-const metersToPixels = (meters, latitude, zoom) =>
-  meters / (78271.484 / 2 ** zoom) / Math.cos(latitude * Math.PI / 180);
-
 
 function setPanelSize(w) {
   var container = $('#main'),

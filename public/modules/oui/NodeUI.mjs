@@ -18,6 +18,7 @@ loadStylesheet('./css/modules/oui/NodeUI.css');
 export default class NodeUI {
 
   constructor(id, state, map) {
+    var me = this;
     this.state = state;
     this.map = map;
     this.location=  [0,0];
@@ -71,20 +72,43 @@ export default class NodeUI {
       this.focus();
     }
 
-    // add to UI
+    // add mini view to floating UI
     document.getElementById('nodes').appendChild(this.ui);
 
 
+    // create panel ui
+    this.pui = $('<div class="NodeUI" style="display:none"/>');
+    this.pui.node = this;
+    $('#nodeManager').append(this.pui);
+
+    this.puiNav = $('<div class="panelNav"></div>');
+    this.pui.append(this.puiNav);
+
+    this.puiMgmtBut = $('<button class="btn btn-primary">Management</button>')
+    this.puiNav.append(this.puiMgmtBut)
+    this.puiMgmtBut.on('click', ()=> { this.showPanel(this.puiMgmtBut, this.mui) });
+
+    this.puiConfigBut = $('<button class="btn btn-secondary">Configuration</button>')
+    this.puiNav.append(this.puiConfigBut)
+    this.puiConfigBut.on('click', ()=> {  this.showPanel(this.puiConfigBut,this.cui) });
+
+    /*
+    this.puiFirmwareBut = $('<button class="btn btn-secondary">Firmware</button>')
+    this.puiNav.append(this.puiFirmwareBut)
+    this.puiFirmwareBut.on('click', ()=> {  this.showPanel(this.puiFirmwareBut,this.fui) });
+    */
+
+    this.puiPanels = $('<div class="panels"></div>');
+    this.pui.append(this.puiPanels);
+
     // create mgmt ui
-    this.mui = $('<div class="NodeUI" style="display:none"/>');
+    this.mui = $('<div class="managementUI"/>');
     //this.muiName = $('<div class="nodeName"></div>');
     //this.mui.append(this.muiName);
     this.mui.node = this;
     this.muiChannels = {};
 
-
-    // add to mgmt UI
-    $('#nodeManager').append(this.mui);
+    this.puiPanels.append(this.mui);
 
 
     // query for target regularly - TODO - only do this when we spot a nav module
@@ -313,11 +337,32 @@ export default class NodeUI {
   }
 
 
+  showPanel(but, panel) {
+    // hide everythign else
+    var me = this;
+    // restyle buttons
+    this.puiNav.children().each(function () {
+        $(this).removeClass('btn-primary');
+        $(this).addClass('btn-secondary');
+    });
+    // hide panels
+    this.puiPanels.children().each(function () {
+        $(this).hide();
+    });
+
+    but.addClass('btn-primary');
+    but.removeClass('btn-secondary');
+    if (panel) panel.show();
+  }
+
+
   focus() {
     if (this.onFocus) this.onFocus(this);
 
     this.ui.classList.add('focus');
-    this.mui.css('display','grid');
+    this.pui.show();
+
+    //this.mui.css('display','grid');
 
     if (this.gotLocation && this.location[0] != 0) {
       this.map.flyTo({
@@ -328,7 +373,8 @@ export default class NodeUI {
 
   blur() {
     this.ui.classList.remove('focus');
-    this.mui.css('display','none');
+    this.pui.hide();
+    //this.mui.css('display','none');
     if (this.onBlur) this.onBlur(this);
   }
 

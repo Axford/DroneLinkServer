@@ -7,13 +7,6 @@
   color:black;
 }
 
-.Channel.enabled {
-  background-color: #e0f0e0;
-}
-
-.Channel.warning {
-  background-color: #ff8080;
-}
 
 .Channel h1 {
   font-size: 1em;
