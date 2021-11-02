@@ -75,3 +75,5 @@ typings/
 # FuseBox cache
 .fusebox/
 debug.json
+public/firmware/firmware.ver
+public/firmware/firmware.bin
