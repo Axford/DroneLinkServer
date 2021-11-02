@@ -1,7 +1,7 @@
 import loadStylesheet from '../../loadStylesheet.js';
 import * as DLM from '../../droneLinkMsg.mjs';
 
-loadStylesheet('./css/modules/interfaces/INA219.css');
+//loadStylesheet('./css/modules/interfaces/INA219.css');
 
 export default class INA219 {
 	constructor(channel, state) {
@@ -38,6 +38,7 @@ export default class INA219 {
       current: this.state.getParamValues(node, channel, 12, [0])[0],
       power: this.state.getParamValues(node, channel, 13, [0])[0],
       loadV: this.state.getParamValues(node, channel, 14, [0])[0],
+			cellV: this.state.getParamValues(node, channel, 15, [0])[0],
 			alarm: this.state.getParamValues(node, channel, 16, [0])[0]
     }
 
@@ -52,14 +53,19 @@ export default class INA219 {
 		ctx.fillStyle = '#343a40';
 		ctx.fillRect(0,0,w,200);
 
+		var mw = w/4;
+
+		if (ina.cellV)
+			this.drawMeter(ctx, ina.cellV.toFixed(1), 'Cell V', 0, 0, mw,100);
+
 		if (ina.loadV)
-			this.drawMeter(ctx, ina.loadV.toFixed(1), 'V', 0,0,w/3,100);
+			this.drawMeter(ctx, ina.loadV.toFixed(1), 'V', mw, 0, mw,100);
 
 		if (ina.current)
-	    this.drawMeter(ctx, ina.current.toFixed(1), 'A', w/3,0,w/3,100);
+	    this.drawMeter(ctx, ina.current.toFixed(1), 'A', 2*mw, 0, mw,100);
 
 		if (ina.power)
-	    this.drawMeter(ctx, ina.power.toFixed(1), 'W', 2*w/3,0,w/3,100);
+	    this.drawMeter(ctx, ina.power.toFixed(1), 'W', 3*mw, 0, mw,100);
   }
 
 	build() {

@@ -113,7 +113,7 @@
   padding: 0 5px 0 5px;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  grid-gap: 5px;
+  grid-gap: 4px;
   margin-bottom:5px;
 }
 

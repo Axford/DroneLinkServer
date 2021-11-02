@@ -205,7 +205,12 @@ export default class NodeUI {
 
       // listen for hostname
       if (data.channel == 1 && data.param == 8 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_CHAR) {
-        this.uiLabel.innerHTML = data.node + ' > ' + data.values[0];
+        if (data.values[0]) {
+          this.uiLabel.innerHTML = data.node + ' > ' + data.values[0];
+        } else {
+          console.error('undefined hostname:', data);
+        }
+
         //this.muiName.html(data.node + ' > ' + data.values[0]);
       }
 
