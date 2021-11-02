@@ -5,6 +5,7 @@ import * as DLM from '../droneLinkMsg.mjs';
 import Parameter from './Parameter.mjs';
 
 // interfaces
+import INA219 from './interfaces/INA219.mjs';
 import Management from './interfaces/Management.mjs';
 import Nav from './interfaces/Nav.mjs';
 import Sailor from './interfaces/Sailor.mjs';
@@ -164,7 +165,9 @@ export default class Channel {
       console.log(data);
 
       // instance an interface if available
-      if (data.type == 'Management') {
+      if (data.type == 'INA219') {
+        this.interface = new INA219(this, state);
+      } else if (data.type == 'Management') {
         this.interface = new Management(this, state);
       } else if (data.type == 'Nav') {
         this.interface = new Nav(this, state);
