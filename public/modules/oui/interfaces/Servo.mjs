@@ -253,6 +253,7 @@ export default class Servo {
             }
           }
         }
+        this.drawCurve();
       }
 		});
 
