@@ -116,6 +116,8 @@ function init() {
 
     if (numNodes == 1) {
       node.focus();
+      // hide status
+      $('.status').hide();
     }
 
   });

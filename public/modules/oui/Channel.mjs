@@ -232,7 +232,7 @@ export default class Channel {
       }
 
       // status
-      if (data.param == DLM.DRONE_MODULE_PARAM_STATUS) {
+      if (data.param == DLM.DRONE_MODULE_PARAM_STATUS && data.msgType == DLM.DRONE_LINK_MSG_TYPE_UINT8_T) {
         if (data.values[0] > 0) {
           this.ui.addClass('enabled');
           this.uiEnable.hide();
@@ -246,13 +246,13 @@ export default class Channel {
       }
 
       // name
-      if (data.param == DLM.DRONE_MODULE_PARAM_NAME) {
+      if (data.param == DLM.DRONE_MODULE_PARAM_NAME&& data.msgType == DLM.DRONE_LINK_MSG_TYPE_CHAR) {
         this.name = data.values[0];
         this.uiTitle.html(data.channel + '. ' + this.name);
       }
 
       // resetCount
-      if (data.param == DLM.DRONE_MODULE_PARAM_RESETCOUNT) {
+      if (data.param == DLM.DRONE_MODULE_PARAM_RESETCOUNT&& data.msgType == DLM.DRONE_LINK_MSG_TYPE_UINT8_T) {
         this.uiResetCount.html(data.values[0]);
         if (data.values[0] > 0) {
           this.uiResetCount.addClass('bg-danger');

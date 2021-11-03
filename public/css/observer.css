@@ -21,6 +21,10 @@ html, body {margin: 0; height: 100%; overflow: hidden}
   text-shadow: 2px 2px 6px rgba(0,0,0,0.6)
 }
 
+.status {
+  color:white;
+}
+
 .mainRow {
   height:100%;
 }
