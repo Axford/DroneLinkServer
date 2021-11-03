@@ -15,6 +15,38 @@ import NMEAWidget from '../widgets/NMEAWidget.mjs';
 loadStylesheet('./css/modules/oui/NodeUI.css');
 
 
+
+class DCodeSyntax {
+  constructor() {
+    this.$rules = {
+        "start" : [
+            {token : "entity.function.name", regex : /^\s*\w*\./},
+            {token : "keyword", regex : /\$\w+/},
+            {token : "string", regex : '\"', next  : "string"},
+            {token : "comment.multiline", regex : /^\/\*.+/, next: "comment.multiline"},
+            {token : "comment",  regex : /\/\/.+$/},
+            {token : "support.class", regex : /\[/, next: "support.class"},
+            {token : "constant.numeric", regex: "[+-]?\\d+\\b"},
+            //{token : keywordMapper, regex : "\\b\\w+\\b"},
+            {caseInsensitive: false}
+        ],
+        "support.class" : [
+            {token : "support.class", regex : '\]',     next  : "start"},
+            {defaultToken : "support.class"}
+        ],
+        "comment.multiline" : [
+            {token : "comment.multiline", regex : /\*\//,     next  : "start"},
+            {defaultToken : "comment.multiline"}
+        ],
+        "string" : [
+            {token : "string", regex : '\"',     next  : "start"},
+            {defaultToken : "string"}
+        ]
+    };
+  }
+}
+
+
 export default class NodeUI {
 
   constructor(id, state, map) {
@@ -109,6 +141,28 @@ export default class NodeUI {
     this.muiChannels = {};
 
     this.puiPanels.append(this.mui);
+
+
+
+    // create config ui
+    this.cui = $('<div class="configurationUI" style="display:none"/>');
+    this.cui.node = this;
+    this.puiPanels.append(this.cui);
+
+
+    this.cuiEditor = $('<div class="editor">node 2\n //comment\n</div>');
+
+    ace.config.setModuleUrl('ace/mode/dcode',"/modules/mode-dcode.js");
+
+    this.aceEditor = ace.edit(this.cuiEditor[0], {
+        mode: "ace/mode/dcode",
+        theme:'ace/theme/dracula',
+        selectionStyle: "text"
+    });
+    //const syntax = new DCodeSyntax();
+    //console.log(this.aceEditor.session);
+    //this.aceEditor.session.setMode(syntax.mode);
+    this.cui.append(this.cuiEditor);
 
 
     // query for target regularly - TODO - only do this when we spot a nav module

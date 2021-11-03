@@ -36,3 +36,12 @@
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   grid-gap: 8px;
 }
+
+
+.configurationUI {
+  width: 100%;
+  height: calc(100vh - 50px);
+}
+.configurationUI .editor {
+  height:100%;
+}
