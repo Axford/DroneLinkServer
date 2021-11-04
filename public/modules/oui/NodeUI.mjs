@@ -15,38 +15,6 @@ import NMEAWidget from '../widgets/NMEAWidget.mjs';
 loadStylesheet('./css/modules/oui/NodeUI.css');
 
 
-
-class DCodeSyntax {
-  constructor() {
-    this.$rules = {
-        "start" : [
-            {token : "entity.function.name", regex : /^\s*\w*\./},
-            {token : "keyword", regex : /\$\w+/},
-            {token : "string", regex : '\"', next  : "string"},
-            {token : "comment.multiline", regex : /^\/\*.+/, next: "comment.multiline"},
-            {token : "comment",  regex : /\/\/.+$/},
-            {token : "support.class", regex : /\[/, next: "support.class"},
-            {token : "constant.numeric", regex: "[+-]?\\d+\\b"},
-            //{token : keywordMapper, regex : "\\b\\w+\\b"},
-            {caseInsensitive: false}
-        ],
-        "support.class" : [
-            {token : "support.class", regex : '\]',     next  : "start"},
-            {defaultToken : "support.class"}
-        ],
-        "comment.multiline" : [
-            {token : "comment.multiline", regex : /\*\//,     next  : "start"},
-            {defaultToken : "comment.multiline"}
-        ],
-        "string" : [
-            {token : "string", regex : '\"',     next  : "start"},
-            {defaultToken : "string"}
-        ]
-    };
-  }
-}
-
-
 export default class NodeUI {
 
   constructor(id, state, map) {
@@ -57,6 +25,8 @@ export default class NodeUI {
     this.target=  [0,0,0];
     this.last=  [0,0,0];
     this.id=  id;
+    this.ipAddress = '';
+    this.selectedNodeFilename = '';
 
     this.gotLocationModule=  false;
     this.gotLocation= false;
@@ -149,7 +119,125 @@ export default class NodeUI {
     this.cui.node = this;
     this.puiPanels.append(this.cui);
 
+    // file mgmt block
+    this.cuiFileBlock = $('<div class="fileBlock"></div>');
+    this.cui.append(this.cuiFileBlock);
 
+    // on server
+    this.cuiFilesOnServer = $('<div class="filePane"></div>');
+    this.cuiFileBlock.append(this.cuiFilesOnServer);
+
+    //    title
+    this.cuiFilesOnServerTitle = $('<div class="title"></div>');
+    this.cuiFilesOnServer.append(this.cuiFilesOnServerTitle);
+
+    //    nav
+    this.cuiFilesOnServerNav = $('<div class="nav"></div>');
+    this.cuiFilesOnServer.append(this.cuiFilesOnServerNav);
+
+    //    filelist
+    this.cuiFilesOnServerFiles = $('<div class="files">files on server</div>');
+    this.cuiFilesOnServer.append(this.cuiFilesOnServerFiles);
+
+    // on node
+    this.cuiFilesOnNode = $('<div class="filePane" style="display:none"></div>');
+    this.cuiFileBlock.append(this.cuiFilesOnNode);
+
+    //    title
+    this.cuiFilesOnNodeTitle = $('<div class="title">Files on Node</div>');
+    this.cuiFilesOnNode.append(this.cuiFilesOnNodeTitle);
+
+    //    nav
+    this.cuiFilesOnNodeNav = $('<div class="nav"></div>');
+    this.cuiFilesOnNode.append(this.cuiFilesOnNodeNav);
+
+    this.cuiGetFileListBut = $('<button class="btn btn-sm btn-primary">List</button>');
+    this.cuiGetFileListBut.on('click',()=>{ this.getNodeFileList()  });
+    this.cuiFilesOnNodeNav.append(this.cuiGetFileListBut);
+
+
+    this.cuiGetFileBut = $('<button class="btn btn-sm btn-primary ml-1" style="display:none">Edit</button>');
+    this.cuiGetFileBut.on('click',()=>{
+      this.cuiEditorTitle.html('Downloading...' + this.selectedNodeFilename);
+      this.cuiEditorNav.removeClass('saved');
+      this.cuiEditorNav.removeClass('error');
+      this.aceEditor.session.setValue('',-1);
+
+      fetch('http://' + this.ipAddress + '/file?action=download&name='+this.selectedNodeFilename)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not OK');
+          }
+          return response.text();
+        })
+        .then(data => {
+          console.log(data);
+          this.aceEditor.session.setValue(data,-1);
+          this.cuiEditorTitle.html(this.selectedNodeFilename);
+          this.cuiEditorSaveBut.show();
+        })
+        .catch(error => {
+          this.aceEditor.session.setValue('Error fetching file: '+error,-1);
+          this.cuiEditorTitle.html('Error!');
+          this.cuiEditorSaveBut.hide();
+          console.error('Error downloading: ' + this.selectedNodeFilename);
+        });
+    });
+    this.cuiFilesOnNodeNav.append(this.cuiGetFileBut);
+
+
+
+    //    filelist
+    this.cuiFilesOnNodeFiles = $('<div class="files"></div>');
+    this.cuiFilesOnNode.append(this.cuiFilesOnNodeFiles);
+
+
+
+    // file editor block
+    this.cuiEditorBlock = $('<div class="editorBlock"></div>');
+    this.cui.append(this.cuiEditorBlock);
+
+    // nav
+    this.cuiEditorNav = $('<div class="editorNav clearfix"></div>');
+    this.cuiEditorBlock.append(this.cuiEditorNav);
+
+    this.cuiEditorSaveBut = $('<button class="btn btn-sm btn-primary float-right" style="display:none">Save</button>');
+    this.cuiEditorSaveBut.on('click',()=>{
+      this.cuiEditorNav.addClass('saving');
+      var contents = this.aceEditor.session.getValue();
+      var blob = new Blob ([contents], { type: "text/plain" });
+      var fileOfBlob = new File([blob], this.cuiEditorTitle.html());
+      var fd = new FormData();
+      fd.append("file1", fileOfBlob);
+      var xmlhttp=new XMLHttpRequest();
+      xmlhttp.open("POST", 'http://' + this.ipAddress + '/', true);
+      xmlhttp.onload = function (e) {
+        if (xmlhttp.readyState === 4) {
+          if (xmlhttp.status === 200) {
+            //
+            me.cuiEditorNav.addClass('saved');
+            me.cuiEditorNav.removeClass('saving');
+            me.getNodeFileList();
+          } else {
+            //console.error(xmlhttp.statusText);
+            me.cuiEditorNav.addClass('error');
+            me.cuiEditorNav.removeClass('saving');
+          }
+        }
+      };
+      xmlhttp.onerror = function (e) {
+        console.error(xmlhttp.statusText);
+        me.cuiEditorNav.addClass('error');
+        me.cuiEditorNav.removeClass('saving');
+      };
+      xmlhttp.send(fd);
+    });
+    this.cuiEditorNav.append(this.cuiEditorSaveBut);
+
+    this.cuiEditorTitle = $('<div class="title"></div>');
+    this.cuiEditorNav.append(this.cuiEditorTitle);
+
+    // editor
     this.cuiEditor = $('<div class="editor">node 2\n //comment\n</div>');
 
     ace.config.setModuleUrl('ace/mode/dcode',"/modules/mode-dcode.js");
@@ -162,7 +250,7 @@ export default class NodeUI {
     //const syntax = new DCodeSyntax();
     //console.log(this.aceEditor.session);
     //this.aceEditor.session.setMode(syntax.mode);
-    this.cui.append(this.cuiEditor);
+    this.cuiEditorBlock.append(this.cuiEditor);
 
 
     // query for target regularly - TODO - only do this when we spot a nav module
@@ -178,6 +266,16 @@ export default class NodeUI {
       this.state.send(qm);
     }, 5000);
     */
+
+    // query ipAddress
+    var qm = new DLM.DroneLinkMsg();
+    qm.source = 252;
+    qm.node = this.id;
+    qm.channel = 1;
+    qm.param = 12;
+    qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
+    qm.msgLength = 1;
+    this.state.send(qm);
 
 
     this.state.on('module.new', (data)=>{
@@ -288,8 +386,17 @@ export default class NodeUI {
         } else {
           console.error('undefined hostname:', data);
         }
+      }
 
-        //this.muiName.html(data.node + ' > ' + data.values[0]);
+      // listen for ipAddress
+      if (data.channel == 1 && data.param == 12 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_UINT8_T) {
+        if (data.values[0]) {
+          this.ipAddress = data.values.join('.');
+          // show config node files panel
+          this.cuiFilesOnNode.show();
+        } else {
+          console.error('undefined hostname:', data);
+        }
       }
 
       // listen for location
@@ -388,6 +495,37 @@ export default class NodeUI {
       this.uiLastHeard.innerHTML = dt.toFixed(0)+ 's';
 
     }, 1000)
+  }
+
+
+  getNodeFileList() {
+    fetch('http://' + this.ipAddress + '/listfiles?json')
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not OK');
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log(data);
+        this.cuiFilesOnNodeFiles.empty();
+        data.files.forEach((f)=>{
+          var fe = $('<div class="file">'+f.name+' ('+f.size.toFixed(0)+')</div>');
+          fe.data('name',f.name);
+          fe.on('click',()=>{
+            this.cuiFilesOnNodeFiles.children().removeClass('selected');
+            this.selectedNodeFilename = fe.data('name');
+            fe.addClass('selected');
+            this.cuiGetFileBut.show();
+          });
+          this.cuiFilesOnNodeFiles.append(fe);
+        });
+      })
+      .catch(error => {
+        this.cuiFilesOnNodeFiles.html('Error fetching files: '+error);
+        console.error('There has been a problem with your fetch operation:', error);
+        this.cuiGetFileBut.hide();
+      });
   }
 
 

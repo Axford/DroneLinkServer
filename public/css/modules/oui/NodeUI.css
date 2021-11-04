@@ -42,6 +42,82 @@
   width: 100%;
   height: calc(100vh - 50px);
 }
-.configurationUI .editor {
+
+.configurationUI .fileBlock {
+  margin-top: 8px;
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  grid-gap: 8px;
+}
+
+.filePane {
+
+}
+
+.filePane .title {
+  color:white;
+}
+
+.filePane .nav {
+  color:black;
+  background-color: #ccc;
+  padding: 4px 4px;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+}
+
+.filePane .files {
+  margin-top: 4px;
+  background-color: #333;
+  overflow-y:scroll;
+  height: 15vh;
+}
+
+.filePane .file {
+  padding:2px 4px;
+  border-bottom: 1px solid #aaa;
+  cursor: pointer;
+  user-select: none;
+}
+
+.filePane .file.selected {
+  background-color: #5f5;
+  color:black;
+}
+
+.configurationUI .editorBlock {
+  margin-top: 8px;
+}
+
+.editorBlock .editorNav {
+  color:black;
+  background-color: #ccc;
+  padding: 4px 4px;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+  margin-bottom:4px;
+}
+
+.editorBlock .editorNav.saving {
+  background-color: #ff5;
+}
+
+.editorBlock .editorNav.saved {
+  background-color: #5f5;
+}
+
+.editorBlock .editorNav.error {
+  background-color: #f55;
+}
+
+.editorBlock .editorNav .title {
+  font-size:1.2em;
+  font-weight:bold;
+}
+
+
+
+.editorBlock .editor {
+  min-height:400px;
   height:100%;
 }
