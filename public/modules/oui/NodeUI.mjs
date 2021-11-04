@@ -27,6 +27,7 @@ export default class NodeUI {
     this.id=  id;
     this.ipAddress = '';
     this.selectedNodeFilename = '';
+    this.scriptMarkers = [];
 
     this.gotLocationModule=  false;
     this.gotLocation= false;
@@ -158,31 +159,7 @@ export default class NodeUI {
 
     this.cuiGetFileBut = $('<button class="btn btn-sm btn-primary ml-1" style="display:none">Edit</button>');
     this.cuiGetFileBut.on('click',()=>{
-      this.cuiEditorTitle.html('Downloading...' + this.selectedNodeFilename);
-      this.cuiEditorNav.removeClass('saved');
-      this.cuiEditorNav.removeClass('error');
-      this.aceEditor.session.setValue('',-1);
-      this.cuiEditorBlock.show();
-
-      fetch('http://' + this.ipAddress + '/file?action=download&name='+this.selectedNodeFilename)
-        .then(response => {
-          if (!response.ok) {
-            throw new Error('Network response was not OK');
-          }
-          return response.text();
-        })
-        .then(data => {
-          console.log(data);
-          this.aceEditor.session.setValue(data,-1);
-          this.cuiEditorTitle.html(this.selectedNodeFilename);
-          this.cuiEditorSaveBut.show();
-        })
-        .catch(error => {
-          this.aceEditor.session.setValue('Error fetching file: '+error,-1);
-          this.cuiEditorTitle.html('Error!');
-          this.cuiEditorSaveBut.hide();
-          console.error('Error downloading: ' + this.selectedNodeFilename);
-        });
+      this.loadFileFromNode();
     });
     this.cuiFilesOnNodeNav.append(this.cuiGetFileBut);
 
@@ -250,6 +227,7 @@ export default class NodeUI {
     });
     this.aceEditor.on('change', ()=>{
       this.cuiEditorNav.removeClass('saved');
+      this.analyseFile();
     });
     this.aceEditor.session.selection.on('changeCursor', (e)=>{
 
@@ -257,15 +235,34 @@ export default class NodeUI {
       // get line for cursor
       var line = this.aceEditor.session.getLine(cursor.row);
       console.log('line:', line);
-      if (line.includes('_Nav.goto')) {
+      if (line.includes('.goto')) {
         console.log('goto!');
         const regexp = /\s*[_]\w+\.\w+\s+(-?(0|[1-9]\d*)(\.\d+)?)\s+(-?(0|[1-9]\d*)(\.\d+)?)\s+(-?(0|[1-9]\d*)(\.\d+)?)/;
         const match = line.match(regexp);
         console.log('coord:',match[1],match[4],match[7]);
+
+        /*
         // move map center to coord
-        this.map.setCenter([parseFloat(match[1]), parseFloat(match[4])])
+        var lon =  parseFloat(match[1]);
+        var lat = parseFloat(match[4]);
+        if (lon && lat) this.map.setCenter([ lon, lat])
+        */
+        // find matching marker
+        for (var i=0; i<this.scriptMarkers.length; i++) {
+          if (this.scriptMarkers[i].lineNumber == cursor.row) {
+            // found it
+            this.scriptMarkers[i].getElement().classList.add('active');
+
+            // see if visible
+            if (!this.map.getBounds().contains(this.scriptMarkers[i].getLngLat())) {
+              this.map.flyTo({center:this.scriptMarkers[i].getLngLat()});
+            }
+          } else {
+            this.scriptMarkers[i].getElement().classList.remove('active');
+          }
+        }
       }
-    })
+    });
     //const syntax = new DCodeSyntax();
     //console.log(this.aceEditor.session);
     //this.aceEditor.session.setMode(syntax.mode);
@@ -552,6 +549,95 @@ export default class NodeUI {
         console.error('There has been a problem with your fetch operation:', error);
         this.cuiGetFileBut.hide();
       });
+  }
+
+  loadFileFromNode() {
+    this.cuiEditorTitle.html('Downloading...' + this.selectedNodeFilename);
+    this.cuiEditorNav.removeClass('saved');
+    this.cuiEditorNav.removeClass('error');
+    this.aceEditor.session.setValue('',-1);
+    this.cuiEditorBlock.show();
+
+    fetch('http://' + this.ipAddress + '/file?action=download&name='+this.selectedNodeFilename)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not OK');
+        }
+        return response.text();
+      })
+      .then(data => {
+        this.aceEditor.session.setValue(data,-1);
+        this.cuiEditorTitle.html(this.selectedNodeFilename);
+        this.cuiEditorSaveBut.show();
+
+        this.analyseFile();
+      })
+      .catch(error => {
+        this.aceEditor.session.setValue('Error fetching file: '+error,-1);
+        this.cuiEditorTitle.html('Error!');
+        this.cuiEditorSaveBut.hide();
+        console.error('Error downloading: ' + this.selectedNodeFilename);
+      });
+  }
+
+  analyseFile() {
+    // analyse contents of file loaded into editor
+    // e.g. extract navigation markers
+    var sess = this.aceEditor.session;
+
+    var numLines = sess.getLength();
+    var numMarkers = 0;
+    for (var i=1; i<=numLines; i++) {
+      var line = sess.getLine(i);
+
+      // analyse line
+      if (line.includes('.goto')) {
+        const regexp = /\s*[_]\w+\.goto\s+(-?(0|[1-9]\d*)(\.\d+)?)\s+(-?(0|[1-9]\d*)(\.\d+)?)\s+(-?(0|[1-9]\d*)(\.\d+)?)/;
+        const match = line.match(regexp);
+        console.log('goto:',match[1],match[4],match[7]);
+        var lon = parseFloat(match[1]);
+        var lat = parseFloat(match[4]);
+        var radius = parseFloat(match[7]);
+
+        // create or update marker
+        // -- target marker --
+        var el = document.createElement('div');
+        el.className = 'scriptMarker';
+
+        console.log(numMarkers, this.scriptMarkers.length, this.scriptMarkers);
+
+
+        var marker;
+        if (numMarkers < this.scriptMarkers.length) {
+          marker = this.scriptMarkers[numMarkers];
+        } else {
+          marker = new mapboxgl.Marker(el)
+              .setLngLat([lon,lat])
+              //.setDraggable(true)
+              .addTo(this.map);
+
+          this.scriptMarkers.push(marker);
+        }
+
+        if (lon && lat) {
+          marker.setLngLat([lon,lat]);
+          marker.lineNumber = i;
+        } else {
+          console.error('invalid coords:', lon, lat);
+        }
+
+
+        numMarkers++;
+      }
+    }
+
+    // delete redundant markers
+    while (numMarkers < this.scriptMarkers.length) {
+      this.scriptMarkers[this.scriptMarkers.length-1].remove();
+      this.scriptMarkers.pop();
+    }
+
+    console.log('done',numMarkers, this.scriptMarkers.length, this.scriptMarkers);
   }
 
 

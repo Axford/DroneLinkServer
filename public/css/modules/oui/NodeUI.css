@@ -1,4 +1,28 @@
 
+.scriptMarker {
+  background-image: radial-gradient(circle at center, rgba(128,128,255,0.8) 0, rgba(0,0,0,0) 100%);
+  background-size: cover;
+  width: 20px;
+  height: 20px;
+  text-align:center;
+  font-size:14px;
+  font-weight:normal;
+  color:white;
+  border-radius: 50%;
+  border:1px solid #aaf;
+  cursor: pointer;
+  /* border: 2px solid rgba(255,255,0,0.5); */
+  text-shadow: -1px -1px 3 #000;
+  overflow:visible;
+  white-space:nowrap;
+}
+
+.scriptMarker.active {
+  border:3px solid #fff;
+  background-color: #aaf;
+}
+
+
 .NodeUI {
 
 }
@@ -112,7 +136,7 @@
 }
 
 .filePane .file .size {
-  
+
 }
 
 .filePane .file.selected {
