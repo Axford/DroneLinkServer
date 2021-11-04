@@ -4,18 +4,49 @@
 }
 
 .NodeUI .panelNav {
+  margin-left:-8px;
+  margin-right:-8px;
+  padding:0 8px;
   margin-bottom:8px;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
   grid-gap: 8px;
+  border-bottom: 2px solid #0069d9;
 }
 
-.NodeUI .panelNav button.active {
-  color: #0f0;
+.NodeUI .panelNav .tab {
+  border-top-left-radius:6px;
+  border-top-right-radius:6px;
+  border-bottom-left-radius:0;
+  border-bottom-right-radius:0;
+  border:1px solid #6c757d;
+  padding: 0.375rem 0.75rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  cursor: pointer;
+  text-align:center;
 }
 
-.NodeUI .panelNav button.inactive {
-  color: #888;
+.NodeUI .panelNav .tab:focus {
+   border:0;
+}
+
+.NodeUI .panelNav .tab:hover {
+   border:0;
+   text-decoration: none;
+}
+
+.NodeUI .panelNav .tab.active {
+  background-color: #0069d9;
+  border:1px solid #0069d9;
+  color: #fff;
+}
+
+.NodeUI .panelNav .tab.inactive {
+  background-color: none;
+  border:1px solid #6c757d;
+  border-bottom:0;
+  color: #aaa;
 }
 
 .managementUI .interfaceInfo {
@@ -78,6 +109,10 @@
   border-bottom: 1px solid #aaa;
   cursor: pointer;
   user-select: none;
+}
+
+.filePane .file .size {
+  
 }
 
 .filePane .file.selected {

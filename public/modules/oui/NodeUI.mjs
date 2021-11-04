@@ -86,11 +86,11 @@ export default class NodeUI {
     this.puiNav = $('<div class="panelNav"></div>');
     this.pui.append(this.puiNav);
 
-    this.puiMgmtBut = $('<button class="btn btn-primary">Management</button>')
+    this.puiMgmtBut = $('<a class="tab active">Management</a>')
     this.puiNav.append(this.puiMgmtBut)
     this.puiMgmtBut.on('click', ()=> { this.showPanel(this.puiMgmtBut, this.mui) });
 
-    this.puiConfigBut = $('<button class="btn btn-secondary">Configuration</button>')
+    this.puiConfigBut = $('<a class="tab inactive">Configuration</a>')
     this.puiNav.append(this.puiConfigBut)
     this.puiConfigBut.on('click', ()=> {  this.showPanel(this.puiConfigBut,this.cui) });
 
@@ -162,6 +162,7 @@ export default class NodeUI {
       this.cuiEditorNav.removeClass('saved');
       this.cuiEditorNav.removeClass('error');
       this.aceEditor.session.setValue('',-1);
+      this.cuiEditorBlock.show();
 
       fetch('http://' + this.ipAddress + '/file?action=download&name='+this.selectedNodeFilename)
         .then(response => {
@@ -194,7 +195,7 @@ export default class NodeUI {
 
 
     // file editor block
-    this.cuiEditorBlock = $('<div class="editorBlock"></div>');
+    this.cuiEditorBlock = $('<div class="editorBlock" style="display:none"></div>');
     this.cui.append(this.cuiEditorBlock);
 
     // nav
@@ -238,7 +239,7 @@ export default class NodeUI {
     this.cuiEditorNav.append(this.cuiEditorTitle);
 
     // editor
-    this.cuiEditor = $('<div class="editor">node 2\n //comment\n</div>');
+    this.cuiEditor = $('<div class="editor"></div>');
 
     ace.config.setModuleUrl('ace/mode/dcode',"/modules/mode-dcode.js");
 
@@ -250,6 +251,21 @@ export default class NodeUI {
     this.aceEditor.on('change', ()=>{
       this.cuiEditorNav.removeClass('saved');
     });
+    this.aceEditor.session.selection.on('changeCursor', (e)=>{
+
+      var cursor = this.aceEditor.selection.getCursor();
+      // get line for cursor
+      var line = this.aceEditor.session.getLine(cursor.row);
+      console.log('line:', line);
+      if (line.includes('_Nav.goto')) {
+        console.log('goto!');
+        const regexp = /\s*[_]\w+\.\w+\s+(-?(0|[1-9]\d*)(\.\d+)?)\s+(-?(0|[1-9]\d*)(\.\d+)?)\s+(-?(0|[1-9]\d*)(\.\d+)?)/;
+        const match = line.match(regexp);
+        console.log('coord:',match[1],match[4],match[7]);
+        // move map center to coord
+        this.map.setCenter([parseFloat(match[1]), parseFloat(match[4])])
+      }
+    })
     //const syntax = new DCodeSyntax();
     //console.log(this.aceEditor.session);
     //this.aceEditor.session.setMode(syntax.mode);
@@ -511,9 +527,16 @@ export default class NodeUI {
       })
       .then(data => {
         console.log(data);
+        this.cuiFilesOnNodeTitle.html( data.files.length +' Files on Node');
         this.cuiFilesOnNodeFiles.empty();
         data.files.forEach((f)=>{
-          var fe = $('<div class="file">'+f.name+' ('+f.size.toFixed(0)+')</div>');
+          var sizeStr =  '';
+          if (f.size < 1000) {
+            sizeStr = f.size.toFixed(0);
+          } else {
+            sizeStr = (f.size/1024).toFixed(1) + 'k';
+          }
+          var fe = $('<div class="file clearfix">'+f.name+' <span class="size float-right">'+sizeStr+'</span></div>');
           fe.data('name',f.name);
           fe.on('click',()=>{
             this.cuiFilesOnNodeFiles.children().removeClass('selected');
@@ -537,16 +560,16 @@ export default class NodeUI {
     var me = this;
     // restyle buttons
     this.puiNav.children().each(function () {
-        $(this).removeClass('btn-primary');
-        $(this).addClass('btn-secondary');
+        $(this).removeClass('active');
+        $(this).addClass('inactive');
     });
     // hide panels
     this.puiPanels.children().each(function () {
         $(this).hide();
     });
 
-    but.addClass('btn-primary');
-    but.removeClass('btn-secondary');
+    but.addClass('active');
+    but.removeClass('inactive');
     if (panel) panel.show();
   }
 
