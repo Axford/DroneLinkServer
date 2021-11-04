@@ -247,6 +247,9 @@ export default class NodeUI {
         theme:'ace/theme/dracula',
         selectionStyle: "text"
     });
+    this.aceEditor.on('change', ()=>{
+      this.cuiEditorNav.removeClass('saved');
+    });
     //const syntax = new DCodeSyntax();
     //console.log(this.aceEditor.session);
     //this.aceEditor.session.setMode(syntax.mode);

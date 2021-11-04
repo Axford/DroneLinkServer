@@ -98,8 +98,24 @@
   margin-bottom:4px;
 }
 
+@-webkit-keyframes moving-gradient {
+    0% { background-position: left bottom; }
+    100% { background-position: right bottom; }
+}
+
 .editorBlock .editorNav.saving {
-  background-color: #ff5;
+  background: -webkit-linear-gradient(
+        left,
+        #5f5 30%,
+        #555 80%,
+        #5f5 100%
+    ) repeat;
+
+    -webkit-background-size: 50% 100%;
+    -webkit-animation-name: moving-gradient;
+    -webkit-animation-duration: 1s;
+    -webkit-animation-iteration-count: infinite;
+    -webkit-animation-timing-function: linear;
 }
 
 .editorBlock .editorNav.saved {
