@@ -70,6 +70,27 @@ export default class NodeUI {
 
     this.widgets = {};
 
+    // prep a layer for scriptMarker outlines
+    var scriptOutlineName = 'scriptOutline' + this.id;
+    this.map.addSource(scriptOutlineName, { type: 'geojson', data: {
+      "type": "Feature",
+      "geometry": {
+          "type": "Point",
+          "coordinates":  []
+      }
+    } });
+    this.map.addLayer({
+      'id': scriptOutlineName,
+      'type': 'line',
+      'source': scriptOutlineName,
+      'layout': {},
+      'paint': {
+        'line-color': '#88f',
+        'line-opacity': 0.8,
+        'line-width': 2
+      }
+    });
+
     // create event handler
     this.ui.onclick = (e)=> {
       this.focus();
@@ -239,28 +260,36 @@ export default class NodeUI {
         console.log('goto!');
         const regexp = /\s*[_]\w+\.\w+\s+(-?(0|[1-9]\d*)(\.\d+)?)\s+(-?(0|[1-9]\d*)(\.\d+)?)\s+(-?(0|[1-9]\d*)(\.\d+)?)/;
         const match = line.match(regexp);
-        console.log('coord:',match[1],match[4],match[7]);
+        if (match) {
+          console.log('coord:',match[1],match[4],match[7]);
 
-        /*
-        // move map center to coord
-        var lon =  parseFloat(match[1]);
-        var lat = parseFloat(match[4]);
-        if (lon && lat) this.map.setCenter([ lon, lat])
-        */
-        // find matching marker
-        for (var i=0; i<this.scriptMarkers.length; i++) {
-          if (this.scriptMarkers[i].lineNumber == cursor.row) {
-            // found it
-            this.scriptMarkers[i].getElement().classList.add('active');
+          /*
+          // move map center to coord
+          var lon =  parseFloat(match[1]);
+          var lat = parseFloat(match[4]);
+          if (lon && lat) this.map.setCenter([ lon, lat])
+          */
+          // find matching marker
+          for (var i=0; i<this.scriptMarkers.length; i++) {
+            if (this.scriptMarkers[i].lineNumber == cursor.row) {
+              // found it
+              this.scriptMarkers[i].getElement().classList.add('active');
 
-            // see if visible
-            if (!this.map.getBounds().contains(this.scriptMarkers[i].getLngLat())) {
-              this.map.flyTo({center:this.scriptMarkers[i].getLngLat()});
+              // set outline
+              var outlineData = this.createGeoJSONCircle([this.scriptMarkers[i]._lngLat.lng, this.scriptMarkers[i]._lngLat.lat], this.scriptMarkers[i].targetRadius);
+              var src = this.map.getSource('scriptOutline' + this.id);
+              if (src) src.setData(outlineData);
+
+              // see if visible
+              if (!this.map.getBounds().contains(this.scriptMarkers[i].getLngLat())) {
+                this.map.flyTo({center:this.scriptMarkers[i].getLngLat()});
+              }
+            } else {
+              this.scriptMarkers[i].getElement().classList.remove('active');
             }
-          } else {
-            this.scriptMarkers[i].getElement().classList.remove('active');
           }
         }
+
       }
     });
     //const syntax = new DCodeSyntax();
@@ -268,20 +297,6 @@ export default class NodeUI {
     //this.aceEditor.session.setMode(syntax.mode);
     this.cuiEditorBlock.append(this.cuiEditor);
 
-
-    // query for target regularly - TODO - only do this when we spot a nav module
-    /*
-    setInterval(()=>{
-      var qm = new DLM.DroneLinkMsg();
-      qm.source = 252;
-      qm.node = this.id;
-      qm.channel = 7;
-      qm.param = 12;
-      qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
-      qm.msgLength = 1;
-      this.state.send(qm);
-    }, 5000);
-    */
 
     // query ipAddress
     var qm = new DLM.DroneLinkMsg();
@@ -346,6 +361,19 @@ export default class NodeUI {
         qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
         qm.msgLength = 1;
         this.state.send(qm);
+
+        // query for target regularly
+        setInterval(()=>{
+          var qm = new DLM.DroneLinkMsg();
+          qm.source = 252;
+          qm.node = this.id;
+          qm.channel = 7;
+          qm.param = 12;
+          qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
+          qm.msgLength = 1;
+          this.state.send(qm);
+        }, 5000);
+
       }
 
       if (data.type == 'Nav' && this.targetModule == 0) {
@@ -594,40 +622,43 @@ export default class NodeUI {
       if (line.includes('.goto')) {
         const regexp = /\s*[_]\w+\.goto\s+(-?(0|[1-9]\d*)(\.\d+)?)\s+(-?(0|[1-9]\d*)(\.\d+)?)\s+(-?(0|[1-9]\d*)(\.\d+)?)/;
         const match = line.match(regexp);
-        console.log('goto:',match[1],match[4],match[7]);
-        var lon = parseFloat(match[1]);
-        var lat = parseFloat(match[4]);
-        var radius = parseFloat(match[7]);
+        if (match) {
+          console.log('goto:',match[1],match[4],match[7]);
+          var lon = parseFloat(match[1]);
+          var lat = parseFloat(match[4]);
+          var radius = parseFloat(match[7]);
 
-        // create or update marker
-        // -- target marker --
-        var el = document.createElement('div');
-        el.className = 'scriptMarker';
+          // create or update marker
+          // -- target marker --
+          var el = document.createElement('div');
+          el.className = 'scriptMarker';
 
-        console.log(numMarkers, this.scriptMarkers.length, this.scriptMarkers);
+          console.log(numMarkers, this.scriptMarkers.length, this.scriptMarkers);
 
 
-        var marker;
-        if (numMarkers < this.scriptMarkers.length) {
-          marker = this.scriptMarkers[numMarkers];
-        } else {
-          marker = new mapboxgl.Marker(el)
-              .setLngLat([lon,lat])
-              //.setDraggable(true)
-              .addTo(this.map);
+          var marker;
+          if (numMarkers < this.scriptMarkers.length) {
+            marker = this.scriptMarkers[numMarkers];
+          } else {
+            marker = new mapboxgl.Marker(el)
+                .setLngLat([lon,lat])
+                //.setDraggable(true)
+                .addTo(this.map);
 
-          this.scriptMarkers.push(marker);
+            this.scriptMarkers.push(marker);
+          }
+
+          if (lon && lat) {
+            marker.setLngLat([lon,lat]);
+            marker.lineNumber = i;
+            marker.targetRadius = radius;
+          } else {
+            console.error('invalid coords:', lon, lat);
+          }
+
+
+          numMarkers++;
         }
-
-        if (lon && lat) {
-          marker.setLngLat([lon,lat]);
-          marker.lineNumber = i;
-        } else {
-          console.error('invalid coords:', lon, lat);
-        }
-
-
-        numMarkers++;
       }
     }
 
