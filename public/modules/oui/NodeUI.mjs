@@ -128,7 +128,7 @@ export default class NodeUI {
     this.cuiFileBlock.append(this.cuiFilesOnServer);
 
     //    title
-    this.cuiFilesOnServerTitle = $('<div class="title"></div>');
+    this.cuiFilesOnServerTitle = $('<div class="title">Files on Server</div>');
     this.cuiFilesOnServer.append(this.cuiFilesOnServerTitle);
 
     //    nav
@@ -136,7 +136,7 @@ export default class NodeUI {
     this.cuiFilesOnServer.append(this.cuiFilesOnServerNav);
 
     //    filelist
-    this.cuiFilesOnServerFiles = $('<div class="files">files on server</div>');
+    this.cuiFilesOnServerFiles = $('<div class="files"></div>');
     this.cuiFilesOnServer.append(this.cuiFilesOnServerFiles);
 
     // on node
