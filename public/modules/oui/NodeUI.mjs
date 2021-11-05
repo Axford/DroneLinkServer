@@ -28,6 +28,7 @@ export default class NodeUI {
     this.ipAddress = '';
     this.selectedNodeFilename = '';
     this.scriptMarkers = [];
+    this.focused = false;
 
     this.gotLocationModule=  false;
     this.gotLocation= false;
@@ -258,7 +259,7 @@ export default class NodeUI {
       console.log('line:', line);
       if (line.includes('.goto')) {
         console.log('goto!');
-        const regexp = /\s*[_]\w+\.\w+\s+(-?(0|[1-9]\d*)(\.\d+)?)\s+(-?(0|[1-9]\d*)(\.\d+)?)\s+(-?(0|[1-9]\d*)(\.\d+)?)/;
+        const regexp = /\s*([_]\w+)?\.\w+\s+(-?(0|[1-9]\d*)(\.\d+)?)\s+(-?(0|[1-9]\d*)(\.\d+)?)\s+(-?(0|[1-9]\d*)(\.\d+)?)/;
         const match = line.match(regexp);
         if (match) {
           console.log('coord:',match[1],match[4],match[7]);
@@ -542,6 +543,19 @@ export default class NodeUI {
   }
 
 
+  onMapDoubleClick(e) {
+    if (!this.focused) return;
+    var coord = e.lngLat;
+    var cursor = this.aceEditor.selection.getCursor();
+    var radius = 5;
+    if (this.scriptMarkers.length > 0) {
+      radius = this.scriptMarkers[this.scriptMarkers.length-1].targetRadius;
+    }
+    var newCmd = '\n_Nav.goto '+coord.lng.toFixed(12)+' '+coord.lat.toFixed(12) + ' ' + radius.toFixed(1);
+    console.log('inserting:', newCmd, cursor.row);
+    this.aceEditor.session.insert({row: cursor.row+1, column:0}, newCmd);
+  }
+
   getNodeFileList() {
     fetch('http://' + this.ipAddress + '/listfiles?json')
       .then(response => {
@@ -620,12 +634,12 @@ export default class NodeUI {
 
       // analyse line
       if (line.includes('.goto')) {
-        const regexp = /\s*[_]\w+\.goto\s+(-?(0|[1-9]\d*)(\.\d+)?)\s+(-?(0|[1-9]\d*)(\.\d+)?)\s+(-?(0|[1-9]\d*)(\.\d+)?)/;
+        const regexp = /(\s*([_]\w+)?\.goto)\s+(-?[0-9]\d*(\.\d+)?)\s+(-?[0-9]\d*(\.\d+)?)\s+(-?[0-9]\d*(\.\d+)?)/;
         const match = line.match(regexp);
         if (match) {
-          console.log('goto:',match[1],match[4],match[7]);
-          var lon = parseFloat(match[1]);
-          var lat = parseFloat(match[4]);
+          console.log('goto:',match[3],match[5],match[7]);
+          var lon = parseFloat(match[3]);
+          var lat = parseFloat(match[5]);
           var radius = parseFloat(match[7]);
 
           // create or update marker
@@ -642,8 +656,31 @@ export default class NodeUI {
           } else {
             marker = new mapboxgl.Marker(el)
                 .setLngLat([lon,lat])
-                //.setDraggable(true)
+                .setDraggable(true)
                 .addTo(this.map);
+
+            marker.on('dragend', (e)=>{
+              const lngLat = e.target.getLngLat();
+              var newCmd = '  _Nav.goto '+lngLat.lng.toFixed(12) + ' ' +lngLat.lat.toFixed(12)+ ' '+e.target.targetRadius;
+
+              function replacer(match, p1, p2, p3, p4, p5, p6, p7, offset, string) {
+                // p1 is the namespace/command combined
+                // p2, p4 and p6 are the outer matches for the 3 coord params
+                return [p1, lngLat.lng.toFixed(12), lngLat.lat.toFixed(12), e.target.targetRadius].join(' ');
+              }
+              var newCmd = sess.getLine(e.target.lineNumber);
+              newCmd = newCmd.replace(/(\s*([_]\w+)?\.goto)\s+(-?[0-9]\d*(\.\d+)?)\s+(-?[0-9]\d*(\.\d+)?)\s+(-?[0-9]\d*(\.\d+)?)/, replacer);
+
+              console.log('new pos', lngLat);
+              sess.replace({
+                  start: {row: e.target.lineNumber, column: 0},
+                  end: {row: e.target.lineNumber, column: Number.MAX_VALUE}
+              }, newCmd);
+
+              this.aceEditor.selection.moveCursorTo(e.target.lineNumber, newCmd.length, false);
+              this.aceEditor.selection.clearSelection();
+
+            })
 
             this.scriptMarkers.push(marker);
           }
@@ -666,6 +703,20 @@ export default class NodeUI {
     while (numMarkers < this.scriptMarkers.length) {
       this.scriptMarkers[this.scriptMarkers.length-1].remove();
       this.scriptMarkers.pop();
+    }
+
+    if (this.scriptMarkers.length == 0) {
+      // clear script target outline
+      // set outline
+      var outlineData = {
+        "type": "Feature",
+        "geometry": {
+            "type": "Point",
+            "coordinates":  [  ]
+        }
+      }
+      var src = this.map.getSource('scriptOutline' + this.id);
+      if (src) src.setData(outlineData);
     }
 
     console.log('done',numMarkers, this.scriptMarkers.length, this.scriptMarkers);
@@ -694,6 +745,7 @@ export default class NodeUI {
   focus() {
     if (this.onFocus) this.onFocus(this);
 
+    this.focused = true;
     this.ui.classList.add('focus');
     this.pui.show();
 
@@ -709,6 +761,7 @@ export default class NodeUI {
   blur() {
     this.ui.classList.remove('focus');
     this.pui.hide();
+    this.focused = false;
     //this.mui.css('display','none');
     if (this.onBlur) this.onBlur(this);
   }

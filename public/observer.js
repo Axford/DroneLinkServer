@@ -50,6 +50,14 @@ function init() {
 
   map.on('style.load', () => {
 
+    map.on('dblclick',(e)=>{
+      e.preventDefault();
+      // pass to nodes
+      for (const [key, n] of Object.entries(nodes)) {
+        n.onMapDoubleClick(e);
+      }
+    });
+
     /*
     map.on('click', function(e) {
       var coordinates = e.lngLat;
@@ -62,64 +70,63 @@ function init() {
 
     // check we've resized
     map.resize();
-  });
+
+    // setup everything else
+    // setup drag handler
+    var isResizing = false,
+      lastDownX = 0;
+
+    var container = $('#main'),
+      left = $('#leftPanel'),
+      right = $('#rightPanel'),
+      handle = $('#panelDrag');
+
+    setPanelSize(0);
+
+    handle.on('mousedown', function (e) {
+      isResizing = true;
+      lastDownX = e.clientX;
+    });
+
+    $(document).on('mousemove', function (e) {
+      // we don't want to do anything if we aren't resizing.
+      if (!isResizing)
+          return false;
+
+      var offsetRight = container.width() - (e.clientX - container.offset().left);
+
+      setPanelSize(offsetRight);
+      return false;
+    }).on('mouseup', function (e) {
+      // stop resizing
+      isResizing = false;
+    });
 
 
+    // Create new nodes as they are detected
+    state.on('node.new', (id)=>{
+      // create new node entry
+      var node = new NodeUI(id, state, map);
+      nodes[id] = node;
+      numNodes++;
 
-  // setup drag handler
-  var isResizing = false,
-    lastDownX = 0;
+      node.onFocus = (n)=>{
+        // blur all other nodes
+        for (const [key, n] of Object.entries(nodes)) {
+          if (n != node) n.blur();
+        }
 
-  var container = $('#main'),
-    left = $('#leftPanel'),
-    right = $('#rightPanel'),
-    handle = $('#panelDrag');
-
-  setPanelSize(0);
-
-  handle.on('mousedown', function (e) {
-    isResizing = true;
-    lastDownX = e.clientX;
-  });
-
-  $(document).on('mousemove', function (e) {
-    // we don't want to do anything if we aren't resizing.
-    if (!isResizing)
-        return false;
-
-    var offsetRight = container.width() - (e.clientX - container.offset().left);
-
-    setPanelSize(offsetRight);
-    return false;
-  }).on('mouseup', function (e) {
-    // stop resizing
-    isResizing = false;
-  });
-
-
-  // Create new nodes as they are detected
-  state.on('node.new', (id)=>{
-    // create new node entry
-    var node = new NodeUI(id, state, map);
-    nodes[id] = node;
-    numNodes++;
-
-    node.onFocus = (n)=>{
-      // blur all other nodes
-      for (const [key, n] of Object.entries(nodes)) {
-        if (n != node) n.blur();
+        // ensure mgmt panel is open
+        openPanel();
       }
 
-      // ensure mgmt panel is open
-      openPanel();
-    }
+      if (numNodes == 1) {
+        node.focus();
+        // hide status
+        $('.status').hide();
+      }
 
-    if (numNodes == 1) {
-      node.focus();
-      // hide status
-      $('.status').hide();
-    }
-
+    });
   });
 
 }
