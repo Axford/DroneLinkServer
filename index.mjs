@@ -415,6 +415,29 @@ app.get('/file', (req, res) => {
   res.json(channelState);
 });
 
+app.get('/nodeFiles', (req, res) => {
+  // return a json directory listing of /nodes
+  var dirList = { };
+
+  // get directories (i.e. nodes)
+  fs.readdirSync('./public/nodes/').forEach(file => {
+    console.log(file);
+    dirList[file] = {
+      files: []
+    }
+  });
+
+  // iterate back over directories and fetch files
+  for (const [node, value] of Object.entries(dirList)) {
+    fs.readdirSync('./public/nodes/' + node).forEach(file => {
+      console.log(file);
+      dirList[node].files.push(file);
+    });
+  }
+
+  res.json(dirList);
+});
+
 // TODO - retire /send
 app.post('/send', (req, res) => {
   //res.json(channelState);
@@ -458,8 +481,9 @@ app.get('/query', (req, res) => {
     var start = req.query.start ? req.query.start : '15m';
     var aggr = req.query.aggr ? req.query.aggr : '1m';
     var valueName = req.query.valueName ? req.query.valueName : 'value0';
+    var name = req.query.name ? req.query.name : 'location';
 
-    var fluxQuery = 'from(bucket: "dronelink") |> range(start: -'+start+') |> filter(fn: (r) => r["addr"] == "'+addr+'") |> filter(fn: (r) => r["_field"] == "'+valueName+'") |> aggregateWindow(every: '+aggr+', fn: last, createEmpty: false) |> yield(name: "mean")';
+    var fluxQuery = 'from(bucket: "dronelink") |> range(start: -'+start+') |> filter(fn: (r) => r["addr"] == "'+addr+'") |> filter(fn: (r) => r["_field"] == "'+valueName+'") |> filter(fn: (r) => r["name"] == "'+name+'")|> aggregateWindow(every: '+aggr+', fn: last, createEmpty: false) |> yield(name: "last")';
 
     //console.log(fluxQuery);
 

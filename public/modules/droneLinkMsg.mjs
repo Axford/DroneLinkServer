@@ -363,6 +363,7 @@ export class DroneLinkMsg {
 
     // TODO: enable /disable here
     if (doWrite) {
+      if (addr == '2>7.10') console.log('writing'.red);
       writeApi.writePoint(point);
       writeApi.flush();
     }

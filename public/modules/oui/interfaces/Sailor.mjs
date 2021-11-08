@@ -32,6 +32,15 @@ function drawLabelledHand(ctx, ang, label, r1, r2, color) {
   ctx.fillText(label, cx + 4 + r2*Math.cos(angR), 100 + r2*Math.sin(angR));
 }
 
+function drawLabel(ctx, v, label, x, y, color) {
+  ctx.fillStyle = color;
+  ctx.textAlign = 'left';
+  ctx.font = '12px serif';
+  ctx.fillText(label, x, y+12);
+  ctx.font = '20px bold serif';
+  ctx.fillText(v, x, y+35);
+}
+
 export default class Sailor {
 	constructor(channel, state) {
     this.channel = channel;
@@ -65,6 +74,7 @@ export default class Sailor {
     var speed2 = this.state.getParamValues(node, channel, 20, [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
 
     var sheet = this.state.getParamValues(node, channel, 17, [0])[0];
+    var flags = this.state.getParamValues(node, channel, 21, [0,0,0]);
 
 
     var c = this.canvas[0];
@@ -88,9 +98,9 @@ export default class Sailor {
       var ang = wind + (180/32) + (i*(180/16)) - 90;
       ang = ang * Math.PI / 180;
       if ( i<16) {
-        r = 80 * polar[i] /255;
+        r = 30 + 50 * polar[i] /255;
       } else {
-        r = 80 * polar[31-i] /255;
+        r = 30 + 50 * polar[31-i] /255;
       }
       ctx.lineTo(cx + r*Math.cos(ang), 100 + r*Math.sin(ang) );
     }
@@ -103,7 +113,7 @@ export default class Sailor {
     ctx.moveTo(cx,100);
     var r = 0;
     for (var i =0; i<32; i++) {
-      var ang = (180/32) + (i*(180/16)) - 90;
+      var ang = wind + (180/32) + (i*(180/16)) - 90;
       ang = ang * Math.PI / 180;
       if ( i<16) {
         r = 30 + 50 * speed1[i] /255;
@@ -164,12 +174,13 @@ export default class Sailor {
     ctx.fillText('Sheet', cx, 92);
 
     // crosstack  -top left
-    ctx.fillStyle = '#FFF';
-		ctx.textAlign = 'left';
-    ctx.font = '12px serif';
-    ctx.fillText('Crosstrack', 5, 12);
-    ctx.font = '20px bold serif';
-    ctx.fillText(crosstrack.toFixed(1), 5, 35);
+    drawLabel(ctx, crosstrack.toFixed(1), 'Crosstrack', 5, 0, '#fff');
+
+    // flags
+    drawLabel(ctx, flags[0] > 0 ? 'Starboard' : 'Port', 'Tack', 5, 50, '#fff');
+    drawLabel(ctx, flags[1] > 0 ? 'Y' : 'N', 'Locked?', 5, 100, '#fff');
+    drawLabel(ctx, flags[2] > 0 ? 'Y' : 'N', 'Last CT+', 5, 150, '#fff');
+
   }
 
 

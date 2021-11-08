@@ -839,7 +839,7 @@ export default class NodeUI {
           ['linear'],
           ['line-progress'],
           0,
-          'rgba(0,255,0,0)',
+          'rgba(0,255,0,0.2)',
           1,
           'rgba(0,255,0,1)'
         ]
@@ -873,7 +873,8 @@ export default class NodeUI {
     if (this.snailTrail) {
       // check distance between nodes, update if moved a sig distance
       var d = this.distanceBetweenCoordinates(this.location, this.snailTrail.coordinates[this.snailTrail.coordinates.length-1]);
-      if (d > 0.5) {
+      var dThreshold = 15;  // calculate based on disance between waypoints
+      if (d > dThreshold) {
         this.snailTrail.coordinates.push(this.location);
         if (this.snailTrail.coordinates.length > 200) {
           this.snailTrail.coordinates.shift();

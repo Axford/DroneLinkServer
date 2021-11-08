@@ -20,7 +20,13 @@ export default class NavWidget extends Widget {
       // 9 - distance
       var d = data.values[0];
       if (d == undefined) d = 0;
-      this.container.lastChild.innerHTML = d.toFixed( d < 10 ? 1 : 0) + 'm';
+      var dStr = '';
+      if ( d < 1000) {
+        dStr = d.toFixed( d < 10 ? 1 : 0) + 'm';
+      } else {
+        dStr = (d/1000).toFixed( 1 ) + 'km';
+      }
+      this.container.lastChild.innerHTML = dStr;
     }
   }
 

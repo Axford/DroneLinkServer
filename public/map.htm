@@ -14,7 +14,7 @@
 <script>
 
 const urlSearchParams = new URLSearchParams(window.location.search);
-var addr = "1>7.10";
+var addr = "2>7.10";
 if (urlSearchParams.has("addr")) {
   addr = urlSearchParams.get("addr");
 }
@@ -24,12 +24,12 @@ mapboxgl.accessToken = 'pk.eyJ1IjoiYXhmb3JkIiwiYSI6ImNqMWMwYXI5MDAwNG8zMm5uanFye
 var fetchList = [];
 
 fetchList.push({
-  query: '/query?addr='+addr+'&start=30m&aggr=1s&valueName=value0',
+  query: '/query?addr='+addr+'&start=240m&aggr=10s&name=location&valueName=value0',
   index:0
 });
 
 fetchList.push({
-  query: '/query?addr='+addr+'&start=30m&aggr=1s&valueName=value1',
+  query: '/query?addr='+addr+'&start=240m&aggr=10s&name=location&valueName=value1',
   index:1
 });
 
@@ -50,18 +50,39 @@ Promise.all(
        return [ e._value, fetchList[1].data[i]._value ];
     });
 
+    const bbox = [data[0], data[data.length-1]];
+
+    for (var i=0; i<data.length; i++) {
+      bbox[0][0] = Math.min( bbox[0][0], data[i][0]);
+      bbox[0][1] = Math.min( bbox[0][1], data[i][1]);
+
+      bbox[1][0] = Math.max( bbox[1][0], data[i][0]);
+      bbox[1][1] = Math.max( bbox[1][1], data[i][1]);
+    }
+
+    const bboxc = [ (bbox[0][0] + bbox[1][0])/2, (bbox[0][1] + bbox[1][1])/2 ];
+
     console.log(data);
 
     const map = new mapboxgl.Map({
       container: 'map',
       style: 'mapbox://styles/mapbox/satellite-v9',
-      center: data[ data.length-1 ],
+      center: bboxc,
       zoom: 15
+    });
+    map.fitBounds(bbox, {
+      padding: {top: 50, bottom:50, left: 50, right: 50}
     });
 
 
-
     map.on('load', () => {
+
+      map.setPaintProperty(
+        'satellite',
+        'raster-opacity',
+        0.5
+      );
+
       var config = {
         'type': 'geojson',
         'data': {

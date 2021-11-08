@@ -50,6 +50,12 @@ function init() {
 
   map.on('style.load', () => {
 
+    map.setPaintProperty(
+      'satellite',
+      'raster-opacity',
+      0.5
+    );
+
     map.on('dblclick',(e)=>{
       e.preventDefault();
       // pass to nodes
