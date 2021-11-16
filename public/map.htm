@@ -85,6 +85,7 @@ Promise.all(
 
       var config = {
         'type': 'geojson',
+        lineMetrics: true, 
         'data': {
           'type': 'Feature',
           'properties': {},
@@ -113,7 +114,16 @@ Promise.all(
         'paint': {
 					'line-color': '#00ff00',
 					'line-opacity': 0.5,
-					'line-width': 3
+					'line-width': 3,
+          'line-gradient': [
+            'interpolate',
+            ['linear'],
+            ['line-progress'],
+            0,
+            'rgba(0,255,0,0.2)',
+            1,
+            'rgba(0,255,0,1)'
+          ]
 				}
       });
     });
