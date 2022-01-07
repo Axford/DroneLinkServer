@@ -8,6 +8,7 @@ import Parameter from './Parameter.mjs';
 import INA219 from './interfaces/INA219.mjs';
 import Management from './interfaces/Management.mjs';
 import Nav from './interfaces/Nav.mjs';
+import Proa from './interfaces/Proa.mjs';
 import Sailor from './interfaces/Sailor.mjs';
 import Servo from './interfaces/Servo.mjs';
 import TurnRate from './interfaces/TurnRate.mjs';
@@ -171,6 +172,8 @@ export default class Channel {
         this.interface = new Management(this, state);
       } else if (data.type == 'Nav') {
         this.interface = new Nav(this, state);
+      } else if (data.type == 'Proa') {
+        this.interface = new Proa(this, state);
       } else if (data.type == 'Sailor') {
         this.interface = new Sailor(this, state);
       } else if (data.type == 'Servo') {

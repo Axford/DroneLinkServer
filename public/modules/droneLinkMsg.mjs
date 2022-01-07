@@ -338,7 +338,9 @@ export class DroneLinkMsg {
     } else if (this.msgType == DRONE_LINK_MSG_TYPE_UINT32_T) {
       let int32view = new Uint32Array(this.rawPayload, 0, numValues);
       for (var i=0; i<numValues; i++) {
-        point.intField('value'+i, int32view[i]);
+        var uv = int32view[i];
+        if (uv == undefined) uv = 0;
+        point.intField('value'+i, uv);
       }
       doWrite = true;
 
