@@ -15,6 +15,79 @@ export default class Management {
 
 	}
 
+	updateMacros(ip) {
+		// fetch new
+    fetch('http://' + ip + '/listfiles?json')
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not OK');
+        }
+        return response.json();
+      })
+      .then(data => {
+				console.log('[Management.mjs] Received files');
+        console.log(data);
+				// delete existing
+				this.macroButtons.empty();
+
+        //this.cuiFilesOnNodeTitle.html( data.files.length +' Files on Node');
+        //this.cuiFilesOnNodeFiles.empty();
+        data.files.forEach((f)=>{
+
+					if (f.name.slice(-4) == '.txt' &&
+				      f.name != '/config.txt' &&
+						  f.name != '/main.txt') {
+						var newBut =  $('<button class="btn btn-sm btn-success mb-2 mr-1">'+f.name.slice(1,-4)+'</button>');
+						var filename = f.name;
+						newBut.on('click', ()=>{
+							DLM.sendDroneLinkMsg({
+								addr: this.channel.node.id + '>1.17',
+								msgType: DLM.DRONE_LINK_MSG_TYPE_CHAR,
+								values: filename
+							});
+						});
+						this.macroButtons.append(newBut);
+					}
+
+
+					/*
+          var sizeStr =  '';
+          if (f.size < 1000) {
+            sizeStr = f.size.toFixed(0);
+          } else {
+            sizeStr = (f.size/1024).toFixed(1) + 'k';
+          }
+          var fe = $('<div class="file clearfix">'+f.name+' <span class="size float-right">'+sizeStr+'</span></div>');
+          fe.data('name',f.name);
+          fe.on('click',()=>{
+            this.cuiFilesOnNodeFiles.children().removeClass('selected');
+            this.selectedNodeFilename = fe.data('name');
+            fe.addClass('selected');
+            this.cuiGetFileBut.show();
+          });
+          this.cuiFilesOnNodeFiles.append(fe);*/
+        });
+      })
+      .catch(error => {
+        //this.cuiFilesOnNodeFiles.html('Error fetching files: '+error);
+        console.error('There has been a problem with your fetch operation:', error);
+        //this.cuiGetFileBut.hide();
+      });
+  }
+
+	updateIP() {
+		var node = this.channel.node.id;
+    var channel = this.channel.channel;
+
+		var ipAddress = this.state.getParamValues(node, channel, 12, [0,0,0,0]);
+		if (ipAddress[0] != 0) {
+			var ipString = ipAddress.join('.');
+			this.ipAddress.html('IP: '+ipString);
+
+			this.updateMacros(ipString);
+		}
+	}
+
 	onParamValue(data) {
     if (data.param == 13) {
 			var uptime = data.values[0];
@@ -26,6 +99,7 @@ export default class Management {
 		if (data.param == 12) {
 			// ip
 			this.log.show();
+			this.updateIP();
 		}
   }
 
@@ -44,6 +118,10 @@ export default class Management {
     // uptime
 		this.uptime = $('<div class="uptime">Uptime: ?</div>');
     this.ui.append(this.uptime);
+
+		// uptime
+		this.ipAddress = $('<div class="ipAddress">IP: ?</div>');
+    this.ui.append(this.ipAddress);
 
 		this.log = $('<button class="btn btn-sm btn-primary mb-2 ml-1" style="display:none">Log</button>');
 		this.log.on('click', ()=>{
@@ -86,6 +164,12 @@ export default class Management {
 		});
 		this.ui.append(this.reset);
 
+		this.macroButtons = $('<div class="macros"></div>');
+		this.ui.append(this.macroButtons);
+
+		this.updateIP();
+
+/*
 		this.main = $('<button class="btn btn-sm btn-primary mb-2 mr-1">Main</button>');
 		this.main.on('click', ()=>{
 			DLM.sendDroneLinkMsg({
@@ -115,7 +199,7 @@ export default class Management {
 			});
 		});
 		this.ui.append(this.disarm);
-
+*/
 
 		// log modal
 		this.modal = $('<div class="modal" style="display:none;"> <div class="modal-dialog modal-dialog-centered" ><div class="modal-content"> <div class="modal-header"> <div class="modal-title h4">Startup Log</div> </div> <div class="modal-body"></div> <div class="modal-footer"> <button class="btn btn-secondary">Close</button> </div> </div> </div> </div>');

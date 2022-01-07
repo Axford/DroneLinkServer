@@ -908,7 +908,7 @@ export default class NodeUI {
   }
 
   updateTarget(target) {
-    if (target.length <3) return;
+    if (target == undefined || target.length <3) return;
 
     this.target = target;
     console.log('new target');
@@ -1001,6 +1001,8 @@ export default class NodeUI {
 
       } else {
         // -- target marker --
+        if (!this.targetMarker) return;
+        
         this.targetMarker.setLngLat(target);
 
         var el = this.targetMarker.getElement();

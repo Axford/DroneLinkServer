@@ -20,3 +20,16 @@
   border-radius: .25rem;
   margin-bottom:0.5rem;
 }
+
+.Management .ipAddress {
+  background-color:white;
+  padding: .375rem .75rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  border-radius: .25rem;
+  margin-bottom:0.5rem;
+}
+
+.Management .macros {
+  padding-left: 0.25rem;
+}
