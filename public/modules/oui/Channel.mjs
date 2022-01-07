@@ -8,6 +8,7 @@ import Parameter from './Parameter.mjs';
 import INA219 from './interfaces/INA219.mjs';
 import Management from './interfaces/Management.mjs';
 import Nav from './interfaces/Nav.mjs';
+import Proa from './interfaces/Proa.mjs';
 import Sailor from './interfaces/Sailor.mjs';
 import Servo from './interfaces/Servo.mjs';
 import TurnRate from './interfaces/TurnRate.mjs';
@@ -171,6 +172,8 @@ export default class Channel {
         this.interface = new Management(this, state);
       } else if (data.type == 'Nav') {
         this.interface = new Nav(this, state);
+      } else if (data.type == 'Proa') {
+        this.interface = new Proa(this, state);
       } else if (data.type == 'Sailor') {
         this.interface = new Sailor(this, state);
       } else if (data.type == 'Servo') {
@@ -232,7 +235,7 @@ export default class Channel {
       }
 
       // status
-      if (data.param == DLM.DRONE_MODULE_PARAM_STATUS) {
+      if (data.param == DLM.DRONE_MODULE_PARAM_STATUS && data.msgType == DLM.DRONE_LINK_MSG_TYPE_UINT8_T) {
         if (data.values[0] > 0) {
           this.ui.addClass('enabled');
           this.uiEnable.hide();
@@ -246,13 +249,13 @@ export default class Channel {
       }
 
       // name
-      if (data.param == DLM.DRONE_MODULE_PARAM_NAME) {
+      if (data.param == DLM.DRONE_MODULE_PARAM_NAME&& data.msgType == DLM.DRONE_LINK_MSG_TYPE_CHAR) {
         this.name = data.values[0];
         this.uiTitle.html(data.channel + '. ' + this.name);
       }
 
       // resetCount
-      if (data.param == DLM.DRONE_MODULE_PARAM_RESETCOUNT) {
+      if (data.param == DLM.DRONE_MODULE_PARAM_RESETCOUNT&& data.msgType == DLM.DRONE_LINK_MSG_TYPE_UINT8_T) {
         this.uiResetCount.html(data.values[0]);
         if (data.values[0] > 0) {
           this.uiResetCount.addClass('bg-danger');

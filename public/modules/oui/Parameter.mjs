@@ -163,9 +163,9 @@ export default class Parameter {
     this.ui.data('addr', this.addr);
     this.ui.data('param', this.param);
 		this.ui.on('click',()=>{
-			if (this.writable) {
+			//if (this.writable) {
 				this.showEditor();
-			}
+			//}
 		});
 
     // Title

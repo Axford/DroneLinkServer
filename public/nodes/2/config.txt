@@ -1,0 +1,139 @@
+// D-Code Config Script
+
+// Setup the node
+node 2
+
+// Init modules
+Management.new 1
+  name "Management"
+  status true
+  interval 1000
+  discovery true
+  hostname "Beacon"
+
+  // publish
+  .publish "hostname"
+  .publish "build"
+  .publish "IP"
+  .publish "uptime"
+.done
+
+UDPTelemetry.new 2
+  name "UDPT"
+  status 1
+  port 8007
+  broadcast 255 255 255 255
+  .sub [@>0.0]
+.done
+
+RFM69Telemetry.new 3
+  name "RFM69"
+  status 1  // enable
+  .sub [@>0.0]
+  .publish "RSSI"
+.done
+
+Nav.new 7
+  name "Nav"
+  interval 50
+  $location [@>50.9]
+  $wind [@>50.10]
+  target -1.82 51.56 100
+  crosswind 0.2
+  correction 20
+  .publish "target"
+  .publish "location"
+  .publish "heading"
+  .publish "distance"
+  .publish "mode"
+  .publish "last"
+  .publish "home"
+  .publish "crosstrack"
+  .publish "correction"
+  .publish "wind"
+  .publish "crosswind"
+  .publish "adjHeading"
+.done
+
+TurnRate.new 8
+  name "TurnRate"
+  PID (f) 0.01 0.0 0.0001
+  interval 50
+  $target [@>12.16]
+  $heading [@>50.8]
+  .publish "target"
+  .publish "heading"
+  .publish "PID"
+  .publish "turnRate"
+.done
+
+SpeedControl.new 9
+  name "Speed"
+  interval 50
+  limits 0.2 1
+  threshold 5
+  $distance [@>7.9]
+  .publish "distance"
+  .publish "limits"
+  .publish "threshold"
+  .publish "speed"
+.done
+
+TankSteer.new 10
+  name "TankSteer"
+  interval 50
+  trim 0
+  $speed [@>9.14]
+  $turnRate [@>8.16]
+  .publish "left"
+  .publish "right"
+  .publish "turnRate"
+  .publish "speed"
+  .publish "trim"
+.done
+
+MPU6050.new 11
+  name "MPU6050"
+  status 0
+  interval 1000
+  .publish "gyro"
+  .publish "accel"
+.done
+
+Sailor.new 12
+  name "Sailor"
+  interval 1000
+  polar 0 0 0 200   255 255 255 250  240 230 220 210  200 180 160 140
+  crosswind 0.2
+  $wind [@>50.10]
+  $target [@>7.20]
+  $heading [@>50.8]
+  $crosstrack [@>7.17]
+  .publish "target"
+  .publish "heading"
+  .publish "wind"
+  .publish "crosstrack"
+  .publish "course"
+  .publish "sheet"
+  .publish "polar"
+.done
+
+Servo.new 13
+  name "Sheet"
+  interval 100
+  pins OUT1_1
+  limits -1 1
+  map 0 60 120 180
+  centre 0
+  $position [@>12.17]
+  .publish "map"
+  .publish "centre"
+  .publish "position"
+  .publish "output"
+.done
+
+// finish setup
+.setup
+
+.load "/thepit.txt"
+.run "/thepit.txt"

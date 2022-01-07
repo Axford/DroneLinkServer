@@ -4,8 +4,6 @@ D-Code
 
 */
 
-console.log(ace);
-
 ace.define('ace/mode/dcode',
   ['require', 'exports', 'module', 'ace/lib/oop', 'ace/mode/text_highlight_rules'],
   function(acequire, exports, module) {
