@@ -77,3 +77,5 @@ typings/
 debug.json
 public/firmware/firmware.ver
 public/firmware/firmware.bin
+influx.json
+package-lock.json
