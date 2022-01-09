@@ -13,7 +13,7 @@
             "Notes:\nIn the oceans the speed of sound varies between 1,450 and 1,570 metres per second or 0.145 cm per microsecond.\nGiven the transducer requires the sound pulse to travel to the bottom and back the effective distance per microsend is actually halved or 0.0725 cm per microsecond."
         ],
         "config": [
-            "// New Depth sensor bound to channel 30\nDepth.new 30\n  name \"Depth\"\n  status true         // enabled\n  interval 1000       // sample once per second\n  pins OUT0_0 OUT0_1  // tigger and echo pins\n  limits 0.25 10      // set sensor range to min=0.25m, max=10m\n  speed 1480          // speed of sound in fresh water = 1480m/s\n\n  // publish\n  .publish \"depth\"    // publish the measured depth\n  // .publish \"speed\"\n  // .publish \"pins\"\n  // .publis \"limits\"\n.done"
+            "// New Depth sensor bound to channel 30\nDepth.new 30\n  name \"Depth\"\n  status true         // enabled\n  interval 1000       // sample once per second\n  pins OUT0_0 OUT0_1  // tigger and echo pins\n  limits 0.25 10      // set sensor range to min=0.25m, max=10m\n  speed 1480          // speed of sound in fresh water = 1480m/s\n  $location [@>5.8]   // subscribe to GPS location\n  distance 5          // publish log entires every 5m\n\n  .publish \"depth\"    // publish the measured depth\n  .publish \"log\"      // publish a combined log entry containing GPS location and depth\n\n  // .publish \"speed\"\n  // .publish \"pins\"\n  // .publish \"limits\"\n  // .publish \"distance\"\n.done"
         ],
         "pub": [
             {
@@ -43,6 +43,30 @@
                 "numValues": 1,
                 "name": "depth",
                 "description": "Measured depth (or zero if unable to measure)"
+            },
+            {
+                "address": 14,
+                "type": "f",
+                "numValues": 3,
+                "name": "log",
+                "description": "Composite log entry combining current GPS location and depth reading into a single param"
+            },
+            {
+                "address": 15,
+                "type": "f",
+                "numValues": 1,
+                "name": "distance",
+                "description": "Minimum distance between log entires.  Will only publish a fresh log entry if more than distance from last sample location.  Default 0m."
+            }
+        ],
+        "sub": [
+            {
+                "address": 20,
+                "addrAddress": 21,
+                "type": "f",
+                "numValues": 2,
+                "name": "location",
+                "description": "Current location from GPS"
             }
         ],
         "filename": [
@@ -240,8 +264,8 @@
         "description": [
             "Manages a Motor via an H Bridge module using PWM"
         ],
-        "guide": [
-            "todo"
+        "config": [
+            "Motor.new 11\n  name \"LeftMotor\"\n  interval 50\n  pins OUT0_0 OUT0_1 DAC0_0\n  PWMChannel 15\n  limits -0.7 0.7\n  deadband 0.3\n  $speed [@>10.8]\n\n  // publish\n  .publish \"speed\"\n.done"
         ],
         "pub": [
             {

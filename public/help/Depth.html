@@ -22,12 +22,16 @@ Depth.new 30
   pins OUT0_0 OUT0_1  // tigger and echo pins
   limits 0.25 10      // set sensor range to min=0.25m, max=10m
   speed 1480          // speed of sound in fresh water = 1480m/s
+  $location [@>5.8]   // subscribe to GPS location
+  distance 5          // publish log entires every 5m
 
-  // publish
   .publish "depth"    // publish the measured depth
+  .publish "log"      // publish a combined log entry containing GPS location and depth
+
   // .publish "speed"
   // .publish "pins"
-  // .publis "limits"
+  // .publish "limits"
+  // .publish "distance"
 .done</pre>
 
 <h2>Subs (inputs)</h2>
@@ -39,6 +43,14 @@ Depth.new 30
     <th>Type</th>
     <th>#</th>
     <th>Description</th>
+  </tr>
+  <tr>
+    <td>20</td>
+    <td>21</td>
+    <td>location</td>
+    <td>f</td>
+    <td>2</td>
+    <td>Current location from GPS</td>
   </tr>
 </table>
 
@@ -78,6 +90,20 @@ Depth.new 30
     <td>f</td>
     <td>1</td>
     <td>Measured depth (or zero if unable to measure)</td>
+  </tr>
+  <tr>
+    <td>14</td>
+    <td>log</td>
+    <td>f</td>
+    <td>3</td>
+    <td>Composite log entry combining current GPS location and depth reading into a single param</td>
+  </tr>
+  <tr>
+    <td>15</td>
+    <td>distance</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Minimum distance between log entires.  Will only publish a fresh log entry if more than distance from last sample location.  Default 0m.</td>
   </tr>
 </table>
 

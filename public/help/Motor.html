@@ -8,11 +8,20 @@
 <p>Base class: <i>Drone</i></p>
 <p>Manages a Motor via an H Bridge module using PWM</p>
 
-<h2>Usage Guide</h2>
-todo
 
 <h2>Example Configuration</h2>
-<pre></pre>
+<pre>Motor.new 11
+  name "LeftMotor"
+  interval 50
+  pins OUT0_0 OUT0_1 DAC0_0
+  PWMChannel 15
+  limits -0.7 0.7
+  deadband 0.3
+  $speed [@>10.8]
+
+  // publish
+  .publish "speed"
+.done</pre>
 
 <h2>Subs (inputs)</h2>
 <table>
