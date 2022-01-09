@@ -1,0 +1,128 @@
+<link rel="stylesheet" href="../css/help.css">
+
+<div class="helpContent">
+
+<div><a href="index.html">&lt; Help Index</a></div>
+
+<h1>Management</h1>
+<p>Base class: <i>Drone</i></p>
+<p>Provides overall system management and a pub/sub interface to the DroneModuleManager</p>
+
+<h2>Usage Guide</h2>
+todo
+
+<h2>Subs (inputs)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Addr Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+</table>
+
+<h2>Pubs (outputs / config)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>8</td>
+    <td>hostname</td>
+    <td>c</td>
+    <td>1</td>
+    <td>Hostname of the device</td>
+  </tr>
+  <tr>
+    <td>9</td>
+    <td>build</td>
+    <td>c</td>
+    <td>1</td>
+    <td>Git commit hash at the time the firmware was built</td>
+  </tr>
+  <tr>
+    <td>10</td>
+    <td>reset</td>
+    <td>u8</td>
+    <td>1</td>
+    <td>Set to 1 to trigger a reset</td>
+  </tr>
+  <tr>
+    <td>11</td>
+    <td>heap</td>
+    <td>u32</td>
+    <td>1</td>
+    <td>Current size of heap (i.e. free memory)</td>
+  </tr>
+  <tr>
+    <td>12</td>
+    <td>IP</td>
+    <td>u8</td>
+    <td>4</td>
+    <td>IP address</td>
+  </tr>
+  <tr>
+    <td>13</td>
+    <td>uptime</td>
+    <td>u32</td>
+    <td>1</td>
+    <td>Uptime in seconds</td>
+  </tr>
+  <tr>
+    <td>14</td>
+    <td>publishRate</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Rate of messages published per second</td>
+  </tr>
+  <tr>
+    <td>15</td>
+    <td>choked</td>
+    <td>u32</td>
+    <td>1</td>
+    <td>Number of times a channel queue has choked (rejected a msg becuse full)</td>
+  </tr>
+  <tr>
+    <td>16</td>
+    <td>discovery</td>
+    <td>u8</td>
+    <td>1</td>
+    <td>Enable&#x2F;disable node discovery process.  Set to 1 to enable, or 0 to disable.</td>
+  </tr>
+  <tr>
+    <td>17</td>
+    <td>macro</td>
+    <td>c</td>
+    <td>1</td>
+    <td>Set to the path to a macro file (.txt file) to run the associated macro.  Note - the macro must be loaded first (e.g. via config.txt).</td>
+  </tr>
+  <tr>
+    <td>18</td>
+    <td>wifi</td>
+    <td>u8</td>
+    <td>1</td>
+    <td>Enable&#x2F;disable wifi. Set to 1 to enable, or 0 to disable.</td>
+  </tr>
+  <tr>
+    <td>19</td>
+    <td>sleep</td>
+    <td>u32</td>
+    <td>1</td>
+    <td>How long to sleep in main loop - uses light sleep</td>
+  </tr>
+  <tr>
+    <td>20</td>
+    <td>cpu</td>
+    <td>u32</td>
+    <td>1</td>
+    <td>CPU freq in MHz, valid values 240, 160, 80</td>
+  </tr>
+</table>
+
+</div>

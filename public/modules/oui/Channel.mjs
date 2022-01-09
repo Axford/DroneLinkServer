@@ -96,6 +96,14 @@ export default class Channel {
     });
     this.ui.append(this.parametersButton);
 
+    // help button
+    this.helpButton = $('<button class="btn btn-tiny btn-dark float-right mr-1" style="display:none"><i class="fas fa-info"></i></button>');
+    this.helpButton.on('click',()=>{
+      showHelp(this.type);
+    });
+    this.ui.append(this.helpButton);
+
+
     // title
     this.uiTitleContainer = $('<h1 class="closed"/>');
     this.isOpen = false;
@@ -163,7 +171,10 @@ export default class Channel {
       if (data.node != this.node.id ||
          data.channel != this.channel) return;
 
-      console.log(data);
+      this.type = data.type;
+
+      this.helpButton.show();
+      //console.log(data);
 
       // instance an interface if available
       if (data.type == 'INA219') {

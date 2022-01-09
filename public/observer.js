@@ -39,8 +39,53 @@ function openPanel() {
 }
 
 
+function showHelp(page) {
+  $(".helpContainer").show();
+
+  console.log('Loading help page: ' + page);
+  if (page) {
+    // load requested page, append the .html suffix
+    $('.helpViewer').attr('src', 'help/' + page + '.html');
+  }
+}
+
 
 function init() {
+  // install showHelp on window object
+  window.showHelp = showHelp;
+
+  // configure DroneLink logo to open help
+  $('.logo').on('click', ()=>{
+    showHelp('index');
+  });
+
+  // configure help window
+  var helpRelX = 0, helpRelY = 0;
+  var helpDragging = false;
+
+  $('.helpHeader').mousedown(function(event) {
+    helpDragging = true;
+    helpRelX = event.pageX - $(this).offset().left;
+    helpRelY = event.pageY - $(this).offset().top;
+  });
+  $("body").mousemove(function(event){
+    if (helpDragging) {
+      $(".helpContainer")
+         .css({
+             left: event.pageX - helpRelX,
+             top: event.pageY - helpRelY
+         })
+    }
+  });
+  $('body').mouseup(function(event) {
+    helpDragging = false;
+  });
+
+  $('.helpHeader button').on('click', ()=>{
+    $(".helpContainer").hide();
+  });
+
+  // configure map
   map = new mapboxgl.Map({
     container: 'map',
     style: 'mapbox://styles/mapbox/satellite-v9',
@@ -64,15 +109,6 @@ function init() {
       }
     });
 
-    /*
-    map.on('click', function(e) {
-      var coordinates = e.lngLat;
-      new mapboxgl.Popup()
-        .setLngLat(coordinates)
-        .setHTML(coordinates)
-        .addTo(map);
-    });
-    */
 
     // check we've resized
     map.resize();
