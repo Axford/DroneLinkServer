@@ -1,0 +1,84 @@
+<link rel="stylesheet" href="../css/help.css">
+
+<div class="helpContent">
+
+<div><a href="index.html">&lt; Help Index</a></div>
+
+<h1>Depth</h1>
+<p>Base class: <i>Drone</i></p>
+<p>Manages a simple Depth sensor (sonar transducer) controlled via Trigger and Echo pins</p>
+
+<h2>Usage Guide</h2>
+Notes:
+In the oceans the speed of sound varies between 1,450 and 1,570 metres per second or 0.145 cm per microsecond.
+Given the transducer requires the sound pulse to travel to the bottom and back the effective distance per microsend is actually halved or 0.0725 cm per microsecond.
+
+<h2>Example Configuration</h2>
+<pre>// New Depth sensor bound to channel 30
+Depth.new 30
+  name "Depth"
+  status true         // enabled
+  interval 1000       // sample once per second
+  pins OUT0_0 OUT0_1  // tigger and echo pins
+  limits 0.25 10      // set sensor range to min=0.25m, max=10m
+  speed 1480          // speed of sound in fresh water = 1480m/s
+
+  // publish
+  .publish "depth"    // publish the measured depth
+  // .publish "speed"
+  // .publish "pins"
+  // .publis "limits"
+.done</pre>
+
+<h2>Subs (inputs)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Addr Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+</table>
+
+<h2>Pubs (outputs / config)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>10</td>
+    <td>pins</td>
+    <td>u8</td>
+    <td>2</td>
+    <td>Pin connections for the depth module (Trigger, Echo)</td>
+  </tr>
+  <tr>
+    <td>11</td>
+    <td>speed</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Set the speed of sound in water (default 1480 for fresh water)</td>
+  </tr>
+  <tr>
+    <td>12</td>
+    <td>limits</td>
+    <td>f</td>
+    <td>2</td>
+    <td>Min and max depth limits in meters (Default 0.25 10)</td>
+  </tr>
+  <tr>
+    <td>13</td>
+    <td>depth</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Measured depth (or zero if unable to measure)</td>
+  </tr>
+</table>
+
+</div>

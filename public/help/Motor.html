@@ -1,0 +1,76 @@
+<link rel="stylesheet" href="../css/help.css">
+
+<div class="helpContent">
+
+<div><a href="index.html">&lt; Help Index</a></div>
+
+<h1>Motor</h1>
+<p>Base class: <i>Drone</i></p>
+<p>Manages a Motor via an H Bridge module using PWM</p>
+
+<h2>Usage Guide</h2>
+todo
+
+<h2>Example Configuration</h2>
+<pre></pre>
+
+<h2>Subs (inputs)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Addr Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>8</td>
+    <td>9</td>
+    <td>speed</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Desired Motor speed in range -1 to 1</td>
+  </tr>
+</table>
+
+<h2>Pubs (outputs / config)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>10</td>
+    <td>pins</td>
+    <td>u8</td>
+    <td>3</td>
+    <td>Pin connections for the H Bridge (A, B, EN)</td>
+  </tr>
+  <tr>
+    <td>11</td>
+    <td>PWMChannel</td>
+    <td>u8</td>
+    <td>1</td>
+    <td>Which ESP32 PWM channel to use (default 15)</td>
+  </tr>
+  <tr>
+    <td>12</td>
+    <td>limits</td>
+    <td>f</td>
+    <td>2</td>
+    <td>Min and max speed limits in range -1 to 1 (default -1 1)</td>
+  </tr>
+  <tr>
+    <td>13</td>
+    <td>deadband</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Input range within which to set the motor output to zero, interpreted abs(input).  Default 0.3</td>
+  </tr>
+</table>
+
+</div>
