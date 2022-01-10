@@ -103,15 +103,21 @@ function init() {
     if (liveMode) {
       // switch to playback mode
       liveMode = false;
-      $('#logPlaybackButton').html('Live');
+      logger.stopRecording();
+      $('#logPlaybackButton').html('Playback');
       state.liveMode = false;
+      $('.logRecordControls').hide();
+      $('.logPlaybackControls').show();
 
     } else {
       // switch to liveMode
       liveMode = true;
-      $('#logPlaybackButton').html('Playback');
+      logger.pause();
+      logger.rewind();
+      $('#logPlaybackButton').html('Live');
       state.liveMode = true;
-
+      $('.logRecordControls').show();
+      $('.logPlaybackControls').hide();
     }
   });
 
@@ -119,17 +125,35 @@ function init() {
     logger.play();
   });
 
+  $('#logPauseButton').on('click', ()=>{
+    logger.pause();
+  });
+
+  $('#logRewindButton').on('click', ()=>{
+    logger.rewind();
+  });
+
   logger.on('status', ()=>{
     // update recording status
-    $('#logRecordButton').html(logger.recording ? 'Stop' : 'Record');
+    $('#logRecordButton').html(logger.recording ? '<i class="fas fa-stop"></i>' : '<i class="fas fa-circle"></i>');
   });
 
   logger.on('info', (info)=>{
-    $('#logStatus').html(info.packets + ' packets, '+(info.duration/1000).toFixed(0)+' s');
+    var t = (info.duration/1000);
+    var minutes = Math.floor(t/60);
+    var seconds = Math.round(t - (minutes*60));
+    $('#logStatus').html(info.packets + ' / '+ ('0000'+minutes).slice(-2) + ':' + ('0000'+seconds).slice(-2) +' ');
   });
 
   logger.on('playbackInfo', (info)=>{
-    $('#logPlaybackStatus').html(info.packets + ' packets, '+(info.duration/1000).toFixed(0)+' s');
+    var t = (info.duration/1000);
+    var minutes = Math.floor(t/60);
+    var seconds = Math.round(t - (minutes*60));
+
+    var px = $('#logPlaybackStatus').outerWidth() * (1-info.percent);
+    $('#logPlaybackStatus').css('background-position', '-'+px+'px 0px');
+
+    $('#logPlaybackStatus').html(info.packets + ' / '+ ('0000'+minutes).slice(-2) + ':' + ('0000'+seconds).slice(-2) +' ');
   });
 
   // configure map
@@ -154,6 +178,11 @@ function init() {
       for (const [key, n] of Object.entries(nodes)) {
         n.onMapDoubleClick(e);
       }
+    });
+
+    map.on('mousemove',(e)=>{
+      // update coord div
+      $('.mapCoords').html(e.lngLat.lng.toFixed(6) + ', ' + e.lngLat.lat.toFixed(6));
     });
 
 

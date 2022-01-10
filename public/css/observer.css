@@ -131,26 +131,58 @@ html, body {margin: 0; height: 100%; overflow: hidden}
   cursor:hand;
 }
 
+.mapCoords {
+  position:absolute;
+  left: 8px;
+  bottom: 30px;
+  margin:0;
+  color:rgba(255,255,255,0.8);
+  font-size: 1em;
+  z-index:2000;
+}
+
 .mainRow {
   height:100%;
 }
 
 .logContainer {
   padding: 4px 4px;
-  background:black;
+  background:#242a30;
   color:white;
   width:100%;
-  border-bottom:1px solid #dc3545;
+  border-bottom:1px solid #111;
+}
+
+.logContainer .barSep {
+  display: inline-block;
 }
 
 .logTitle {
-
+  margin-left:4px;
   font-weight:bold;
-  margin-right:8px;
 }
 
-.logStatus {
+#logStatus, #logPlaybackStatus {
+  padding: 0.25rem 0.5rem;
+  font-size: .875rem;
+  line-height: 1.5;
+  border-radius: 0.2rem;
+  border:1px solid #555;
+  font-weight: 400;
+  text-align: center;
+  vertical-align: middle;
+  height:16px;
+  color:#ccc;
+  width:80px;
+  height:23px;
+  display:inline-block;
+}
 
+#logPlaybackStatus {
+  background: linear-gradient(to right, #00ff00 99.99%, transparent);
+  background-size: 100% 1px;
+  background-position:-200px 0px;
+  background-repeat: no-repeat;
 }
 
 main {

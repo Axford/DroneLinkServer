@@ -18,34 +18,37 @@ export default class DroneLinkLog {
     this.playback = false;
     this.playbackIndex = 0;
     this.playbackStart = 0;
+    this.playbackTime = 0;  //  how far into the playback are we - used for pause/rewind
 
     setInterval(()=>{
       if (me.playback) {
         // get time offset since start
-        var t = Date.now() - me.playbackStart;
+        this.playbackTime = Date.now() - me.playbackStart;
 
-        if (me.playbackIndex < me.log.length) {
+        while (me.playbackIndex < me.log.length &&
+               this.playbackTime >= me.log[me.playbackIndex].timestamp - me.log[0].timestamp) {
+
           var nextMsg = me.log[me.playbackIndex];
           //console.log(nextMsg);
 
-          if (t >= nextMsg.timestamp -me.log[0].timestamp ) {
-            // send log message to state
-            me.state.handleLinkMsg( nextMsg );
+          // send log message to state
+          me.state.handleLinkMsg( nextMsg );
 
-            me.trigger('playbackInfo',{
-              packets:me.playbackIndex+1,
-              duration: me.log[me.playbackIndex].timestamp - me.log[0].timestamp
-            });
+          me.trigger('playbackInfo',{
+            packets:me.playbackIndex+1,
+            duration: me.log[me.playbackIndex].timestamp - me.log[0].timestamp,
+            percent: (me.playbackIndex+1) / me.log.length
+          });
 
-            me.playbackIndex++;
-          }
+          me.playbackIndex++;
+        }
 
-        } else {
+        if (me.playbackIndex >= me.log.length) {
           me.playback = false;
           this.trigger('status', null);
         }
       }
-    }, 10);
+    }, 100);
 
     this.state.on('raw', (msg)=>{
       // if recording, add to log
@@ -89,6 +92,11 @@ export default class DroneLinkLog {
     this.trigger('status', null);
   }
 
+  stopRecording() {
+    this.recording = false;
+    this.trigger('status', null);
+  }
+
   reset() {
     this.log = [];
     this.trigger('info',{
@@ -99,11 +107,27 @@ export default class DroneLinkLog {
 
   play() {
     this.playback = true;
-    this.playbackIndex = 0;
-    this.playbackStart = Date.now();
-    this.recording = false;
+    this.playbackStart = Date.now() - this.playbackTime;
+    //this.playbackIndex = 0;
+    //this.playbackStart = Date.now();
 
     this.trigger('status', null);
+  }
+
+  pause() {
+    this.playback = false;
+    this.trigger('status', null);
+  }
+
+  rewind() {
+    this.playbackIndex = 0;
+    this.playbackTime = 0;
+
+    this.trigger('playbackInfo',{
+      packets:0,
+      duration: 0,
+      percent:0
+    });
   }
 
 }
