@@ -18,6 +18,11 @@ var map;
 
 mapboxgl.accessToken = 'pk.eyJ1IjoiYXhmb3JkIiwiYSI6ImNqMWMwYXI5MDAwNG8zMm5uanFyeThmZDEifQ.paAXk3S29-VVw1bhk458Iw';
 
+import DroneLinkLog from './modules/DroneLinkLog.mjs';
+var logger = new DroneLinkLog(state);
+
+var liveMode = true;
+
 
 function setPanelSize(w) {
   var container = $('#main'),
@@ -83,6 +88,48 @@ function init() {
 
   $('.helpHeader button').on('click', ()=>{
     $(".helpContainer").hide();
+  });
+
+  // configure logger
+  $('#logRecordButton').on('click', ()=>{
+    logger.record();
+  });
+
+  $('#logResetButton').on('click', ()=>{
+    logger.reset();
+  });
+
+  $('#logPlaybackButton').on('click', ()=>{
+    if (liveMode) {
+      // switch to playback mode
+      liveMode = false;
+      $('#logPlaybackButton').html('Live');
+      state.liveMode = false;
+
+    } else {
+      // switch to liveMode
+      liveMode = true;
+      $('#logPlaybackButton').html('Playback');
+      state.liveMode = true;
+
+    }
+  });
+
+  $('#logPlayButton').on('click', ()=>{
+    logger.play();
+  });
+
+  logger.on('status', ()=>{
+    // update recording status
+    $('#logRecordButton').html(logger.recording ? 'Stop' : 'Record');
+  });
+
+  logger.on('info', (info)=>{
+    $('#logStatus').html(info.packets + ' packets, '+(info.duration/1000).toFixed(0)+' s');
+  });
+
+  logger.on('playbackInfo', (info)=>{
+    $('#logPlaybackStatus').html(info.packets + ' packets, '+(info.duration/1000).toFixed(0)+' s');
   });
 
   // configure map

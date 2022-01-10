@@ -9,6 +9,12 @@ body {
 
 html, body {margin: 0; height: 100%; overflow: hidden}
 
+.btn-tiny {
+  font-size: 0.8em;
+  line-height: 1;
+  padding: 0.2rem 0.2rem;
+}
+
 .helpContainer {
   position:absolute;
   display:none;
@@ -127,6 +133,24 @@ html, body {margin: 0; height: 100%; overflow: hidden}
 
 .mainRow {
   height:100%;
+}
+
+.logContainer {
+  padding: 4px 4px;
+  background:black;
+  color:white;
+  width:100%;
+  border-bottom:1px solid #dc3545;
+}
+
+.logTitle {
+
+  font-weight:bold;
+  margin-right:8px;
+}
+
+.logStatus {
+
 }
 
 main {

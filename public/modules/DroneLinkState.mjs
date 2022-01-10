@@ -37,13 +37,17 @@ export default class DroneLinkState {
     this.socket = io();
     this.discoveryQueue = new DroneLinkMsgQueue();
     this.callbacks = {}; // each key is an event type, values are an array of callback functions
-
+    this.liveMode = true;  // set to false to stop using the socket (i.e. log playback mode)
 
     this.socket.on('DLM.msg',function(msgBuffer) {
+      if (!me.liveMode) return;
+
       var msg = new DLM.DroneLinkMsg(msgBuffer);
       //if (msg.node == 2 && msg.channel == 7)
       //  console.log('DLM.msg: ' + msg.asString());
       me.handleLinkMsg(msg);
+
+      me.trigger('raw', msg);
     });
 
 
@@ -330,6 +334,7 @@ export default class DroneLinkState {
   }
 
   send(msg) {
+    if(!this.liveMode) return; // sending disabled if not live
     this.discoveryQueue.add(msg);
   }
 
