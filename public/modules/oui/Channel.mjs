@@ -12,6 +12,7 @@ import Nav from './interfaces/Nav.mjs';
 import Proa from './interfaces/Proa.mjs';
 import Sailor from './interfaces/Sailor.mjs';
 import Servo from './interfaces/Servo.mjs';
+import TankSteer from './interfaces/TankSteer.mjs';
 import TurnRate from './interfaces/TurnRate.mjs';
 
 
@@ -192,6 +193,8 @@ export default class Channel {
         this.interface = new Sailor(this, state);
       } else if (data.type == 'Servo') {
         this.interface = new Servo(this, state);
+      } else if (data.type == 'TankSteer') {
+        this.interface = new TankSteer(this, state);
       } else if (data.type == 'TurnRate') {
         this.interface = new TurnRate(this, state);
       }
