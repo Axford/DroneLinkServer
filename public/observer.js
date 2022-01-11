@@ -303,6 +303,8 @@ function init() {
 
     // Create new nodes as they are detected
     state.on('node.new', (id)=>{
+      console.log('node.new:' + id);
+
       // create new node entry
       var node = new NodeUI(id, state, map);
       nodes[id] = node;
@@ -325,6 +327,8 @@ function init() {
       }
 
     });
+
+    state.goLive();
   });
 
 }

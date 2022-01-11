@@ -347,7 +347,7 @@ export default class NodeUI {
         }
       }
 
-      if (data.type == 'Nav' && !this.gotLocationModule) {
+      if (data.type == 'Nav' && this.locationType != 'Nav') {
         console.log('Found Nav: '+data.channel);
         this.gotLocationModule = true;
         this.locationModule = data.channel;
@@ -1002,7 +1002,7 @@ export default class NodeUI {
       } else {
         // -- target marker --
         if (!this.targetMarker) return;
-        
+
         this.targetMarker.setLngLat(target);
 
         var el = this.targetMarker.getElement();
