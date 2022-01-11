@@ -900,20 +900,26 @@ export default class NodeUI {
   }
 
   updateTarget(target) {
-    if (target == undefined || target.length <3) return;
+    if (target == undefined || target.length <3) {
+      console.error('invalid target: ', target);
+      return;
+    }
 
     this.target = target;
     console.log('new target');
 
     // speculative query for last
-    var qm = new DLM.DroneLinkMsg();
-    qm.source = 252;
-    qm.node = this.id;
-    qm.channel = 7;
-    qm.param = 15;
-    qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
-    qm.msgLength = 1;
-    this.state.send(qm);
+    if (!this.last) {
+      var qm = new DLM.DroneLinkMsg();
+      qm.source = 252;
+      qm.node = this.id;
+      qm.channel = this.targetModule;
+      qm.param = 15;
+      qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
+      qm.msgLength = 1;
+      this.state.send(qm);
+    }
+
 
     if (this.gotLocation) {
       if (!this.gotTarget) {
