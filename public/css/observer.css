@@ -229,7 +229,7 @@ main {
 #nodeManager {
   padding: 8px 8px;
   overflow-y:auto;
-  height:calc(100%);
+  height: calc(100vh - 30px);
 }
 
 
