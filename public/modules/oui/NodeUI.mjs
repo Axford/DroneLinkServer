@@ -354,6 +354,7 @@ export default class NodeUI {
         this.locationType = 'Nav';
 
         // speculative query for location
+        /*
         var qm = new DLM.DroneLinkMsg();
         qm.source = 252;
         qm.node = this.id;
@@ -362,33 +363,24 @@ export default class NodeUI {
         qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
         qm.msgLength = 1;
         this.state.send(qm);
+*/
+      }
+
+      if (data.type == 'Nav' && this.targetModule == 0) {
+        console.log('Using Nav for waypoint targets');
+        this.targetModule = data.channel;
 
         // query for target regularly
         setInterval(()=>{
           var qm = new DLM.DroneLinkMsg();
           qm.source = 252;
           qm.node = this.id;
-          qm.channel = 7;
+          qm.channel = data.channel;
           qm.param = 12;
           qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
           qm.msgLength = 1;
           this.state.send(qm);
         }, 5000);
-
-      }
-
-      if (data.type == 'Nav' && this.targetModule == 0) {
-        this.targetModule = data.channel;
-
-        // speculative query for target
-        var qm = new DLM.DroneLinkMsg();
-        qm.source = 252;
-        qm.node = this.id;
-        qm.channel = 7;
-        qm.param = 12;
-        qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
-        qm.msgLength = 1;
-        this.state.send(qm);
       }
 
       if (data.type == 'NMEA') {
@@ -873,7 +865,7 @@ export default class NodeUI {
     if (this.snailTrail) {
       // check distance between nodes, update if moved a sig distance
       var d = this.distanceBetweenCoordinates(this.location, this.snailTrail.coordinates[this.snailTrail.coordinates.length-1]);
-      var dThreshold = 15;  // calculate based on disance between waypoints
+      var dThreshold = 1;  // calculate based on disance between waypoints
       if (d > dThreshold) {
         this.snailTrail.coordinates.push(this.location);
         if (this.snailTrail.coordinates.length > 200) {
