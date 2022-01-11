@@ -923,7 +923,7 @@ export default class NodeUI {
 
     if (this.gotLocation) {
       if (!this.gotTarget) {
-        console.log('Adding target');
+        console.log('Adding target', target);
         this.gotTarget = true;
 
         // -- target marker --
