@@ -55,6 +55,78 @@ function showHelp(page) {
 }
 
 
+async function getNewFileHandle() {
+  const options = {
+    types: [
+      {
+        description: 'Log Data File',
+        accept: {
+          'application/octet-stream': ['.log'],
+        },
+      },
+    ],
+  };
+  const handle = await window.showSaveFilePicker(options);
+  return handle;
+}
+
+
+async function saveLog() {
+  var h = await getNewFileHandle();
+
+  if (h) {
+    // Create a FileSystemWritableFileStream to write to.
+    const writable = await h.createWritable();
+
+    // iterate over packets in log and write to stream
+    for (var i=0; i<logger.log.length; i++) {
+      await writable.write( logger.log[i].encodeForLog() );
+    }
+
+
+    // Close the file and write the contents to disk.
+    await writable.close();
+  }
+}
+
+
+
+
+async function loadLog() {
+  logger.reset();
+
+  let fileHandle;
+  [fileHandle] = await window.showOpenFilePicker();
+
+  const file = await fileHandle.getFile();
+
+  var buffer = await file.arrayBuffer();
+  console.log(buffer);
+
+  const view = new Uint8Array(buffer);
+
+  // parse view
+  var i = 0;
+  while (i < view.length) {
+    // read size byte
+    var size = view[i];
+    console.log('Reading from '+i+': '+size+' bytes...');
+
+    var packet = new Uint8Array(buffer, i, size);
+
+    var msg = new DLM.DroneLinkMsg();
+    msg.parseFromLog(packet);
+    console.log(msg.timestamp + ': '+msg.asString());
+
+    // add to logger
+    logger.add(msg);
+
+    // jump to next packet
+    i += size;
+  }
+}
+
+
 function init() {
   // install showHelp on window object
   window.showHelp = showHelp;
@@ -131,6 +203,14 @@ function init() {
 
   $('#logRewindButton').on('click', ()=>{
     logger.rewind();
+  });
+
+  $('#logSaveButton').on('click', ()=>{
+    saveLog();
+  });
+
+  $('#logLoadButton').on('click', ()=>{
+    loadLog();
   });
 
   logger.on('status', ()=>{

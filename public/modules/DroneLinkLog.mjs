@@ -53,20 +53,25 @@ export default class DroneLinkLog {
     this.state.on('raw', (msg)=>{
       // if recording, add to log
       if (me.recording) {
-        if (msg.msgType < DLM.DRONE_LINK_MSG_TYPE_NAMEQUERY) {
-          // add timestamp
-          msg.timestamp = Date.now();
-          if (me.log.length == 0) {
-            me.startTime = msg.timestamp;
-          }
-          me.log.push(msg);
-          me.trigger('info',{
-            packets:me.log.length,
-            duration: msg.timestamp - me.log[0].timestamp
-          })
-        }
+        me.add(msg);
       }
     })
+  }
+
+  add(msg) {
+    var me = this;
+
+    if (msg.msgType < DLM.DRONE_LINK_MSG_TYPE_NAMEQUERY) {
+      if (me.log.length == 0) {
+        me.startTime = msg.timestamp;
+      }
+      me.log.push(msg);
+      me.trigger('info',{
+        packets:me.log.length,
+        duration: msg.timestamp - me.log[0].timestamp
+      })
+    }
+
   }
 
   on(name, cb) {
@@ -128,6 +133,11 @@ export default class DroneLinkLog {
       duration: 0,
       percent:0
     });
+  }
+
+  // export as UInt8Array
+  export() {
+
   }
 
 }

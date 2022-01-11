@@ -70,6 +70,7 @@ export class DroneLinkMsg {
     this.rawPayload = new ArrayBuffer(16);
     this.uint8_tPayload = new Uint8Array(this.rawPayload);
     this.values = [];
+    this.timestamp = Date.now();
 
     if (buffer) this.parse(buffer);
   }
@@ -113,6 +114,22 @@ export class DroneLinkMsg {
     this.writable = (buffer[4] & DRONE_LINK_MSG_WRITABLE) > 0;
     for (var i=0; i < this.msgLength; i++) {
       this.uint8_tPayload[i] = buffer[5+i];
+    }
+  }
+
+  parseFromLog(buffer) {
+    var t = (buffer[1] << 24) + (buffer[2] << 16) + (buffer[3] << 8) + buffer[4];
+    this.timestamp = t;
+
+    this.source = buffer[5 + 0];
+    this.node = buffer[5 + 1];
+    this.channel = buffer[5 + 2];
+    this.param = buffer[5 + 3];
+    this.msgType = (buffer[5 + 4] >> 4) & 0x07;
+    this.msgLength = (buffer[5 + 4] & 0x0F) + 1;
+    this.writable = (buffer[5 + 4] & DRONE_LINK_MSG_WRITABLE) > 0;
+    for (var i=0; i < this.msgLength; i++) {
+      this.uint8_tPayload[i] = buffer[5 + 5+i];
     }
   }
 
@@ -219,6 +236,32 @@ export class DroneLinkMsg {
 
     for (var i=0; i<this.msgLength; i++) {
       buffer[5+i] = this.uint8_tPayload[i];
+    }
+    return buffer;
+  }
+
+  encodeForLog() {
+    // prefixes a total size and timestamp
+    // return Uint8Array
+    var packetSize = this.msgLength + 5 + 4 + 1;
+    var buffer = new Uint8Array(packetSize);
+    buffer[0] = packetSize;
+
+    // encode timestamp
+    buffer[1] = (this.timestamp >> 24) & 0xFF;
+    buffer[2] = (this.timestamp >> 16) & 0xFF;
+    buffer[3] = (this.timestamp >> 8) & 0xFF;
+    buffer[4] = (this.timestamp) & 0xFF;
+
+    // encode actual packet
+    buffer[5+0] = this.source;
+    buffer[5+1] = this.node;
+    buffer[5+2] = this.channel;
+    buffer[5+3] = this.param;
+    buffer[5+4] = (this.writable ? DRONE_LINK_MSG_WRITABLE : 0) | (this.msgType << 4) | ((this.msgLength-1) & 0x0F);
+
+    for (var i=0; i<this.msgLength; i++) {
+      buffer[5+5+i] = this.uint8_tPayload[i];
     }
     return buffer;
   }
