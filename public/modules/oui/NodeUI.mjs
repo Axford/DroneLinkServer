@@ -905,7 +905,8 @@ export default class NodeUI {
       return;
     }
 
-    this.target = target;
+    // convert to 3-part array for compatibility with mapbox markers
+    this.target = target.slice(0,3);
     console.log('new target');
 
     // speculative query for last
