@@ -135,7 +135,7 @@ export default class Parameter {
         //if (this.namecheckInterval) clearInterval(this.namecheckInterval);
       } else if (this.title == '?') {
         // fire a name query
-        console.log(this.addr + ' name query');
+        //console.log(this.addr + ' name query');
         var qm = new DLM.DroneLinkMsg();
         qm.source = 252;
         qm.node = this.channel.node.id;
@@ -193,7 +193,7 @@ export default class Parameter {
     this.namecheckInterval = setInterval(()=>{
       if (this.title == '?') {
         // fire a name query
-        console.log(this.addr + ' name query');
+        //console.log(this.addr + ' name query');
         var qm = new DLM.DroneLinkMsg();
         qm.source = 252;
         qm.node = this.channel.node.id;

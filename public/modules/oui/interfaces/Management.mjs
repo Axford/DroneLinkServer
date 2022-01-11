@@ -80,6 +80,7 @@ export default class Management {
     var channel = this.channel.channel;
 
 		var ipAddress = this.state.getParamValues(node, channel, 12, [0,0,0,0]);
+		console.log('ip', ipAddress);
 		if (ipAddress[0] != 0) {
 			var ipString = ipAddress.join('.');
 			this.ipAddress.html('IP: '+ipString);
@@ -89,14 +90,14 @@ export default class Management {
 	}
 
 	onParamValue(data) {
-    if (data.param == 13) {
+    if (data.param == 13 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_UINT32_T) {
 			var uptime = data.values[0];
 			if (uptime == undefined) uptime = '0';
 	    uptime = new Date(uptime * 1000).toISOString().substr(11, 8);
 			this.uptime.html('Uptime: ' + uptime);
 		}
 
-		if (data.param == 12) {
+		if (data.param == 12 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_UINT8_T) {
 			// ip
 			this.log.show();
 			this.updateIP();
