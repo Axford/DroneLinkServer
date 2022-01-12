@@ -56,6 +56,7 @@ export default class NMEA {
     // fetch params
     var location = this.state.getParamValues(node, channel, 8, [0,0,0,0]);
     var satellites = this.state.getParamValues(node, channel, 9, [0])[0];
+		var speed = this.state.getParamValues(node, channel, 11, [0])[0];
 		var HDOP = this.state.getParamValues(node, channel, 12, [0])[0];
     var correction = this.state.getParamValues(node, channel, 20, [0,0,0,0]);
 
@@ -119,11 +120,14 @@ export default class NMEA {
     // correction (left)
     this.drawValue(5,40,'Satellites', satellites);
 
+		// speed (left)
+    this.drawValue(w/4,40,'Speed (m/s)', speed.toFixed(1));
+
     // correction (left)
     this.drawValue(5,80,'HDOP', HDOP);
 
     // correction (left)
-    this.drawValue(5,120,'Correction', correction[3].toFixed(1) +'m');
+    this.drawValue(5,120,'Correction (m)', correction[3].toFixed(1));
   }
 
 	build() {
