@@ -20,7 +20,7 @@ export default class HMC5883L {
       //console.log('new compass vector: ',this.rawVectors);
 
       // if too many vectors, lose one
-      if (this.rawVectors.length > 100) this.rawVectors.shift();
+      if (this.rawVectors.length > 200) this.rawVectors.shift();
 		}
 
     this.update();
@@ -48,6 +48,7 @@ export default class HMC5883L {
     var rawVector = this.state.getParamValues(node, channel, 10, [0]);
     var calibX = this.state.getParamValues(node, channel, 13, [0]);
     var calibY = this.state.getParamValues(node, channel, 14, [0]);
+		var limits = this.state.getParamValues(node, channel, 18, [0]);
 
     // render vector view
     // -------------------------------------------------------------------------
@@ -59,7 +60,7 @@ export default class HMC5883L {
 		ctx.fillRect(x2,0,w2,h);
 
     // axes
-    ctx.strokeStyle = '#aaa';
+    ctx.strokeStyle = '#888';
     ctx.lineWidth = 1;
     // x
     ctx.beginPath();
@@ -83,18 +84,35 @@ export default class HMC5883L {
         ctx.strokeStyle = "#afa";
       }
       var x = cx2 + this.rawVectors[i][0] * scaling;
-      var y = h/2 + this.rawVectors[i][1] * scaling;
+      var y = h/2 - this.rawVectors[i][1] * scaling;
       ctx.beginPath();
       ctx.arc(x, y, 3, 0, 2 * Math.PI);
       ctx.fill();
       ctx.stroke();
     }
 
-    // draw current calibration bounds
-    var bx1 = cx2 + calibX[0] * scaling;
-    var bx2 = cx2 + calibX[2] * scaling;
-    var by1 = h/2 + calibY[0] * scaling;
-    var by2 = h/2 + calibY[2] * scaling;
+		//
+		var bcx = cx2 + calibX[1] * scaling;
+		var bcy = h/2 - calibY[1] * scaling;
+
+    // draw limits
+    var bx1 = cx2 + limits[3] * scaling;
+    var bx2 = cx2 + limits[1] * scaling;
+    var by1 = h/2 - limits[0] * scaling;
+    var by2 = h/2 - limits[2] * scaling;
+    // x
+    ctx.strokeStyle = "#f00";
+    ctx.lineWidth = "2";
+    ctx.beginPath();
+    //ctx.rect(bx1,by1,bx2-bx1,by2-by1);
+		ctx.ellipse((bx1+bx2)/2, (by1+by2)/2, (bx2-bx1)/2, (by2-by1)/2, 0, 0, 2 * Math.PI);
+    ctx.stroke();
+
+		// draw bounds
+     bx1 = cx2 + calibX[0] * scaling;
+     bx2 = cx2 + calibX[2] * scaling;
+     by1 = h/2 - calibY[0] * scaling;
+     by2 = h/2 - calibY[2] * scaling;
     // x
     ctx.strokeStyle = "#fff";
     ctx.lineWidth = "1";
@@ -103,28 +121,28 @@ export default class HMC5883L {
     ctx.stroke();
 
     // draw centre of bounds
-    ctx.strokeStyle = '#aaa';
+    ctx.strokeStyle = '#fff';
     ctx.lineWidth = 1;
     // x
     ctx.beginPath();
-    ctx.moveTo(bx1, (by1+by2)/2);
-    ctx.lineTo(bx2, (by1+by2)/2);
+    ctx.moveTo(bx1, bcy);
+    ctx.lineTo(bx2, bcy);
     ctx.stroke();
     // y
     ctx.beginPath();
-    ctx.moveTo((bx1+bx2)/2, by1);
-    ctx.lineTo((bx1+bx2)/2, by2);
+    ctx.moveTo(bcx, by1);
+    ctx.lineTo(bcx, by2);
     ctx.stroke();
 
 
     // draw latest vector
     if (this.rawVectors.length > 0) {
       var vx = cx2 + this.rawVectors[this.rawVectors.length-1][0] * scaling;
-      var vy = h/2 + this.rawVectors[this.rawVectors.length-1][1] * scaling;
+      var vy = h/2 - this.rawVectors[this.rawVectors.length-1][1] * scaling;
       ctx.strokeStyle = '#afa';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo((bx1+bx2)/2, (by1+by2)/2);
+      ctx.moveTo(bcx, bcy);
       ctx.lineTo(vx, vy);
       ctx.stroke();
     }
