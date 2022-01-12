@@ -254,6 +254,9 @@ function init() {
 
     map.on('dblclick',(e)=>{
       e.preventDefault();
+      // copy location to clipboard
+      navigator.clipboard.writeText(e.lngLat.lng.toFixed(6) + ' ' + e.lngLat.lat.toFixed(6));
+
       // pass to nodes
       for (const [key, n] of Object.entries(nodes)) {
         n.onMapDoubleClick(e);

@@ -119,12 +119,39 @@ export default class Nav {
 
 
   onParamValue(data) {
+    // mode
+    if (data.param == 14 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_UINT8_T) {
+      this.modeSelect.val(data.values[0]);
+    }
+
     this.update();
   }
 
 
 	build() {
     this.ui = $('<div class="Sailor text-center"></div>');
+
+    this.modeSelect = $('<select class="navModeSelect"></select>');
+    // add mode options
+    this.modeSelect.append($('<option value="0">Idle</option>'));
+    this.modeSelect.append($('<option value="1">Goto</option>'));
+    this.modeSelect.append($('<option value="2">AbsCourse</option>'));
+    this.modeSelect.append($('<option value="3">RelCourse</option>'));
+    this.modeSelect.append($('<option value="4">Backaway</option>'));
+    this.modeSelect.append($('<option value="5">Orbit</option>'));
+    this.modeSelect.change((e)=>{
+      // get value
+      var newMode = this.modeSelect.val();
+
+      DLM.sendDroneLinkMsg({
+        addr: this.channel.node.id + '>' + this.channel.channel + '.14',
+        msgType: DLM.DRONE_LINK_MSG_TYPE_UINT8_T,
+        values: [ newMode ]
+      });
+    });
+
+    this.ui.append(this.modeSelect);
+
     this.canvas = $('<canvas height=200 />');
     this.canvas.on('click', (e)=>{
       //  manually adjust target on click

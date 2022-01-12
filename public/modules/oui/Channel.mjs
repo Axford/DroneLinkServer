@@ -11,6 +11,7 @@ import INA219 from './interfaces/INA219.mjs';
 import Management from './interfaces/Management.mjs';
 import Nav from './interfaces/Nav.mjs';
 import Neopixel from './interfaces/Neopixel.mjs';
+import NMEA from './interfaces/NMEA.mjs';
 import Proa from './interfaces/Proa.mjs';
 import Sailor from './interfaces/Sailor.mjs';
 import Servo from './interfaces/Servo.mjs';
@@ -193,6 +194,8 @@ export default class Channel {
         this.interface = new Nav(this, state);
       } else if (data.type == 'Neopixel') {
         this.interface = new Neopixel(this, state);
+      } else if (data.type == 'NMEA') {
+        this.interface = new NMEA(this, state);
       } else if (data.type == 'Proa') {
         this.interface = new Proa(this, state);
       } else if (data.type == 'Sailor') {

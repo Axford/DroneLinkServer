@@ -536,7 +536,15 @@ export default class NodeUI {
 
 
   onMapDoubleClick(e) {
+    // ignore if not focused
     if (!this.focused) return;
+
+    // ignore if not on configuration tab
+    if (!this.cui.is(":visible")) return;
+
+    // ignore if editor not visible
+    if (!this.cuiEditorBlock.is(":visible")) return;
+
     var coord = e.lngLat;
     var cursor = this.aceEditor.selection.getCursor();
     var radius = 5;
@@ -1035,6 +1043,10 @@ export default class NodeUI {
   updateLast(last) {
     if (last.length <3 || last[0] == 0) return;
 
+    this.last = last;
+
+    // convert to 3-part array for compatibility with mapbox markers
+    last = last.slice(0,3);
     this.last = last;
     console.log('new last');
 
