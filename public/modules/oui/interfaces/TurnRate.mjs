@@ -36,10 +36,25 @@ export default class TurnRate {
 		var w = this.ui.width();
 		ctx.canvas.width = w;
 		var cx = w/2;
+		var h = this.ui.height();
 
+		// background
 		ctx.fillStyle = '#343a40';
 		ctx.fillRect(0,0,w,200);
 
+		// draw giant turnRate arrow
+		var x1 = (w/2) * turnRate;
+		ctx.fillStyle = '#0a0';
+    ctx.beginPath();
+    ctx.moveTo(cx,h/2-40);
+		ctx.lineTo(cx + x1*0.7, h/2-40);
+		ctx.lineTo(cx + x1, h/2);
+		ctx.lineTo(cx + x1*0.7, h/2+40);
+		ctx.lineTo(cx, h/2+40);
+		ctx.lineTo(cx, h/2-40);
+    ctx.fill();
+
+		// background circles (axes)
     ctx.strokeStyle = '#fff';
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -48,7 +63,10 @@ export default class TurnRate {
 		ctx.beginPath();
     ctx.arc(cx, 100, 30, 0, 2 * Math.PI);
     ctx.stroke();
+		ctx.fillStyle = 'rgba(40,40,50,0.6)';
+		ctx.fill();
 
+		// ticks
     ctx.beginPath();
     for (var i =0; i<12; i++) {
       var ang = (i*30) * Math.PI / 180;
@@ -91,7 +109,7 @@ export default class TurnRate {
 		ctx.fillStyle = '#FFF';
     ctx.font = '20px bold serif';
 		ctx.textAlign = 'center';
-    ctx.fillText(turnRate.toFixed(0), cx, 105);
+    ctx.fillText(turnRate.toFixed(1), cx, 105);
   }
 
 	build() {
