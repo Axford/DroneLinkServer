@@ -5,6 +5,7 @@ import * as DLM from '../droneLinkMsg.mjs';
 import Parameter from './Parameter.mjs';
 
 // interfaces
+import Depth from './interfaces/Depth.mjs';
 import HMC5883L from './interfaces/HMC5883L.mjs';
 import INA219 from './interfaces/INA219.mjs';
 import Management from './interfaces/Management.mjs';
@@ -180,7 +181,9 @@ export default class Channel {
       //console.log(data);
 
       // instance an interface if available
-      if (data.type == 'HMC5883L') {
+      if (data.type == 'Depth') {
+        this.interface = new Depth(this, state);
+      } else if (data.type == 'HMC5883L') {
         this.interface = new HMC5883L(this, state);
       } else if (data.type == 'INA219') {
         this.interface = new INA219(this, state);
