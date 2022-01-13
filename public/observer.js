@@ -8,6 +8,7 @@ import DroneLinkState from './modules/DroneLinkState.mjs';
 var state = new DroneLinkState();
 
 import NodeUI from './modules/oui/NodeUI.mjs';
+import { controllers, initGamepads } from './modules/gamepads.js';
 
 // object of nodes, keyed on id, with associated UI objects
 // populated based on events from state object
@@ -333,6 +334,16 @@ function init() {
 
     state.goLive();
   });
+
+
+  // init gamepads
+  initGamepads(()=>{
+    // on gamepad connected.... or any other gamepad event
+    //console.log('Gamepad connected', controllers[0].axes);
+    for (const [key, n] of Object.entries(nodes)) {
+      if (n.focused) n.updateGamepad(controllers[0]);
+    }
+  })
 
 }
 

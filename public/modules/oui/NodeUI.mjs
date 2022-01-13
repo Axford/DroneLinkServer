@@ -101,6 +101,21 @@ export default class NodeUI {
     document.getElementById('nodes').appendChild(this.ui);
 
 
+    // add gamepad ui
+    this.gameui = $('<div class="gamepadUI" style="display:none;"></div>');
+    $('#nodeManager').append(this.gameui);
+    this.gameAxes = [];
+    for (var i=0; i<4; i++) {
+      this.gameAxes.push( $('<div class="gamepadAxis"></div>') );
+      this.gameAxes[i].inputE = $('<input type="text"></input>');
+      this.gameAxes[i].inputE.val(this.id + '>');
+      this.gameAxes[i].append(this.gameAxes[i].inputE);
+      this.gameAxes[i].graphE = $('<div class="gamepadGraph">?</div>');
+      this.gameAxes[i].append(this.gameAxes[i].graphE);
+      this.gameui.append(this.gameAxes[i]);
+    }
+
+
     // create panel ui
     this.pui = $('<div class="NodeUI" style="display:none"/>');
     this.pui.node = this;
@@ -534,6 +549,38 @@ export default class NodeUI {
     }, 1000)
   }
 
+
+  updateGamepad(g) {
+    //console.log('new data', g.axes);
+    this.gameui.show();
+    for (var i=0; i<4; i++) {
+      var binding = this.gameAxes[i].inputE.val();
+      if (binding.indexOf('.') > 0) {
+        // parse binding address
+        var gp = binding.indexOf('>');
+        var pp = binding.indexOf('.');
+        var n = parseInt(binding.substr(0,gp));
+        var c = parseInt(binding.substr(gp+1,pp-1));
+        var p = parseInt(binding.substr(pp+1));
+
+        console.log('Gamepad: ',n,c,p);
+
+        var av = (i % 2 == 1 ? -1 : 1) * g.axes[i];
+
+        var qm = new DLM.DroneLinkMsg();
+        qm.source = 252;
+        qm.node = n;
+        qm.channel = c;
+        qm.param = p;
+        qm.setFloat([ av ]);
+
+        this.state.socket.emit('sendMsg', qm.encodeUnframed());
+
+        this.gameAxes[i].graphE.html(av.toFixed(1));
+      }
+    }
+
+  }
 
   onMapDoubleClick(e) {
     // ignore if not focused

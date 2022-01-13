@@ -15,6 +15,26 @@ html, body {margin: 0; height: 100%; overflow: hidden}
   padding: 0.2rem 0.2rem;
 }
 
+
+.gamepadUI {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
+  grid-gap: 4px;
+}
+
+.gamepadAxis {
+  padding: 4px 4px;
+}
+
+.gamepadAxis input {
+  width:100%;
+}
+
+.gamepadAxis .gamepadGraph {
+  text-align:center;
+}
+
+
 .helpContainer {
   position:absolute;
   display:none;

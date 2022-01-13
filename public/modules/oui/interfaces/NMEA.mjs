@@ -122,6 +122,7 @@ export default class NMEA {
 
 		// speed (left)
     this.drawValue(w/4,40,'Speed (m/s)', speed.toFixed(1));
+		this.drawValue(w/4,80,'Speed (knots)', (speed * 1.94384).toFixed(1));
 
     // correction (left)
     this.drawValue(5,80,'HDOP', HDOP);
