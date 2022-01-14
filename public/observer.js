@@ -24,6 +24,9 @@ var logger = new DroneLinkLog(state);
 
 var liveMode = true;
 
+var parsedLog = [];
+var logMarkers = [];
+
 
 function setPanelSize(w) {
   var container = $('#main'),
@@ -111,13 +114,13 @@ async function loadLog() {
   while (i < view.length) {
     // read size byte
     var size = view[i];
-    console.log('Reading from '+i+': '+size+' bytes...');
+    //console.log('Reading from '+i+': '+size+' bytes...');
 
     var packet = new Uint8Array(buffer, i, size);
 
     var msg = new DLM.DroneLinkMsg();
     msg.parseFromLog(packet);
-    console.log(msg.timestamp + ': '+msg.asString());
+    //console.log(msg.timestamp + ': '+msg.asString());
 
     // add to logger
     logger.add(msg);
@@ -125,6 +128,102 @@ async function loadLog() {
     // jump to next packet
     i += size;
   }
+
+  alert('Log loaded');
+}
+
+
+function calculateDistanceBetweenCoordinates( p1, p2) {
+  var RADIUS_OF_EARTH = 6371e3;
+  var lon1 = p1[0],  lat1=p1[1],  lon2=p2[0],  lat2=p2[1];
+  var R = RADIUS_OF_EARTH; // metres
+  var lat1r = lat1 * Math.PI/180; // φ, λ in radians
+  var lat2r = lat2 * Math.PI/180;
+  var lon1r = lon1 * Math.PI/180; // φ, λ in radians
+  var lon2r = lon2 * Math.PI/180;
+  var x = (lon2r-lon1r) * Math.cos((lat1r+lat2r)/2);
+  var y = (lat2r-lat1r);
+  var d = Math.sqrt(x*x + y*y) * R;
+  return d;
+}
+
+
+function parseLog() {
+  parsedLog = [];
+
+  // clear markers
+  // TODO
+
+  var parseBuffer = Array(3);
+
+  var lastLoc = [0,0];
+
+  // buffer format:  lon lat RSSI
+
+  // step through DroneLinkMsg objects in log
+  for (var i=0; i<logger.log.length; i++) {
+    var msg = logger.log[i];
+
+    // extract required values and store in buffer
+    if (msg.node == 10 && msg.channel == 5 && msg.param == 8) {
+      // store lon and lat
+      parseBuffer[0] = msg.valueArray()[0];
+      parseBuffer[1] = msg.valueArray()[1];
+    }
+
+
+    if (msg.node == 10 && msg.channel == 3 && msg.param == 8) {
+      // store RSSI
+      parseBuffer[2] = msg.valueArray()[0];
+    }
+
+
+    /*
+    if (msg.node == 10 && msg.channel == 13 && msg.param == 13) {
+      // store depth
+      parseBuffer[2] = msg.valueArray()[0];
+    }
+    */
+
+    // add buffer to parsedLog
+    // store on GPS location change
+    if (msg.node == 10 && msg.channel == 5 && msg.param == 8) {
+    //if (msg.node == 10 && msg.channel == 13 && msg.param == 13) {
+
+      // check distance from lastLoc
+      var d = calculateDistanceBetweenCoordinates(parseBuffer, lastLoc);
+
+      if (d > 2) {
+        parsedLog.push(parseBuffer);
+        console.log('Stored: ', parseBuffer);
+
+        addLogMarker(parseBuffer[0], parseBuffer[1], 1 - (parseBuffer[2]/100));
+        //addLogMarker(parseBuffer[0], parseBuffer[1], 1 - (parseBuffer[2]/10));
+
+        lastLoc[0] = parseBuffer[0];
+        lastLoc[1] = parseBuffer[1];
+      }
+
+    }
+
+  }
+}
+
+
+function addLogMarker(lon,lat, value) {
+  // create or update marker
+  // -- target marker --
+  var el = document.createElement('div');
+  el.className = 'logMarker';
+  var r = value * 255;
+  var g=r, b=0;
+  el.style.backgroundColor = 'rgba('+r+','+g+','+b+',1)';
+
+  var marker;
+
+  marker = new mapboxgl.Marker(el)
+      .setLngLat([lon,lat])
+      .addTo(map);
 }
 
 
@@ -212,6 +311,10 @@ function init() {
 
   $('#logLoadButton').on('click', ()=>{
     loadLog();
+  });
+
+  $('#logParseButton').on('click', ()=>{
+    parseLog();
   });
 
   logger.on('status', ()=>{

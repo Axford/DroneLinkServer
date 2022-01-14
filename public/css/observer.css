@@ -392,3 +392,18 @@ main {
 .targetMarker .updating {
   background-image: radial-gradient(circle at center, rgba(80,80,80,0.8) 0, rgba(0,0,0,0) 100%);
 }
+
+
+.logMarker {
+  width: 20px;
+  height: 20px;
+  text-align:center;
+  font-size:14px;
+  font-weight:normal;
+  color:white;
+  border-radius: 50%;
+  cursor: arrow;
+  text-shadow: -1px -1px 3 #000;
+  overflow:visible;
+  white-space:nowrap;
+}

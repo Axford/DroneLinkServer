@@ -72,16 +72,16 @@ export default class INA3221 {
     for (var i=0; i<3; i++) {
       var y1 = hm * i;
       // 'Cell V'
-      this.drawMeter(ctx, ina.cellV[i].toFixed(1), 0, y1, mw,hm);
+      this.drawMeter(ctx, ina.cellV[i].toFixed(2), 0, y1, mw,hm);
 
       // V
-  		this.drawMeter(ctx, ina.loadV[i].toFixed(1), w, y1, mw,hm);
+  		this.drawMeter(ctx, ina.loadV[i].toFixed(2), w, y1, mw,hm);
 
       // A
-  		this.drawMeter(ctx, ina.current[i].toFixed(1), 2*mw, y1, mw,hm);
+  		this.drawMeter(ctx, ina.current[i].toFixed(2), 2*mw, y1, mw,hm);
 
       // W
-  		this.drawMeter(ctx, ina.power[i].toFixed(1), 3*mw, y1, mw,hm);
+  		this.drawMeter(ctx, ina.power[i].toFixed(2), 3*mw, y1, mw,hm);
     }
 
   }
