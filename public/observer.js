@@ -197,7 +197,17 @@ function parseLog() {
         parsedLog.push(parseBuffer);
         console.log('Stored: ', parseBuffer);
 
-        addLogMarker(parseBuffer[0], parseBuffer[1], 1 - (parseBuffer[2]/100));
+        var g = (1 - (parseBuffer[2]/100)) * 255;
+        var r=0, b=0;
+
+        if (parseBuffer[2] > 80) {
+          r=g + 30;
+          g=0;
+        } else if(parseBuffer[2] > 70) {
+          r=g;
+        }
+
+        addLogMarker(parseBuffer[0], parseBuffer[1], r, g, b);
         //addLogMarker(parseBuffer[0], parseBuffer[1], 1 - (parseBuffer[2]/10));
 
         lastLoc[0] = parseBuffer[0];
@@ -210,13 +220,11 @@ function parseLog() {
 }
 
 
-function addLogMarker(lon,lat, value) {
+function addLogMarker(lon,lat, r,g,b) {
   // create or update marker
   // -- target marker --
   var el = document.createElement('div');
   el.className = 'logMarker';
-  var r = value * 255;
-  var g=r, b=0;
   el.style.backgroundColor = 'rgba('+r+','+g+','+b+',1)';
 
   var marker;
