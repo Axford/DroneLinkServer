@@ -1,0 +1,61 @@
+<link rel="stylesheet" href="../css/help.css">
+
+<div class="helpContent">
+
+<div><a href="index.html">&lt; Help Index</a></div>
+
+<h1>Nav</h1>
+<p>Base class: <i>Drone</i></p>
+<p>Managen navigation between waypoints accounting for crosswind drift</p>
+
+<h2>Usage Guide</h2>
+Target waypoints are defined in terms of Lon Lat and target Radius in meters.
+
+<h2>Example Configuration</h2>
+<pre>Nav.new 9
+  name "Nav"
+  status 1
+  interval 50
+  $location [@>7.8]
+  target -1.7458734889 51.541622044 5
+  crosswind 0.2
+  correction 20
+  wind 0
+  .publish "target"
+  .publish "location"
+  .publish "heading"
+  .publish "distance"
+  .publish "mode"
+  .publish "last"
+  .publish "home"
+  .publish "crosstrack"
+  .publish "correction"
+  .publish "wind"
+  .publish "crosswind"
+  .publish "adjHeading"
+.done</pre>
+
+<h2>Subs (inputs)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Addr Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+</table>
+
+<h2>Pubs (outputs / config)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+</table>
+
+</div>

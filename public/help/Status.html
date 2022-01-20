@@ -1,0 +1,103 @@
+<link rel="stylesheet" href="../css/help.css">
+
+<div class="helpContent">
+
+<div><a href="index.html">&lt; Help Index</a></div>
+
+<h1>Status</h1>
+<p>Base class: <i>Drone</i></p>
+<p>Monitors up to four parameters and publishes a corresponding status scene to a Neopixel module</p>
+
+
+
+<h2>Subs (inputs)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Addr Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>20</td>
+    <td>21</td>
+    <td>sub1</td>
+    <td>f</td>
+    <td>2</td>
+    <td>First parameter to monitor for status</td>
+  </tr>
+  <tr>
+    <td>22</td>
+    <td>23</td>
+    <td>sub2</td>
+    <td>f</td>
+    <td>2</td>
+    <td>First parameter to monitor for status</td>
+  </tr>
+  <tr>
+    <td>24</td>
+    <td>25</td>
+    <td>sub3</td>
+    <td>f</td>
+    <td>2</td>
+    <td>First parameter to monitor for status</td>
+  </tr>
+  <tr>
+    <td>26</td>
+    <td>27</td>
+    <td>sub4</td>
+    <td>f</td>
+    <td>2</td>
+    <td>First parameter to monitor for status</td>
+  </tr>
+</table>
+
+<h2>Pubs (outputs / config)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>8</td>
+    <td>scene</td>
+    <td>u8</td>
+    <td>16</td>
+    <td>Status scene for a Neopixel module to subscribe to</td>
+  </tr>
+  <tr>
+    <td>10</td>
+    <td>value1</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Threshold for sub1</td>
+  </tr>
+  <tr>
+    <td>11</td>
+    <td>value2</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Threshold for sub2</td>
+  </tr>
+  <tr>
+    <td>12</td>
+    <td>value3</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Threshold for sub3</td>
+  </tr>
+  <tr>
+    <td>13</td>
+    <td>value4</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Threshold for sub4</td>
+  </tr>
+</table>
+
+</div>
