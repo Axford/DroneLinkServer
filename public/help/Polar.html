@@ -1,0 +1,172 @@
+<link rel="stylesheet" href="../css/help.css">
+
+<div class="helpContent">
+
+<div><a href="index.html">&lt; Help Index</a></div>
+
+<h1>Polar</h1>
+<p>Base class: <i>Drone</i></p>
+<p>Sail polar calibration module</p>
+
+<h2>Usage Guide</h2>
+<p>Sail on a variety of headings relative to the wind, measuring speed over ground
+relative to wind speed and aggregating results to build a polar plot of saiiing performance vs heading.</p>
+
+<p>When in passthrough mode, will simply pass the Sailor heading onto its output (module chaining).  When active, will bypass the Sailor module and generate target headings.</p>
+
+<p>In either mode, the Sailor module is left to generate the sheet command based on
+relative wind direction.  This may need a separate calibration process.</p>
+
+
+<p>Algorithm:</p>
+<ul>
+ <li>if outside the inner threshold - turn onto a heading that will orbit the target in a clockwise direction (configurable?) at distance of mid threshold, once speed over ground is over threshold, then select a new heading that goes from current location through the center of the target.
+ <li>when crossing the inner threshold heading inward - record the start location and time.
+ <li>when crossing the inner threshold heading outward - calculate effective heading and if close enough to target heading, then record the end location and time, compute the average speed and add to polar info.
+
+ <li>if pass the outer threshold heading out, abort and switch to passthrough mode to allow
+ nav/sailor modules to take over
+ <li>if pass the outer threshold heading inward, switch to active mode
+</ul>
+
+<h2>Example Configuration</h2>
+<pre>Polar.new 22
+  name "Polar"
+  interval 1000
+  $location [@>50.9]
+  $wind [@>50.10]
+  windSpeed 1
+  $heading [@>12.16]
+  target -1.7454870 51.5418469
+  threshold -1 100
+  radius 10 20 50
+  mode 1
+  .publish "location"
+  .publish "SOG"
+  .publish "wind"
+  .publish "windSpeed"
+  .publish "heading"
+  .publish "adjHeading"
+  .publish "mode"
+  .publish "target"
+  .publish "threshold"
+  .publish "radius"
+  .publish "samples"
+  .publish "polar"
+.done</pre>
+
+<h2>Subs (inputs)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Addr Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td>Polar</td>
+    <td></td>
+    <td>Sail polar calibration module</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td>Polar</td>
+    <td></td>
+    <td>Sail polar calibration module</td>
+  </tr>
+  <tr>
+    <td>20</td>
+    <td>21</td>
+    <td>location</td>
+    <td>f</td>
+    <td>2</td>
+    <td>Current location from GPS</td>
+  </tr>
+  <tr>
+    <td>32</td>
+    <td>33</td>
+    <td>SOG</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Speed over ground from GPS</td>
+  </tr>
+  <tr>
+    <td>34</td>
+    <td>35</td>
+    <td>wind</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Wind angle</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td>Polar</td>
+    <td></td>
+    <td>Sail polar calibration module</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td>Polar</td>
+    <td></td>
+    <td>Sail polar calibration module</td>
+  </tr>
+</table>
+
+<h2>Pubs (outputs / config)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>8</td>
+    <td>target</td>
+    <td>f</td>
+    <td>5</td>
+    <td>Lon&#x2F;Lat of target</td>
+  </tr>
+  <tr>
+    <td>9</td>
+    <td>mode</td>
+    <td>u8</td>
+    <td>1</td>
+    <td>Mode - passthrough (default), active, reset</td>
+  </tr>
+  <tr>
+    <td>10</td>
+    <td>threshold</td>
+    <td>f</td>
+    <td>2</td>
+    <td>Min SOG for tack and acceptable deviation from target heading</td>
+  </tr>
+  <tr>
+    <td>11</td>
+    <td>polar</td>
+    <td>u8</td>
+    <td>16</td>
+    <td>Calculated polar plot</td>
+  </tr>
+  <tr>
+    <td>12</td>
+    <td>samples</td>
+    <td>u8</td>
+    <td>16</td>
+    <td>Number of samples per polar bin</td>
+  </tr>
+</table>
+
+</div>

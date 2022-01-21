@@ -448,6 +448,93 @@
             "../DroneNode/src/droneModules/NavModule.h"
         ]
     },
+    "Polar": {
+        "type": [
+            "Polar"
+        ],
+        "inherits": [
+            "Drone"
+        ],
+        "description": [
+            "Sail polar calibration module"
+        ],
+        "guide": [
+            "<p>Sail on a variety of headings relative to the wind, measuring speed over ground\nrelative to wind speed and aggregating results to build a polar plot of saiiing performance vs heading.</p>\n\n<p>When in passthrough mode, will simply pass the Sailor heading onto its output (module chaining).  When active, will bypass the Sailor module and generate target headings.</p>\n\n<p>In either mode, the Sailor module is left to generate the sheet command based on\nrelative wind direction.  This may need a separate calibration process.</p>\n\n\n<p>Algorithm:</p>\n<ul>\n <li>if outside the inner threshold - turn onto a heading that will orbit the target in a clockwise direction (configurable?) at distance of mid threshold, once speed over ground is over threshold, then select a new heading that goes from current location through the center of the target.\n <li>when crossing the inner threshold heading inward - record the start location and time.\n <li>when crossing the inner threshold heading outward - calculate effective heading and if close enough to target heading, then record the end location and time, compute the average speed and add to polar info.\n\n <li>if pass the outer threshold heading out, abort and switch to passthrough mode to allow\n nav/sailor modules to take over\n <li>if pass the outer threshold heading inward, switch to active mode\n</ul>"
+        ],
+        "config": [
+            "Polar.new 22\n  name \"Polar\"\n  interval 1000\n  $location [@>50.9]\n  $wind [@>50.10]\n  windSpeed 1\n  $heading [@>12.16]\n  target -1.7454870 51.5418469\n  threshold -1 100\n  radius 10 20 50\n  mode 1\n  .publish \"location\"\n  .publish \"SOG\"\n  .publish \"wind\"\n  .publish \"windSpeed\"\n  .publish \"heading\"\n  .publish \"adjHeading\"\n  .publish \"mode\"\n  .publish \"target\"\n  .publish \"threshold\"\n  .publish \"radius\"\n  .publish \"samples\"\n  .publish \"polar\"\n.done"
+        ],
+        "pub": [
+            {
+                "address": 8,
+                "type": "f",
+                "numValues": 5,
+                "name": "target",
+                "description": "Lon/Lat of target"
+            },
+            {
+                "address": 9,
+                "type": "u8",
+                "numValues": 1,
+                "name": "mode",
+                "description": "Mode - passthrough (default), active, reset"
+            },
+            {
+                "address": 10,
+                "type": "f",
+                "numValues": 2,
+                "name": "threshold",
+                "description": "Min SOG for tack and acceptable deviation from target heading"
+            },
+            {
+                "address": 11,
+                "type": "u8",
+                "numValues": 16,
+                "name": "polar",
+                "description": "Calculated polar plot"
+            },
+            {
+                "address": 12,
+                "type": "u8",
+                "numValues": 16,
+                "name": "samples",
+                "description": "Number of samples per polar bin"
+            }
+        ],
+        "sub": [
+            "13;f;3;radius;Inner, mid and outer target radii",
+            "14;f;2;adjHeading;Adjusted heading - either passthrough of <b>Heading</b> or generated heading depending on mode",
+            {
+                "address": 20,
+                "addrAddress": 21,
+                "type": "f",
+                "numValues": 2,
+                "name": "location",
+                "description": "Current location from GPS"
+            },
+            {
+                "address": 32,
+                "addrAddress": 33,
+                "type": "f",
+                "numValues": 1,
+                "name": "SOG",
+                "description": "Speed over ground from GPS"
+            },
+            {
+                "address": 34,
+                "addrAddress": 35,
+                "type": "f",
+                "numValues": 1,
+                "name": "wind",
+                "description": "Wind angle"
+            },
+            "36;37;f;1;Wind speed",
+            "38;39;f;1;Target heading from Sailor"
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/PolarModule.h"
+        ]
+    },
     "Status": {
         "type": [
             "Status"
