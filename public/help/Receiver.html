@@ -1,0 +1,68 @@
+<link rel="stylesheet" href="../css/help.css">
+
+<div class="helpContent">
+
+<div><a href="index.html">&lt; Help Index</a></div>
+
+<h1>Receiver</h1>
+<p>Base class: <i>Drone</i></p>
+<p>Manages a PWM servo channel</p>
+
+
+<h2>Example Configuration</h2>
+<pre>Receiver.new 13
+  pins OUT0_0 OUT0_1
+.done</pre>
+
+<h2>Subs (inputs)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Addr Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+</table>
+
+<h2>Pubs (outputs / config)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>10</td>
+    <td>pins</td>
+    <td>u8</td>
+    <td>2</td>
+    <td>Receiver input pins, one per receiver channel (see &lt;a href&#x3D;&quot;pins.html&quot;&gt;Pin Mappings&lt;&#x2F;a&gt;)</td>
+  </tr>
+  <tr>
+    <td>11</td>
+    <td>value1</td>
+    <td>f</td>
+    <td>1</td>
+    <td>The received value on channel 1 converted to range -1 .. 1</td>
+  </tr>
+  <tr>
+    <td>12</td>
+    <td>value2</td>
+    <td>f</td>
+    <td>1</td>
+    <td>The received value on channel 2 converted to range -1 .. 1</td>
+  </tr>
+  <tr>
+    <td>20</td>
+    <td>output</td>
+    <td>u32</td>
+    <td>2</td>
+    <td>Raw PWM timing values for each channel</td>
+  </tr>
+</table>
+
+</div>

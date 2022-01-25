@@ -4,35 +4,76 @@
 
 <h1>DroneLink</h1>
 
-<p>DroneLink is ...</p>
+<h2>Setup Guides</h2>
+<a href="">Traditional sailing boat (WIP)</a>
 
+<h2>References</h2>
+<a href="pins.html">Pin Mappings</a>
 
 <h2>Modules</h2>
 
-<ul>
-  <li><a href="Drone.html">Drone</a></li>
-  <li><a href="Depth.html">Depth</a></li>
-  <li><a href="Diagnostic.html">Diagnostic</a></li>
-  <li><a href="HMC5883L.html">HMC5883L</a></li>
-  <li><a href="Management.html">Management</a></li>
-  <li><a href="Motor.html">Motor</a></li>
-  <li><a href="NMEA.html">NMEA</a></li>
-  <li><a href="Nav.html">Nav</a></li>
-  <li><a href="Polar.html">Polar</a></li>
-  <li><a href="Status.html">Status</a></li>
-</ul>
-
-<h2>Pin Mappings</h2>
 <table>
-  <tr><td>PIN_OUT0_0 </td><td> 32 </td></tr>
-  <tr><td>PIN_OUT0_1 </td><td> 33 </td></tr>
-  <tr><td>PIN_OUT1_0 </td><td> 14 </td></tr>
-  <tr><td>PIN_OUT1_1 </td><td> 15 </td></tr>
-  <tr><td>PIN_OUT2_0 </td><td> 2  (onboard LED)</td></tr>
-  <tr><td>PIN_OUT2_1 </td><td> 4  </td></tr>
-  <tr><td>PIN_DAC0_0 </td><td> 25 </td></tr>
-  <tr><td>PIN_DAC0_1 </td><td> 26 </td></tr>
-  <tr><td>PIN_IN0_0 </td><td> 34 (input only) </td></tr>
-  <tr><td>PIN_IN0_1 </td><td> 35 (input only) </td></tr>
+<tr>
+  <td><a href="Drone.html">Drone</a></td>
+  <td>Base class for Drone modules</td>
+</tr>
+<tr>
+  <td><a href="Depth.html">Depth</a></td>
+  <td>Manages a simple Depth sensor (sonar transducer) controlled via Trigger and Echo pins</td>
+</tr>
+<tr>
+  <td><a href="Diagnostic.html">Diagnostic</a></td>
+  <td>Manages a Diagnostic 128x64 I2C display (1306 driver)</td>
+</tr>
+<tr>
+  <td><a href="HMC5883L.html">HMC5883L</a></td>
+  <td>Manages a HMC5883L I2C Compass</td>
+</tr>
+<tr>
+  <td><a href="Management.html">Management</a></td>
+  <td>Provides overall system management and a pub&#x2F;sub interface to the DroneModuleManager</td>
+</tr>
+<tr>
+  <td><a href="Motor.html">Motor</a></td>
+  <td>Manages a Motor via an H Bridge module using PWM</td>
+</tr>
+<tr>
+  <td><a href="NMEA.html">NMEA</a></td>
+  <td>Manages a serial NMEA GPS device</td>
+</tr>
+<tr>
+  <td><a href="Nav.html">Nav</a></td>
+  <td>Managen navigation between waypoints accounting for crosswind drift</td>
+</tr>
+<tr>
+  <td><a href="Polar.html">Polar</a></td>
+  <td>Sail polar calibration module</td>
+</tr>
+<tr>
+  <td><a href="RFM69Telemetry.html">RFM69Telemetry</a></td>
+  <td>Manages DroneLink telemetry using an RFM69HW radio module</td>
+</tr>
+<tr>
+  <td><a href="Receiver.html">Receiver</a></td>
+  <td>Manages a PWM servo channel</td>
+</tr>
+<tr>
+  <td><a href="Servo.html">Servo</a></td>
+  <td>Manages a PWM servo channel</td>
+</tr>
+<tr>
+  <td><a href="SpeedControl.html">SpeedControl</a></td>
+  <td>Convert a distance value (meters) into a speed control value (0..1)</td>
+</tr>
+<tr>
+  <td><a href="Status.html">Status</a></td>
+  <td>Monitors up to four parameters and publishes a corresponding status scene to a Neopixel module</td>
+</tr>
+<tr>
+  <td><a href="Timer.html">Timer</a></td>
+  <td>Emits a configured message on a set interval (WIP)</td>
+</tr>
 </table>
+
+
 </div>

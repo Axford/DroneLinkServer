@@ -156,7 +156,10 @@ var moduleList = [];
 
 for (const [key, value] of Object.entries(moduleInfo)) {
   console.log('Rendering help file for: '+key);
-  moduleList.push(key);
+  moduleList.push({
+    name:key,
+    description: value.description
+  });
   var output = Mustache.render(moduleTemplate, value);
   //console.log(output);
   fs.writeFile('public/help/' + key + '.html', output, function (err) {

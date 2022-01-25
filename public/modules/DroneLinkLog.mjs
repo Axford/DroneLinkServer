@@ -135,9 +135,4 @@ export default class DroneLinkLog {
     });
   }
 
-  // export as UInt8Array
-  export() {
-
-  }
-
 }

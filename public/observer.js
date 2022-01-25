@@ -74,6 +74,18 @@ async function getNewFileHandle() {
   return handle;
 }
 
+async function loadState() {
+  state.reset();
+
+  //TODO
+}
+
+async function saveState() {
+  var json = state.exportAsJSON();
+
+  // TODO
+}
+
 
 async function saveLog() {
   var h = await getNewFileHandle();
@@ -268,6 +280,14 @@ function init() {
 
   $('.helpHeader button').on('click', ()=>{
     $(".helpContainer").hide();
+  });
+
+  // configure state controls
+  $('#stateLoadButton').on('click', ()=>{
+    loadState();
+  });
+  $('#stateSaveButton').on('click', ()=>{
+    saveState();
   });
 
   // configure logger

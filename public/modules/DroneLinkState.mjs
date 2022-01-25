@@ -50,117 +50,6 @@ export default class DroneLinkState {
       me.trigger('raw', msg);
     });
 
-
-    /*
-    this.socket.on('DLM.value', function(msg) {
-        //console.log('DLM.value', JSON.stringify(msg, null, 2));
-
-        // iterate over event nodes
-        for (const [key, value] of Object.entries(msg)) {
-
-          // new node?
-          if (!me.state.hasOwnProperty(key)) {
-            // trigger node.new event
-            me.trigger('node.new', key);
-
-            // speculative hostname query
-            var qm = new DLM.DroneLinkMsg();
-            qm.source = 253;
-            qm.node = key;
-            qm.channel = 1;
-            qm.param = 8;
-            qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
-            qm.msgLength = 1;
-            me.send(qm);
-
-            // speculative Nav type query
-            qm = new DLM.DroneLinkMsg();
-            qm.source = 253;
-            qm.node = key;
-            qm.channel = 7;
-            qm.param = DLM.DRONE_MODULE_PARAM_TYPE;
-            qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
-            qm.msgLength = 1;
-            me.send(qm);
-          }
-
-          // iterate over event channels
-          for (const [mkey, mvalue] of Object.entries(msg[key].channels)) {
-            //console.log(mkey, mvalue);
-            // new channel (module) ?
-            if (!me.state.hasOwnProperty(key) ||
-                (me.state.hasOwnProperty(key) &&
-                 !me.state[key].channels.hasOwnProperty(mkey))) {
-              //console.log('module.new: ' + key + '>' + mkey);
-              //me.trigger('module.new', { node: key, channel:mkey });
-
-              // queue a type query
-              var qm = new DLM.DroneLinkMsg();
-              qm.source = 253;
-              qm.node = key;
-              qm.channel = mkey;
-              qm.param = DLM.DRONE_MODULE_PARAM_TYPE;
-              qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
-              qm.msgLength = 1;
-              me.send(qm);
-
-              // queue a name query
-              qm = new DLM.DroneLinkMsg();
-              qm.source = 253;
-              qm.node = key;
-              qm.channel = mkey;
-              qm.param = DLM.DRONE_MODULE_PARAM_NAME;
-              qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
-              qm.msgLength = 1;
-              me.send(qm);
-            }
-
-            // iterate over event params
-            for (const [pkey, pvalue] of Object.entries(msg[key].channels[mkey].params)) {
-              var newParam = false;
-
-              // new param?
-              if (!me.state.hasOwnProperty(key) ||
-                  !me.state[key].channels.hasOwnProperty(mkey) ||
-                  (!me.state[key].channels[mkey].params.hasOwnProperty(pkey))) {
-                //console.log('param.new: ' + key + '>' + mkey + '.' + pkey);
-                me.trigger('param.new', { node: key, channel:mkey, param:pkey });
-                newParam = true;
-
-                // new module type?
-                if (pkey == DLM.DRONE_MODULE_PARAM_TYPE) {
-                  //console.log('module.type: ' + pvalue.values);
-                  me.trigger('module.type', { node: key, channel:mkey, type:pvalue.values[0] });
-                }
-
-                // new module name?
-                if (pkey == DLM.DRONE_MODULE_PARAM_NAME) {
-                  //console.log('module.name: ' + pvalue.values);
-                  me.trigger('module.name', { node: key, channel:mkey, name:pvalue.values[0] });
-                }
-              }
-
-              // normal value?
-              if (pvalue.msgType <= DLM.DRONE_LINK_MSG_TYPE_CHAR) {
-                // new value?
-                if (newParam ||
-                    !arraysEqual(me.state[key].channels[mkey].params[pkey].values,
-                                msg[key].channels[mkey].params[pkey].values) ) {
-                  //console.log('param.value: ' + key + '>' + mkey + '.' + pkey, msg[key].channels[mkey].params[pkey].values);
-                  me.trigger('param.value', { node: key, channel:mkey, param: pkey, msgType: pvalue.msgType, values:pvalue.values });
-                }
-              }
-
-
-            };
-          };
-        }
-
-        _.merge(me.state, msg);
-      });
-      */
-
-
     setInterval( ()=>{
       me.discovery();
     }, 1000);
@@ -169,6 +58,12 @@ export default class DroneLinkState {
       me.processDiscoveryQueue();
     }, 200);
   }
+
+
+  reset() {
+    // TODO
+  }
+  
 
   goLive() {
     this.liveMode =true;
@@ -393,5 +288,16 @@ export default class DroneLinkState {
     }
 
     return ret;
+  }
+
+
+  exportAsJSON() {
+    var json = JSON.stringify(this.state, null, ' ');
+    console.log(json);
+    return json;
+  }
+
+  importFromJSON(json) {
+    // TODO
   }
 }
