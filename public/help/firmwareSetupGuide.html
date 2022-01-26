@@ -1,0 +1,35 @@
+<link rel="stylesheet" href="../css/help.css">
+
+<div class="helpContent">
+
+<div><a href="index.html">&lt; Help Index</a></div>
+
+<h2>DroneLink Firmware Setup Guide</h2>
+
+<ol>
+  <li>Compile and install latest firmware onto ESP32 using Platform.io over USB connection</li>
+  <li>Open serial terminal to ESP at 115200 baud</li>
+  <li>Wait until IP address is shown (obtained via DHCP) - indicated by the blue LED going out.</li>
+  <li>Connect in web-browser to ESP IP address</li>
+  <li>Click <b>List Files</b> top right - by default a startup.log and boot.dat files should have automatically been created.  If nothing is displayed, then reboot the ESP and check again.</li>
+  <li>Click <b>Upload</b> and upload config.txt and any other configuration files (e.g. main.txt, arm.txt, disarm.txt).  If using a compass module, then upload an appropriate magnetic declination file (mag.dat).</li>
+  <li>Ensure the new device is configured with a unique Node address and hostname</li>
+  <li>Reboot the device using the <b>Reboot</b> button and wait for WIFI connection (blue LED goes out)</li>
+  <li>Switch to DroneLink web interface and the new device should appear</li>
+</ol>
+
+<p>Further configuration can be managed via the DroneLink web interface.</p>
+
+<h3>Troubleshooting</h3>
+
+<p>If filesystem issues occur, the LITTLEFS flash filesystem can be formatted from the ESP serial interface:</p>
+
+<ol>
+  <li>Connect to the ESP serial interface from a terminal</li>
+  <li>Type "format" and press Enter</li>
+  <li>The internal filesystem will be erased and formatted.</li>
+  <li>Reboot the device and re-configure the device by uploading configuration files.</li>
+</ol>
+
+
+</div>

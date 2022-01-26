@@ -1,0 +1,69 @@
+<link rel="stylesheet" href="../css/help.css">
+
+<div class="helpContent">
+
+<div><a href="index.html">&lt; Help Index</a></div>
+
+<h2>Traditional Sailing Boat Setup Guide</h2>
+
+<p>Minimum components:</p>
+
+<table>
+  <tr> <th>Hardware</th>   <th>Module(s)</th>   <th>Notes</th> </tr>
+
+  <tr> <td>Battery and voltage regulator(s)</td>   <td>N/A</td>    <td></td> </tr>
+
+  <tr> <td>DroneLink motherboard inc RFM69HW with antenna</td>   <td>Management, UDPTelemetry and RFM69Telemetry</td>    <td>Motherboard running latest DroneLink firmware and with RFM69HW module installed.  Follow <a href="firmwareSetupGuide.html">DroneLink firmware setup guide</a> for initial configuration.</td> </tr>
+
+  <tr> <td>RC Radio Receiver</td>   <td>Receiver</td>    <td>Include an RC Receiver to allow easy manual control.  For pure manual sailing, subscribe the rudder and sheet servos to the Receiver output values.  For a more advanced setup, where you can switch between automated and manual sailing, use a pair of script files to switch (reconfigure) the servo subscriptions between the Receiver and Sailor/TurnRate modules.</td> </tr>
+
+  <tr> <td>Rudder servo</td>   <td>Servo</td>    <td>Servo module configured to control a rudder servo.  Ensure <b>map</b> and <b>centre</b> parameters are correctly configured.  Start with a flat curve and check centre/endpoints.  Then adjust the curve shape to suit.</td> </tr>
+
+  <tr> <td>Sheet servo</td>   <td>Servo</td>    <td>Servo module configured to control a sheet servo.  Ensure <b>map</b> and <b>centre</b> parameters are correctly configured.  Start with a flat curve and check centre/endpoints.  Then adjust the curve shape to suit.</td> </tr>
+</table>
+
+<h3>Additional modules to support automated sailing:</h3>
+
+<table>
+  <tr> <th>Hardware</th>   <th>Module</th>   <th>Notes</th> </tr>
+
+  <tr> <td>HMC5883L Compass</td>   <td>HMC5883L</td>    <td>3-axis magnetometer to provide compass heading.  Subscribe to a GPS location to load a magnetic declination value (ensure mag.dat file is uploaded to flash filesystem).</td> </tr>
+
+  <tr> <td>GPS Module</td>   <td>NMEA</td>    <td>Connect to serial port 1 or 2, normally at 9600 baud.</td> </tr>
+
+  <tr> <td>Wind angle sensor (AS5600)</td>   <td>Wind</td>    <td>Measures wind angle using an absolute magnetic ensoder (AS5600).</td> </tr>
+
+  <tr> <td>N/A</td>   <td>Nav</td>    <td>Provides navigation between waypoints - either via the web interface or via commands in a DCode script (normally main.txt).  Outputs a target heading, distance and cross-track to next waypoint.  Must be subscribed to a GPS location ($location) to function.</td> </tr>
+
+  <tr> <td>N/A</td>   <td>Sailor</td>    <td>Controls tacking to optimise heading relative to the wind.  Configure sailing performance using the <b>polar</b> parameter.  Subscribe to target ($target) and cross-track ($crosstrack) from Nav module.  Subscribe to current heading ($heading) from compass (HMC5883L) module.</td> </tr>
+
+  <tr> <td>N/A</td>   <td>TurnRate</td>    <td>Provides a PID control loop reading current heading vs target heading and producing a turn rate control signal to be fed to a rudder servo.  Sbuscribe to target heading from Sailor module ($target) and current heading from compass ($heading).</td> </tr>
+
+  <tr> <td>Rudder servo</td>   <td>Servo</td>    <td>Servo module configured to control a rudder servo.  Subscribe to output of TurnRate module.</td> </tr>
+
+  <tr> <td>Sheet servo</td>   <td>Servo</td>    <td>Subscribe to <b>sheet</b> output of Sailor module</td> </tr>
+
+  <tr> <td>N/A</td>   <td>Polar</td>    <td>Optional module to help determine the polar parameters for the Sailor module.  Works by sailing on a variety of headings relative to the wind, measuring speed over ground
+  relative to wind speed and aggregating results to build a polar plot of saiiing performance vs heading.</td> </tr>
+</table>
+
+
+<h3>Extra bling</h3>
+
+<p>Optional modules to provide additional bling and/or diagnostic info:</p>
+
+<table>
+  <tr> <th>Hardware</th>   <th>Module</th>   <th>Notes</th> </tr>
+
+  <tr> <td>INA219</td>   <td>INA219</td>    <td>Power sensor to monitor battery voltage and current.  Alternatively use a INA3221 to monitor multiple voltages/currents.</td> </tr>
+
+  <tr> <td>Neopixel navigation or beacon lights</td>   <td>Neopixel</td>    <td>Use to display navigation lights or custom scenes from a Status module.  Ensure number of LEDs (numPixels) is a multiple of 4.</td> </tr>
+
+  <tr> <td>N/A</td>   <td>Status</td>    <td>Monitors up to four float parameters and publishes a corresponding status scene to a Neopixel module.  For example, can monitor battery voltage and distance to next waypoint and display appropriate colour codes on a mast beacon.</td> </tr>
+
+  <tr> <td>128x64 I2C display (1306 driver)</td>   <td>Diagnostic</td>    <td>Cycles through built-in diagnostic info from key modules (Management, INA219).</td> </tr>
+
+  <tr> <td>Sonar depth sensor</td>   <td>Depth</td>    <td>Measure depth to lake-bed for logging and/or obstacle avoidance</td> </tr>
+</table>
+
+</div>
