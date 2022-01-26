@@ -573,10 +573,13 @@
             "Drone"
         ],
         "description": [
-            "Manages a PWM servo channel"
+            "Reads PWM values from an RC receiver"
         ],
         "config": [
-            "Receiver.new 13\n  pins OUT0_0 OUT0_1\n.done"
+            "Receiver.new 14\n  name \"Receiver\"\n  interval 200\n  pins IN0_0 IN0_1\n  limits 980 2020\n  //.publish \"pins\"\n  .publish \"value1\"\n  .publish \"value2\"\n  .publish \"output\"\n.done"
+        ],
+        "guide": [
+            "<p>PWM values from an RC receiver are decoded using interrupt routines, then converted\nand published as values (<b>value1, value2</b>, etc) in range -1..1 on a regular <b>interval</b>.  Output values can be subscribed to from other modules (e.g. Servo or TankSteer). </p>\n\n<p>The valid range of PWM input values (i.e. pulse timings in ms) are defined by the <b>limits</b> parameter.</p>\n\n<p>Deadman protection is triggered after 5 seconds of no valid PWM signals and all output values are set to zero.</p>"
         ],
         "pub": [
             {
@@ -599,6 +602,13 @@
                 "numValues": 1,
                 "name": "value2",
                 "description": "The received value on channel 2 converted to range -1 .. 1"
+            },
+            {
+                "address": 15,
+                "type": "u32",
+                "numValues": 2,
+                "name": "limits",
+                "description": "The PWM timing min and max limits (default 1000 .. 2000)"
             },
             {
                 "address": 20,

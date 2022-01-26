@@ -6,12 +6,26 @@
 
 <h1>Receiver</h1>
 <p>Base class: <i>Drone</i></p>
-<p>Manages a PWM servo channel</p>
+<p>Reads PWM values from an RC receiver</p>
 
+<h2>Usage Guide</h2>
+<p>PWM values from an RC receiver are decoded using interrupt routines, then converted
+and published as values (<b>value1, value2</b>, etc) in range -1..1 on a regular <b>interval</b>.  Output values can be subscribed to from other modules (e.g. Servo or TankSteer). </p>
+
+<p>The valid range of PWM input values (i.e. pulse timings in ms) are defined by the <b>limits</b> parameter.</p>
+
+<p>Deadman protection is triggered after 5 seconds of no valid PWM signals and all output values are set to zero.</p>
 
 <h2>Example Configuration</h2>
-<pre>Receiver.new 13
-  pins OUT0_0 OUT0_1
+<pre>Receiver.new 14
+  name "Receiver"
+  interval 200
+  pins IN0_0 IN0_1
+  limits 980 2020
+  //.publish "pins"
+  .publish "value1"
+  .publish "value2"
+  .publish "output"
 .done</pre>
 
 <h2>Subs (inputs)</h2>
@@ -40,7 +54,7 @@
     <td>pins</td>
     <td>u8</td>
     <td>2</td>
-    <td>Receiver input pins, one per receiver channel (see &lt;a href&#x3D;&quot;pins.html&quot;&gt;Pin Mappings&lt;&#x2F;a&gt;)</td>
+    <td>Receiver input pins, one per receiver channel (see <a href="pins.html">Pin Mappings</a>)</td>
   </tr>
   <tr>
     <td>11</td>
@@ -55,6 +69,13 @@
     <td>f</td>
     <td>1</td>
     <td>The received value on channel 2 converted to range -1 .. 1</td>
+  </tr>
+  <tr>
+    <td>15</td>
+    <td>limits</td>
+    <td>u32</td>
+    <td>2</td>
+    <td>The PWM timing min and max limits (default 1000 .. 2000)</td>
   </tr>
   <tr>
     <td>20</td>
