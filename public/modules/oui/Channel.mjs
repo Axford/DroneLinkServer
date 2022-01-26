@@ -14,6 +14,7 @@ import Nav from './interfaces/Nav.mjs';
 import Neopixel from './interfaces/Neopixel.mjs';
 import NMEA from './interfaces/NMEA.mjs';
 import Proa from './interfaces/Proa.mjs';
+import Receiver from './interfaces/Receiver.mjs';
 import Sailor from './interfaces/Sailor.mjs';
 import Servo from './interfaces/Servo.mjs';
 import TankSteer from './interfaces/TankSteer.mjs';
@@ -201,6 +202,8 @@ export default class Channel {
         this.interface = new NMEA(this, state);
       } else if (data.type == 'Proa') {
         this.interface = new Proa(this, state);
+      } else if (data.type == 'Receiver') {
+        this.interface = new Receiver(this, state);
       } else if (data.type == 'Sailor') {
         this.interface = new Sailor(this, state);
       } else if (data.type == 'Servo') {
