@@ -124,12 +124,21 @@ export default class GraphPort {
     ctx.rect(px + x1, py + y1, w, h);
     ctx.stroke();
 
+    if (this.isAddr) {
+      // draw input nubbin
+      ctx.beginPath();
+      ctx.arc(px + x1, py + y1 + h/2, 4, 0, 2 * Math.PI);
+      ctx.fill();
+    }
+
     // label
     ctx.fillStyle = '#000';
     ctx.font = this.mgr.uiRoot.css('font');
     ctx.font.replace(/\d+\.?\d*px/, "8px");
     ctx.textAlign = 'center';
     ctx.fillText(this.param + ': ' + this.name, px + x1 + w/2, py + y1 + h/2 + 4);
+
+
   }
 
   drawWire() {

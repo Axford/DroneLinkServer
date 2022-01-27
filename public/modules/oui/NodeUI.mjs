@@ -320,7 +320,7 @@ export default class NodeUI {
 
 
     // create graph ui
-    this.graphui = $('<div class="graphUI"/>');
+    this.graphui = $('<div class="graphUI" style="display:none"/>');
     this.puiPanels.append(this.graphui);
     this.graphui.node = this;
     this.graphManager = new GraphManager(this, this.graphui);
