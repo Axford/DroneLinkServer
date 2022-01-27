@@ -18,7 +18,8 @@ export default class GraphWire {
     // find matching port
     this.oport = this.mgr.getPortByAddress(this.ochannel, this.oparam);
     if (this.oport) {
-      this.oport.connected = true;
+      this.oport.numOutputs += 1;
+      this.oport.outputs.push(this.port);
       this.mgr.needsRedraw = true;
     }
   }
@@ -27,6 +28,9 @@ export default class GraphWire {
   draw() {
     var c = this.mgr.canvas[0];
     var ctx = c.getContext("2d");
+
+    var px = this.mgr.panPosition.x;
+    var py = this.mgr.panPosition.y;
 
     ctx.strokeStyle = this.port.block.fillStyle;
     ctx.lineWidth = 6;
@@ -45,9 +49,12 @@ export default class GraphWire {
     var x2 = op ? op.block.x2 : x1 - 20;
     var y2 = op ? (op.block.y1 + op.y + op.height/2) : y1;
 
+
+    var hsize = (op && p.block == op.block) ? 50 : 20;
+
     ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.bezierCurveTo(x1 - 20, y1 , x2 + 20, y2 , x2, y2);
+    ctx.moveTo(px + x1, py + y1);
+    ctx.bezierCurveTo(px + x1 - hsize, py + y1 , px + x2 + hsize, py + y2 , px + x2, py + y2);
     ctx.stroke();
   }
 

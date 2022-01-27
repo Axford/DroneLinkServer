@@ -72,11 +72,12 @@ export default class GraphBlock {
 
     this.fillStyle = "hsl(" + 360 * Math.random() + ',' +
              '100%,' +
-             (50 + 30 * Math.random()) + '%)';
+             (65 + 20 * Math.random()) + '%)';
 
     var c = this.mgr.canvas[0];
     var ctx = c.getContext("2d");
     var w = ctx.canvas.width;
+    if (w < 200) w = 200;
     var h = ctx.canvas.height;
 
     this.headerHeight = 20;
@@ -180,18 +181,20 @@ export default class GraphBlock {
     var w2 = w/2;
     var h = this.height;
     var h2 = h/2;
+    var px = this.mgr.panPosition.x;
+    var py = this.mgr.panPosition.y;
 
     //ctx.fillStyle = '#202025';
     ctx.fillStyle = this.fillStyle;
     ctx.strokeStyle = '#505050';
     ctx.lineWidth = 1;
-    roundRect(ctx, this.position.x - w2, this.position.y - h2, w, h, 6, true);
+    roundRect(ctx, px + this.position.x - w2, py + this.position.y - h2, w, h, 6, true);
 
     // label
     ctx.fillStyle = '#000';
     ctx.font = this.mgr.uiRoot.css('font');
 		ctx.textAlign = 'center';
-    ctx.fillText(this.channel +'. '+ this.name, this.position.x, this.y1 + this.headerHeight - 6);
+    ctx.fillText(this.channel +'. '+ this.name, px + this.position.x, py + this.y1 + this.headerHeight - 6);
 
     // draw ports
     for (const [key, port] of Object.entries(this.ports)) {

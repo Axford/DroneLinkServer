@@ -16,9 +16,54 @@ export default class GraphManager {
 
     this.blocks = [];
 
+    this.pan = false;
+    this.panPosition = new Vector(0,0);
+    this.panStart = new Vector(0,0);
+    this.dragStart = new Vector(0,0);
+
     // create canvas
     this.canvas = $('<canvas />');
     this.uiRoot.append(this.canvas);
+
+    // event handlers
+    this.canvas.on('mousedown', (e)=>{
+
+			var offsetX = $( e.target ).offset().left;
+			var offsetY = $( e.target ).offset().top;
+			var w = $(e.target).innerWidth();
+			var h = $(e.target).innerHeight();
+
+      this.dragStart.x = (e.pageX - offsetX) - w/2;
+      this.dragStart.y = (e.pageY - offsetY) - h/2;
+
+      this.panStart.x = this.panPosition.x;
+      this.panStart.y = this.panPosition.y;
+
+      this.pan = true;
+    });
+
+    this.canvas.on('mousemove', (e)=>{
+
+      if (this.pan) {
+        var offsetX = $( e.target ).offset().left;
+  			var offsetY = $( e.target ).offset().top;
+  			var w = $(e.target).innerWidth();
+  			var h = $(e.target).innerHeight();
+
+  			var dx = (e.pageX - offsetX) - w/2 - this.dragStart.x;
+  			var dy = (e.pageY - offsetY) - h/2 - this.dragStart.y;
+
+        this.panPosition.x = this.panStart.x + dx;
+        this.panPosition.y = this.panStart.y + dy;
+        this.needsRedraw = true;
+      }
+
+    });
+
+    this.canvas.on('mouseup', (e)=>{
+
+			this.pan = false;
+    });
 
     this.resize(); // will trigger a redraw
 
@@ -128,6 +173,9 @@ export default class GraphManager {
           if (ol > 0) {
             b.av.x += ol * 10;
             port.wire.oport.block.av.x += -ol * 10;
+          } else {
+            b.av.x += -1;
+            port.wire.oport.block.av.x += 1;
           }
 
           // gently pull into vertical alignment
@@ -150,13 +198,18 @@ export default class GraphManager {
           // overlap is a vector in direction of minimum overlap
           var overlap = b.collidingWith(ob, padding);
           if (overlap.length() > 0) {
-            overlap.multiply(10);
+            overlap.multiply(20);
             b.av.add(overlap);
           }
         }
       }
 
-      // pull wired blocks towards the centre
+      // pull blocks gently towards the centre
+      var temp = cv.clone();
+      temp.subtract(b.position);
+      temp.multiply(0.01);
+      b.av.add(temp);
+      /*
       if (b.numConnectedPorts > 0) {
         var temp = cv.clone();
         temp.subtract(b.position);
@@ -170,6 +223,7 @@ export default class GraphManager {
         temp.multiply(0.1);
         b.av.add(temp);
       }
+      */
 
     }
 

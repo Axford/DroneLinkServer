@@ -15,7 +15,8 @@ export default class GraphPort {
     this.height = 16;
 
     this.wire = null;
-    this.connected = false;
+    this.numOutputs = 0;
+    this.outputs = [];
 
     // listen for names
     this.state.on('param.name', (data)=>{
@@ -62,15 +63,27 @@ export default class GraphPort {
     var w = this.block.width;
     var h = this.height;
 
+    var px = this.mgr.panPosition.x;
+    var py = this.mgr.panPosition.y;
+
     var x1 = this.block.x1;
     var y1 = this.block.y1 + this.y;
 
     ctx.beginPath();
-    ctx.fillStyle = this.connected ? '#fff' : (this.wire ? this.block.fillStyle : '#848a90');
-    ctx.fillRect(x1, y1, w, h);
+    if (this.wire) {
+      ctx.fillStyle = this.block.fillStyle;
+    } else if (this.numOutputs == 1) {
+      ctx.fillStyle = this.outputs[0].block.fillStyle;
+    } else if (this.numOutputs > 1) {
+      ctx.fillStyle = '#fff';
+    } else {
+      ctx.fillStyle = '#848a90';
+    }
+
+    ctx.fillRect(px + x1, py + y1, w, h);
     ctx.strokeStyle = '#555';
     ctx.lineWidth = 1;
-    ctx.rect(x1, y1, w, h);
+    ctx.rect(px + x1, py + y1, w, h);
     ctx.stroke();
 
     // label
@@ -78,7 +91,7 @@ export default class GraphPort {
     ctx.font = this.mgr.uiRoot.css('font');
     ctx.font.replace(/\d+\.?\d*px/, "8px");
     ctx.textAlign = 'center';
-    ctx.fillText(this.param + ': ' + this.name, x1 + w/2, y1 + h/2 + 4);
+    ctx.fillText(this.param + ': ' + this.name, px + x1 + w/2, py + y1 + h/2 + 4);
   }
 
   drawWire() {
