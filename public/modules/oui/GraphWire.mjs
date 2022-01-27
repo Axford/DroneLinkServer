@@ -19,6 +19,7 @@ export default class GraphWire {
     this.oport = this.mgr.getPortByAddress(this.ochannel, this.oparam);
     if (this.oport) {
       this.oport.connected = true;
+      this.mgr.needsRedraw = true;
     }
   }
 
@@ -27,9 +28,8 @@ export default class GraphWire {
     var c = this.mgr.canvas[0];
     var ctx = c.getContext("2d");
 
-    ctx.strokeStyle = '#5f5';
-    ctx.fillStyle = '#5f5';
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = this.port.block.fillStyle;
+    ctx.lineWidth = 6;
 
     var p = this.port;
 

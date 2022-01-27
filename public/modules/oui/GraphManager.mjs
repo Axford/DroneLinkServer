@@ -74,6 +74,11 @@ export default class GraphManager {
     ctx.fillStyle = '#343a40';
     ctx.fillRect(0,0,w,h);
 
+    // draw wires
+    for (var i=0; i<this.blocks.length; i++) {
+      this.blocks[i].drawWires();
+    }
+
     // draw all blocks
     for (var i=0; i<this.blocks.length; i++) {
       this.blocks[i].draw();
@@ -126,7 +131,7 @@ export default class GraphManager {
           }
 
           // gently pull into vertical alignment
-          ol = b.y1 - port.wire.oport.block.y1;
+          ol = (b.y1 + port.y) - (port.wire.oport.block.y1 + port.wire.oport.y);
 
           b.av.y += -ol;
           port.wire.oport.block.av.y += ol;
@@ -152,7 +157,7 @@ export default class GraphManager {
       }
 
       // pull wired blocks towards the centre
-      if (b.numWires > 0) {
+      if (b.numConnectedPorts > 0) {
         var temp = cv.clone();
         temp.subtract(b.position);
         temp.multiply(0.1);
@@ -160,9 +165,9 @@ export default class GraphManager {
       } else {
         // everything else toward the top
         var temp = cv.clone();
-        //temp.y /= 2;
+        temp.y /= 2;
         temp.subtract(b.position);
-        temp.multiply(0.01);
+        temp.multiply(0.1);
         b.av.add(temp);
       }
 

@@ -67,7 +67,12 @@ export default class GraphBlock {
     this.name = '';
 
     this.numPorts = 0;
+    this.numConnectedPorts = 0;
     this.ports = {};
+
+    this.fillStyle = "hsl(" + 360 * Math.random() + ',' +
+             '100%,' +
+             (50 + 30 * Math.random()) + '%)';
 
     var c = this.mgr.canvas[0];
     var ctx = c.getContext("2d");
@@ -89,6 +94,7 @@ export default class GraphBlock {
          data.channel != this.channel) return;
 
       this.name = data.name;
+      this.mgr.needsRedraw = true;
     });
 
     // listen for params (and create ports)
@@ -104,6 +110,8 @@ export default class GraphBlock {
        // update positions
        this.updatePortPositions();
      }
+
+     this.mgr.needsRedraw = true;
     });
   }
 
@@ -153,11 +161,13 @@ export default class GraphBlock {
   updatePortPositions() {
     var y = this.headerHeight;
     var i = 0;
+    this.numConnectedPorts = 0;
     for (const [key, port] of Object.entries(this.ports)) {
       port.sortOder = i;
       port.y = y;
       y += port.height;
       i++;
+      if (port.connected) this.numConnectedPorts++;
     }
     this.height = y;
   }
@@ -171,13 +181,14 @@ export default class GraphBlock {
     var h = this.height;
     var h2 = h/2;
 
-    ctx.fillStyle = '#202025';
+    //ctx.fillStyle = '#202025';
+    ctx.fillStyle = this.fillStyle;
     ctx.strokeStyle = '#505050';
     ctx.lineWidth = 1;
     roundRect(ctx, this.position.x - w2, this.position.y - h2, w, h, 6, true);
 
     // label
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = '#000';
     ctx.font = this.mgr.uiRoot.css('font');
 		ctx.textAlign = 'center';
     ctx.fillText(this.channel +'. '+ this.name, this.position.x, this.y1 + this.headerHeight - 6);
@@ -185,6 +196,13 @@ export default class GraphBlock {
     // draw ports
     for (const [key, port] of Object.entries(this.ports)) {
       port.draw();
+    }
+  }
+
+  drawWires() {
+    // draw ports
+    for (const [key, port] of Object.entries(this.ports)) {
+      port.drawWire();
     }
   }
 

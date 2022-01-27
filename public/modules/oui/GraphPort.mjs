@@ -49,6 +49,7 @@ export default class GraphPort {
 
       }
 
+      this.mgr.needsRedraw = true;
 
     });
   }
@@ -64,7 +65,8 @@ export default class GraphPort {
     var x1 = this.block.x1;
     var y1 = this.block.y1 + this.y;
 
-    ctx.fillStyle = this.connected ? '#5f5' : (this.wire ? '#ff5' : '#848a90');
+    ctx.beginPath();
+    ctx.fillStyle = this.connected ? '#fff' : (this.wire ? this.block.fillStyle : '#848a90');
     ctx.fillRect(x1, y1, w, h);
     ctx.strokeStyle = '#555';
     ctx.lineWidth = 1;
@@ -77,7 +79,9 @@ export default class GraphPort {
     ctx.font.replace(/\d+\.?\d*px/, "8px");
     ctx.textAlign = 'center';
     ctx.fillText(this.param + ': ' + this.name, x1 + w/2, y1 + h/2 + 4);
+  }
 
+  drawWire() {
     // draw wire
     if (this.wire) this.wire.draw();
   }
