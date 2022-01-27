@@ -189,8 +189,8 @@ export default class GraphBlock {
     var px = this.mgr.panPosition.x;
     var py = this.mgr.panPosition.y;
 
-    //ctx.fillStyle = '#202025';
-    ctx.fillStyle = this.fillStyle;
+    var dim = (this.mgr.dragBlock && this.mgr.dragBlock != this);
+    ctx.fillStyle = dim ? '#505050' : this.fillStyle;
     ctx.strokeStyle = '#505050';
     ctx.lineWidth = 1;
     roundRect(ctx, px + this.position.x - w2, py + this.position.y - h2, w, h, 6, true);

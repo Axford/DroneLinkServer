@@ -69,7 +69,24 @@ export default class GraphPort {
     var x1 = this.block.x1;
     var y1 = this.block.y1 + this.y;
 
+    var dim = false;
+    if ( this.mgr.dragBlock ) {
+      dim = this.mgr.dragBlock != this.block;
+
+      // check inputs
+      if (this.wire && this.wire.oport && this.wire.oport.block == this.mgr.dragBlock) dim = false;
+
+      // check outputs
+      for (var i=0; i < this.outputs.length; i++) {
+        if (this.outputs[i].block == this.mgr.dragBlock) dim = false;
+      }
+
+    }
+
     ctx.beginPath();
+    if (dim) {
+      ctx.fillStyle = '#606060';
+    } else
     if (this.wire) {
       ctx.fillStyle = this.block.fillStyle;
     } else if (this.numOutputs == 1) {

@@ -32,9 +32,6 @@ export default class GraphWire {
     var px = this.mgr.panPosition.x;
     var py = this.mgr.panPosition.y;
 
-    ctx.strokeStyle = this.port.block.fillStyle;
-    ctx.lineWidth = 6;
-
     var p = this.port;
 
     if (this.oport == null) {
@@ -43,6 +40,17 @@ export default class GraphWire {
     }
 
     var op = this.oport;
+
+    var dim = false;
+    if ( this.mgr.dragBlock ) {
+      dim = this.mgr.dragBlock != p.block;
+
+      // check other end
+      if (op && op.block == this.mgr.dragBlock) dim = false;
+    }
+
+    ctx.strokeStyle = dim ? '#606060' : this.port.block.fillStyle;
+    ctx.lineWidth = 6;
 
     var x1 = p.block.x1;
     var y1 = (p.block.y1 + p.y + p.height/2);
