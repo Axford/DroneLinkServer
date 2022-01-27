@@ -3,21 +3,23 @@ import Vector from '../Vector.mjs';
 
 
 export default class GraphWire {
-  constructor(mgr, state, block, onode, ochannel, oparam) {
+  constructor(mgr, state, port, onode, ochannel, oparam) {
     this.mgr = mgr;
     this.state = state;
-    this.block = block;
-    this.oblock = null; // other block
+    this.port = port;
+    this.oport = null; // other port
     this.onode = onode;
     this.ochannel = ochannel;
     this.oparam = oparam;
-
   }
 
 
-  updateOtherBlock() {
-    // find matching block
-    this.oblock = this.mgr.getBlockById(this.ochannel);
+  updateOtherPort() {
+    // find matching port
+    this.oport = this.mgr.getPortByAddress(this.ochannel, this.oparam);
+    if (this.oport) {
+      this.oport.connected = true;
+    }
   }
 
 
@@ -26,27 +28,26 @@ export default class GraphWire {
     var ctx = c.getContext("2d");
 
     ctx.strokeStyle = '#5f5';
+    ctx.fillStyle = '#5f5';
     ctx.lineWidth = 3;
 
-    var b = this.block;
+    var p = this.port;
 
-    if (this.oblock == null) {
-      // attempt to locate info for other block
-      this.updateOtherBlock();
+    if (this.oport == null) {
+      // attempt to locate port info
+      this.updateOtherPort();
     }
 
-    var ob = this.oblock;
+    var op = this.oport;
 
-    var x1 = b.x1;
-    var y1 = (b.y1 + b.y2)/2;
-    var x2 = ob ? ob.x2 : x1 - 20;
-    var y2 = ob ? (ob.y1 + ob.y2) /2 : y1;
-
-    var y3 = (ob == b) ? 50 : 0;
+    var x1 = p.block.x1;
+    var y1 = (p.block.y1 + p.y + p.height/2);
+    var x2 = op ? op.block.x2 : x1 - 20;
+    var y2 = op ? (op.block.y1 + op.y + op.height/2) : y1;
 
     ctx.beginPath();
     ctx.moveTo(x1, y1);
-    ctx.bezierCurveTo(x1 - 50, y1 + y3, x2 + 50, y2 + y3, x2, y2);
+    ctx.bezierCurveTo(x1 - 20, y1 , x2 + 20, y2 , x2, y2);
     ctx.stroke();
   }
 

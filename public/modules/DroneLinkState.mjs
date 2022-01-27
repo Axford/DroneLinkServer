@@ -63,7 +63,7 @@ export default class DroneLinkState {
   reset() {
     // TODO
   }
-  
+
 
   goLive() {
     this.liveMode =true;
@@ -192,6 +192,7 @@ export default class DroneLinkState {
       if (msg.msgType == DLM.DRONE_LINK_MSG_TYPE_NAME) {
         newState[msg.node].channels[msg.channel].params[msg.param].name = msg.payloadToString();
         console.log('param name', newState[msg.node].channels[msg.channel].params[msg.param].name);
+        me.trigger('param.name', { node: msg.node, channel:msg.channel, param: msg.param, msgType: msg.msgType, name: msg.payloadToString() });
       } else {
         // update channel state
         newState[msg.node].channels[msg.channel].params[msg.param].msgType = msg.msgType;

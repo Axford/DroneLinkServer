@@ -32,10 +32,13 @@ export default class GraphManager {
     window.requestAnimationFrame(this.update.bind(this));
   }
 
-  getBlockById(channel) {
+  getPortByAddress(channel, param) {
     for (var i=0; i<this.blocks.length; i++) {
       var b = this.blocks[i];
-      if (b.channel == channel) return b;
+      if (b.channel == channel) {
+        // check ports
+        if (b.ports[param]) return b.ports[param];
+      }
     }
     return null;
   }
@@ -112,23 +115,25 @@ export default class GraphManager {
       var b = this.blocks[i];
 
       // check wiring
-      for (const [key, wire] of Object.entries(b.wires)) {
-        if (wire.oblock) {
+
+      for (const [key, port] of Object.entries(b.ports)) {
+        if (port.wire && port.wire.oport) {
           // check this block is to the right of oblock
-          var ol = (wire.oblock.x2 + padding) - b.x1;
+          var ol = (port.wire.oport.block.x2 + padding) - b.x1;
           if (ol > 0) {
             b.av.x += ol * 10;
-            wire.oblock.av.x += -ol * 10;
+            port.wire.oport.block.av.x += -ol * 10;
           }
 
           // gently pull into vertical alignment
-          ol = b.y1 - wire.oblock.y1;
+          ol = b.y1 - port.wire.oport.block.y1;
 
           b.av.y += -ol;
-          wire.oblock.av.y += ol;
+          port.wire.oport.block.av.y += ol;
 
         }
       }
+
 
 
       // for each block... calculate vector to all other blocks
@@ -155,9 +160,9 @@ export default class GraphManager {
       } else {
         // everything else toward the top
         var temp = cv.clone();
-        temp.y /= 2;
+        //temp.y /= 2;
         temp.subtract(b.position);
-        temp.multiply(0.05);
+        temp.multiply(0.01);
         b.av.add(temp);
       }
 

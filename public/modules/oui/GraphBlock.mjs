@@ -1,6 +1,7 @@
 import * as DLM from '../droneLinkMsg.mjs';
 import Vector from '../Vector.mjs';
 import GraphWire from './GraphWire.mjs';
+import GraphPort from './GraphPort.mjs';
 
 /**
  * Draws a rounded rectangle using the current state of the canvas.
@@ -65,18 +66,20 @@ export default class GraphBlock {
     this.channel = data.channel; // channel id
     this.name = '';
 
-    this.numWires = 0;
-    this.wires = {};
+    this.numPorts = 0;
+    this.ports = {};
 
     var c = this.mgr.canvas[0];
     var ctx = c.getContext("2d");
     var w = ctx.canvas.width;
     var h = ctx.canvas.height;
 
-    this.position = new Vector(w * Math.random(), 0);
+    this.headerHeight = 20;
+
+    this.position = new Vector(w * Math.random(), h * Math.random());
     this.velocity = new Vector(0,0);
     this.width = 100;
-    this.height = 30 + Math.random()*100;
+    this.height = this.headerHeight;
     this.av = new Vector(0,0);
     this.updatePosition(this.position);
 
@@ -88,29 +91,19 @@ export default class GraphBlock {
       this.name = data.name;
     });
 
-    // listen for values
-    this.state.on('param.value', (data)=>{
+    // listen for params (and create ports)
+    this.state.on('param.new', (data)=>{
       if (data.node != this.node ||
          data.channel != this.channel) return;
 
-      if (data.msgType == DLM.DRONE_LINK_MSG_TYPE_ADDR) {
-        //console.log('blockVal', data);
-        var onode = data.values[1];
-        var ochannel = data.values[2];
-        var oparam = data.values[3];
-        var addr = onode +'>' + ochannel + '.' + oparam;
+     // construct Port (ignore system parameters)
+     if (data.param >= 8) {
+       var p = new GraphPort(this.mgr, this.state, this, data.param);
+       this.ports[data.param] = p;
 
-        // ignore subs to other nodes
-        if (onode != this.node) return;
-
-        if (!this.wires.hasOwnProperty(addr)) {
-          this.wires[addr] = new GraphWire(this.mgr, this.state, this, onode, ochannel, oparam);
-          this.numWires++;
-        }
-
-      }
-
-
+       // update positions
+       this.updatePortPositions();
+     }
     });
   }
 
@@ -157,6 +150,18 @@ export default class GraphBlock {
     this.updateCorners();
   }
 
+  updatePortPositions() {
+    var y = this.headerHeight;
+    var i = 0;
+    for (const [key, port] of Object.entries(this.ports)) {
+      port.sortOder = i;
+      port.y = y;
+      y += port.height;
+      i++;
+    }
+    this.height = y;
+  }
+
   draw() {
     var c = this.mgr.canvas[0];
     var ctx = c.getContext("2d");
@@ -166,20 +171,20 @@ export default class GraphBlock {
     var h = this.height;
     var h2 = h/2;
 
-    ctx.fillStyle = this.numWires > 0 ? '#a4aab0' : '#808080';
+    ctx.fillStyle = '#202025';
     ctx.strokeStyle = '#505050';
     ctx.lineWidth = 1;
     roundRect(ctx, this.position.x - w2, this.position.y - h2, w, h, 6, true);
 
     // label
-    ctx.fillStyle = '#000';
+    ctx.fillStyle = '#fff';
     ctx.font = this.mgr.uiRoot.css('font');
 		ctx.textAlign = 'center';
-    ctx.fillText(this.channel +'. '+ this.name, this.position.x, this.position.y + 4);
+    ctx.fillText(this.channel +'. '+ this.name, this.position.x, this.y1 + this.headerHeight - 6);
 
-    // draw wires
-    for (const [key, value] of Object.entries(this.wires)) {
-      value.draw();
+    // draw ports
+    for (const [key, port] of Object.entries(this.ports)) {
+      port.draw();
     }
   }
 
