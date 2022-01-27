@@ -9,6 +9,7 @@ export default class GraphPort {
     this.block = block;
     this.param = param;
     this.name = '';
+    this.isAddr = false;
 
     this.sortOrder = 0; // sort order
     this.y = 0;  // relative to block
@@ -26,6 +27,8 @@ export default class GraphPort {
 
       //console.log('portName', data);
       this.name = data.name;
+
+      if (this.isAddr) this.findAndHideSub();
     });
 
     // listen for values
@@ -41,6 +44,10 @@ export default class GraphPort {
         var oparam = data.values[3];
         var addr = onode +'>' + ochannel + '.' + oparam;
 
+        this.isAddr = true;
+
+        this.findAndHideSub();
+
         // ignore subs to other nodes
         if (onode != this.block.node) return;
 
@@ -55,8 +62,22 @@ export default class GraphPort {
     });
   }
 
+  findAndHideSub() {
+    // find matching port with same name and hide
+    if (this.name != '') {
+      for (const [key, port] of Object.entries(this.block.ports)) {
+        if (port != this && this.name == port.name) {
+          port.height = 0;
+          this.block.updatePortPositions();
+        }
+      }
+    }
+  }
+
 
   draw() {
+    if (this.height == 0) return;
+
     var c = this.mgr.canvas[0];
     var ctx = c.getContext("2d");
 

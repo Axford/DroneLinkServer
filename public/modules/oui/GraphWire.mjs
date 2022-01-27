@@ -50,7 +50,7 @@ export default class GraphWire {
     }
 
     ctx.strokeStyle = dim ? '#606060' : this.port.block.fillStyle;
-    ctx.lineWidth = 6;
+    ctx.lineWidth = dim ? 1 : 6;
 
     var x1 = p.block.x1;
     var y1 = (p.block.y1 + p.y + p.height/2);
