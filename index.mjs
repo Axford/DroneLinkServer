@@ -197,7 +197,7 @@ function handleLinkMsg(msg, networkInterface) {
     newState[msg.node].channels[msg.channel].params[msg.param].values = Array.from( msg.valueArray() );
     newState[msg.node].channels[msg.channel].params[msg.param].writable = msg.writable;
 
-    doStore = true;
+    doStore = false;
 
     // is this a module name?
     if (msg.msgType ==DLM.DRONE_LINK_MSG_TYPE_CHAR && msg.param == 2) {

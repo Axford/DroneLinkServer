@@ -73,10 +73,10 @@ export default class GraphBlock {
     var w = ctx.canvas.width;
     var h = ctx.canvas.height;
 
-    this.position = new Vector(w * Math.random(), h * Math.random());
+    this.position = new Vector(w * Math.random(), 0);
     this.velocity = new Vector(0,0);
     this.width = 100;
-    this.height = 40;
+    this.height = 30 + Math.random()*100;
     this.av = new Vector(0,0);
     this.updatePosition(this.position);
 

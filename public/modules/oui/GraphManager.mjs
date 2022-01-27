@@ -22,14 +22,14 @@ export default class GraphManager {
 
     this.resize(); // will trigger a redraw
 
-    update();
+    this.update();
   }
 
   update() {
     this.updatePositions();
     this.draw();
 
-    window.requestAnimationFrame(this.update);
+    window.requestAnimationFrame(this.update.bind(this));
   }
 
   getBlockById(channel) {
@@ -81,11 +81,12 @@ export default class GraphManager {
     ctx.font = '10px bold sans-serif';
 		ctx.textAlign = 'left';
     ctx.fillText(this.frame, 5, 10);
+
+    this.needsRedraw = false;
   }
 
   updatePositions() {
     // adjust positions of all blocks
-    this.needsRedraw = false;
 
     var c = this.canvas[0];
     var ctx = c.getContext("2d");
@@ -97,7 +98,7 @@ export default class GraphManager {
     var blockSpacing = 150;
     var blockYSpacing = 50;
 
-    var padding = 20;
+    var padding = 40;
 
     // reset accel vectors
     for (var i=0; i<this.blocks.length; i++) {
@@ -121,13 +122,11 @@ export default class GraphManager {
           }
 
           // gently pull into vertical alignment
-          if (b.y1 < wire.oblock.y1) {
-            b.av.y += 10;
-            wire.oblock.av.y += -10;
-          } else {
-            b.av.y += -10;
-            wire.oblock.av.y += 10;
-          }
+          ol = b.y1 - wire.oblock.y1;
+
+          b.av.y += -ol;
+          wire.oblock.av.y += ol;
+
         }
       }
 
@@ -185,7 +184,7 @@ export default class GraphManager {
       b.addToPosition(b.velocity);
 
       // trigger redraw if movement is significant
-      if (bv > 0.2) this.needsRedraw = true;
+      if (bv > 0.1) this.needsRedraw = true;
     }
   }
 
