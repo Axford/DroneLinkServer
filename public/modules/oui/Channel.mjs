@@ -16,6 +16,7 @@ import NMEA from './interfaces/NMEA.mjs';
 import Polar from './interfaces/Polar.mjs';
 import Proa from './interfaces/Proa.mjs';
 import Receiver from './interfaces/Receiver.mjs';
+import RFM69 from './interfaces/RFM69.mjs';
 import Sailor from './interfaces/Sailor.mjs';
 import Servo from './interfaces/Servo.mjs';
 import TankSteer from './interfaces/TankSteer.mjs';
@@ -207,6 +208,8 @@ export default class Channel {
         this.interface = new Proa(this, state);
       } else if (data.type == 'Receiver') {
         this.interface = new Receiver(this, state);
+      } else if (data.type == 'RFM69Telemetry') {
+        this.interface = new RFM69(this, state);
       } else if (data.type == 'Sailor') {
         this.interface = new Sailor(this, state);
       } else if (data.type == 'Servo') {

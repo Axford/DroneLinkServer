@@ -35,6 +35,7 @@ export default class NMEA {
     ctx.font = '12px serif';
     ctx.fillText(label, x, y+15);
     ctx.font = '20px bold serif';
+		ctx.fillStyle = '#5f5';
     ctx.fillText(v, x, y+35);
   }
 
