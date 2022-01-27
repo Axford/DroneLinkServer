@@ -116,6 +116,11 @@ export default class GraphBlock {
     });
   }
 
+  hit(x,y) {
+    return (x > this.x1 && x < this.x2 &&
+            y > this.y1 && y < this.y2);
+  }
+
   collidingWith(ob, padding) {
     var v = new Vector(0,0);
     // overlap values will be positive if overlapping

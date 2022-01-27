@@ -20,6 +20,8 @@ export default class GraphManager {
     this.panPosition = new Vector(0,0);
     this.panStart = new Vector(0,0);
     this.dragStart = new Vector(0,0);
+    this.dragBlock = null;
+    this.dragBlockPos = new Vector(0,0);  // starting pos
 
     // create canvas
     this.canvas = $('<canvas />');
@@ -33,26 +35,53 @@ export default class GraphManager {
 			var w = $(e.target).innerWidth();
 			var h = $(e.target).innerHeight();
 
-      this.dragStart.x = (e.pageX - offsetX) - w/2;
-      this.dragStart.y = (e.pageY - offsetY) - h/2;
+      this.dragStart.x = (e.pageX - offsetX);
+      this.dragStart.y = (e.pageY - offsetY);
 
-      this.panStart.x = this.panPosition.x;
-      this.panStart.y = this.panPosition.y;
+      // check if we're clicking on a block...
+      // calc un-panned coordinates
+      var x1 = this.dragStart.x - this.panPosition.x;
+      var y1 = this.dragStart.y - this.panPosition.y;
 
-      this.pan = true;
+      this.dragBlock = null;
+      //console.log('hit', x1, y1);
+      for (var i=0; i<this.blocks.length; i++) {
+        var b = this.blocks[i];
+        //console.log('hit', b);
+        if (b.hit(x1,y1)) {
+          console.log('hit',b);
+          this.dragBlock = b;
+          this.dragBlockPos.set(b.position);
+          continue;
+        }
+      }
+
+      if (!this.dragBlock) {
+        // otherwise its a pan
+        this.panStart.x = this.panPosition.x;
+        this.panStart.y = this.panPosition.y;
+
+        this.pan = true;
+      }
+
     });
 
     this.canvas.on('mousemove', (e)=>{
+      var offsetX = $( e.target ).offset().left;
+      var offsetY = $( e.target ).offset().top;
+      var w = $(e.target).innerWidth();
+      var h = $(e.target).innerHeight();
 
-      if (this.pan) {
-        var offsetX = $( e.target ).offset().left;
-  			var offsetY = $( e.target ).offset().top;
-  			var w = $(e.target).innerWidth();
-  			var h = $(e.target).innerHeight();
+      var dx = (e.pageX - offsetX) - this.dragStart.x;
+      var dy = (e.pageY - offsetY) - this.dragStart.y;
 
-  			var dx = (e.pageX - offsetX) - w/2 - this.dragStart.x;
-  			var dy = (e.pageY - offsetY) - h/2 - this.dragStart.y;
+      if (this.dragBlock) {
+        var newPos = this.dragBlockPos.clone();
+        newPos.x += dx;
+        newPos.y += dy;
+        this.dragBlock.updatePosition(newPos);
 
+      } else if (this.pan) {
         this.panPosition.x = this.panStart.x + dx;
         this.panPosition.y = this.panStart.y + dy;
         this.needsRedraw = true;
@@ -63,6 +92,7 @@ export default class GraphManager {
     this.canvas.on('mouseup', (e)=>{
 
 			this.pan = false;
+      this.dragBlock = null;
     });
 
     this.resize(); // will trigger a redraw
