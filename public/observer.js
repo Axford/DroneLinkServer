@@ -39,6 +39,11 @@ function setPanelSize(w) {
   left.css('right', w);
   right.css('width', w);
   map.resize();
+
+  // let nodes know they should also resize
+  for (const [key, n] of Object.entries(nodes)) {
+    n.resize();
+  }
 }
 
 function openPanel() {

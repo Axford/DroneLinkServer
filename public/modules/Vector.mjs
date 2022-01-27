@@ -120,6 +120,11 @@ export default class Vector {
 		this.x = x; this.y = y;
 		return this;
 	}
+  set(v) {
+    this.x = v.x;
+    this.y = v.y;
+    return this;
+  }
 }
 
 /* INSTANCE METHODS */

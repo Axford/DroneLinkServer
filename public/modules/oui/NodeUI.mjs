@@ -4,6 +4,7 @@ import * as DLM from '../droneLinkMsg.mjs';
 
 // oui
 import Channel from './Channel.mjs';
+import GraphManager from './GraphManager.mjs';
 
 // widgets
 import NavWidget from '../widgets/NavWidget.mjs';
@@ -131,6 +132,10 @@ export default class NodeUI {
     this.puiConfigBut = $('<a class="tab inactive">Configuration</a>')
     this.puiNav.append(this.puiConfigBut)
     this.puiConfigBut.on('click', ()=> {  this.showPanel(this.puiConfigBut,this.cui) });
+
+    this.puiGraphBut = $('<a class="tab inactive">Graph</a>')
+    this.puiNav.append(this.puiGraphBut)
+    this.puiGraphBut.on('click', ()=> {  this.showPanel(this.puiGraphBut,this.graphui) });
 
     /*
     this.puiFirmwareBut = $('<button class="btn btn-secondary">Firmware</button>')
@@ -314,6 +319,13 @@ export default class NodeUI {
     this.cuiEditorBlock.append(this.cuiEditor);
 
 
+    // create graph ui
+    this.graphui = $('<div class="graphUI"/>');
+    this.puiPanels.append(this.graphui);
+    this.graphui.node = this;
+    this.graphManager = new GraphManager(this, this.graphui);
+
+
     // query ipAddress
     var qm = new DLM.DroneLinkMsg();
     qm.source = 252;
@@ -341,6 +353,10 @@ export default class NodeUI {
       });
 
       this.mui.append(children);
+
+      // create new graph element for the module/channel
+      this.graphManager.addBlock(state, data);
+
     });
 
     // listen for key module type info
@@ -547,6 +563,11 @@ export default class NodeUI {
       this.uiLastHeard.innerHTML = dt.toFixed(0)+ 's';
 
     }, 1000)
+  }
+
+
+  resize() {
+    this.graphManager.resize();
   }
 
 
@@ -786,6 +807,9 @@ export default class NodeUI {
     but.addClass('active');
     but.removeClass('inactive');
     if (panel) panel.show();
+
+    // trigger a graph resize... just in case
+    this.graphManager.resize();
   }
 
 
