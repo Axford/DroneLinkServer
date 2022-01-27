@@ -13,6 +13,7 @@ import Management from './interfaces/Management.mjs';
 import Nav from './interfaces/Nav.mjs';
 import Neopixel from './interfaces/Neopixel.mjs';
 import NMEA from './interfaces/NMEA.mjs';
+import Polar from './interfaces/Polar.mjs';
 import Proa from './interfaces/Proa.mjs';
 import Receiver from './interfaces/Receiver.mjs';
 import Sailor from './interfaces/Sailor.mjs';
@@ -200,6 +201,8 @@ export default class Channel {
         this.interface = new Neopixel(this, state);
       } else if (data.type == 'NMEA') {
         this.interface = new NMEA(this, state);
+      } else if (data.type == 'Polar') {
+        this.interface = new Polar(this, state);
       } else if (data.type == 'Proa') {
         this.interface = new Proa(this, state);
       } else if (data.type == 'Receiver') {
