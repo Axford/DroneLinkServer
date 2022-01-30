@@ -21,6 +21,7 @@ import Sailor from './interfaces/Sailor.mjs';
 import Servo from './interfaces/Servo.mjs';
 import TankSteer from './interfaces/TankSteer.mjs';
 import TurnRate from './interfaces/TurnRate.mjs';
+import UDPTelemetry from './interfaces/UDPTelemetry.mjs';
 
 
 loadStylesheet('./css/modules/oui/Channel.css');
@@ -218,6 +219,8 @@ export default class Channel {
         this.interface = new TankSteer(this, state);
       } else if (data.type == 'TurnRate') {
         this.interface = new TurnRate(this, state);
+      } else if (data.type == 'UDPTelemetry') {
+        this.interface = new UDPTelemetry(this, state);
       }
 
 
