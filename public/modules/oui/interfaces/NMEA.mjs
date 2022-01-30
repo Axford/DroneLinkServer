@@ -119,7 +119,7 @@ export default class NMEA {
     this.drawValue(5,0,'Location', location[0].toFixed(6) + '   '+location[1].toFixed(6));
 
     // correction (left)
-    this.drawValue(5,40,'Satellites', satellites);
+    this.drawValue(5,40,'Satellites', satellites.toFixed(0));
 
 		// speed (left)
     this.drawValue(w/4,40,'Speed (m/s)', speed.toFixed(1));

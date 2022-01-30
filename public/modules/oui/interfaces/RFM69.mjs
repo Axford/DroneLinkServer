@@ -9,10 +9,6 @@ export default class RFM69 {
     this.built = false;
 
     this.RSSI = [];
-    this.lastPackets = [0,0,0];
-    this.sendRate = 0;
-    this.receiveRate = 0;
-    this.lastPacketTime = Date.now();
 	}
 
   drawValue(x,y,label,v) {
@@ -36,18 +32,6 @@ export default class RFM69 {
       if (this.RSSI.length > 100) this.RSSI.shift();
     }
 
-    if (data.param == 9 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_UINT32_T) {
-      // update packet rate info
-      var t = Date.now();
-      var dt = (t - this.lastPacketTime) / 1000;
-      this.sendRate = (data.values[0] - this.lastPackets[0]) / dt;
-      this.receiveRate = (data.values[1] - this.lastPackets[1]) / dt;
-
-      this.lastPackets = data.values;
-
-      this.lastPacketTime = t;
-    }
-
     this.update();
   }
 
@@ -69,7 +53,7 @@ export default class RFM69 {
     // fetch params
     var rssi = this.state.getParamValues(node, channel, 8, [0])[0];
     var packets = this.state.getParamValues(node, channel, 9, [0,0,0]);
-
+		var rates = this.state.getParamValues(node, channel, 10, [0,0,0]);
 
     // render graph
     // -------------------------------------------------------------------------
@@ -98,14 +82,15 @@ export default class RFM69 {
 
     // overlay packet counters
     this.drawValue(5,0,'Sent', packets[0].toFixed(0));
-    this.drawValue(5,40,'', this.sendRate.toFixed(1) + '/s');
+    this.drawValue(5,40,'', rates[0].toFixed(1) + '/s');
 
     this.drawValue(w/4,0,'Received', packets[1].toFixed(0));
-    this.drawValue(w/4,40,'', this.receiveRate.toFixed(1) + '/s');
+    this.drawValue(w/4,40,'', rates[1].toFixed(1) + '/s');
 
     this.drawValue(w/2,0,'Rejected', packets[2].toFixed(0));
+		this.drawValue(w/2,40,'', rates[2].toFixed(1) + '/s');
+		
     this.drawValue(3*w/4,0,'RSSI', -rssi.toFixed(0));
-
   }
 
 	build() {
