@@ -29,36 +29,40 @@
 
     <div class="row mainRow">
 
-      <div class="stateContainer">
-        <button id="stateSaveButton" class="btn btn-sm btn-secondary ml-2"><i class="fas fa-download"></i></button>
-        <button id="stateLoadButton" class="btn btn-sm btn-secondary"><i class="fas fa-upload"></i></button>
-      </div>
+      <div class="toolbar">
 
-      <div class="logContainer">
-        <span class="logTitle">Mode </span>
-        <button id="logPlaybackButton" class="btn btn-tiny btn-primary ml-2">Live</button>
+        <div class="stateContainer">
+          <span class="toolbarTitle">State </span>
+          <button id="stateSaveButton" class="btn btn-sm btn-secondary ml-2"><i class="fas fa-download"></i></button>
+          <button id="stateLoadButton" class="btn btn-sm btn-secondary"><i class="fas fa-upload"></i></button>
+        </div>
 
-        <span class="barSep ml-2 mr-2"><i class="fas fa-caret-right"></i></span>
+        <div class="logContainer">
+          <span class="toolbarTitle">Mode </span>
+          <button id="logPlaybackButton" class="btn btn-tiny btn-primary ml-2">Live</button>
 
-        <span class="logRecordControls">
-          <button id="logRecordButton" class="btn btn-sm btn-danger"><i class="fas fa-circle"></i></button>
-          <button id="logSaveButton" class="btn btn-sm btn-secondary ml-2"><i class="fas fa-download"></i></button>
-          <button id="logResetButton" class="btn btn-sm btn-warning ml-2"><i class="fas fa-trash"></i></button>
-          <span id="logStatus" class="ml-2">0 / 00:00</span>
-        </span>
+          <span class="barSep ml-2 mr-2"><i class="fas fa-caret-right"></i></span>
 
-        <span class="logPlaybackControls" style="display:none">
-          <button id="logLoadButton" class="btn btn-sm btn-secondary"><i class="fas fa-upload"></i></button>
-          <button id="logPlayButton" class="btn btn-sm btn-success ml-2"><i class="fas fa-play"></i></button>
-          <button id="logPauseButton" class="btn btn-sm btn-warning"><i class="fas fa-pause"></i></button>
-          <button id="logRewindButton" class="btn btn-sm btn-danger"><i class="fas fa-undo"></i></button>
-          <!---<button id="logStepForwardButton" class="btn btn-sm btn-secondary"><i class="fas fa-step-forward"></i></button>--->
+          <span class="logRecordControls">
+            <button id="logRecordButton" class="btn btn-sm btn-danger"><i class="fas fa-circle"></i></button>
+            <button id="logSaveButton" class="btn btn-sm btn-secondary ml-2"><i class="fas fa-download"></i></button>
+            <button id="logResetButton" class="btn btn-sm btn-warning ml-2"><i class="fas fa-trash"></i></button>
+            <span id="logStatus" class="ml-2">0 / 00:00</span>
+          </span>
 
-          <button id="logParseButton" class="btn btn-tiny btn-secondary">Map RSSI</button>
+          <span class="logPlaybackControls" style="display:none">
+            <button id="logLoadButton" class="btn btn-sm btn-secondary"><i class="fas fa-upload"></i></button>
+            <button id="logPlayButton" class="btn btn-sm btn-success ml-2"><i class="fas fa-play"></i></button>
+            <button id="logPauseButton" class="btn btn-sm btn-warning"><i class="fas fa-pause"></i></button>
+            <button id="logRewindButton" class="btn btn-sm btn-danger"><i class="fas fa-undo"></i></button>
+            <!---<button id="logStepForwardButton" class="btn btn-sm btn-secondary"><i class="fas fa-step-forward"></i></button>--->
 
-          <span id="logPlaybackStatus" class="ml-2">0 / 00:00</span>
-        </span>
+            <button id="logParseButton" class="btn btn-tiny btn-secondary">Map RSSI</button>
 
+            <span id="logPlaybackStatus" class="ml-2">0 / 00:00</span>
+          </span>
+
+        </div>
       </div>
 
       <main id="main" role="main" class="col-md-12">

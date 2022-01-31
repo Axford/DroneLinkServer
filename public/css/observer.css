@@ -165,12 +165,23 @@ html, body {margin: 0; height: 100%; overflow: hidden}
   height:100%;
 }
 
-.logContainer {
-  padding: 4px 4px;
+.toolbar {
   background:#242a30;
   color:white;
   width:100%;
   border-bottom:1px solid #111;
+}
+
+.stateContainer {
+  display:inline-block;
+  padding: 4px 4px;
+  border-right: 1px solid #ccc;
+}
+
+
+.logContainer {
+  display:inline-block;
+  padding: 4px 4px;
 }
 
 .logContainer .barSep {

@@ -27,7 +27,7 @@ export default class NMEAWidget extends Widget {
 */
 
   newParamValue(data) {
-    if (data.param == 9 &&  data.msgType == DLM.DRONE_LINK_MSG_TYPE_UINT8_T) {
+    if (data.param == 9 &&  (data.msgType == DLM.DRONE_LINK_MSG_TYPE_UINT8_T || data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT)) {
       // 9 - satellites
       var d = data.values[0];
       if (d < 4) {

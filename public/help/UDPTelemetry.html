@@ -4,16 +4,18 @@
 
 <div><a href="index.html">&lt; Help Index</a></div>
 
-<h1>Diagnostic</h1>
-<p>Base class: <i>I2CBaseModule</i></p>
-<p>Manages a Diagnostic 128x64 I2C display (1306 driver)</p>
+<h1>UDPTelemetry</h1>
+<p>Base class: <i></i></p>
+<p>Manages DroneLink telemetry using UDP broadcast over WiFi</p>
 
 
 <h2>Example Configuration</h2>
-<pre>Diagnostic.new 6
-  name "Diagnostic"
-  interval 200
-  bus 0
+<pre>UDPTelemetry.new 2
+  name "UDPT"
+  status 1 // enable
+  port 8007
+  broadcast 255 255 255 255
+  .sub [@>0.0]
 .done</pre>
 
 <h2>Subs (inputs)</h2>
@@ -36,6 +38,20 @@
     <th>Type</th>
     <th>#</th>
     <th>Description</th>
+  </tr>
+  <tr>
+    <td>10</td>
+    <td>packets</td>
+    <td>u32</td>
+    <td>3</td>
+    <td>Packet counters for sent, received and rejected</td>
+  </tr>
+  <tr>
+    <td>11</td>
+    <td>speed</td>
+    <td>f</td>
+    <td>3</td>
+    <td>Packet rates per second for sent, received and rejected</td>
   </tr>
 </table>
 

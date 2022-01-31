@@ -126,6 +126,24 @@ export default class TankSteer {
 		this.built = true;
 
 		this.ui = $('<div class="TankSteer text-center"></div>');
+
+		this.modeSelect = $('<select class="tankSteerModeSelect"></select>');
+    // add mode options
+    this.modeSelect.append($('<option value="0">Manual</option>'));
+    this.modeSelect.append($('<option value="1">Automatic</option>'));
+    this.modeSelect.change((e)=>{
+      // get value
+      var newMode = this.modeSelect.val();
+
+      DLM.sendDroneLinkMsg({
+        addr: this.channel.node.id + '>' + this.channel.channel + '.16',
+        msgType: DLM.DRONE_LINK_MSG_TYPE_UINT8_T,
+        values: [ newMode ]
+      });
+    });
+
+    this.ui.append(this.modeSelect);
+
     this.canvas = $('<canvas height=200 />');
     this.canvas.on('click', (e)=>{
 
