@@ -301,4 +301,6 @@ export default class DroneLinkState {
   importFromJSON(json) {
     // TODO
   }
+
+  
 }

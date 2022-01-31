@@ -58,7 +58,7 @@ export default class DroneLinkLog {
     })
   }
 
-  add(msg) {
+  add(msg, quiet=false) {
     var me = this;
 
     if (msg.msgType < DLM.DRONE_LINK_MSG_TYPE_NAMEQUERY) {
@@ -66,10 +66,11 @@ export default class DroneLinkLog {
         me.startTime = msg.timestamp;
       }
       me.log.push(msg);
-      me.trigger('info',{
-        packets:me.log.length,
-        duration: msg.timestamp - me.log[0].timestamp
-      })
+      if (!quiet)
+        me.trigger('info',{
+          packets:me.log.length,
+          duration: msg.timestamp - me.log[0].timestamp
+        });
     }
 
   }
@@ -93,6 +94,12 @@ export default class DroneLinkLog {
 
   record() {
     console.log('DLL.record');
+
+    // if this is the start of a new recording, then store state
+    if (this.log.length == 0) {
+      this.logState();
+    }
+
     this.recording = !this.recording;
     this.trigger('status', null);
   }
@@ -133,6 +140,63 @@ export default class DroneLinkLog {
       duration: 0,
       percent:0
     });
+  }
+
+
+  logState() {
+    // convert current state to log messages, that when replayed, will rebuild the current state
+
+    // for each node
+    //me.state[msg.node].channels[msg.channel].params.hasOwnProperty(msg.param)
+
+    for (const [nkey, node] of Object.entries(this.state.state)) {
+      this.logStateForNode(nkey, node);
+    }
+  }
+
+
+  logStateForNode(nkey, node) {
+    console.log('Logging state for: ', node);
+
+    // for each channel
+    for (const [ckey, channel] of Object.entries(node.channels)) {
+      console.log('  channel:' + ckey);
+
+      // for each param
+      for (const [pkey, param] of Object.entries(channel.params)) {
+        console.log('    param:' + pkey);
+
+        var msg = new DLM.DroneLinkMsg();
+        msg.node = nkey;
+        msg.channel = ckey;
+        msg.param = pkey;
+        msg.writable = param.writable;
+
+        switch(param.msgType) {
+          case DLM.DRONE_LINK_MSG_TYPE_UINT8_T: msg.setUint8(param.values); break;
+          case DLM.DRONE_LINK_MSG_TYPE_UINT32_T: msg.setUint32(param.values); break;
+          case DLM.DRONE_LINK_MSG_TYPE_FLOAT: msg.setFloat(param.values); break;
+          case DLM.DRONE_LINK_MSG_TYPE_CHAR: msg.setString(param.values[0]); break;
+          case DLM.DRONE_LINK_MSG_TYPE_ADDR: msg.setUint8(param.values);
+          msg.msgType = DLM.DRONE_LINK_MSG_TYPE_ADDR;
+          msg.msgLength = 4;
+          break;
+        }
+
+        this.add(msg, true);
+
+        // also add a msg for the param name (if we know it)
+        if (param.name) {
+          var nameMsg = new DLM.DroneLinkMsg();
+          nameMsg.copy(msg);
+
+          nameMsg.setName(param.name);
+
+          this.add(nameMsg,true);
+        }
+      }
+
+    }
   }
 
 }

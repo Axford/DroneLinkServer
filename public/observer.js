@@ -21,6 +21,7 @@ mapboxgl.accessToken = 'pk.eyJ1IjoiYXhmb3JkIiwiYSI6ImNqMWMwYXI5MDAwNG8zMm5uanFye
 
 import DroneLinkLog from './modules/DroneLinkLog.mjs';
 var logger = new DroneLinkLog(state);
+var stateLog = new DroneLinkLog(state);
 
 var liveMode = true;
 
@@ -86,9 +87,23 @@ async function loadState() {
 }
 
 async function saveState() {
-  var json = state.exportAsJSON();
+  stateLog.reset();
+  stateLog.logState();
 
-  // TODO
+  var h = await getNewFileHandle();
+
+  if (h) {
+    // Create a FileSystemWritableFileStream to write to.
+    const writable = await h.createWritable();
+
+    // iterate over packets in log and write to stream
+    for (var i=0; i<stateLog.log.length; i++) {
+      await writable.write( stateLog.log[i].encodeForLog() );
+    }
+
+    // Close the file and write the contents to disk.
+    await writable.close();
+  }
 }
 
 
@@ -182,14 +197,14 @@ function parseLog() {
     var msg = logger.log[i];
 
     // extract required values and store in buffer
-    if (msg.node == 10 && msg.channel == 5 && msg.param == 8) {
+    if (msg.node == 1 && msg.channel == 5 && msg.param == 8) {
       // store lon and lat
       parseBuffer[0] = msg.valueArray()[0];
       parseBuffer[1] = msg.valueArray()[1];
     }
 
 
-    if (msg.node == 10 && msg.channel == 3 && msg.param == 8) {
+    if (msg.node == 1 && msg.channel == 3 && msg.param == 8) {
       // store RSSI
       parseBuffer[2] = msg.valueArray()[0];
     }
@@ -204,7 +219,7 @@ function parseLog() {
 
     // add buffer to parsedLog
     // store on GPS location change
-    if (msg.node == 10 && msg.channel == 5 && msg.param == 8) {
+    if (msg.node == 1 && msg.channel == 5 && msg.param == 8) {
     //if (msg.node == 10 && msg.channel == 13 && msg.param == 13) {
 
       // check distance from lastLoc

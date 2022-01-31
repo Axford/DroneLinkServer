@@ -810,6 +810,16 @@ export default class NodeUI {
 
     // trigger a graph resize... just in case
     this.graphManager.resize();
+
+    // trigger interface redraw
+    this.updateInterfaces();
+  }
+
+
+  updateInterfaces() {
+    for (const [key, chan] of Object.entries(this.muiChannels)) {
+      if (chan.interface) chan.interface.update();
+    }
   }
 
 
@@ -819,6 +829,9 @@ export default class NodeUI {
     this.focused = true;
     this.ui.classList.add('focus');
     this.pui.show();
+
+    // trigger interface redraw
+    this.updateInterfaces();
 
     //this.mui.css('display','grid');
 
