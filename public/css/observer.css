@@ -141,7 +141,7 @@ html, body {margin: 0; height: 100%; overflow: hidden}
 .logo {
   position:absolute;
   left: 8px;
-  bottom: 6px;
+  top: 8px;
   margin:0;
   color:white;
   font-weight:bold;
@@ -154,7 +154,7 @@ html, body {margin: 0; height: 100%; overflow: hidden}
 .mapCoords {
   position:absolute;
   left: 8px;
-  bottom: 30px;
+  bottom: 6px;
   margin:0;
   color:rgba(255,255,255,0.8);
   font-size: 1em;
@@ -170,28 +170,57 @@ html, body {margin: 0; height: 100%; overflow: hidden}
   color:white;
   width:100%;
   border-bottom:1px solid #111;
+  display: flex;
+  flex-direction:row;
+  justify-content: flex-end;
+}
+
+.toolbarTab {
+  display:inline-block;
+  padding: 4px 4px;
+  margin-left:4px;
+}
+
+.toolbarTitle {
+  display:inline-block;
+  color:#eee;
+  background: linear-gradient(#667, #445);
+  font-weight:normal;
+  height:32px;
+  border-left:1px solid #556;
+  border-top:1px solid #556;
+  border-right:1px solid #556;
+  border-top-left-radius:6px;
+  border-bottom-left-radius:6px;
+  padding: 6px 8px 2px 8px;
+  vertical-align: top;
+}
+
+.toolbarContents {
+  display:inline-block;
+  background-color: #334;
+  height:32px;
+  padding: 4px 4px;
+  border:1px solid #556;
+  border-top-right-radius:6px;
+  border-bottom-right-radius: 6px;
+  vertical-align: top;
 }
 
 .stateContainer {
-  display:inline-block;
-  padding: 4px 4px;
-  border-right: 1px solid #ccc;
+
 }
 
 
 .logContainer {
-  display:inline-block;
-  padding: 4px 4px;
+
 }
 
 .logContainer .barSep {
   display: inline-block;
 }
 
-.logTitle {
-  margin-left:4px;
-  font-weight:bold;
-}
+
 
 #logStatus, #logPlaybackStatus {
   padding: 0.25rem 0.5rem;
