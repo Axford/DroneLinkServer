@@ -81,9 +81,17 @@ async function getNewFileHandle() {
 }
 
 async function loadState() {
-  state.reset();
 
-  //TODO
+  let fileHandle;
+  [fileHandle] = await window.showOpenFilePicker();
+
+  const file = await fileHandle.getFile();
+
+  var buffer = await file.arrayBuffer();
+
+  stateLog.loadFromBuffer(buffer);
+  state.reset();
+  stateLog.playAll();
 }
 
 async function saveState() {
@@ -96,10 +104,7 @@ async function saveState() {
     // Create a FileSystemWritableFileStream to write to.
     const writable = await h.createWritable();
 
-    // iterate over packets in log and write to stream
-    for (var i=0; i<stateLog.log.length; i++) {
-      await writable.write( stateLog.log[i].encodeForLog() );
-    }
+    await stateLog.saveToStream(writable);
 
     // Close the file and write the contents to disk.
     await writable.close();
@@ -114,11 +119,7 @@ async function saveLog() {
     // Create a FileSystemWritableFileStream to write to.
     const writable = await h.createWritable();
 
-    // iterate over packets in log and write to stream
-    for (var i=0; i<logger.log.length; i++) {
-      await writable.write( logger.log[i].encodeForLog() );
-    }
-
+    await logger.saveToStream(writable);
 
     // Close the file and write the contents to disk.
     await writable.close();
@@ -129,37 +130,14 @@ async function saveLog() {
 
 
 async function loadLog() {
-  logger.reset();
-
   let fileHandle;
   [fileHandle] = await window.showOpenFilePicker();
 
   const file = await fileHandle.getFile();
 
   var buffer = await file.arrayBuffer();
-  console.log(buffer);
 
-  const view = new Uint8Array(buffer);
-
-  // parse view
-  var i = 0;
-  while (i < view.length) {
-    // read size byte
-    var size = view[i];
-    //console.log('Reading from '+i+': '+size+' bytes...');
-
-    var packet = new Uint8Array(buffer, i, size);
-
-    var msg = new DLM.DroneLinkMsg();
-    msg.parseFromLog(packet);
-    //console.log(msg.timestamp + ': '+msg.asString());
-
-    // add to logger
-    logger.add(msg);
-
-    // jump to next packet
-    i += size;
-  }
+  logger.loadFromBuffer(buffer);
 
   alert('Log loaded');
 }

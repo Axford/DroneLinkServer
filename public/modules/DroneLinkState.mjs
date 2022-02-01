@@ -253,7 +253,7 @@ export default class DroneLinkState {
 
   getParamValues(node, channel, param, def) {
     var obj = this.getParamObj(node, channel, param);
-    if (obj != null && obj.values) {
+    if (obj != null && obj.values && obj.values.length == def.length) {
       return obj.values;
     }
     return def;
@@ -302,5 +302,5 @@ export default class DroneLinkState {
     // TODO
   }
 
-  
+
 }

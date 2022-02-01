@@ -126,6 +126,15 @@ export default class DroneLinkLog {
     this.trigger('status', null);
   }
 
+  playAll() {
+    // one shot playback
+    for (var i=0; i<this.log.length; i++) {
+      // send log message to state
+      this.state.handleLinkMsg( this.log[i] );
+    }
+    this.playback = false;
+  }
+
   pause() {
     this.playback = false;
     this.trigger('status', null);
@@ -196,6 +205,39 @@ export default class DroneLinkLog {
         }
       }
 
+    }
+  }
+
+  async saveToStream(writable) {
+    // iterate over packets in log and write to stream
+    for (var i=0; i<this.log.length; i++) {
+      await writable.write( this.log[i].encodeForLog() );
+    }
+  }
+
+  loadFromBuffer(buffer) {
+    this.reset();
+
+    const view = new Uint8Array(buffer);
+
+    // parse view
+    var i = 0;
+    while (i < view.length) {
+      // read size byte
+      var size = view[i];
+      //console.log('Reading from '+i+': '+size+' bytes...');
+
+      var packet = new Uint8Array(buffer, i, size);
+
+      var msg = new DLM.DroneLinkMsg();
+      msg.parseFromLog(packet);
+      //console.log(msg.timestamp + ': '+msg.asString());
+
+      // add to logger
+      this.add(msg);
+
+      // jump to next packet
+      i += size;
     }
   }
 
