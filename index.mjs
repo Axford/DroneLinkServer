@@ -358,15 +358,17 @@ server.on('error',function(error){
 
 // emits on new datagram msg
 server.on('message',function(msg,info){
+  /*
   var newMsg = new DLM.DroneLinkMsg(msg);
 
   // ignore messages from ourself!
   if (newMsg.source != 254) handleLinkMsg(newMsg, 'UDP');
+  */
 
   UDPReadyToTransit = true;
 
   //console.log('Data received from client : ' + msg.toString());
-  //console.log('Received %d bytes from %s:%d\n',msg.length, info.address, info.port);
+  console.log('Received %d bytes from %s:%d\n',msg.length, info.address, info.port);
 });
 
 //emits when socket is ready and listening for datagram msgs
