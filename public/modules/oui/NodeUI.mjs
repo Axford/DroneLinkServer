@@ -568,6 +568,9 @@ export default class NodeUI {
 
   resize() {
     this.graphManager.resize();
+
+    // trigger interface redraw
+    this.updateInterfaces();
   }
 
 
