@@ -218,9 +218,21 @@ export default class DroneLinkManager {
         //TODO
         // hopAlong(msg)
       }
-
     }
+  }
 
+
+  sendDroneLinkMessage(msg) {
+    console.log(('Sending DLM').blue)
+    //update source
+    msg.source = this.node;
+    var nodeInfo = this.getNodeInfo(msg.node, false);
+    if (nodeInfo) {
+      var ni = this.getInterfaceById(nodeInfo.netInterface);
+      if (ni) {
+        ni.sendDroneLinkMessage(msg, nodeInfo.nextHop);
+      }
+    }
   }
 
 

@@ -126,4 +126,39 @@ export default class NetworkInterface {
   }
 
 
+  sendDroneLinkMessage(dlmMsg, nextHop) {
+    if (!this.state) return;
+
+    var msg = this.getTransmitBuffer();
+
+    if (msg) {
+
+      var payloadSize = dlmMsg.totalSize();
+
+
+      // populate with a subscription request packet
+      msg.modeGuaranteeSize = DMM.DRONE_MESH_MSG_MODE_UNICAST | DMM.DRONE_MESH_MSG_GUARANTEED | (payloadSize-1);  // payload is 2 byte... sent as n-1
+      msg.txNode = this.dlm.node;
+      msg.srcNode = this.dlm.node;
+      msg.nextNode = nextHop;
+      msg.destNode = dlmMsg.node;
+      msg.seq = 0;
+      msg.typeDir = DMM.DRONE_MESH_MSG_TYPE_DRONELINKMSG | DMM.DRONE_MESH_MSG_REQUEST;
+      msg.metric = 0;
+
+      // populate payload
+      var buffer = dlmMsg.encodeUnframed();
+      for (var i=0; i<payloadSize; i++) {
+        msg.uint8_tPayload[i] = buffer[i];
+      }
+
+      console.log( ('  ' + msg.toString()).blue);
+
+      return true;
+    }
+
+    return false;
+  }
+
+
 }

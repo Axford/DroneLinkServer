@@ -40,11 +40,13 @@ export default class Management {
 						var newBut =  $('<button class="btn btn-sm btn-success mb-2 mr-1">'+f.name.slice(1,-4)+'</button>');
 						var filename = f.name;
 						newBut.on('click', ()=>{
-							DLM.sendDroneLinkMsg({
-								addr: this.channel.node.id + '>1.17',
-								msgType: DLM.DRONE_LINK_MSG_TYPE_CHAR,
-								values: filename
-							});
+							var qm = new DLM.DroneLinkMsg();
+				      qm.source = 0;
+				      qm.node = this.channel.node.id;
+				      qm.channel = 1;
+				      qm.param = 17;
+							qm.setString(filename);
+				      this.state.send(qm);
 						});
 						this.macroButtons.append(newBut);
 					}
@@ -157,11 +159,12 @@ export default class Management {
 
 		this.reset = $('<button class="btn btn-sm btn-danger mb-2 mr-3">Reset</button>');
 		this.reset.on('click', ()=>{
-			DLM.sendDroneLinkMsg({
-				addr: this.channel.node.id + '>1.10',
-				msgType: DLM.DRONE_LINK_MSG_TYPE_UINT8_T,
-				values: [ 1 ]
-			});
+			var qm = new DLM.DroneLinkMsg();
+			qm.node = this.channel.node.id;
+			qm.channel = 1;
+			qm.param = 10;
+			qm.setUint8([ 1 ]);
+			this.state.send(qm);
 		});
 		this.ui.append(this.reset);
 

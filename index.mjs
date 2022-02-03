@@ -399,7 +399,7 @@ io.on('connection', (socket) => {
     //handleLinkMsg(msg, 'socket');
 
     // queue for retransmission
-    //queueMsg(msg);
+    queueMsg(msg);
   });
 });
 
@@ -564,8 +564,12 @@ function sendMessages() {
     var msg = msgQueue.shift();
 
     // dont send messages addressed to ourself!
-    if (msg.node == 254) return;
+    if (msg.node == sourceId) return;
 
+    // hand to DLM to managge
+    dlm.sendDroneLinkMessage(msg);
+
+/*
     // lookup target node and associated networkInterface
     if (channelState[msg.node] && channelState[msg.node].networkInterface) {
 
@@ -604,7 +608,7 @@ function sendMessages() {
     } else {
       console.error('Unable to send, node networkInterface undefined');
     }
-
+*/
   }
 }
 
