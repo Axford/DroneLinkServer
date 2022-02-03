@@ -41,7 +41,7 @@ export default class DroneLinkManager {
 
 
   removeRoute(node) {
-    var nodeInfo = this.getNodeInfo(msg.txNode, false);
+    var nodeInfo = this.getNodeInfo(node, false);
     if (nodeInfo) {
       nodeInfo.heard = false;
       if (nodeInfo.subState > SUB_STATE_PENDING) {
@@ -59,7 +59,8 @@ export default class DroneLinkManager {
     var loopTime = Date.now();
     for (const [node, nodeInfo] of Object.entries(this.routeMap)) {
       if (nodeInfo.heard && loopTime > nodeInfo.lastHeard + DRONE_LINK_MANAGER_MAX_ROUTE_AGE) {
-        removeRoute(node);
+        console.log(('  Removing route to '+nodeInfo.node).red);
+        this.removeRoute(node);
       }
     }
   }
@@ -68,9 +69,11 @@ export default class DroneLinkManager {
   updateSubscriptions() {
     var loopTime = Date.now();
     for (const [node, nodeInfo] of Object.entries(this.routeMap)) {
-      if (nodeInfo.heard && (loopTime > nodeInfo.subTimer + 10000) && nodeInfo.subState > 0) {
-        var ni = this.getInterfaceById(nodeInfo.nod);
+      if (nodeInfo.heard && (loopTime > nodeInfo.subTimer + 10000)) {
+        var ni = this.getInterfaceById(nodeInfo.netInterface);
+        console.log(('  Refreshing sub to '+nodeInfo.node).blue);
         if (ni && ni.generateSubscriptionRequest(nodeInfo.node, nodeInfo.nextHop, nodeInfo.node, 0,0)) {
+          //console.log(('request sent').green);
           nodeInfo.subTimer = Date.now();
         }
       }
