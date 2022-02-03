@@ -10,6 +10,10 @@ socket.on('route.update', (msg)=>{
   console.log('route.update', msg);
 });
 
+socket.on('route.removed', (msg)=>{
+  console.log('route.removed', msg);
+});
+
 import * as DLM from './modules/droneLinkMsg.mjs';
 import DroneLinkState from './modules/DroneLinkState.mjs';
 var state = new DroneLinkState(socket);

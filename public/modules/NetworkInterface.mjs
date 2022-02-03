@@ -65,7 +65,7 @@ export default class NetworkInterface {
     console.log('gH');
     if (this.state) {
       // we dont want the server to be used for routing, so set a high source metric
-      if (this.generateHello(this.dlm.node, this.helloSeq, 20)) {
+      if (this.generateHello(this.dlm.node, this.helloSeq, 20, Date.now() - this.dlm.bootTime)) {
         var loopTime = Date.now();
         if (loopTime > this.seqTimer + NETWORK_INTERFACE_SEQ_INTERVAL) {
           this.helloSeq++;
@@ -76,14 +76,14 @@ export default class NetworkInterface {
   }
 
 
-  generateHello(src, seq, metric) {
+  generateHello(src, seq, metric, uptime) {
     if (!this.state) return;
 
     var msg = this.getTransmitBuffer();
 
     if (msg) {
       // populate hello packet
-      msg.modeGuaranteeSize = DMM.DRONE_MESH_MSG_MODE_MULTICAST | DMM.DRONE_MESH_MSG_NOT_GUARANTEED | 0 ;  // payload is 1 byte... sent as n-1
+      msg.modeGuaranteeSize = DMM.DRONE_MESH_MSG_MODE_MULTICAST | DMM.DRONE_MESH_MSG_NOT_GUARANTEED | (5-1) ;  // payload is 1 byte... sent as n-1
       msg.txNode = this.dlm.node;
       msg.srcNode = src;
       msg.nextNode = 0;
@@ -91,6 +91,12 @@ export default class NetworkInterface {
       msg.seq = seq;
       msg.typeDir = DMM.DRONE_MESH_MSG_TYPE_HELLO | DMM.DRONE_MESH_MSG_REQUEST;
       msg.metric = metric;
+      msg.uint8_tPayload[0] = 0;
+      // little endian byte order
+      msg.uint8_tPayload[4] = (uptime >> 24) & 0xFF;
+      msg.uint8_tPayload[3] = (uptime >> 16) & 0xFF;
+      msg.uint8_tPayload[2] = (uptime >> 8) & 0xFF;
+      msg.uint8_tPayload[1] = (uptime ) & 0xFF;
 
       return true;
     }

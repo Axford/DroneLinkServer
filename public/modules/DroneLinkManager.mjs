@@ -30,6 +30,51 @@ export default class DroneLinkManager {
     this.routeMap = {};
 
     this.interfaces = [];
+
+    this.bootTime = Date.now();
+
+    setInterval( ()=>{
+      this.checkForOldRoutes();
+      this.updateSubscriptions();
+    }, 1000);
+  }
+
+
+  removeRoute(node) {
+    var nodeInfo = this.getNodeInfo(msg.txNode, false);
+    if (nodeInfo) {
+      nodeInfo.heard = false;
+      if (nodeInfo.subState > SUB_STATE_PENDING) {
+        // so a fresh sub is requested if this route becomes available again
+        nodeInfo.subState = SUB_STATE_REQUESTED;
+        nodeInfo.metric = 255;
+      }
+
+      if (this.io) this.io.emit('route.removed', nodeInfo.encode());
+    }
+  }
+
+
+  checkForOldRoutes() {
+    var loopTime = Date.now();
+    for (const [node, nodeInfo] of Object.entries(this.routeMap)) {
+      if (nodeInfo.heard && loopTime > nodeInfo.lastHeard + DRONE_LINK_MANAGER_MAX_ROUTE_AGE) {
+        removeRoute(node);
+      }
+    }
+  }
+
+
+  updateSubscriptions() {
+    var loopTime = Date.now();
+    for (const [node, nodeInfo] of Object.entries(this.routeMap)) {
+      if (nodeInfo.heard && (loopTime > nodeInfo.subTimer + 10000) && nodeInfo.subState > 0) {
+        var ni = this.getInterfaceById(nodeInfo.nod);
+        if (ni && ni.generateSubscriptionRequest(nodeInfo.node, nodeInfo.nextHop, nodeInfo.node, 0,0)) {
+          nodeInfo.subTimer = Date.now();
+        }
+      }
+    }
   }
 
 
@@ -59,15 +104,18 @@ export default class DroneLinkManager {
       // set values and elaborate
       nodeInfo.node = node;
       nodeInfo.heard = true;
-      nodeInfo.leastHeard = Date.now();
       nodeInfo.lastBroadcst = 0;
       nodeInfo.subState = SUB_STATE_PENDING;
       nodeInfo.subTimer = 0;
+      nodeInfo.uptime = 0;
 
       routeExists = true;
     }
 
     if (routeExists) {
+      nodeInfo = this.routeMap[node];
+      nodeInfo.leastHeard = Date.now();
+      nodeInfo.heard = true;
       return this.routeMap[node];
     }
     return null;
@@ -77,7 +125,7 @@ export default class DroneLinkManager {
   receivePacket(netInterface, msg, metric) {
     // update lastHeard for tx node
     var txNodeInfo = this.getNodeInfo(msg.txNode, false);
-    if (txNodeInfo) txNodeInfo.lastHeard = Date.now();
+    if (txNodeInfo && txNodeInfo.heard) txNodeInfo.lastHeard = Date.now();
 
     // pass to appropriate receive handler
     switch (msg.getType()) {
@@ -98,16 +146,25 @@ export default class DroneLinkManager {
 
     var loopTime = Date.now();
 
-    console.log('  Hello from '+msg.srcNode + ' tx by '+msg.txNode);
+    console.log('  Hello from '+msg.srcNode + ' tx by '+msg.txNode + ', metric='+metric+', seq='+msg.seq);
 
     // calc total metric inc RSSI to us
     var newMetric = constrain(msg.uint8_tPayload[0] + metric, 0, 255);
+    // little endian byte order
+    var newUptime = (msg.uint8_tPayload[4] << 24) +
+                    (msg.uint8_tPayload[3] << 16) +
+                    (msg.uint8_tPayload[2] << 8) +
+                    (msg.uint8_tPayload[1]);
+
 
     // fetch/create routing entry
     var nodeInfo = this.getNodeInfo(msg.srcNode, true);
     if (nodeInfo) {
       // if its a brand new route entry it will have metric 255... so good to overwrite
       var feasibleRoute = nodeInfo.metric == 255;
+
+      // if new uptime is less than current uptime
+      if (newUptime < nodeInfo.uptime) feasibleRoute = true;
 
       if (netInterface != nodeInfo.netInterface && newMetric < nodeInfo.metric) {
         feasibleRoute = true;
@@ -132,13 +189,14 @@ export default class DroneLinkManager {
         nodeInfo.metric = newMetric;
         nodeInfo.netInterface = netInterface;
         nodeInfo.nextHop = msg.txNode;
+        nodeInfo.uptime = newUptime;
 
         // generate subscription?
         if (nodeInfo.subState == SUB_STATE_PENDING) {
           var ni = this.getInterfaceById(nodeInfo.netInterface);
           if (ni) {
             if (ni.generateSubscriptionRequest(this.node, nodeInfo.nextHop, nodeInfo.node, 0,0)) {
-              ni.subTimer = Date.now();
+              nodeInfo.subTimer = Date.now();
             }
 
           }
@@ -149,7 +207,7 @@ export default class DroneLinkManager {
 
         console.log(this.routeMap);
       } else {
-        console.log("  New route infeasible");
+        console.log("  New route infeasible, existing metric=" + nodeInfo.metric + ", seq=" + nodeInfo.seq);
         newMetric = nodeInfo.metric;
       }
 
@@ -184,8 +242,9 @@ export default class DroneLinkManager {
 
         // update sub state
         var nodeInfo = this.getNodeInfo(msg.srcNode, false);
-        if (nodeInfo) {
+        if (nodeInfo && nodeInfo.heard) {
           nodeInfo.subState = SUB_STATE_CONFIRMED;
+          nodeInfo.subTimer = Date.now();
           console.log(('  Sub to '+msg.srcNode + ' confirmed').green);
         }
 
@@ -227,7 +286,7 @@ export default class DroneLinkManager {
     //update source
     msg.source = this.node;
     var nodeInfo = this.getNodeInfo(msg.node, false);
-    if (nodeInfo) {
+    if (nodeInfo && nodeInfo.heard) {
       var ni = this.getInterfaceById(nodeInfo.netInterface);
       if (ni) {
         ni.sendDroneLinkMessage(msg, nodeInfo.nextHop);
