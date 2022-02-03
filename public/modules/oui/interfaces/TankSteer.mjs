@@ -161,17 +161,19 @@ export default class TankSteer {
 
       console.log('tankSteer update: ',speed, turnRate);
 
-			DLM.sendDroneLinkMsg({
-				addr: this.channel.node.id + '>' + this.channel.channel + '.12',
-				msgType: DLM.DRONE_LINK_MSG_TYPE_FLOAT,
-				values: [ speed ]
-			});
+			var qm = new DLM.DroneLinkMsg();
+			qm.node = this.channel.node.id;
+			qm.channel = this.channel.channel;
+			qm.param = 12;
+			qm.setFloat([ speed ]);
+			this.state.send(qm);
 
-			DLM.sendDroneLinkMsg({
-				addr: this.channel.node.id + '>' + this.channel.channel + '.10',
-				msgType: DLM.DRONE_LINK_MSG_TYPE_FLOAT,
-				values: [ turnRate ]
-			});
+			var qm = new DLM.DroneLinkMsg();
+			qm.node = this.channel.node.id;
+			qm.channel = this.channel.channel;
+			qm.param = 10;
+			qm.setFloat([ turnRate ]);
+			this.state.send(qm);
 
 		});
 

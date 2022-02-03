@@ -75,6 +75,10 @@ export class DroneLinkMsg {
     if (buffer) this.parse(buffer);
   }
 
+  totalSize() {
+    return 5 + this.msgLength;
+  }
+
 	sameSignature(msg) {
     if (msg == undefined) return false;
 

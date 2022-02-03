@@ -5,7 +5,6 @@
 
 */
 
-import io from '../libs/socketio/socket.io.esm.min.mjs';
 import * as DLM from './droneLinkMsg.mjs';
 import DroneLinkMsgQueue from './DroneLinkMsgQueue.mjs';
 
@@ -31,10 +30,10 @@ function arraysEqual(a,b) {
 
 export default class DroneLinkState {
 
-  constructor() {
+  constructor(socket) {
     var me = this;
     this.state = {};
-    this.socket = io();
+    this.socket = socket;
     this.discoveryQueue = new DroneLinkMsgQueue();
     this.callbacks = {}; // each key is an event type, values are an array of callback functions
     this.liveMode = false;  // set to false to stop using the socket (i.e. log playback mode)

@@ -207,17 +207,20 @@ export default class Sailor {
 
       console.log(x,y, ang);
 
-      DLM.sendDroneLinkMsg({
-        addr: this.channel.node.id + '>' + this.channel.channel + '.8',
-        msgType: DLM.DRONE_LINK_MSG_TYPE_FLOAT,
-        values: [ ang ]
-      });
+      var qm = new DLM.DroneLinkMsg();
+			qm.node = this.channel.node.id;
+			qm.channel = this.channel.channel;
+			qm.param = 8;
+			qm.setFloat([ ang ]);
+			this.state.send(qm);
 
-      DLM.sendDroneLinkMsg({
-        addr: this.channel.node.id + '>' + this.channel.channel + '.8',
-        msgType: DLM.DRONE_LINK_MSG_TYPE_QUERY,
-        values: [ ang ]
-      });
+      var qm = new DLM.DroneLinkMsg();
+			qm.node = this.channel.node.id;
+			qm.channel = this.channel.channel;
+			qm.param = 8;
+			qm.setUint8([ ang ]);
+      qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
+			this.state.send(qm);
     });
 
     this.ui.append(this.canvas);
