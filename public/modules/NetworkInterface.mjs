@@ -13,7 +13,8 @@ const NETWORK_INTERFACE_SEQ_INTERVAL    = 30000;
 
 export default class NetworkInterface {
 
-  constructor(dlm) {
+  constructor(dlm, id) {
+    this.id = id;
     this.dlm = dlm;
     this.state = false;
     this.helloSeq = 0;
@@ -63,7 +64,8 @@ export default class NetworkInterface {
   genHello() {
     console.log('gH');
     if (this.state) {
-      if (this.generateHello(this.dlm.node, this.helloSeq, 0)) {
+      // we dont want the server to be used for routing, so set a high source metric
+      if (this.generateHello(this.dlm.node, this.helloSeq, 20)) {
         var loopTime = Date.now();
         if (loopTime > this.seqTimer + NETWORK_INTERFACE_SEQ_INTERVAL) {
           this.helloSeq++;
@@ -89,6 +91,33 @@ export default class NetworkInterface {
       msg.seq = seq;
       msg.typeDir = DMM.DRONE_MESH_MSG_TYPE_HELLO | DMM.DRONE_MESH_MSG_REQUEST;
       msg.metric = metric;
+
+      return true;
+    }
+
+    return false;
+  }
+
+
+  generateSubscriptionRequest(src, next, dest, channel, param) {
+    if (!this.state) return;
+
+    var msg = this.getTransmitBuffer();
+
+    if (msg) {
+      // populate with a subscription request packet
+      msg.modeGuaranteeSize = DMM.DRONE_MESH_MSG_MODE_UNICAST | DMM.DRONE_MESH_MSG_GUARANTEED | 1 ;  // payload is 2 byte... sent as n-1
+      msg.txNode = src;
+      msg.srcNode = this.dlm.node;
+      msg.nextNode = next;
+      msg.destNode = dest;
+      msg.seq = 0;
+      msg.typeDir = DMM.DRONE_MESH_MSG_TYPE_SUBSCRIPTION | DMM.DRONE_MESH_MSG_REQUEST;
+      msg.metric = 0;
+
+      // populate payload = channel, param
+      msg.uint8_tPayload[0] = channel;
+      msg.uint8_tPayload[1] = param;
 
       return true;
     }

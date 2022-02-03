@@ -3,9 +3,16 @@ import loadStylesheet from './modules/loadStylesheet.js';
 
 loadStylesheet('./css/observer.css');
 
+import io from '../libs/socketio/socket.io.esm.min.mjs';
+var socket = io();
+
+socket.on('route.update', (msg)=>{
+  console.log('route.update', msg);
+});
+
 import * as DLM from './modules/droneLinkMsg.mjs';
 import DroneLinkState from './modules/DroneLinkState.mjs';
-var state = new DroneLinkState();
+var state = new DroneLinkState(socket);
 
 import NodeUI from './modules/oui/NodeUI.mjs';
 import { controllers, initGamepads } from './modules/gamepads.js';

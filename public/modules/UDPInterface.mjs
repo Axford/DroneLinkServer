@@ -5,8 +5,8 @@ import * as DMM from './DroneMeshMsg.mjs';
 
 export default class UDPInterface extends NetworkInterface {
 
-  constructor(dlm) {
-    super(dlm);
+  constructor(dlm, id) {
+    super(dlm, id);
 
     // register self with dlm
     dlm.registerInterface(this);
@@ -41,7 +41,7 @@ export default class UDPInterface extends NetworkInterface {
           }
 
           // pass onto DLM for processing
-          this.dlm.receivePacket(this, newMsg, metric);
+          this.dlm.receivePacket(this.id, newMsg, metric);
         } else {
           // TODO: consider sniffing network traffic
         }

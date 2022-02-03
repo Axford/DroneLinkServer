@@ -8,10 +8,14 @@ Manages the mesh network link over local network interfaces (routing table, etc)
 
 import * as DLM from './droneLinkMsg.mjs';
 import * as DMM from './DroneMeshMsg.mjs';
-
+import * as DMRE from './DroneMeshRouteEntry.mjs';
 
 const DRONE_LINK_MANAGER_MAX_ROUTE_AGE = 60000;
 
+
+const SUB_STATE_PENDING = 0;
+const SUB_STATE_REQUESTED = 1;
+const SUB_STATE_CONFIRMED = 2;
 
 function constrain(v, minv, maxv) {
   return Math.max(Math.min(v, maxv), minv);
@@ -34,22 +38,32 @@ export default class DroneLinkManager {
   }
 
 
+  getInterfaceById(id) {
+    for (var i=0; i<this.interfaces.length; i++) {
+      if (this.interfaces[i].id == id) return this.interfaces[i];
+    }
+    return null;
+  }
+
+
   getNodeInfo(node, heard) {
     // see if node already exists in routeMap
     var routeExists = (this.routeMap.hasOwnProperty(node));
 
     if (!routeExists && heard) {
       // create new route entry
-      this.routeMap[node] = {
-        heard: true,
-        seq: 0,
-        metric: 255,
-        name: '',
-        netInterface: null,
-        nextHop: 0,
-        lastHeard: Date.now(),
-        lastBroadcast: 0
-      };
+      this.routeMap[node] = new DMRE.DroneMeshRouteEntry();
+
+      var nodeInfo = this.routeMap[node];
+
+      // set values and elaborate
+      nodeInfo.node = node;
+      nodeInfo.heard = true;
+      nodeInfo.leastHeard = Date.now();
+      nodeInfo.lastBroadcst = 0;
+      nodeInfo.subState = SUB_STATE_PENDING;
+      nodeInfo.subTimer = 0;
+
       routeExists = true;
     }
 
@@ -68,9 +82,9 @@ export default class DroneLinkManager {
     // pass to appropriate receive handler
     switch (msg.getType()) {
       case DMM.DRONE_MESH_MSG_TYPE_HELLO: this.receiveHello(netInterface, msg, metric); break;
-      /*case DMM.DRONE_MESH_MSG_TYPE_SUBSCRIPTION: this.receiveSubscription(netInterface, msg, metric); break;
-      case DMM.DRONE_MESH_MSG_TYPE_DRONELINKMSG: this.eceiveDroneLinkMsg(netInterface, msg, metric); break;
-      case DMM.DRONE_MESH_MSG_TYPE_TRACEROUTE: this.receiveTraceroute(netInterface, msg, metric); break;*/
+      case DMM.DRONE_MESH_MSG_TYPE_SUBSCRIPTION: this.receiveSubscription(netInterface, msg, metric); break;
+      case DMM.DRONE_MESH_MSG_TYPE_DRONELINKMSG: this.receiveDroneLinkMsg(netInterface, msg, metric); break;
+      //case DMM.DRONE_MESH_MSG_TYPE_TRACEROUTE: this.receiveTraceroute(netInterface, msg, metric); break;
     }
   }
 
@@ -119,6 +133,20 @@ export default class DroneLinkManager {
         nodeInfo.netInterface = netInterface;
         nodeInfo.nextHop = msg.txNode;
 
+        // generate subscription?
+        if (nodeInfo.subState == SUB_STATE_PENDING) {
+          var ni = this.getInterfaceById(nodeInfo.netInterface);
+          if (ni) {
+            if (ni.generateSubscriptionRequest(this.node, nodeInfo.nextHop, nodeInfo.node, 0,0)) {
+              ni.subTimer = Date.now();
+            }
+
+          }
+        }
+
+
+        if (this.io) this.io.emit('route.update', nodeInfo.encode());
+
         console.log(this.routeMap);
       } else {
         console.log("  New route infeasible");
@@ -137,6 +165,62 @@ export default class DroneLinkManager {
       }
 
     }
+  }
+
+
+  receiveSubscription(netInterface, msg, metric) {
+    console.log('  Sub from '+msg.srcNode + ' to '+msg.destNode);
+
+    if (msg.isRequest()) {
+      console.log('  Request');
+
+      // TODO
+
+    } else {
+
+      // check if we are the destination
+      if (msg.destNode == this.node) {
+        console.log('  Response');
+
+        // update sub state
+        var nodeInfo = this.getNodeInfo(msg.srcNode, false);
+        if (nodeInfo) {
+          nodeInfo.subState = SUB_STATE_CONFIRMED;
+          console.log(('  Sub to '+msg.srcNode + ' confirmed').green);
+        }
+
+      }
+    }
+  }
+
+
+  receiveDroneLinkMsg(netInterface, msg, metric) {
+    // check this is a request
+    if (!msg.isRequest()) return;
+
+    var loopTime = Date.now();
+
+    console.log('  DLM from '+msg.srcNode + ' tx by '+msg.txNode);
+
+    // check if we're the next node - otherwise ignore it
+    if (msg.nextNode == this.node) {
+      // are we the destination?
+      if (msg.destNode == this.node) {
+
+        // unwrap contained DLM
+        var dlmMsg = new DLM.DroneLinkMsg( msg.rawPayload );
+
+        // publish dlm
+        if (this.io) this.io.emit('DLM.msg', dlmMsg.encodeUnframed());
+
+      } else {
+        // pass along to next hop
+        //TODO
+        // hopAlong(msg)
+      }
+
+    }
+
   }
 
 

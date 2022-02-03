@@ -50,7 +50,7 @@ var dlm = new DroneLinkManager(sourceId);
 var msgQueue = new DroneLinkMsgQueue();
 
 // create interfaces
-var udpi = new UDPInterface(dlm);
+var udpi = new UDPInterface(dlm, 1);
 
 /*
 function bufferToHex (buffer) {
@@ -340,8 +340,12 @@ app.get('/', function(req, res){
   res.sendfile('./public/observer.htm');
 });
 
+app.get('/routes', function(req, res){
+  res.json(dlm.routeMap);
+});
+
 app.get('/firmware', function(req, res){
-  res.sendfile(path.resolve(__dirname+'/../.pio/build/esp32doit-devkit-v1/firmware.bin'));
+  res.sendfile(path.resolve('../DroneNode/.pio/build/esp32doit-devkit-v1/firmware.bin'));
 });
 
 app.get('/file', (req, res) => {
@@ -383,6 +387,7 @@ httpServer.listen(webPort, () => {
 // -----------------------------------------------------------
 
 const io = new Server(httpServer);
+dlm.io = io;
 
 io.on('connection', (socket) => {
   console.log('a user connected');
@@ -391,10 +396,10 @@ io.on('connection', (socket) => {
   socket.on('sendMsg', (msgBuffer)=>{
     var msg = new DLM.DroneLinkMsg(msgBuffer);
     console.log(('[.sM] recv: ' + msg.asString()).green );
-    handleLinkMsg(msg, 'socket');
+    //handleLinkMsg(msg, 'socket');
 
     // queue for retransmission
-    queueMsg(msg);
+    //queueMsg(msg);
   });
 });
 
