@@ -154,11 +154,11 @@ html, body {margin: 0; height: 100%; overflow: hidden}
 .mapCoords {
   position:absolute;
   left: 8px;
-  bottom: 6px;
+  bottom: 46px;
   margin:0;
   color:rgba(255,255,255,0.8);
   font-size: 1em;
-  z-index:2000;
+  z-index:5000;
 }
 
 .mainRow {
@@ -446,4 +446,16 @@ main {
   text-shadow: -1px -1px 3 #000;
   overflow:visible;
   white-space:nowrap;
+}
+
+#leftPanel .panelNav {
+  float:right;
+  margin-top:8px;
+  margin-right:8px;
+  border:1px solid white;
+  position:relative;
+}
+
+#leftPanel tab {
+
 }

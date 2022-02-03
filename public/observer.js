@@ -291,6 +291,30 @@ function init() {
     $(".helpContainer").hide();
   });
 
+
+  // view controls
+  $('#viewMapButton').on('click', ()=>{
+    $('#mapPanel').show();
+    $('#networkPanel').hide();
+
+    $('#viewMapButton').removeClass('btn-secondary');
+    $('#viewNetworkButton').removeClass('btn-primary');
+
+    $('#viewMapButton').addClass('btn-primary');
+    $('#viewNetworkButton').addClass('btn-secondary');
+  });
+
+  $('#viewNetworkButton').on('click', ()=>{
+    $('#mapPanel').hide();
+    $('#networkPanel').show();
+
+    $('#viewMapButton').removeClass('btn-primary');
+    $('#viewNetworkButton').removeClass('btn-secondary');
+
+    $('#viewMapButton').addClass('btn-secondary');
+    $('#viewNetworkButton').addClass('btn-primary');
+  });
+
   // configure state controls
   $('#stateLoadButton').on('click', ()=>{
     loadState();
