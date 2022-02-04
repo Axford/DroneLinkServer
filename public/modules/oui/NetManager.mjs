@@ -246,7 +246,7 @@ export default class NetManager {
     var blockSpacing = 150;
     var blockYSpacing = 50;
 
-    var padding = 40;
+    var padding = 20;
 
     // reset accel vectors
     for (var i=0; i<this.blocks.length; i++) {
@@ -267,13 +267,17 @@ export default class NetManager {
 
         // compare it to the target length based on metric
         var hvl = hv.length();
-        var targetLen = constrain(hop.metric * 15, 20, 300);
+        var targetLen = constrain(hop.metric * 20, 20, 400);
         var hvr = (hvl - targetLen) / 10;
 
         // update accel vector
         hv.normalize();
         hv.multiply(hvr);
         b.av.add(hv);
+
+        // invert and add to hop as well
+        hv.multiply(-1);
+        hop.dest.av.add(hv);
       }
 
 
@@ -347,6 +351,8 @@ export default class NetManager {
       this.blocks.push( b );
       this.nodes[addr] = b;
     }
+
+    this.nodes[addr].lastHeard = Date.now();
 
     return this.nodes[addr];
   }

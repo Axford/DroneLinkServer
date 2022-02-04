@@ -4,6 +4,10 @@ import NetWire from './NetWire.mjs';
 import NetPort from './NetPort.mjs';
 
 
+function constrain(v, minv, maxv) {
+  return Math.max(Math.min(v, maxv), minv);
+}
+
 
 export default class NetBlock {
   constructor(mgr, addr) {
@@ -12,13 +16,16 @@ export default class NetBlock {
     this.node = addr;
     //this.channel = data.channel; // channel id
     this.name = '';
+    this.lastHeard = Date.now();
 
     // a wire to each next hop node
     this.nextHops = {};
 
-    this.fillStyle = "hsl(" + 360 * Math.random() + ',' +
-             '100%,' +
-             (65 + 20 * Math.random()) + '%)';
+    this.hue = 360 * Math.random();
+    this.saturation = 100;
+    this.lightness = (65 + 20 * Math.random());
+
+    this.fillStyle = this.getStyle( this.getAlpha() );
 
     var c = this.mgr.canvas[0];
     var ctx = c.getContext("2d");
@@ -35,6 +42,16 @@ export default class NetBlock {
     this.height = this.headerHeight;
     this.av = new Vector(0,0);
     this.updatePosition(this.position);
+  }
+
+  getStyle(alpha) {
+    return "hsl(" + this.hue + ',' +
+             this.saturation + '%,' +
+             this.lightness + '%, '+alpha+'%)';
+  }
+
+  getAlpha() {
+    return 100 - 100 * constrain((Date.now() - this.lastHeard)/1000, 1, 60)/60;
   }
 
   hit(x,y) {
@@ -79,7 +96,17 @@ export default class NetBlock {
     this.updateCorners();
   }
 
+  checkForOldRoutes() {
+    for (const [key, nextHop] of Object.entries(this.nextHops)) {
+      if (Date.now() - nextHop.lastHeard > 60000) {
+        delete this.nextHops[key];
+      }
+    }
+  }
+
   draw() {
+    this.checkForOldRoutes();
+
     var c = this.mgr.canvas[0];
     var ctx = c.getContext("2d");
 
@@ -120,6 +147,8 @@ export default class NetBlock {
     if (!this.nextHops.hasOwnProperty(dest.node)) {
       this.nextHops[dest.node] = new NetWire(this.mgr, this, dest);
     }
+
+    this.nextHops[dest.node].lastHeard = Date.now();
 
     if (metric < this.nextHops[dest.node].metric)
         this.nextHops[dest.node].metric = metric;
