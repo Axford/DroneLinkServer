@@ -6,14 +6,6 @@ loadStylesheet('./css/observer.css');
 import io from '../libs/socketio/socket.io.esm.min.mjs';
 var socket = io();
 
-socket.on('route.update', (msg)=>{
-  console.log('route.update', msg);
-});
-
-socket.on('route.removed', (msg)=>{
-  console.log('route.removed', msg);
-});
-
 import * as DLM from './modules/droneLinkMsg.mjs';
 import DroneLinkState from './modules/DroneLinkState.mjs';
 var state = new DroneLinkState(socket);
@@ -34,6 +26,9 @@ import DroneLinkLog from './modules/DroneLinkLog.mjs';
 var logger = new DroneLinkLog(state);
 var stateLog = new DroneLinkLog(state);
 
+import NetManager from './modules/oui/NetManager.mjs';
+var networkGraph;
+
 var liveMode = true;
 
 var parsedLog = [];
@@ -51,6 +46,8 @@ function setPanelSize(w) {
   left.css('right', w);
   right.css('width', w);
   map.resize();
+
+  networkGraph.resize();
 
   // let nodes know they should also resize
   for (const [key, n] of Object.entries(nodes)) {
@@ -302,7 +299,11 @@ function init() {
 
     $('#viewMapButton').addClass('btn-primary');
     $('#viewNetworkButton').addClass('btn-secondary');
+
+    map.resize();
   });
+
+  networkGraph = new NetManager(socket, $('#networkPanel'));
 
   $('#viewNetworkButton').on('click', ()=>{
     $('#mapPanel').hide();
@@ -313,6 +314,8 @@ function init() {
 
     $('#viewMapButton').addClass('btn-secondary');
     $('#viewNetworkButton').addClass('btn-primary');
+
+    networkGraph.resize();
   });
 
   // configure state controls

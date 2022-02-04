@@ -456,6 +456,6 @@ main {
   position:relative;
 }
 
-#leftPanel tab {
-
+#networkPanel {
+  height:100%;
 }

@@ -23,7 +23,7 @@ export const DRONE_MESH_MSG_GUARANTEED       =0b01000000;
 export const DRONE_MESH_MSG_TYPE_HELLO          =(0 << 1);
 export const DRONE_MESH_MSG_TYPE_SUBSCRIPTION   =(1 << 1);
 export const DRONE_MESH_MSG_TYPE_TRACEROUTE     =(2 << 1);
-export const DRONE_MESH_MSG_TYPE_ROUTINGENTRY   =(3 << 1);
+export const DRONE_MESH_MSG_TYPE_ROUTEENTRY     =(3 << 1);
 export const DRONE_MESH_MSG_TYPE_DRONELINKMSG   =(4 << 1);
 
 export const DRONE_MESH_MSG_REQUEST          =0;
@@ -103,7 +103,7 @@ export class DroneMeshMsg {
       case DRONE_MESH_MSG_TYPE_HELLO: return 'Hello';
       case DRONE_MESH_MSG_TYPE_SUBSCRIPTION: return 'Sub';
       case DRONE_MESH_MSG_TYPE_TRACEROUTE: return 'Traceroute';
-      case DRONE_MESH_MSG_TYPE_ROUTINGENTRY: return 'RoutingEntry';
+      case DRONE_MESH_MSG_TYPE_ROUTEENTRY: return 'RoutingEntry';
       case DRONE_MESH_MSG_TYPE_DRONELINKMSG: return 'DLM';
     }
   }

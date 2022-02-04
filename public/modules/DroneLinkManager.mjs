@@ -40,6 +40,18 @@ export default class DroneLinkManager {
   }
 
 
+  getRoutesFor(target, subject) {
+    console.log(('getRoutesFor: '+ target +', '+ subject).red);
+    var nodeInfo = this.getNodeInfo(target, false);
+    if (nodeInfo && nodeInfo.heard) {
+      var ni = this.getInterfaceById(nodeInfo.netInterface);
+      if (ni) {
+        ni.generateRouteEntryRequest(target, subject, nodeInfo.nextHop);
+      }
+    }
+  }
+
+
   removeRoute(node) {
     var nodeInfo = this.getNodeInfo(node, false);
     if (nodeInfo) {
@@ -105,6 +117,7 @@ export default class DroneLinkManager {
       var nodeInfo = this.routeMap[node];
 
       // set values and elaborate
+      nodeInfo.src = this.node;
       nodeInfo.node = node;
       nodeInfo.heard = true;
       nodeInfo.lastBroadcst = 0;
@@ -136,6 +149,7 @@ export default class DroneLinkManager {
       case DMM.DRONE_MESH_MSG_TYPE_SUBSCRIPTION: this.receiveSubscription(netInterface, msg, metric); break;
       case DMM.DRONE_MESH_MSG_TYPE_DRONELINKMSG: this.receiveDroneLinkMsg(netInterface, msg, metric); break;
       //case DMM.DRONE_MESH_MSG_TYPE_TRACEROUTE: this.receiveTraceroute(netInterface, msg, metric); break;
+      case DMM.DRONE_MESH_MSG_TYPE_ROUTEENTRY: this.receiveRouteEntry(netInterface, msg, metric); break;
     }
   }
 
@@ -204,7 +218,6 @@ export default class DroneLinkManager {
 
           }
         }
-
 
         if (this.io) this.io.emit('route.update', nodeInfo.encode());
 
@@ -284,6 +297,34 @@ export default class DroneLinkManager {
   }
 
 
+  receiveRouteEntry(netInterface, msg, metric) {
+    // check this is a request
+    if (!msg.isRequest()) return;
+
+    var loopTime = Date.now();
+
+    console.log('  Route Entry from '+msg.srcNode + ' tx by '+msg.txNode);
+
+    // check if we're the next node - otherwise ignore it
+    if (msg.nextNode == this.node) {
+      // are we the destination?
+      if (msg.destNode == this.node) {
+
+        // unwrap contained RouteEntry
+        var dmre = new DMRE.DroneMeshRouteEntry( msg.rawPayload );
+
+        // publish
+        if (this.io) this.io.emit('route.update', dmre.encode());
+
+      } else {
+        // pass along to next hop
+        //TODO
+        // hopAlong(msg)
+      }
+    }
+  }
+
+
   sendDroneLinkMessage(msg) {
     console.log(('Sending DLM').blue)
     //update source
@@ -293,6 +334,16 @@ export default class DroneLinkManager {
       var ni = this.getInterfaceById(nodeInfo.netInterface);
       if (ni) {
         ni.sendDroneLinkMessage(msg, nodeInfo.nextHop);
+      }
+    }
+  }
+
+
+  emitAllRoutes() {
+    console.log(('Emitting all routes').red)
+    for (const [node, nodeInfo] of Object.entries(this.routeMap)) {
+      if (nodeInfo.heard) {
+        if (this.io) this.io.emit('route.update', nodeInfo.encode());
       }
     }
   }

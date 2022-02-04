@@ -132,6 +132,33 @@ export default class NetworkInterface {
   }
 
 
+  generateRouteEntryRequest(target, subject, nextHop) {
+    if (!this.state) return;
+
+    var msg = this.getTransmitBuffer();
+
+    if (msg) {
+      console.log(('generateRouteEntryRequest for '+target+', '+subject).red);
+      // populate with a subscription request packet
+      msg.modeGuaranteeSize = DMM.DRONE_MESH_MSG_MODE_UNICAST | DMM.DRONE_MESH_MSG_GUARANTEED | 10;  // payload is 1 byte... sent as n-1
+      msg.txNode = this.dlm.node;
+      msg.srcNode = this.dlm.node;
+      msg.nextNode = nextHop;
+      msg.destNode = target;
+      msg.seq = 0;
+      msg.typeDir = DMM.DRONE_MESH_MSG_TYPE_ROUTEENTRY | DMM.DRONE_MESH_MSG_REQUEST;
+      msg.metric = 0;
+
+      // populate payload
+      msg.uint8_tPayload[0] = subject;
+
+      return true;
+    }
+
+    return false;
+  }
+
+
   sendDroneLinkMessage(dlmMsg, nextHop) {
     if (!this.state) return;
 
