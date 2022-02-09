@@ -5,49 +5,53 @@ import * as DMM from './DroneMeshMsg.mjs';
 
 export default class UDPInterface extends NetworkInterface {
 
-  constructor(dlm, id) {
-    super(dlm, id);
+  constructor(dlm, id, clog) {
+    super(dlm, id, clog);
+
+    this.typeName = 'UDP';
+    this.typeCode = 0;
 
     // register self with dlm
     dlm.registerInterface(this);
+
+    this.clog('UDP Interface registered');
 
     // creating a udp server
     this.server = udp.createSocket('udp4');
 
     // emits when any error occurs
     this.server.on('error',function(error){
-      console.error('UDP Error: ' + error);
+      this.clog(('UDP Error: ' + error).red);
       this.server.close();
     });
 
     // emits on new datagram msg
     this.server.on('message', (msg,info)=>{
-      //console.log('UDP Received %d bytes from %s:%d\n',msg.length, info.address, info.port);
+      //this.clog('UDP Received %d bytes from %s:%d\n',msg.length, info.address, info.port);
 
       var newMsg = new DMM.DroneMeshMsg(msg);
 
       if (newMsg.isValid) {
+        //this.clog('got valid packet...');
         var metric = 15; // can't read RSSI, so set to a crap value to avoid nodes using us as a router
 
         // ignore stuff we've transmitted
         if (newMsg.txNode == this.dlm.node || newMsg.srcNode == this.dlm.node) return;
 
         // check this message is for us
-        if (!newMsg.isUnicast() || newMsg.nextNode == this.dlm.node) {
-          if (newMsg.getType() == DMM.DRONE_MESH_MSG_TYPE_DRONELINKMSG) {
-             console.log('UDP: ' + (newMsg.toString()).yellow);
-          } else {
-            console.log('UDP: ' + newMsg.toString());
-          }
-
+        if (newMsg.nextNode == this.dlm.node || newMsg.nextNode == 0) {
           // pass onto DLM for processing
-          this.dlm.receivePacket(this.id, newMsg, metric);
+          this.dlm.receivePacket(this, newMsg, metric);
+
+          this.packetsReceived++;
         } else {
           // TODO: consider sniffing network traffic
+          this.clog('not for us')
         }
 
       } else {
-        console.error('UDP CRC fail: ' + newMsg.toString());
+        this.clog(('UDP CRC fail: ' + newMsg.toString()).red);
+        this.packetsRejected++;
       }
     });
 
@@ -57,13 +61,13 @@ export default class UDPInterface extends NetworkInterface {
       var port = address.port;
       var family = address.family;
       var ipaddr = address.address;
-      console.log('UDP server is listening on '+ipaddr+':' + port);
+      this.clog('UDP server is listening on '+ipaddr+':' + port);
       this.state = true;
     });
 
     //emits after the socket is closed using socket.close();
     this.server.on('close',function(){
-      console.log(('UDP socket is closed').red);
+      this.clog(('UDP socket is closed').red);
       this.state = false;
     });
 
@@ -74,12 +78,14 @@ export default class UDPInterface extends NetworkInterface {
 
 
   sendPacket(msg) {
-    console.log(('Send by UDP: ' + msg.toString()).yellow);
+    this.clog(('Send by UDP: ' + msg.toString()).yellow);
+    this.packetsSent++;
     this.server.send(msg.encode(), 8007, '255.255.255.255', function(error){
       if(error){
         console.error('BLERGH '+ error);
+        process.exit(0);
       }else{
-        //console.log('Data sent !!!');
+        //this.clog('Data sent !!!');
       }
     });
   }

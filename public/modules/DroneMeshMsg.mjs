@@ -13,21 +13,41 @@ export const DRONE_MESH_MSG_BUFFER_STATE_EMPTY      =0;   // empty (or already s
 export const DRONE_MESH_MSG_BUFFER_STATE_READY      =1;   // ready to send
 export const DRONE_MESH_MSG_BUFFER_STATE_WAITING    =2;   // waiting for Ack
 
-
-export const DRONE_MESH_MSG_MODE_UNICAST     =0;
-export const DRONE_MESH_MSG_MODE_MULTICAST   =0b10000000;
+export const DRONE_MESH_MSG_SEND          =0;
+export const DRONE_MESH_MSG_ACK           =1;
 
 export const DRONE_MESH_MSG_NOT_GUARANTEED   =0;
 export const DRONE_MESH_MSG_GUARANTEED       =0b01000000;
 
-export const DRONE_MESH_MSG_TYPE_HELLO          =(0 << 1);
-export const DRONE_MESH_MSG_TYPE_SUBSCRIPTION   =(1 << 1);
-export const DRONE_MESH_MSG_TYPE_TRACEROUTE     =(2 << 1);
-export const DRONE_MESH_MSG_TYPE_ROUTEENTRY     =(3 << 1);
-export const DRONE_MESH_MSG_TYPE_DRONELINKMSG   =(4 << 1);
+// Packet types
+// -------------------------------------------------------------------------
+export const DRONE_MESH_MSG_TYPE_HELLO                  =0;
 
-export const DRONE_MESH_MSG_REQUEST          =0;
-export const DRONE_MESH_MSG_RESPONSE         =1;
+export const DRONE_MESH_MSG_TYPE_SUBSCRIPTION_REQUEST   =1;
+export const DRONE_MESH_MSG_TYPE_SUBSCRIPTION_RESPONSE  =2;
+
+export const DRONE_MESH_MSG_TYPE_TRACEROUTE_REQUEST     =3;
+export const DRONE_MESH_MSG_TYPE_TRACEROUTE_RESPONSE    =4;
+
+export const DRONE_MESH_MSG_TYPE_ROUTEENTRY_REQUEST     =5;
+export const DRONE_MESH_MSG_TYPE_ROUTEENTRY_RESPONSE    =6;
+
+export const DRONE_MESH_MSG_TYPE_DRONELINKMSG           =7;
+// -------------------------------------------------------------------------
+
+// Priorities
+// -------------------------------------------------------------------------
+export const DRONE_MESH_MSG_PRIORITY_LOW        =0;
+export const DRONE_MESH_MSG_PRIORITY_MEDIUM     =1;
+export const DRONE_MESH_MSG_PRIORITY_HIGH       =2;
+export const DRONE_MESH_MSG_PRIORITY_CRITICAL   =3;
+// -------------------------------------------------------------------------
+
+// interface type codes
+export const DRONE_MESH_INTERFACE_TYPE_UDP        =0;
+export const DRONE_MESH_INTERFACE_TYPE_RFM69      =1;
+export const DRONE_MESH_INTERFACE_TYPE_PTP        =2;  // point to point telemetry radio
+export const DRONE_MESH_INTERFACE_TYPE_IRIDIUM    =3;
 
 
 function constrain(v, minv, maxv) {
@@ -38,13 +58,13 @@ function constrain(v, minv, maxv) {
 export class DroneMeshMsg {
 
   constructor(buffer) {
-    this.modeGuaranteeSize = 0;
+    this.typeGuaranteeSize = 0;
     this.txNode = 0;
     this.srcNode = 0;
     this.nextNode = 0;
     this.destNode = 0;
     this.seq = 0;
-    this.typeDir = 0;
+    this.priorityType = 0;
     this.isValid = true;
 
     this.rawPayload = new ArrayBuffer(DRONE_MESH_MSG_MAX_PAYLOAD_SIZE);
@@ -57,13 +77,13 @@ export class DroneMeshMsg {
 
   parse(rawBuffer) {
     var buffer = new Uint8Array(rawBuffer, 0);
-    this.modeGuaranteeSize = buffer[0];
+    this.typeGuaranteeSize = buffer[0];
     this.txNode = buffer[1];
     this.srcNode = buffer[2];
     this.nextNode = buffer[3];
     this.destNode = buffer[4];
     this.seq = buffer[5];
-    this.typeDir = buffer[6];
+    this.priorityType = buffer[6];
     this.crc = buffer[ this.getTotalSize()-1 ];
 
     for (var i=0; i < this.getPayloadSize(); i++) {
@@ -74,16 +94,20 @@ export class DroneMeshMsg {
     this.isValid = crc8.calc(rawBuffer, this.getTotalSize()-1) == this.crc;
   }
 
-  getMode() {
-    return this.modeGuaranteeSize & 0b10000000;
+  isAck() {
+    return this.getPacketType() > 0;
   }
 
-  isUnicast() {
-    return this.getMode() == DRONE_MESH_MSG_MODE_UNICAST;
+  getPacketType() {
+    return (this.typeGuaranteeSize >> 7);
+  }
+
+  setPacketType(t) {
+    this.typeGuaranteeSize = (this.typeGuaranteeSize & 0b01111111) | (t << 7);
   }
 
   getPayloadSize() {
-    return constrain( (this.modeGuaranteeSize & 0b00111111) + 1, 0, DRONE_MESH_MSG_MAX_PAYLOAD_SIZE);
+    return constrain( (this.typeGuaranteeSize & 0b00111111) + 1, 0, DRONE_MESH_MSG_MAX_PAYLOAD_SIZE);
   }
 
   getTotalSize() {
@@ -91,29 +115,47 @@ export class DroneMeshMsg {
   }
 
   isGuaranteed() {
-    return (this.modeGuaranteeSize & DRONE_MESH_MSG_GUARANTEED) > 0;
+    return (this.typeGuaranteeSize & DRONE_MESH_MSG_GUARANTEED) > 0;
   }
 
-  getType() {
-    return this.typeDir & 0b11111110;
+  getPayloadType() {
+    return this.priorityType & 0b00111111 ;
+  }
+
+  setPayloadType(t) {
+    this.priorityType = (this.priorityType & 0b11000000) | t;
+  }
+
+  getPriority() {
+    return this.priorityType >> 6;
+  }
+
+  setPriority(p) {
+    this.priorityType = (this.priorityType & 0b00111111) | (p << 6)
+  }
+
+  setPriorityAndType(p,t) {
+    this.priorityType = (p << 6) | t;
   }
 
   getTypeName() {
-    switch(this.getType()) {
+    switch(this.getPayloadType()) {
       case DRONE_MESH_MSG_TYPE_HELLO: return 'Hello';
-      case DRONE_MESH_MSG_TYPE_SUBSCRIPTION: return 'Sub';
-      case DRONE_MESH_MSG_TYPE_TRACEROUTE: return 'Traceroute';
-      case DRONE_MESH_MSG_TYPE_ROUTEENTRY: return 'RoutingEntry';
+
+      case DRONE_MESH_MSG_TYPE_SUBSCRIPTION_REQUEST: return 'Sub Req';
+      case DRONE_MESH_MSG_TYPE_SUBSCRIPTION_RESPONSE: return 'Sub Resp';
+
+      case DRONE_MESH_MSG_TYPE_TRACEROUTE_REQUEST: return 'Traceroute Req';
+      case DRONE_MESH_MSG_TYPE_TRACEROUTE_RESPONSE: return 'Traceroute Resp';
+
+      case DRONE_MESH_MSG_TYPE_ROUTEENTRY_REQUEST: return 'RoutingEntry Req';
+      case DRONE_MESH_MSG_TYPE_ROUTEENTRY_RESPONSE: return 'RoutingEntry Resp';
+
       case DRONE_MESH_MSG_TYPE_DRONELINKMSG: return 'DLM';
+
+    default:
+      return '???';
     }
-  }
-
-  getDirection() {
-    return this.typeDir & 0b1;
-  }
-
-  isRequest() {
-    return (this.getDirection() == DRONE_MESH_MSG_REQUEST);
   }
 
   payloadToString() {
@@ -127,9 +169,9 @@ export class DroneMeshMsg {
 
   toString() {
     return '(' +
-            (this.isUnicast() ? 'U' : 'M') + ', '+
-            (this.isRequest() ? 'Req' : 'Res') +', '+
-            this.getTypeName() +
+            (this.isAck() ? 'Ack' : 'S') + ', '+
+            this.getTypeName() + ', p'+
+            this.getPriority() +
            ') '+
            this.srcNode + ' > ' +
            this.txNode + ' > ' +
@@ -148,13 +190,13 @@ export class DroneMeshMsg {
     // return Uint8Array
     var buffer = new Uint8Array(this.getTotalSize());
 
-    buffer[0] = this.modeGuaranteeSize;
+    buffer[0] = this.typeGuaranteeSize;
 		buffer[1] = this.txNode;
     buffer[2] = this.srcNode;
     buffer[3] = this.nextNode;
     buffer[4] = this.destNode;
     buffer[5] = this.seq;
-    buffer[6] = this.typeDir;
+    buffer[6] = this.priorityType;
 
     for (var i=0; i<this.getPayloadSize(); i++) {
       buffer[7+i] = this.uint8_tPayload[i];

@@ -12,10 +12,14 @@ import * as DMRE from './DroneMeshRouteEntry.mjs';
 
 const DRONE_LINK_MANAGER_MAX_ROUTE_AGE = 60000;
 
-
 const SUB_STATE_PENDING = 0;
 const SUB_STATE_REQUESTED = 1;
 const SUB_STATE_CONFIRMED = 2;
+
+const DRONE_LINK_MANAGER_MAX_TX_QUEUE    = 8;
+
+const DRONE_LINK_MANAGER_HELLO_INTERVAL  = 5000;
+const DRONE_LINK_MANAGER_SEQ_INTERVAL    = 30000;
 
 function constrain(v, minv, maxv) {
   return Math.max(Math.min(v, maxv), minv);
@@ -24,8 +28,9 @@ function constrain(v, minv, maxv) {
 
 export default class DroneLinkManager {
 
-  constructor(node) {
+  constructor(node, clog) {
     this.node = node;
+    this.clog = clog;
 
     this.routeMap = {};
 
@@ -33,20 +38,202 @@ export default class DroneLinkManager {
 
     this.bootTime = Date.now();
 
+    this.helloSeq = 0;
+    this.txQueue = [];  // collection of DroneMeshMsg, with additional state property
+    this.helloTimer = 0;
+    this.seqTimer = 0;
+    this.gSeq = 0;
+
+    this.clog('DroneLinkManager started');
+
+    // slow process timer
     setInterval( ()=>{
       this.checkForOldRoutes();
       this.updateSubscriptions();
     }, 1000);
+
+    // transmit timer
+    setInterval( ()=>{
+      this.processTransmitQueue();
+    }, 10);
+
+    // hello Timer
+    setInterval( ()=>{
+      this.generateHellos();
+    }, DRONE_LINK_MANAGER_HELLO_INTERVAL);
   }
 
 
+
+  getTxQueueSize() {
+    return this.txQueue.length;
+  }
+
+
+  getTransmitBuffer(ni) {
+    if (this.txQueue.length < DRONE_LINK_MANAGER_MAX_TX_QUEUE) {
+      var msg = new DMM.DroneMeshMsg();
+      msg.interface = ni;
+      this.txQueue.push(msg);
+      //this.clog(' txQueue size: ' + this.txQueue.length);
+      return msg;
+    }
+    return null;
+  }
+
+
+  processTransmitQueue() {
+    if (this.txQueue.length ==0 ) return;
+
+    var msg = this.txQueue.shift();
+
+    // send via appropriate interface
+    if (msg.interface)
+      msg.interface.sendPacket(msg);
+  }
+
+
+  generateHellos() {
+    //this.clog('gH');
+    var loopTime = Date.now();
+
+    // generate a hello for each active interface
+    for (var i=0; i<this.interfaces.length; i++) {
+      var ni = this.interfaces[i];
+
+      if (ni.state) {
+        this.generateHello(ni, this.node, this.helloSeq, 15, loopTime - this.bootTime);
+      } else {
+        this.clog('interface down');
+      }
+    }
+
+    // generate a new hello seq number every now and again
+    if (loopTime > this.seqTimer + DRONE_LINK_MANAGER_SEQ_INTERVAL) {
+      this.helloSeq++;
+      this.seqTimer = loopTime;
+    }
+  }
+
+
+  generateHello(ni, src, seq, metric, uptime) {
+    var msg = this.getTransmitBuffer(ni);
+
+    if (msg) {
+      //this.clog('generating hello on interface: ' + ni.typeName);
+      // populate hello packet
+      msg.typeGuaranteeSize =  DMM.DRONE_MESH_MSG_NOT_GUARANTEED | (5-1) ;  // payload is 1 byte... sent as n-1
+      msg.txNode = this.node;
+      msg.srcNode = src;
+      msg.nextNode = 0;
+      msg.destNode = 0;
+      msg.seq = seq;
+      msg.setPriorityAndType(DMM.DRONE_MESH_MSG_PRIORITY_CRITICAL, DMM.DRONE_MESH_MSG_TYPE_HELLO);
+      msg.uint8_tPayload[0] = metric;
+      // little endian byte order
+      msg.uint8_tPayload[4] = (uptime >> 24) & 0xFF;
+      msg.uint8_tPayload[3] = (uptime >> 16) & 0xFF;
+      msg.uint8_tPayload[2] = (uptime >> 8) & 0xFF;
+      msg.uint8_tPayload[1] = (uptime ) & 0xFF;
+
+      return true;
+    }
+
+    return false;
+  }
+
+
+  generateSubscriptionRequest(ni, src, next, dest, channel, param) {
+    var msg = this.getTransmitBuffer(ni);
+
+    if (msg) {
+      // populate with a subscription request packet
+      msg.typeGuaranteeSize = DMM.DRONE_MESH_MSG_GUARANTEED | 1 ;  // payload is 2 byte... sent as n-1
+      msg.txNode = src;
+      msg.srcNode = this.node;
+      msg.nextNode = next;
+      msg.destNode = dest;
+      msg.seq = 0;
+      msg.setPriorityAndType(DMM.DRONE_MESH_MSG_PRIORITY_MEDIUM, DMM.DRONE_MESH_MSG_TYPE_SUBSCRIPTION_REQUEST);
+      msg.metric = 0;
+
+      // populate payload = channel, param
+      msg.uint8_tPayload[0] = channel;
+      msg.uint8_tPayload[1] = param;
+
+      return true;
+    }
+
+    return false;
+  }
+
+
+  generateRouteEntryRequest(ni, target, subject, nextHop) {
+    var msg = this.getTransmitBuffer(ni);
+
+    if (msg) {
+      this.clog(('generateRouteEntryRequest for '+target+', '+subject).blue);
+      // populate with a subscription request packet
+      msg.typeGuaranteeSize = DMM.DRONE_MESH_MSG_GUARANTEED | 10;  // payload is 1 byte... sent as n-1
+      msg.txNode = this.node;
+      msg.srcNode = this.node;
+      msg.nextNode = nextHop;
+      msg.destNode = target;
+      msg.seq = 0;
+      msg.setPriorityAndType(DMM.DRONE_MESH_MSG_PRIORITY_LOW, DMM.DRONE_MESH_MSG_TYPE_ROUTEENTRY_REQUEST);
+      msg.metric = 0;
+
+      // populate payload
+      msg.uint8_tPayload[0] = subject;
+
+      return true;
+    }
+
+    return false;
+  }
+
+
+  generateDroneLinkMessage(ni, dlmMsg, nextHop) {
+    var msg = this.getTransmitBuffer(ni);
+    if (msg) {
+      var payloadSize = dlmMsg.totalSize();
+
+      // populate with a subscription request packet
+      msg.typeGuaranteeSize = DMM.DRONE_MESH_MSG_GUARANTEED | (payloadSize-1);  // payload is 2 byte... sent as n-1
+      msg.txNode = this.node;
+      msg.srcNode = this.node;
+      msg.nextNode = nextHop;
+      msg.destNode = dlmMsg.node;
+      msg.seq = this.gSeq;
+      msg.setPriorityAndType(DMM.DRONE_MESH_MSG_PRIORITY_HIGH, DMM.DRONE_MESH_MSG_TYPE_DRONELINKMSG);
+
+      this.gSeq++;
+      if (this.gSeq > 255) this.gSeq = 0;
+
+      // populate payload
+      var buffer = dlmMsg.encodeUnframed();
+      for (var i=0; i<payloadSize; i++) {
+        msg.uint8_tPayload[i] = buffer[i];
+      }
+
+      this.clog( ('  ' + msg.toString()).blue);
+
+      return true;
+    }
+
+    return false;
+  }
+
+
+
+
   getRoutesFor(target, subject) {
-    console.log(('getRoutesFor: '+ target +', '+ subject).red);
+    this.clog(('getRoutesFor: '+ target +', '+ subject).red);
     var nodeInfo = this.getNodeInfo(target, false);
     if (nodeInfo && nodeInfo.heard) {
-      var ni = this.getInterfaceById(nodeInfo.netInterface);
+      var ni = nodeInfo.netInterface;
       if (ni) {
-        ni.generateRouteEntryRequest(target, subject, nodeInfo.nextHop);
+        this.generateRouteEntryRequest(ni, target, subject, nodeInfo.nextHop);
       }
     }
   }
@@ -71,7 +258,7 @@ export default class DroneLinkManager {
     var loopTime = Date.now();
     for (const [node, nodeInfo] of Object.entries(this.routeMap)) {
       if (nodeInfo.heard && loopTime > nodeInfo.lastHeard + DRONE_LINK_MANAGER_MAX_ROUTE_AGE) {
-        console.log(('  Removing route to '+nodeInfo.node).red);
+        this.clog(('  Removing route to '+nodeInfo.node).red);
         this.removeRoute(node);
       }
     }
@@ -82,10 +269,10 @@ export default class DroneLinkManager {
     var loopTime = Date.now();
     for (const [node, nodeInfo] of Object.entries(this.routeMap)) {
       if (nodeInfo.heard && (loopTime > nodeInfo.subTimer + 10000)) {
-        var ni = this.getInterfaceById(nodeInfo.netInterface);
-        console.log(('  Refreshing sub to '+nodeInfo.node).blue);
-        if (ni && ni.generateSubscriptionRequest(nodeInfo.node, nodeInfo.nextHop, nodeInfo.node, 0,0)) {
-          //console.log(('request sent').green);
+        var ni = nodeInfo.netInterface;
+        this.clog(('  Refreshing sub to '+nodeInfo.node).blue);
+        if (ni && this.generateSubscriptionRequest(ni,nodeInfo.node, nodeInfo.nextHop, nodeInfo.node, 0,0)) {
+          //this.clog(('request sent').green);
           nodeInfo.subTimer = Date.now();
         }
       }
@@ -143,27 +330,68 @@ export default class DroneLinkManager {
     var txNodeInfo = this.getNodeInfo(msg.txNode, false);
     if (txNodeInfo && txNodeInfo.heard) txNodeInfo.lastHeard = Date.now();
 
-    // pass to appropriate receive handler
-    switch (msg.getType()) {
-      case DMM.DRONE_MESH_MSG_TYPE_HELLO: this.receiveHello(netInterface, msg, metric); break;
-      case DMM.DRONE_MESH_MSG_TYPE_SUBSCRIPTION: this.receiveSubscription(netInterface, msg, metric); break;
-      case DMM.DRONE_MESH_MSG_TYPE_DRONELINKMSG: this.receiveDroneLinkMsg(netInterface, msg, metric); break;
-      //case DMM.DRONE_MESH_MSG_TYPE_TRACEROUTE: this.receiveTraceroute(netInterface, msg, metric); break;
-      case DMM.DRONE_MESH_MSG_TYPE_ROUTEENTRY: this.receiveRouteEntry(netInterface, msg, metric); break;
+    if (msg.isAck()) {
+      this.receiveAck(msg);
+
+    } else {
+      if (msg.isGuaranteed())
+        this.generateAck(netInterface, msg);
+
+      // pass to appropriate receive handler
+      switch (msg.getPayloadType()) {
+        case DMM.DRONE_MESH_MSG_TYPE_HELLO: this.receiveHello(netInterface, msg, metric); break;
+
+        case DMM.DRONE_MESH_MSG_TYPE_SUBSCRIPTION_RESPONSE: this.receiveSubscriptionResponse(netInterface, msg, metric); break;
+
+        case DMM.DRONE_MESH_MSG_TYPE_DRONELINKMSG: this.receiveDroneLinkMsg(netInterface, msg, metric); break;
+
+        //case DMM.DRONE_MESH_MSG_TYPE_TRACEROUTE: this.receiveTraceroute(netInterface, msg, metric); break;
+
+        case DMM.DRONE_MESH_MSG_TYPE_ROUTEENTRY_RESPONSE: this.receiveRouteEntryResponse(netInterface, msg, metric); break;
+
+      default:
+        this.clog(('Unknown payload type: '+ msg.toString()).red);
+      }
     }
   }
 
 
-  receiveHello(netInterface, msg, metric) {
-    // check this is a request
-    if (!msg.isRequest()) return;
+  receiveAck(msg) {
+    // search tx queue for a matching waiting buffer
+    // TODO
+  }
 
-    // ignore hello's from us
-    if (msg.srcNode == this.node) return;
+
+  generateAck(netInterface, msg) {
+    var amsg = this.getTransmitBuffer(netInterface);
+
+    if (amsg) {
+      // populate with a subscription request packet
+      amsg.typeGuaranteeSize = DMM.DRONE_MESH_MSG_GUARANTEED | 0 ;  // payload is 1 byte... sent as n-1
+      // set Ack
+      amsg.setPacketType(DMM.DRONE_MESH_MSG_ACK);
+      amsg.txNode = this.node;
+      amsg.srcNode = msg.destNode;
+      amsg.nextNode = msg.txNode;
+      amsg.destNode = msg.srcNode;
+      amsg.seq = msg.seq;
+      amsg.setPriorityAndType(msg.getPriority(), msg.getPayloadType());
+
+      // populate payload = channel, param
+      amsg.uint8_tPayload[0] = 0;
+
+      return true;
+    }
+
+    return false;
+  }
+
+
+  receiveHello(netInterface, msg, metric) {
 
     var loopTime = Date.now();
 
-    console.log('  Hello from '+msg.srcNode + ' tx by '+msg.txNode + ', metric='+metric+', seq='+msg.seq);
+    this.clog('  Hello from '+msg.srcNode + ' tx by '+msg.txNode + ', metric='+metric+', seq='+msg.seq);
 
     // calc total metric inc RSSI to us
     var newMetric = constrain(msg.uint8_tPayload[0] + metric, 0, 255);
@@ -189,19 +417,19 @@ export default class DroneLinkManager {
         // is this a new sequence (allow for wrap-around)
         if ((msg.seq > nodeInfo.seq) || (nodeInfo.seq > 128 && (msg.seq < nodeInfo.seq - 128))) {
           feasibleRoute = true;
-          console.log("  New seq " + msg.seq);
+          this.clog("  New seq " + msg.seq);
         }
 
         // or is it the same, but with a better metric
         if (msg.seq == nodeInfo.seq &&
             newMetric < nodeInfo.metric) {
           feasibleRoute = true;
-          console.log("  Better metric " + newMetric);
+          this.clog("  Better metric " + newMetric);
         }
       }
 
       if (feasibleRoute) {
-        console.log("  Updating route info");
+        this.clog("  Updating route info");
         nodeInfo.seq = msg.seq;
         nodeInfo.metric = newMetric;
         nodeInfo.netInterface = netInterface;
@@ -210,10 +438,11 @@ export default class DroneLinkManager {
 
         // generate subscription?
         if (nodeInfo.subState == SUB_STATE_PENDING) {
-          var ni = this.getInterfaceById(nodeInfo.netInterface);
+          var ni = nodeInfo.netInterface;
           if (ni) {
-            if (ni.generateSubscriptionRequest(this.node, nodeInfo.nextHop, nodeInfo.node, 0,0)) {
+            if (this.generateSubscriptionRequest(ni,this.node, nodeInfo.nextHop, nodeInfo.node, 0,0)) {
               nodeInfo.subTimer = Date.now();
+              nodeInfo.subState = SUB_STATE_REQUESTED;
             }
 
           }
@@ -221,9 +450,9 @@ export default class DroneLinkManager {
 
         if (this.io) this.io.emit('route.update', nodeInfo.encode());
 
-        console.log(this.routeMap);
+        //this.clog(this.routeMap);
       } else {
-        console.log("  New route infeasible, existing metric=" + nodeInfo.metric + ", seq=" + nodeInfo.seq);
+        this.clog("  New route infeasible, existing metric=" + nodeInfo.metric + ", seq=" + nodeInfo.seq);
         newMetric = nodeInfo.metric;
       }
 
@@ -232,7 +461,7 @@ export default class DroneLinkManager {
       if (loopTime > nodeInfo.lastBroadcast + 5000) {
         if (newMetric < 255) {
           for (var i=0; i < this.interfaces.length; i++) {
-            this.interfaces[i].generateHello(msg.srcNode, msg.seq, newMetric);
+            this.generateHello(this.interfaces[i], msg.srcNode, msg.seq, newMetric);
           }
           nodeInfo.lastBroadcast = loopTime;
         }
@@ -242,40 +471,28 @@ export default class DroneLinkManager {
   }
 
 
-  receiveSubscription(netInterface, msg, metric) {
-    console.log('  Sub from '+msg.srcNode + ' to '+msg.destNode);
+  receiveSubscriptionResponse(netInterface, msg, metric) {
+    this.clog('  Sub Response from '+msg.srcNode + ' to '+msg.destNode);
 
-    if (msg.isRequest()) {
-      console.log('  Request');
-
-      // TODO
-
-    } else {
-
-      // check if we are the destination
-      if (msg.destNode == this.node) {
-        console.log('  Response');
-
-        // update sub state
-        var nodeInfo = this.getNodeInfo(msg.srcNode, false);
-        if (nodeInfo && nodeInfo.heard) {
-          nodeInfo.subState = SUB_STATE_CONFIRMED;
-          nodeInfo.subTimer = Date.now();
-          console.log(('  Sub to '+msg.srcNode + ' confirmed').green);
-        }
-
+    // check if we are the destination
+    if (msg.destNode == this.node) {
+      // update sub state
+      var nodeInfo = this.getNodeInfo(msg.srcNode, false);
+      if (nodeInfo && nodeInfo.heard) {
+        nodeInfo.subState = SUB_STATE_CONFIRMED;
+        nodeInfo.subTimer = Date.now();
+        this.clog(('  Sub to '+msg.srcNode + ' confirmed').green);
       }
+
     }
+
   }
 
 
   receiveDroneLinkMsg(netInterface, msg, metric) {
-    // check this is a request
-    if (!msg.isRequest()) return;
-
     var loopTime = Date.now();
 
-    console.log('  DLM from '+msg.srcNode + ' tx by '+msg.txNode);
+    this.clog('  DLM from '+msg.srcNode + ' tx by '+msg.txNode);
 
     // check if we're the next node - otherwise ignore it
     if (msg.nextNode == this.node) {
@@ -297,13 +514,10 @@ export default class DroneLinkManager {
   }
 
 
-  receiveRouteEntry(netInterface, msg, metric) {
-    // check this is a request
-    if (!msg.isRequest()) return;
-
+  receiveRouteEntryResponse(netInterface, msg, metric) {
     var loopTime = Date.now();
 
-    console.log('  Route Entry from '+msg.srcNode + ' tx by '+msg.txNode);
+    this.clog('  Route Entry Response from '+msg.srcNode + ' tx by '+msg.txNode);
 
     // check if we're the next node - otherwise ignore it
     if (msg.nextNode == this.node) {
@@ -326,21 +540,31 @@ export default class DroneLinkManager {
 
 
   sendDroneLinkMessage(msg) {
-    console.log(('Sending DLM').blue)
     //update source
     msg.source = this.node;
+    //console.log(msg);
+    this.clog('Sending DLM: ' + msg.asString());
     var nodeInfo = this.getNodeInfo(msg.node, false);
     if (nodeInfo && nodeInfo.heard) {
-      var ni = this.getInterfaceById(nodeInfo.netInterface);
+      var ni = nodeInfo.netInterface;
       if (ni) {
-        ni.sendDroneLinkMessage(msg, nodeInfo.nextHop);
+        if (this.generateDroneLinkMessage(ni, msg, nodeInfo.nextHop)) {
+          //this.clog('  sent'.green);
+        } else {
+          this.clog('  failed to send'.red);
+        }
+      } else {
+        this.clog('  Unknown interface'.red);
       }
+    } else {
+      this.clog(('  No route to node: ' + msg.node).red);
+      console.log(nodeInfo);
     }
   }
 
 
   emitAllRoutes() {
-    console.log(('Emitting all routes').red)
+    this.clog(('Emitting all routes').red)
     for (const [node, nodeInfo] of Object.entries(this.routeMap)) {
       if (nodeInfo.heard) {
         if (this.io) this.io.emit('route.update', nodeInfo.encode());

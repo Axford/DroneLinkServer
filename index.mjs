@@ -15,13 +15,124 @@ import UDPInterface from './public/modules/UDPInterface.mjs';
 
 import SerialPort from 'serialport';
 
-console.log(('Starting DroneLink Server...').green);
+import blessed from 'blessed';
+
+// setup screen interface
+const screen = blessed.screen({
+  smartCSR: true
+});
+
+var pauseLog = false;
+
+let logBox = blessed.log({
+  parent: screen,
+  top: 2,
+  left: 0,
+  bottom:2,
+  width: '100%',
+  style: {
+    fg: 'white',
+    bg: '#141a20',
+    border: {
+      fg: '#343a40'
+    },
+  },
+  border: {
+    type: 'line'
+  },
+  keys: true,
+  vi: true,
+  hidden:true,
+  alwaysScroll:true,
+  scrollable: true,
+  scrollbar: {
+    style: {
+      bg: 'yellow'
+    }
+  },
+  scrollback:100,
+  scrollOnInput:false
+});
+
+var diagnosticsBox = blessed.box({
+  parent: screen,
+  top: 2,
+  left: 0,
+  bottom:2,
+  width: '100%',
+  content: '',
+  tags: true,
+  style: {
+    fg: 'white',
+    bg: '#242a30'
+  }
+});
+
+var titleBox = blessed.box({
+  parent: screen,
+  top: 0,
+  left: 'center',
+  width: '100%',
+  height: 1,
+  content: '{bold}DroneLinkServer{/bold}',
+  tags: true,
+  style: {
+    fg: 'white',
+    bg: '#005bdf'
+  }
+});
+
+var footerBox = blessed.box({
+  parent: screen,
+  bottom: 0,
+  left: 'center',
+  width: '100%',
+  height: 1,
+  content: '[q]'.green + 'Quit   '+'[l]'.green+'Log   '+'[d]'.green+'Diagnostics   '+'[p]'.green+'Pause Log',
+  tags: true,
+  style: {
+    fg: 'white',
+    bg: '#242a30'
+  }
+});
+
+// Quit on Escape, q, or Control-C.
+screen.key(['escape', 'q', 'C-c'], function(ch, key) {
+  return process.exit(0);
+});
+
+screen.key(['l'], function(ch, key) {
+  logBox.show();
+  diagnosticsBox.hide();
+  screen.render();
+});
+
+screen.key(['d'], function(ch, key) {
+  logBox.hide();
+  diagnosticsBox.show();
+  screen.render();
+});
+
+screen.key(['p'], function(ch, key) {
+  pauseLog = !pauseLog;
+});
+
+screen.render();
+
+
+function clog(v) {
+  if (!pauseLog) logBox.add(v);
+  logBox.screen.render();
+  //console.log(v);
+}
+
+clog(('Starting DroneLink Server...').green);
 
 import os from "os";
 var hostname = os.hostname();
-console.log('Hostname: '+hostname);
+clog('Hostname: '+hostname);
 
-//console.log('broadcast address: ', broadcastAddress('en0'));
+//clog('broadcast address: ', broadcastAddress('en0'));
 
 import fs from 'fs';
 import express from 'express';
@@ -33,25 +144,61 @@ const httpServer = http.createServer(app);
 
 
 var config = JSON.parse( fs.readFileSync('./config.json') );
+//console.log(config);
 
 var env = hostname;
-//console.log('Env: ' + env);
+//clog('Env: ' + env);
 
-console.log('Using config: ', config[env]);
+clog('Using config: ', env);
 
 // network id
 var sourceId = config[env].id ? config[env].id : 254;
-console.log('Using server node address: ' + sourceId);
+clog('Using server node address: ' + sourceId);
 
 // init DLM
-var dlm = new DroneLinkManager(sourceId);
+var dlm = new DroneLinkManager(sourceId, clog);
 
 // prep msgQueue
 var msgQueue = new DroneLinkMsgQueue();
 
 // create interfaces
-var udpi = new UDPInterface(dlm, 1);
+var udpi = new UDPInterface(dlm, 1, clog);
 
+
+// -----------------------------------------------------------
+
+setInterval(()=>{
+  // update diagnostics
+  var s = '';
+
+  s += 'txQueue = ' + dlm.txQueue.length + '\n\n';
+
+  s += '{bold}Interfaces{/bold}\n';
+  for (var i=0; i<dlm.interfaces.length; i++) {
+    var ni = dlm.interfaces[i];
+    s+= ' '+ni.typeName.yellow + ': Sent: '+ni.packetsSent+', Received: '+ni.packetsReceived+', Rejected: '+ni.packetsRejected+'\n';
+  }
+
+  s+= '\n';
+  s += '{bold}Routing table{/bold}\n';
+
+  for (const [node, nodeInfo] of Object.entries(dlm.routeMap)) {
+    if (nodeInfo.heard) {
+      s += (' ' + nodeInfo.node).yellow;
+      s += ': Seq: '+nodeInfo.seq;
+      s += ', Metric: '+nodeInfo.metric;
+      s += ', Next: '+nodeInfo.nextHop;
+      s += ', Age: ' + ((Date.now()-nodeInfo.lastHeard)/1000).toFixed(0)+'s';
+      s += ', Uptime: '+(nodeInfo.uptime/1000).toFixed(0)+'s';
+      s += ', Int: '+nodeInfo.netInterface.typeName;
+      s += '\n';
+    }
+  }
+
+  diagnosticsBox.content = s;
+
+  diagnosticsBox.screen.render();
+}, 1000);
 
 // -----------------------------------------------------------
 
@@ -61,7 +208,7 @@ app.use(express.json());
 app.use(cors());
 
 app.get('/', function(req, res){
-  res.sendfile('./public/observer.htm');
+  res.sendFile('./public/observer.htm');
 });
 
 app.get('/routes', function(req, res){
@@ -69,7 +216,7 @@ app.get('/routes', function(req, res){
 });
 
 app.get('/firmware', function(req, res){
-  res.sendfile(path.resolve('../DroneNode/.pio/build/esp32doit-devkit-v1/firmware.bin'));
+  res.sendFile(path.resolve('../DroneNode/.pio/build/esp32doit-devkit-v1/firmware.bin'));
 });
 
 app.get('/file', (req, res) => {
@@ -82,7 +229,7 @@ app.get('/nodeFiles', (req, res) => {
 
   // get directories (i.e. nodes)
   fs.readdirSync('./public/nodes/').forEach(file => {
-    console.log(file);
+    clog(file);
     dirList[file] = {
       files: []
     }
@@ -91,7 +238,7 @@ app.get('/nodeFiles', (req, res) => {
   // iterate back over directories and fetch files
   for (const [node, value] of Object.entries(dirList)) {
     fs.readdirSync('./public/nodes/' + node).forEach(file => {
-      console.log(file);
+      clog(file);
       dirList[node].files.push(file);
     });
   }
@@ -103,7 +250,7 @@ app.get('/nodeFiles', (req, res) => {
 app.use(express.static('public'));
 
 httpServer.listen(webPort, () => {
-  console.log(`Listening at http://localhost:${webPort}`)
+  clog(`Web UI available at http://localhost:${webPort}`)
 })
 
 // -----------------------------------------------------------
@@ -114,12 +261,12 @@ const io = new Server(httpServer);
 dlm.io = io;
 
 io.on('connection', (socket) => {
-  console.log('a user connected');
+  clog('Web UI client connected');
 
   // if we receive a message from a client for onward transmission
   socket.on('sendMsg', (msgBuffer)=>{
     var msg = new DLM.DroneLinkMsg(msgBuffer);
-    console.log(('[.sM] recv: ' + msg.asString()).green );
+    clog(('[.sM] recv: ' + msg.asString()).green );
     //handleLinkMsg(msg, 'socket');
 
     // queue for retransmission
@@ -163,4 +310,4 @@ function sendMessages() {
 }
 
 
-setInterval(sendMessages, 100);
+setInterval(sendMessages, 50);
