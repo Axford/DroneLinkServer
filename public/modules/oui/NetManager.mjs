@@ -22,6 +22,8 @@ export default class NetManager {
 
     this.blocks = [];
 
+    this.lastDraw = 0;
+
     this.pan = false;
     this.panPosition = new Vector(0,0);
     this.panStart = new Vector(0,0);
@@ -124,7 +126,7 @@ export default class NetManager {
     setInterval(()=>{
       // cycle through building route entry info
       this.discoverRouteEntries();
-    },1000);
+    },500);
 
 
     this.resize(); // will trigger a redraw
@@ -198,7 +200,11 @@ export default class NetManager {
   }
 
   draw() {
+    var loopTime = Date.now();
+    if (loopTime - this.lastDraw > 1000) this.needsRedraw = true;
     if (!this.needsRedraw) return;
+
+    this.lastDraw = loopTime;
 
     this.frame++;
 
@@ -371,7 +377,7 @@ export default class NetManager {
     var next = this.addBlock(re.nextHop);
     var dest = this.addBlock(re.node);
 
-    src.addHop(next, next == dest ? re.metric : 255);
+    src.addHop(next, next == dest ? re.metric : 255, re.netInterface);
     //next.addHop(dest, re.metric);
 
     this.draw();

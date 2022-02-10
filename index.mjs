@@ -15,7 +15,7 @@ import UDPInterface from './public/modules/UDPInterface.mjs';
 
 import SerialPort from 'serialport';
 
-import blessed from 'blessed';
+import blessed from 'neo-blessed';
 
 // setup screen interface
 const screen = blessed.screen({
@@ -26,7 +26,7 @@ var pauseLog = false;
 
 let logBox = blessed.log({
   parent: screen,
-  top: 2,
+  top: 5,
   left: 0,
   bottom:2,
   width: '100%',
@@ -96,6 +96,128 @@ var footerBox = blessed.box({
   }
 });
 
+var logOptionsBox = blessed.box({
+  parent: screen,
+  top: 1,
+  left: 'center',
+  width: '100%',
+  height: 4,
+  content: '',
+  hidden:true,
+  mouse: true,
+  keys:true,
+  vi: true,
+  tags: true,
+  style: {
+    fg: 'white',
+    bg: '#242a30'
+  }
+});
+
+var checkStyle = {
+  fg: '#fff',
+  bg: '#242a30',
+  hover: {
+    fg: '#5f5'
+  },
+  focus: {
+    border: {
+      fg: 'blue'
+    }
+  }
+};
+
+var showDLMCheck = blessed.checkbox({
+  parent: logOptionsBox,
+  top: 0,
+  left: '5%',
+  width: '40%',
+  height: 1,
+  text: 'DroneLinkMsg',
+  tags: true,
+  mouse: true,
+  keys:true,
+  vi: true,
+  style: checkStyle,
+  checked:true
+});
+showDLMCheck.on('click', ()=>{ updateLogOptions(); });
+
+
+var showRouteEntryCheck = blessed.checkbox({
+  parent: logOptionsBox,
+  top: 0,
+  left: '55%',
+  width: '40%',
+  height: 1,
+  text: 'RouteEntry',
+  tags: true,
+  mouse: true,
+  keys:true,
+  vi: true,
+  style: checkStyle,
+  checked:true
+});
+showRouteEntryCheck.on('click', ()=>{ updateLogOptions(); });
+
+var showTransmitCheck = blessed.checkbox({
+  parent: logOptionsBox,
+  top: 1,
+  left: '5%',
+  width: '40%',
+  height: 1,
+  text: 'Transmit',
+  tags: true,
+  mouse: true,
+  keys:true,
+  vi: true,
+  style: checkStyle,
+  checked:true
+});
+showTransmitCheck.on('click', ()=>{ updateLogOptions(); });
+
+var showHelloCheck = blessed.checkbox({
+  parent: logOptionsBox,
+  top: 1,
+  left: '55%',
+  width: '40%',
+  height: 1,
+  text: 'Hello',
+  tags: true,
+  mouse: true,
+  keys:true,
+  vi: true,
+  style: checkStyle,
+  checked:true
+});
+showHelloCheck.on('click', ()=>{ updateLogOptions(); });
+
+var showSubscriptionCheck = blessed.checkbox({
+  parent: logOptionsBox,
+  top: 2,
+  left: '5%',
+  width: '40%',
+  height: 1,
+  text: 'Subscription',
+  tags: true,
+  mouse: true,
+  keys:true,
+  vi: true,
+  style: checkStyle,
+  checked:true
+});
+showSubscriptionCheck.on('click', ()=>{ updateLogOptions(); });
+
+
+function updateLogOptions() {
+  dlm.logOptions.DroneLinkMsg = showDLMCheck.checked;
+  dlm.logOptions.RouteEntry = showRouteEntryCheck.checked;
+  dlm.logOptions.Transmit = showTransmitCheck.checked;
+  dlm.logOptions.Hello = showHelloCheck.checked;
+  dlm.logOptions.Subscription = showSubscriptionCheck.checked;
+
+}
+
 // Quit on Escape, q, or Control-C.
 screen.key(['escape', 'q', 'C-c'], function(ch, key) {
   return process.exit(0);
@@ -103,12 +225,14 @@ screen.key(['escape', 'q', 'C-c'], function(ch, key) {
 
 screen.key(['l'], function(ch, key) {
   logBox.show();
+  logOptionsBox.show();
   diagnosticsBox.hide();
   screen.render();
 });
 
 screen.key(['d'], function(ch, key) {
   logBox.hide();
+  logOptionsBox.hide();
   diagnosticsBox.show();
   screen.render();
 });
@@ -208,7 +332,7 @@ app.use(express.json());
 app.use(cors());
 
 app.get('/', function(req, res){
-  res.sendFile('./public/observer.htm');
+  res.sendfile('./public/observer.htm');
 });
 
 app.get('/routes', function(req, res){
@@ -216,7 +340,8 @@ app.get('/routes', function(req, res){
 });
 
 app.get('/firmware', function(req, res){
-  res.sendFile(path.resolve('../DroneNode/.pio/build/esp32doit-devkit-v1/firmware.bin'));
+  clog('Serving firmware to: '+req.ip);
+  res.sendfile(path.resolve('../DroneNode/.pio/build/esp32doit-devkit-v1/firmware.bin'));
 });
 
 app.get('/file', (req, res) => {
@@ -266,7 +391,7 @@ io.on('connection', (socket) => {
   // if we receive a message from a client for onward transmission
   socket.on('sendMsg', (msgBuffer)=>{
     var msg = new DLM.DroneLinkMsg(msgBuffer);
-    clog(('[.sM] recv: ' + msg.asString()).green );
+    //clog(('[.sM] recv: ' + msg.asString()).green );
     //handleLinkMsg(msg, 'socket');
 
     // queue for retransmission

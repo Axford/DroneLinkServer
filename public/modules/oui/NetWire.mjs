@@ -12,16 +12,23 @@ function cube(x) { return x*x*x; }
 export default class NetWire {
 
   // src and dest are block objects
-  constructor(mgr, src, dest) {
+  constructor(mgr, src, dest, netInterface) {
     this.mgr = mgr;
     this.src = src;
     this.dest = dest;
     this.metric = 255;
     this.lastHeard = Date.now();
+    this.netInterface = netInterface;
   }
 
   getAlpha() {
     return 100 - 100 * constrain((Date.now() - this.lastHeard)/1000, 1, 60)/60;
+  }
+
+  getStyle() {
+    return "hsl(" + (this.netInterface == 1 ? '330' : '25') + ',' +
+             '100%,' +
+             '70%, '+this.getAlpha()+'%)';
   }
 
   getBezPointOnCurve(p1,p2,p3,p4,t) {
@@ -55,7 +62,8 @@ export default class NetWire {
     */
 
 
-    var style = dim ? '#606060' : this.src.getStyle(this.getAlpha());
+    //var style = dim ? '#606060' : this.src.getStyle(this.getAlpha());
+    var style = dim ? '#606060' : this.getStyle();
 
     ctx.strokeStyle = style;
     //ctx.strokeStyle = '#606060';

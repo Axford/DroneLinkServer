@@ -46,7 +46,7 @@ export default class UDPInterface extends NetworkInterface {
           this.packetsReceived++;
         } else {
           // TODO: consider sniffing network traffic
-          this.clog('not for us')
+          //this.clog('not for us')
         }
 
       } else {
@@ -78,12 +78,13 @@ export default class UDPInterface extends NetworkInterface {
 
 
   sendPacket(msg) {
-    this.clog(('Send by UDP: ' + msg.toString()).yellow);
+    //this.clog(('Send by UDP: ' + msg.toString()).yellow);
     this.packetsSent++;
     this.server.send(msg.encode(), 8007, '255.255.255.255', function(error){
       if(error){
-        console.error('BLERGH '+ error);
-        process.exit(0);
+        //console.error('BLERGH '+ error);
+        this.clog(('UDP error: '+error).red);
+        //process.exit(0);
       }else{
         //this.clog('Data sent !!!');
       }

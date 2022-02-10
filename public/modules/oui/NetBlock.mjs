@@ -21,9 +21,11 @@ export default class NetBlock {
     // a wire to each next hop node
     this.nextHops = {};
 
-    this.hue = 360 * Math.random();
-    this.saturation = 100;
-    this.lightness = (65 + 20 * Math.random());
+    //this.hue = 360 * Math.random();
+    this.hue = 0;
+    this.saturation = 0;
+    //this.lightness = (65 + 20 * Math.random());
+    this.lightness = 90;
 
     this.fillStyle = this.getStyle( this.getAlpha() );
 
@@ -141,17 +143,20 @@ export default class NetBlock {
     }
   }
 
-  addHop(dest, metric) {
+  addHop(dest, metric, netInterface) {
     if (dest == this) return;
 
     if (!this.nextHops.hasOwnProperty(dest.node)) {
-      this.nextHops[dest.node] = new NetWire(this.mgr, this, dest);
+      this.nextHops[dest.node] = new NetWire(this.mgr, this, dest, netInterface);
     }
 
     this.nextHops[dest.node].lastHeard = Date.now();
 
-    if (metric < this.nextHops[dest.node].metric)
-        this.nextHops[dest.node].metric = metric;
+    if (metric < this.nextHops[dest.node].metric) {
+      this.nextHops[dest.node].metric = metric;
+      this.nextHops[dest.node].netInterface = netInterface;
+    }
+
   }
 
 }

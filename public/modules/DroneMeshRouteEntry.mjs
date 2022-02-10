@@ -52,7 +52,7 @@ export class DroneMeshRouteEntry {
     buffer[1] = this.node;
 		buffer[2] = this.seq;
     buffer[3] = this.metric;
-    buffer[4] = this.netInteface;
+    buffer[4] = this.netInterface;
     buffer[5] = this.nextHop;
     buffer[6] = (this.age >> 24) & 0xFF;
     buffer[7] = (this.age >> 16) & 0xFF;
