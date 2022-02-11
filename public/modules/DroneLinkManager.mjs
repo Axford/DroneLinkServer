@@ -686,6 +686,7 @@ export default class DroneLinkManager {
     this.firmwareRewinds = 0;
     this.firmwareLastRewinds = 0;
     this.firmwareSending = false;
+    this.firmwareNodes = {};
 
     var filepath = this.firmwarePath;
     this.firmwareSize = getFilesizeInBytes(filepath);
