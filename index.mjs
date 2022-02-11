@@ -389,6 +389,7 @@ function durationToStr(dur) {
 setInterval(()=>{
   var s = '';
 
+  s += 'Firmware: ' + dlm.firmwarePath + '\n\n';
   s += 'Firmware size: ' + dlm.firmwareSize + '\n';
   if (dlm.firmwareSending && dlm.firmwarePos < dlm.firmwareSize) {
     var dur = (Date.now() - dlm.firmwareStartTime)/1000;
@@ -408,7 +409,7 @@ setInterval(()=>{
   s += '{bold}Nodes primed to receive:{/bold}\n';
 
   for (const [key, node] of Object.entries(dlm.firmwareNodes)) {
-    s += '  '+ key + '\n';
+    s += '  '+ key + ' - '+ (node.ready == 1 ? 'Ready' : 'Error') +'\n';
   }
 
   firmwareStatusBox.content = s;
@@ -452,7 +453,7 @@ clog('Using config: ', env);
 var sourceId = config[env].id ? config[env].id : 254;
 clog('Using server node address: ' + sourceId);
 
-var firmwarePath = path.resolve('../DroneNode/.pio/build/esp32doit-devkit-v1/firmware.bin');
+var firmwarePath = config[env].firmwarePath;
 clog('Firmware path: ' + firmwarePath);
 
 // init DLM

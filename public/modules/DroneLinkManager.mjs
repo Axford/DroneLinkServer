@@ -610,8 +610,10 @@ export default class DroneLinkManager {
 
     // are we the destination?
     if (msg.destNode == this.node) {
+
+      // read the status value
       this.firmwareNodes[msg.srcNode] = {
-        ready:true
+        ready: msg.uint8_tPayload[0] == 1
       }
     }
 
@@ -683,6 +685,7 @@ export default class DroneLinkManager {
     this.firmwarePos = 0;
     this.firmwareRewinds = 0;
     this.firmwareLastRewinds = 0;
+    this.firmwareSending = false;
 
     var filepath = this.firmwarePath;
     this.firmwareSize = getFilesizeInBytes(filepath);
@@ -757,10 +760,6 @@ export default class DroneLinkManager {
           this.firmwareTransmitRate *= 0.98;
         }
       }
-
-
-
-
 
       // prep next packet to send, working through this.firmwareBuffer
 

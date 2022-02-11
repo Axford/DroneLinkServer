@@ -6,6 +6,7 @@
     "id":250
   },
   "Damians-MacBook-Pro.local":{
-    "id":250
+    "id":250,
+    "firmwarePath":"/Users/damianaxford/Documents/GitHub/DroneNode/.pio/build/esp32doit-devkit-v1/firmware.bin"
   }
 }
