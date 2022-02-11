@@ -88,7 +88,7 @@ var footerBox = blessed.box({
   left: 'center',
   width: '100%',
   height: 1,
-  content: '[q]'.green + 'Quit   '+'[l]'.green+'Log   '+'[d]'.green+'Diagnostics   '+'[p]'.green+'Pause Log',
+  content: '[q]'.green + 'Quit   '+'[l]'.green+'Log   '+'[d]'.green+'Diagnostics   '+'[p]'.green+'Pause Log   '+'[f]'.green+'Firmware',
   tags: true,
   style: {
     fg: 'white',
@@ -209,6 +209,119 @@ var showSubscriptionCheck = blessed.checkbox({
 showSubscriptionCheck.on('click', ()=>{ updateLogOptions(); });
 
 
+var firmwareBox = blessed.box({
+  parent: screen,
+  top: 2,
+  left: 0,
+  bottom:2,
+  width: '100%',
+  content: '',
+  hidden:true,
+  tags: true,
+  style: {
+    fg: 'white',
+    bg: '#242a30'
+  }
+});
+
+
+var firmwarePrimeButton = blessed.button({
+  parent: firmwareBox,
+  top: 0,
+  left: '5%',
+  width: '40%',
+  height:3,
+  content: '{center}Prime{/center}',
+  tags: true,
+  style: {
+    fg: 'white',
+    bg: '#242a30',
+    hover: {
+      bg: '#5f5',
+      fg: 'black',
+      border: {
+        fg: '#5f5'
+      }
+    },
+    border: {
+      fg: '#545a60',
+      bg: '#242a30'
+    },
+  },
+  border: {
+    type: 'line'
+  },
+});
+
+var firmwareStartButton = blessed.button({
+  parent: firmwareBox,
+  top: 0,
+  left: '55%',
+  width: '40%',
+  height:3,
+  content: '{center}Start{/center}',
+  tags: true,
+  style: {
+    fg: 'white',
+    bg: '#242a30',
+    hover: {
+      bg: '#5f5',
+      fg: 'black',
+      border: {
+        fg: '#5f5'
+      }
+    },
+    border: {
+      fg: '#545a60',
+      bg: '#242a30'
+    },
+  },
+  border: {
+    type: 'line'
+  },
+});
+
+
+var firmwareStatusBox = blessed.box({
+  parent: firmwareBox,
+  top: 10,
+  left: '5%',
+  bottom: 2,
+  width: '90%',
+  content: '',
+  tags: true,
+  style: {
+    fg: 'white',
+    bg: '#242a30'
+  }
+});
+
+var firmwareProgressBox = blessed.ProgressBar({
+  parent: firmwareBox,
+  top: 5,
+  left: '5%',
+  height:3,
+  width: '90%',
+  orientation: 'horizontal',
+  content: '',
+  tags: true,
+  style: {
+    fg: 'white',
+    bg: '#242a30',
+    bar: {
+      bg:'#5f5'
+    },
+    border: {
+      fg: '#545a60',
+      bg: '#242a30'
+    },
+  },
+  border: {
+    type: 'line'
+  }
+});
+
+
 function updateLogOptions() {
   dlm.logOptions.DroneLinkMsg = showDLMCheck.checked;
   dlm.logOptions.RouteEntry = showRouteEntryCheck.checked;
@@ -227,6 +340,7 @@ screen.key(['l'], function(ch, key) {
   logBox.show();
   logOptionsBox.show();
   diagnosticsBox.hide();
+  firmwareBox.hide();
   screen.render();
 });
 
@@ -234,6 +348,7 @@ screen.key(['d'], function(ch, key) {
   logBox.hide();
   logOptionsBox.hide();
   diagnosticsBox.show();
+  firmwareBox.hide();
   screen.render();
 });
 
@@ -241,7 +356,65 @@ screen.key(['p'], function(ch, key) {
   pauseLog = !pauseLog;
 });
 
+screen.key(['f'], function(ch, key) {
+  logBox.hide();
+  logOptionsBox.hide();
+  diagnosticsBox.hide();
+  firmwareBox.show();
+  screen.render();
+});
+
+firmwarePrimeButton.on('click', ()=>{
+  dlm.primeFirmwareUpdate();
+})
+
+firmwareStartButton.on('click', ()=>{
+  dlm.startFirmwareUpdate();
+})
+
 screen.render();
+
+
+function durationToStr(dur) {
+  var s = '';
+  var minutes = Math.floor(dur/60);
+  var seconds = dur - minutes*60;
+  s += (minutes > 0 ? minutes.toFixed(0) + 'm ' : '') + seconds.toFixed(0) + 's';
+  return s;
+}
+
+
+// update firmware status box
+// TODO - make this not a crappy hack
+setInterval(()=>{
+  var s = '';
+
+  s += 'Firmware size: ' + dlm.firmwareSize + '\n';
+  if (dlm.firmwareSending && dlm.firmwarePos < dlm.firmwareSize) {
+    var dur = (Date.now() - dlm.firmwareStartTime)/1000;
+    var totalDur =  dlm.firmwarePos > 0 ? dlm.firmwareSize * dur / dlm.firmwarePos : 0;
+    s += 'Duration: ' + durationToStr(dur) + '\n';
+    s += 'Est. total Duration: ' + durationToStr(totalDur) + '\n';
+    s += 'Pos: ' + dlm.firmwarePos + '('+ (100 * dlm.firmwarePos / dlm.firmwareSize).toFixed(1) +'%)\n';
+    s += 'Write rate: '+ (dlm.firmwarePos / dur).toFixed(1) + ' bytes/s\n';
+    s += 'Packets Sent: ' + dlm.firmwarePacketsSent + '\n';
+    s += 'Target transmit rate: ' + dlm.firmwareTransmitRate.toFixed(0) + ' packets/sec\n';
+    s += 'Average transmit rate: ' + (dlm.firmwarePacketsSent / dur).toFixed(0) + ' packets/sec\n';
+    s += 'Rewinds: ' + dlm.firmwareRewinds + '('+(dlm.rewindRate).toFixed(1) +' /s)\n';
+  }
+
+  s += '\n';
+
+  s += '{bold}Nodes primed to receive:{/bold}\n';
+
+  for (const [key, node] of Object.entries(dlm.firmwareNodes)) {
+    s += '  '+ key + '\n';
+  }
+
+  firmwareStatusBox.content = s;
+  firmwareProgressBox.setProgress(100 * dlm.firmwarePos / dlm.firmwareSize);
+  screen.render();
+}, 1000);
 
 
 function clog(v) {
@@ -279,8 +452,12 @@ clog('Using config: ', env);
 var sourceId = config[env].id ? config[env].id : 254;
 clog('Using server node address: ' + sourceId);
 
+var firmwarePath = path.resolve('../DroneNode/.pio/build/esp32doit-devkit-v1/firmware.bin');
+clog('Firmware path: ' + firmwarePath);
+
 // init DLM
 var dlm = new DroneLinkManager(sourceId, clog);
+dlm.firmwarePath = firmwarePath;
 
 // prep msgQueue
 var msgQueue = new DroneLinkMsgQueue();
@@ -341,7 +518,7 @@ app.get('/routes', function(req, res){
 
 app.get('/firmware', function(req, res){
   clog('Serving firmware to: '+req.ip);
-  res.sendfile(path.resolve('../DroneNode/.pio/build/esp32doit-devkit-v1/firmware.bin'));
+  res.sendfile(firmwarePath);
 });
 
 app.get('/file', (req, res) => {

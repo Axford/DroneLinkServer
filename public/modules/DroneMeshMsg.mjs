@@ -33,6 +33,14 @@ export const DRONE_MESH_MSG_TYPE_ROUTEENTRY_REQUEST     =5;
 export const DRONE_MESH_MSG_TYPE_ROUTEENTRY_RESPONSE    =6;
 
 export const DRONE_MESH_MSG_TYPE_DRONELINKMSG           =7;
+
+// batch firmware messages
+export const DRONE_MESH_MSG_TYPE_FIRMWARE_START_REQUEST   =22;
+export const DRONE_MESH_MSG_TYPE_FIRMWARE_START_RESPONSE  =23;
+export const DRONE_MESH_MSG_TYPE_FIRMWARE_WRITE           =24;
+export const DRONE_MESH_MSG_TYPE_FIRMWARE_REWIND          =25;
+export const DRONE_MESH_MSG_TYPE_FIRMWARE_END_REQUEST     =26;
+export const DRONE_MESH_MSG_TYPE_FIRMWARE_END_RESPONSE    =27;
 // -------------------------------------------------------------------------
 
 // Priorities
@@ -152,6 +160,13 @@ export class DroneMeshMsg {
       case DRONE_MESH_MSG_TYPE_ROUTEENTRY_RESPONSE: return 'RoutingEntry Resp';
 
       case DRONE_MESH_MSG_TYPE_DRONELINKMSG: return 'DLM';
+
+      case DRONE_MESH_MSG_TYPE_FIRMWARE_START_REQUEST:  return 'Firmware Start Req';
+      case DRONE_MESH_MSG_TYPE_FIRMWARE_START_RESPONSE:  return 'Firmware Start Resp';
+      case DRONE_MESH_MSG_TYPE_FIRMWARE_WRITE:  return 'Firmware Write';
+      case DRONE_MESH_MSG_TYPE_FIRMWARE_REWIND:  return 'Firmware Rewind';
+      case DRONE_MESH_MSG_TYPE_FIRMWARE_END_REQUEST:  return 'Firmware End Req';
+      case DRONE_MESH_MSG_TYPE_FIRMWARE_END_RESPONSE:  return 'Firmware End Resp'; 
 
     default:
       return '???';

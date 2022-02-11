@@ -9,6 +9,7 @@ Manages the mesh network link over local network interfaces (routing table, etc)
 import * as DLM from './droneLinkMsg.mjs';
 import * as DMM from './DroneMeshMsg.mjs';
 import * as DMRE from './DroneMeshRouteEntry.mjs';
+import fs from 'fs';
 
 const DRONE_LINK_MANAGER_MAX_ROUTE_AGE = 60000;
 
@@ -25,6 +26,12 @@ function constrain(v, minv, maxv) {
   return Math.max(Math.min(v, maxv), minv);
 }
 
+
+function getFilesizeInBytes(filename) {
+    var stats = fs.statSync(filename);
+    var fileSizeInBytes = stats.size;
+    return fileSizeInBytes;
+}
 
 export default class DroneLinkManager {
 
@@ -43,6 +50,19 @@ export default class DroneLinkManager {
     this.helloTimer = 0;
     this.seqTimer = 0;
     this.gSeq = 0;
+
+    this.firmwareNodes = {};
+    this.firmwarePos = 0;
+    this.firmwareSize = 0;
+    this.firmwarePath = '';
+    this.firmwareSending = false;
+    this.firmwarePacketsSent = 0;
+    this.firmwareRewinds = 0;
+    this.firmwareLastRewinds = 0;
+    this.firmwareTransmitRate = 100;  // packets per second
+    this.firmwareLastTransmitted = 0;
+    this.firmwareRewindTimer = 0;
+    this.rewindRate = 0;
 
     this.logOptions = {
       Hello:true,
@@ -63,12 +83,17 @@ export default class DroneLinkManager {
     // transmit timer
     setInterval( ()=>{
       this.processTransmitQueue();
-    }, 10);
+    }, 1);
 
     // hello Timer
     setInterval( ()=>{
       this.generateHellos();
     }, DRONE_LINK_MANAGER_HELLO_INTERVAL);
+
+    // firmware transmission, max 1000 per second
+    setInterval( ()=>{
+      this.transmitFirmware();
+    }, 1);
   }
 
 
@@ -372,6 +397,10 @@ export default class DroneLinkManager {
 
         case DMM.DRONE_MESH_MSG_TYPE_ROUTEENTRY_RESPONSE: this.receiveRouteEntryResponse(netInterface, msg, metric); break;
 
+        case DMM.DRONE_MESH_MSG_TYPE_FIRMWARE_START_RESPONSE: this.receiveFirmwareStartResponse(netInterface, msg, metric); break;
+
+        case DMM.DRONE_MESH_MSG_TYPE_FIRMWARE_REWIND: this.receiveFirmwareRewind(netInterface, msg, metric); break;
+
       default:
         this.clog(('Unknown payload type: '+ msg.toString()).orange);
       }
@@ -533,6 +562,9 @@ export default class DroneLinkManager {
         // unwrap contained DLM
         var dlmMsg = new DLM.DroneLinkMsg( msg.rawPayload );
 
+        if (this.logOptions.DroneLinkMsg)
+          this.clog('    ' + dlmMsg.asString());
+
         // publish dlm
         if (this.io) this.io.emit('DLM.msg', dlmMsg.encodeUnframed());
 
@@ -567,6 +599,41 @@ export default class DroneLinkManager {
       // pass along to next hop
       //TODO
       // hopAlong(msg)
+    }
+
+  }
+
+  receiveFirmwareStartResponse(netInterface, msg, metric) {
+    var loopTime = Date.now();
+
+    this.clog(('  Firmware Start Response from '+msg.srcNode).green);
+
+    // are we the destination?
+    if (msg.destNode == this.node) {
+      this.firmwareNodes[msg.srcNode] = {
+        ready:true
+      }
+    }
+
+  }
+
+
+  receiveFirmwareRewind(netInterface, msg, metric) {
+    var loopTime = Date.now();
+
+    this.clog(('  Firmware Rewind from '+msg.srcNode).yellow);
+
+    // are we the destination?
+    if (msg.destNode == this.node) {
+
+      // read offset from msg
+      var offset    = (msg.uint8_tPayload[3] << 24) +
+                      (msg.uint8_tPayload[2] << 16) +
+                      (msg.uint8_tPayload[1] << 8) +
+                      (msg.uint8_tPayload[0]);
+
+      this.firmwarePos = offset;
+      this.firmwareRewinds++;
     }
 
   }
@@ -606,6 +673,134 @@ export default class DroneLinkManager {
       if (nodeInfo.heard) {
         if (this.io) this.io.emit('route.update', nodeInfo.encode());
       }
+    }
+  }
+
+
+  primeFirmwareUpdate() {
+    // send a firmware start broadcast on all interfaces
+
+    this.firmwarePos = 0;
+    this.firmwareRewinds = 0;
+    this.firmwareLastRewinds = 0;
+
+    var filepath = this.firmwarePath;
+    this.firmwareSize = getFilesizeInBytes(filepath);
+    var filesize = this.firmwareSize;
+
+    // preload firmware into memory
+    this.firmwareBuffer = fs.readFileSync(filepath);
+
+    this.clog('Starting firmware update, size: ' + filesize);
+
+    for (var i=0; i<this.interfaces.length; i++) {
+      var ni = this.interfaces[i];
+
+      if (ni.state) {
+        var msg = this.getTransmitBuffer(ni);
+
+        if (msg) {
+          // populate packet
+          msg.typeGuaranteeSize =  DMM.DRONE_MESH_MSG_NOT_GUARANTEED | (4-1) ;
+          msg.txNode = this.node;
+          msg.srcNode = this.node;
+          msg.nextNode = 0;
+          msg.destNode = 0;
+          msg.seq = 0;
+          msg.setPriorityAndType(DMM.DRONE_MESH_MSG_PRIORITY_CRITICAL, DMM.DRONE_MESH_MSG_TYPE_FIRMWARE_START_REQUEST);
+          // little endian byte order
+          msg.uint8_tPayload[3] = (filesize >> 24) & 0xFF;
+          msg.uint8_tPayload[2] = (filesize >> 16) & 0xFF;
+          msg.uint8_tPayload[1] = (filesize >> 8) & 0xFF;
+          msg.uint8_tPayload[0] = (filesize ) & 0xFF;
+        }
+      }
+    }
+  }
+
+
+  startFirmwareUpdate() {
+    if (this.firmwareSize > 0) {
+      this.firmwareSending = true;
+      this.firmwareStartTime = Date.now();
+      this.firmwarePacketsSent = 0;
+      this.firmwareRewindTimer = Date.now();
+    }
+  }
+
+
+  transmitFirmware() {
+    // called every ms
+    if (this.firmwareSending &&
+        this.firmwarePos < this.firmwareSize) {
+
+
+      var txInterval = 1000 / this.firmwareTransmitRate;
+
+      // has it been long enough since last packet?
+      if (Date.now() - this.firmwareLastTransmitted < txInterval) return;
+      this.firmwareLastTransmitted = Date.now();
+
+
+      if (Date.now() > this.firmwareRewindTimer + 1000) {
+        // update rewind rate
+        this.rewindRate = (this.firmwareRewinds - this.firmwareLastRewinds);
+
+        this.firmwareLastRewinds = this.firmwareRewinds;
+
+        this.firmwareRewindTimer = Date.now();
+
+        // update firmwareTransmitRate to keep rewindRate (rewinds per second) < 6
+        if (this.rewindRate  < 6 && this.firmwareTransmitRate < 1000) {
+          this.firmwareTransmitRate *= 1.01;
+        } else if (this.rewindRate  > 6) {
+          this.firmwareTransmitRate *= 0.98;
+        }
+      }
+
+
+
+
+
+      // prep next packet to send, working through this.firmwareBuffer
+
+      // work out how many bytes will be in this next packet
+      var payloadSize = constrain(this.firmwareSize - this.firmwarePos, 1, 44) + 4;
+
+      for (var i=0; i<this.interfaces.length; i++) {
+        var ni = this.interfaces[i];
+
+        if (ni.state) {
+          var msg = this.getTransmitBuffer(ni);
+
+          if (msg) {
+            // populate packet
+            msg.typeGuaranteeSize =  DMM.DRONE_MESH_MSG_NOT_GUARANTEED | (payloadSize-1) ;  // payload is 1 byte... sent as n-1
+            msg.txNode = this.node;
+            msg.srcNode = this.node;
+            msg.nextNode = 0;
+            msg.destNode = 0;
+            msg.seq = 0;
+            msg.setPriorityAndType(DMM.DRONE_MESH_MSG_PRIORITY_CRITICAL, DMM.DRONE_MESH_MSG_TYPE_FIRMWARE_WRITE);
+
+            // populate offset info
+            msg.uint8_tPayload[3] = (this.firmwarePos >> 24) & 0xFF;
+            msg.uint8_tPayload[2] = (this.firmwarePos >> 16) & 0xFF;
+            msg.uint8_tPayload[1] = (this.firmwarePos >> 8) & 0xFF;
+            msg.uint8_tPayload[0] = (this.firmwarePos ) & 0xFF;
+
+            // populate payload
+            for (var j=0; j < payloadSize-4; j++) {
+              msg.uint8_tPayload[4 + j] = this.firmwareBuffer[this.firmwarePos + j];
+            }
+
+          }
+        }
+      }
+
+      // update firmwarePos
+      this.firmwarePos += payloadSize-4;
+      this.firmwarePacketsSent++;
     }
   }
 
