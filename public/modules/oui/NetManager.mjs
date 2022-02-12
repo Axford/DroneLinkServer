@@ -24,6 +24,8 @@ export default class NetManager {
 
     this.lastDraw = 0;
 
+    this.callbacks = {};
+
     this.pan = false;
     this.panPosition = new Vector(0,0);
     this.panStart = new Vector(0,0);
@@ -64,6 +66,8 @@ export default class NetManager {
           console.log('hit',b);
           this.dragBlock = b;
           this.dragBlockPos.set(b.position);
+          this.focus(b.node);
+          this.trigger('focus',b.node);
           continue;
         }
       }
@@ -132,6 +136,36 @@ export default class NetManager {
     this.resize(); // will trigger a redraw
 
     this.update();
+  }
+
+
+  focus(node) {
+    // focus node, blur all other nodes
+    for (var i=0; i<this.blocks.length; i++) {
+      if (this.blocks[i].node == node) {
+        this.blocks[i].focus()
+      } else {
+        this.blocks[i].blur();
+      }
+    }
+  }
+
+
+  on(name, cb) {
+    if (!this.callbacks.hasOwnProperty(name)) {
+      this.callbacks[name] = [];
+    }
+    this.callbacks[name].push(cb);
+  }
+
+
+  trigger(name, param) {
+    if (this.callbacks[name]) {
+      this.callbacks[name].forEach((cb)=>{
+        //console.log('trigger('+name+'): ', param);
+        cb(param);
+      })
+    }
   }
 
 

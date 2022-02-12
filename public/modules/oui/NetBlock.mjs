@@ -17,6 +17,7 @@ export default class NetBlock {
     //this.channel = data.channel; // channel id
     this.name = '';
     this.lastHeard = Date.now();
+    this.focused = false;
 
     // a wire to each next hop node
     this.nextHops = {};
@@ -44,6 +45,16 @@ export default class NetBlock {
     this.height = this.headerHeight;
     this.av = new Vector(0,0);
     this.updatePosition(this.position);
+  }
+
+  focus() {
+    this.focused = true;
+    this.mgr.needsRedraw = true;
+  }
+
+  blur() {
+    this.focused = false;
+    this.mgr.needsRedraw = true;
   }
 
   getStyle(alpha) {
@@ -127,6 +138,15 @@ export default class NetBlock {
     ctx.beginPath();
     ctx.arc(px + this.position.x, py + this.position.y, this.radius, 0, 2 * Math.PI);
     ctx.fill();
+
+    // focus ring
+    if (this.focused) {
+      ctx.strokeStyle = '#007bff';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(px + this.position.x, py + this.position.y, this.radius, 0, 2 * Math.PI);
+      ctx.stroke();
+    }
 
     // label
     ctx.fillStyle = '#000';

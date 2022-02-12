@@ -304,6 +304,13 @@ function init() {
   });
 
   networkGraph = new NetManager(socket, $('#networkPanel'));
+  networkGraph.on('focus', (id)=>{
+    // TODO - focus node
+    var node = nodes[id];
+    if (node) {
+      node.focus();
+    }
+  });
 
   $('#viewNetworkButton').on('click', ()=>{
     $('#mapPanel').hide();
@@ -486,6 +493,9 @@ function init() {
         for (const [key, n] of Object.entries(nodes)) {
           if (n != node) n.blur();
         }
+
+        // update network graph
+        networkGraph.focus(n.id);
 
         // ensure mgmt panel is open
         openPanel();
