@@ -365,8 +365,10 @@ export default class DroneLinkManager {
 
     if (routeExists) {
       nodeInfo = this.routeMap[node];
-      nodeInfo.lastHeard = Date.now();
-      nodeInfo.heard = true;
+      if (heard) {
+        nodeInfo.lastHeard = Date.now();
+        nodeInfo.heard = true;
+      }
       return this.routeMap[node];
     }
     return null;

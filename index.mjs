@@ -490,8 +490,8 @@ setInterval(()=>{
       s += ': Seq: '+nodeInfo.seq;
       s += ', Metric: '+nodeInfo.metric;
       s += ', Next: '+nodeInfo.nextHop;
-      s += ', Age: ' + ((Date.now()-nodeInfo.lastHeard)/1000).toFixed(0)+'s';
-      s += ', Uptime: '+(nodeInfo.uptime/1000).toFixed(0)+'s';
+      s += ', Age: ' + durationToStr((Date.now()-nodeInfo.lastHeard)/1000);
+      s += ', Uptime: '+durationToStr(nodeInfo.uptime/1000);
       s += ', Int: '+nodeInfo.netInterface.typeName;
       s += '\n';
     }

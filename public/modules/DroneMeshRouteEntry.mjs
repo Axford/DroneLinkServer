@@ -27,7 +27,8 @@ export class DroneMeshRouteEntry {
     this.metric = buffer[3];
     this.netInterface = buffer[4];
     this.nextHop = buffer[5];
-    this.age = (buffer[6] << 24) + (buffer[7] << 16) + (buffer[8] << 8) + buffer[9];
+    // little endian byte order
+    this.age = (buffer[9] << 24) + (buffer[8] << 16) + (buffer[7] << 8) + buffer[6];
     // little endian byte order
     this.uptime = (buffer[13] << 24) + (buffer[12] << 16) + (buffer[11] << 8) + buffer[10];
   }
@@ -38,8 +39,8 @@ export class DroneMeshRouteEntry {
            ', metric=' +this.metric +
            ', int=' + this.netInterface +
            ', nextHop=' + this.nextHop +
-           ', age=' + this.age +
-           ', uptime=' + this.uptime
+           ', age=' + (this.age/1000).toFixed(1) + 's'
+           ', uptime=' + (this.uptime/1000).toFixed(1) + 's'
            ;
   }
 
@@ -54,10 +55,11 @@ export class DroneMeshRouteEntry {
     buffer[3] = this.metric;
     buffer[4] = this.netInterface;
     buffer[5] = this.nextHop;
-    buffer[6] = (this.age >> 24) & 0xFF;
-    buffer[7] = (this.age >> 16) & 0xFF;
-    buffer[8] = (this.age >> 8) & 0xFF;
-    buffer[9] = (this.age) & 0xFF;
+    // little endian byte order
+    buffer[9] = (this.age >> 24) & 0xFF;
+    buffer[8] = (this.age >> 16) & 0xFF;
+    buffer[7] = (this.age >> 8) & 0xFF;
+    buffer[6] = (this.age) & 0xFF;
     // little endian byte order
     buffer[13] = (this.uptime >> 24) & 0xFF;
     buffer[12] = (this.uptime >> 16) & 0xFF;

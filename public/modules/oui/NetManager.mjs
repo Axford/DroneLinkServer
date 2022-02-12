@@ -126,7 +126,7 @@ export default class NetManager {
     setInterval(()=>{
       // cycle through building route entry info
       this.discoverRouteEntries();
-    },500);
+    }, 200);
 
 
     this.resize(); // will trigger a redraw
