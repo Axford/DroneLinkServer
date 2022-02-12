@@ -201,20 +201,7 @@ export default class NetManager {
   }
 
 
-  checkForOldBlocks() {
-    for (var i=0; i<this.blocks.length; i++) {
-      var b = this.blocks[i];
-
-      if (Date.now() - b.lastHeard > 60000) {
-        delete this.nodes[b.node];
-        this.blocks.slice(i, 1);
-      }
-    }
-  }
-
-
   update() {
-    this.checkForOldBlocks();
     this.updatePositions();
     this.draw();
 
@@ -397,7 +384,7 @@ export default class NetManager {
     }
   }
 
-  addBlock(addr) {
+  addBlock(addr, updateLastHeard) {
     if (!this.nodes.hasOwnProperty(addr)) {
       // add a new block representing a module
       var b = new NetBlock(this, addr);
@@ -405,7 +392,8 @@ export default class NetManager {
       this.nodes[addr] = b;
     }
 
-    this.nodes[addr].lastHeard = Date.now();
+    if (updateLastHeard)
+      this.nodes[addr].lastHeard = Date.now();
 
     return this.nodes[addr];
   }
@@ -420,9 +408,9 @@ export default class NetManager {
 
   routeUpdate(re) {
     // check src and dest exist
-    var src = this.addBlock(re.src);
-    var next = this.addBlock(re.nextHop);
-    var dest = this.addBlock(re.node);
+    var src = this.addBlock(re.src, true);
+    var next = this.addBlock(re.nextHop, false);
+    var dest = this.addBlock(re.node, false);
 
     src.addHop(next, next == dest ? re.metric : 255, re.netInterface);
     //next.addHop(dest, re.metric);

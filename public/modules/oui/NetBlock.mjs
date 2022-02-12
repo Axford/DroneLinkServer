@@ -64,7 +64,7 @@ export default class NetBlock {
   }
 
   getAlpha() {
-    return 100 - 100 * constrain((Date.now() - this.lastHeard)/1000, 1, 60)/60;
+    return 100 - 100 * constrain((Date.now() - this.lastHeard)/1000, 0, 60)/60;
   }
 
   hit(x,y) {
@@ -119,6 +119,8 @@ export default class NetBlock {
 
   draw() {
     this.checkForOldRoutes();
+
+    if (this.getAlpha() < 0.01) return;
 
     var c = this.mgr.canvas[0];
     var ctx = c.getContext("2d");
