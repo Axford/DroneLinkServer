@@ -34,6 +34,7 @@ export default class DroneLinkState {
     var me = this;
     this.state = {};
     this.socket = socket;
+    this.localAddress = 250; // default, overriden in observer.js
     this.discoveryQueue = new DroneLinkMsgQueue();
     this.callbacks = {}; // each key is an event type, values are an array of callback functions
     this.liveMode = false;  // set to false to stop using the socket (i.e. log playback mode)
@@ -81,7 +82,7 @@ export default class DroneLinkState {
 
       // speculative hostname query
       var qm = new DLM.DroneLinkMsg();
-      qm.source = 253;
+      qm.source = this.localAddress;
       qm.node = msg.node;
       qm.channel = 1;
       qm.param = 8;
@@ -92,7 +93,7 @@ export default class DroneLinkState {
       // speculative Nav type query
       /*
       qm = new DLM.DroneLinkMsg();
-      qm.source = 253;
+      qm.source = this.localAddress;
       qm.node = msg.node;
       qm.channel = 7;
       qm.param = DLM.DRONE_MODULE_PARAM_TYPE;
@@ -110,7 +111,7 @@ export default class DroneLinkState {
 
       // queue a type query
       var qm = new DLM.DroneLinkMsg();
-      qm.source = 253;
+      qm.source = this.localAddress;
       qm.node = msg.node;
       qm.channel = msg.channel;
       qm.param = DLM.DRONE_MODULE_PARAM_TYPE;
@@ -120,7 +121,7 @@ export default class DroneLinkState {
 
       // queue a name query
       qm = new DLM.DroneLinkMsg();
-      qm.source = 253;
+      qm.source = this.localAddress;
       qm.node = msg.node;
       qm.channel = msg.channel;
       qm.param = DLM.DRONE_MODULE_PARAM_NAME;
@@ -236,6 +237,8 @@ export default class DroneLinkState {
 
   send(msg) {
     if(!this.liveMode) return; // sending disabled if not live
+    // update source
+    msg.source = this.localAddress;
     this.discoveryQueue.add(msg);
   }
 

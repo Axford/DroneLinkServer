@@ -201,7 +201,20 @@ export default class NetManager {
   }
 
 
+  checkForOldBlocks() {
+    for (var i=0; i<this.blocks.length; i++) {
+      var b = this.blocks[i];
+
+      if (Date.now() - b.lastHeard > 60000) {
+        delete this.nodes[b.node];
+        this.blocks.slice(i, 1);
+      }
+    }
+  }
+
+
   update() {
+    this.checkForOldBlocks();
     this.updatePositions();
     this.draw();
 

@@ -130,6 +130,9 @@ export default class NetBlock {
     var px = this.mgr.panPosition.x;
     var py = this.mgr.panPosition.y;
 
+    // update fillStyle
+    this.fillStyle = this.getStyle( this.getAlpha() );
+
     var dim = (this.mgr.dragBlock && this.mgr.dragBlock != this);
     ctx.fillStyle = dim ? '#505050' : this.fillStyle;
     ctx.strokeStyle = '#505050';

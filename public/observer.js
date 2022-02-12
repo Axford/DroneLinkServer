@@ -34,6 +34,11 @@ var liveMode = true;
 var parsedLog = [];
 var logMarkers = [];
 
+socket.on('localAddress', (id)=>{
+  // set local address on state
+  state.localAddress = id;
+});
+
 
 function setPanelSize(w) {
   var container = $('#main'),

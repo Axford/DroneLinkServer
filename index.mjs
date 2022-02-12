@@ -566,6 +566,10 @@ dlm.io = io;
 io.on('connection', (socket) => {
   clog('Web UI client connected');
 
+  // inform new client of our local address: sourceId
+  io.emit('localAddress', sourceId);
+
+
   // if we receive a message from a client for onward transmission
   socket.on('sendMsg', (msgBuffer)=>{
     var msg = new DLM.DroneLinkMsg(msgBuffer);
