@@ -409,7 +409,7 @@ setInterval(()=>{
   s += '{bold}Nodes primed to receive:{/bold}\n';
 
   for (const [key, node] of Object.entries(dlm.firmwareNodes)) {
-    s += '  '+ key + ' - '+ (node.ready == 1 ? 'Ready' : 'Error') +'\n';
+    s += '  '+ key + ' - '+ (node.ready == 1 ? 'Ready' : 'Error') +', Rewinds: '+node.rewinds+'\n';
   }
 
   firmwareStatusBox.content = s;

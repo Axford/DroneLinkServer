@@ -615,7 +615,8 @@ export default class DroneLinkManager {
 
       // read the status value
       this.firmwareNodes[msg.srcNode] = {
-        ready: msg.uint8_tPayload[0] == 1
+        ready: msg.uint8_tPayload[0] == 1,
+        rewinds: 0
       }
     }
 
@@ -638,6 +639,7 @@ export default class DroneLinkManager {
 
       this.firmwarePos = offset;
       this.firmwareRewinds++;
+      this.firmwareNodes[msg.srcNode].rewinds++;
     }
 
   }
@@ -757,9 +759,10 @@ export default class DroneLinkManager {
         this.firmwareRewindTimer = Date.now();
 
         // update firmwareTransmitRate to keep rewindRate (rewinds per second) < 6
-        if (this.rewindRate  < 6 && this.firmwareTransmitRate < 1000) {
+        if (this.rewindRate  < 5 && this.firmwareTransmitRate < 1000) {
           this.firmwareTransmitRate *= 1.01;
-        } else if (this.rewindRate  > 6) {
+        } else if (this.rewindRate  >
+        10) {
           this.firmwareTransmitRate *= 0.98;
         }
       }
