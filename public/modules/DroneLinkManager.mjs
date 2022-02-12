@@ -616,7 +616,8 @@ export default class DroneLinkManager {
       // read the status value
       this.firmwareNodes[msg.srcNode] = {
         ready: msg.uint8_tPayload[0] == 1,
-        rewinds: 0
+        rewinds: 0,
+        rewindOffset:0
       }
     }
 
@@ -625,8 +626,6 @@ export default class DroneLinkManager {
 
   receiveFirmwareRewind(netInterface, msg, metric) {
     var loopTime = Date.now();
-
-    this.clog(('  Firmware Rewind from '+msg.srcNode).yellow);
 
     // are we the destination?
     if (msg.destNode == this.node) {
@@ -637,9 +636,12 @@ export default class DroneLinkManager {
                       (msg.uint8_tPayload[1] << 8) +
                       (msg.uint8_tPayload[0]);
 
+      this.clog(('  Firmware Rewind from '+msg.srcNode+' to: ' + offset).yellow);
+
       this.firmwarePos = offset;
       this.firmwareRewinds++;
       this.firmwareNodes[msg.srcNode].rewinds++;
+      this.firmwareNodes[msg.srcNode].rewindOffset = offset;
     }
 
   }
