@@ -22,6 +22,9 @@ export default class NetBlock {
     // a wire to each next hop node
     this.nextHops = {};
 
+    // ultimate destinations, entries point to the next hop block
+    this.destinations = {};
+
     //this.hue = 360 * Math.random();
     this.hue = 0;
     this.saturation = 0;
@@ -168,20 +171,25 @@ export default class NetBlock {
     }
   }
 
-  addHop(dest, metric, netInterface) {
+  addHop(next, dest, metric, netInterface) {
     if (dest == this) return;
 
-    if (!this.nextHops.hasOwnProperty(dest.node)) {
-      this.nextHops[dest.node] = new NetWire(this.mgr, this, dest, netInterface);
+    if (!this.nextHops.hasOwnProperty(next.node)) {
+      this.nextHops[next.node] = new NetWire(this.mgr, this, next, netInterface);
     }
 
-    this.nextHops[dest.node].lastHeard = Date.now();
+    // update destinations (point to the next block)
+    this.destinations[dest.node] = next;
 
-    if (metric < this.nextHops[dest.node].metric) {
-      this.nextHops[dest.node].metric = metric;
-      this.nextHops[dest.node].netInterface = netInterface;
+    this.nextHops[next.node].lastHeard = Date.now();
+
+    // only update metric if this is a direct route
+    if (next == dest) {
+      if (metric < this.nextHops[next.node].metric) {
+        this.nextHops[next.node].metric = metric;
+        this.nextHops[next.node].netInterface = netInterface;
+      }
     }
-
   }
 
 }

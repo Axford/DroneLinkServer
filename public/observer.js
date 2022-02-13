@@ -37,6 +37,7 @@ var logMarkers = [];
 socket.on('localAddress', (id)=>{
   // set local address on state
   state.localAddress = id;
+  if (networkGraph) networkGraph.localAddress = id;
 });
 
 
@@ -309,6 +310,7 @@ function init() {
   });
 
   networkGraph = new NetManager(socket, $('#networkPanel'));
+  networkGraph.localAddress = state.localAddress;
   networkGraph.on('focus', (id)=>{
     // TODO - focus node
     var node = nodes[id];

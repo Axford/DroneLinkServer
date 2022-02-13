@@ -26,6 +26,9 @@ export default class NetManager {
 
     this.callbacks = {};
 
+    this.focusNode = 0;
+    this.localAddress = 0;
+
     this.pan = false;
     this.panPosition = new Vector(0,0);
     this.panStart = new Vector(0,0);
@@ -141,6 +144,7 @@ export default class NetManager {
 
   focus(node) {
     // focus node, blur all other nodes
+    this.focusNode = node;
     for (var i=0; i<this.blocks.length; i++) {
       if (this.blocks[i].node == node) {
         this.blocks[i].focus()
@@ -288,6 +292,9 @@ export default class NetManager {
 
     var padding = 20;
 
+    // get server block
+    var sb = this.nodes[this.localAddress];
+
     // reset accel vectors
     for (var i=0; i<this.blocks.length; i++) {
       var b = this.blocks[i];
@@ -332,15 +339,31 @@ export default class NetManager {
           if (overlap.length() > 0) {
             overlap.multiply(20);
             b.av.add(overlap);
+
+          } else {
+            // otherwise add a gentle repulsion
+            var temp = ob.position.clone();
+            temp.subtract(b.position);
+            temp.normalize();
+            temp.multiply(0.01);
+            b.av.add(temp);
+
+            temp.multiply(-1);
+            ob.av.add(temp);
           }
+
+
+
         }
       }
 
       // pull blocks gently towards the centre
+      /*
       var temp = cv.clone();
       temp.subtract(b.position);
       temp.multiply(0.01);
       b.av.add(temp);
+      */
       /*
       if (b.numConnectedPorts > 0) {
         var temp = cv.clone();
@@ -357,6 +380,14 @@ export default class NetManager {
       }
       */
 
+    }
+
+    if (sb) {
+      // zero out accelerations
+      sb.av.subtract(sb.av);
+      // force position to centre
+      sb.position.x = w/2;
+      sb.position.y = h/2;
     }
 
     // apply accelerations
@@ -412,7 +443,7 @@ export default class NetManager {
     var next = this.addBlock(re.nextHop, false);
     var dest = this.addBlock(re.node, false);
 
-    src.addHop(next, next == dest ? re.metric : 255, re.netInterface);
+    src.addHop(next, dest, next == dest ? re.metric : 255, re.netInterface);
     //next.addHop(dest, re.metric);
 
     this.draw();

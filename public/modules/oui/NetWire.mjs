@@ -65,6 +65,11 @@ export default class NetWire {
     //var style = dim ? '#606060' : this.src.getStyle(this.getAlpha());
     var style = dim ? '#606060' : this.getStyle();
 
+    // see if this route is a path from src to the focusNode via dest
+    if (this.src.destinations[this.mgr.focusNode] == this.dest) {
+      style = '#5f5';
+    }
+
     ctx.strokeStyle = style;
     //ctx.strokeStyle = '#606060';
     ctx.lineWidth = dim ? 1 : 6;
