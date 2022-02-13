@@ -445,7 +445,12 @@ export default class NetManager {
     var next = this.addBlock(re.nextHop, false);
     var dest = this.addBlock(re.node, false);
 
-    src.addHop(next, dest, next == dest ? re.metric : 255, re.netInterface);
+    src.addHop(next, dest,
+      next == dest ? re.metric : 255,
+      re.netInterface,
+      next == dest ? re.avgAttempts : -1,
+      next == dest ? re.avgAckTime : -1
+    );
     //next.addHop(dest, re.metric);
 
     this.draw();

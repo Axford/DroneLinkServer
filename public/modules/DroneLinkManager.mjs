@@ -420,8 +420,9 @@ export default class DroneLinkManager {
     var amsg = this.getTransmitBuffer(netInterface);
 
     if (amsg) {
+      this.clog('Generating Ack to ' + msg.srcNode);
       // populate with a subscription request packet
-      amsg.typeGuaranteeSize = DMM.DRONE_MESH_MSG_GUARANTEED | 0 ;  // payload is 1 byte... sent as n-1
+      amsg.typeGuaranteeSize = DMM.DRONE_MESH_MSG_GUARANTEED | (msg.getPayloadSize()-1) ;
       // set Ack
       amsg.setPacketType(DMM.DRONE_MESH_MSG_ACK);
       amsg.txNode = this.node;
@@ -429,9 +430,9 @@ export default class DroneLinkManager {
       amsg.nextNode = msg.txNode;
       amsg.destNode = msg.srcNode;
       amsg.seq = msg.seq;
-      amsg.setPriorityAndType(msg.getPriority(), msg.getPayloadType());
+      amsg.priorityType = msg.priorityType;
 
-      // populate payload = channel, param
+      // populate payload
       amsg.uint8_tPayload[0] = 0;
 
       return true;

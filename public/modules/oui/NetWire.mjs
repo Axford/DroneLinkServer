@@ -19,6 +19,8 @@ export default class NetWire {
     this.metric = 255;
     this.lastHeard = Date.now();
     this.netInterface = netInterface;
+    this.avgAttempts = 0;
+    this.avgAckTime = 0;
   }
 
   getAlpha() {
@@ -101,10 +103,31 @@ export default class NetWire {
     ctx.bezierCurveTo(px + cp1.x, py + cp1.y , px + cp2.x, py + cp2.y, px + x2, py + y2);
     ctx.stroke();
 
+
+    // circular attempts background
+    var ap = this.getBezPointOnCurve(this.src.position, cp1, cp2, this.dest.position,  0.25);
+
+    ctx.fillStyle = "hsl(" + (135 * (10- this.avgAttempts)/10) + ',' +
+                     '100%,' +
+                     '70%, '+this.getAlpha()+'%)';
+
+    ctx.beginPath();
+    //ctx.arc(px + ap.x, py + ap.y, 15, 0, 2*Math.PI);
+    ctx.ellipse(px + ap.x, py + ap.y, 20, 10, 0, 0, 2*Math.PI);
+    ctx.fill();
+
+    // attempts label
+    ctx.fillStyle = '#000';
+    ctx.font = this.mgr.uiRoot.css('font');
+		ctx.textAlign = 'center';
+    ctx.fillText(
+      this.avgAttempts.toFixed(1) + ',' + this.avgAckTime,
+      px + ap.x, py + ap.y + 4);
+
+
+    // triangular label background
     var mp = this.getBezPointOnCurve(this.src.position, cp1, cp2, this.dest.position,  0.35);
 
-
-    // label background
     ctx.fillStyle = style;
     /*
     ctx.beginPath();
@@ -123,8 +146,6 @@ export default class NetWire {
     v2.rotate(120 * Math.PI / 180);
     ctx.lineTo(px + mp.x + v2.x, py + mp.y + v2.y);
     ctx.fill();
-
-
 
     // label
     ctx.fillStyle = '#000';

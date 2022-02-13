@@ -171,7 +171,7 @@ export default class NetBlock {
     }
   }
 
-  addHop(next, dest, metric, netInterface) {
+  addHop(next, dest, metric, netInterface, avgAttempts, avgAckTime) {
     if (dest == this) return;
 
     if (!this.nextHops.hasOwnProperty(next.node)) {
@@ -185,6 +185,9 @@ export default class NetBlock {
 
     // only update metric if this is a direct route
     if (next == dest) {
+      this.nextHops[next.node].avgAttempts = avgAttempts;
+      this.nextHops[next.node].avgAckTime = avgAckTime;
+
       if (metric < this.nextHops[next.node].metric) {
         this.nextHops[next.node].metric = metric;
         this.nextHops[next.node].netInterface = netInterface;

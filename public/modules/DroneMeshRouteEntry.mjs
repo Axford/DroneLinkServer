@@ -1,5 +1,5 @@
 
-export const DRONE_MESH_ROUTE_ENTRY_SIZE = 13;
+export const DRONE_MESH_ROUTE_ENTRY_SIZE = 16;
 
 
 export class DroneMeshRouteEntry {
@@ -13,6 +13,8 @@ export class DroneMeshRouteEntry {
     this.nextHop = 0;
     this.age = 0;
     this.uptime = 0;
+    this.avgAttempts = 0;
+    this.avgAckTime = 0;
 
     this.timestamp = Date.now();
 
@@ -31,6 +33,8 @@ export class DroneMeshRouteEntry {
     this.age = (buffer[9] << 24) + (buffer[8] << 16) + (buffer[7] << 8) + buffer[6];
     // little endian byte order
     this.uptime = (buffer[13] << 24) + (buffer[12] << 16) + (buffer[11] << 8) + buffer[10];
+    this.avgAttempts = (buffer[14] / 10);
+    this.avgAckTime = buffer[15];
   }
 
   toString() {
@@ -39,8 +43,10 @@ export class DroneMeshRouteEntry {
            ', metric=' +this.metric +
            ', int=' + this.netInterface +
            ', nextHop=' + this.nextHop +
-           ', age=' + (this.age/1000).toFixed(1) + 's'
-           ', uptime=' + (this.uptime/1000).toFixed(1) + 's'
+           ', age=' + (this.age/1000).toFixed(1) + 's' +
+           ', uptime=' + (this.uptime/1000).toFixed(1) + 's' +
+           ', avgAttempts='+(this.avgAttempts.toFixed(1)) +
+           ', avgTxTime=' + this.avgAckTime
            ;
   }
 
@@ -65,6 +71,9 @@ export class DroneMeshRouteEntry {
     buffer[12] = (this.uptime >> 16) & 0xFF;
     buffer[11] = (this.uptime >> 8) & 0xFF;
     buffer[10] = (this.uptime) & 0xFF;
+
+    buffer[14] = Math.round(this.avgAttempts * 10);
+    buffer[15] = this.avgAckTime;
 
     return buffer;
   }
