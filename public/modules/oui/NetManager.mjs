@@ -333,6 +333,8 @@ export default class NetManager {
         if (j != i) {
           var ob = this.blocks[j];
 
+          if (ob == b) continue;
+
           // see if blocks are colliding, allow for padding
           // overlap is a vector in direction of minimum overlap
           var overlap = b.collidingWith(ob, padding);
@@ -345,11 +347,11 @@ export default class NetManager {
             var temp = ob.position.clone();
             temp.subtract(b.position);
             temp.normalize();
-            temp.multiply(0.01);
-            b.av.add(temp);
+            temp.multiply(1);
+            ob.av.add(temp);
 
             temp.multiply(-1);
-            ob.av.add(temp);
+            b.av.add(temp);
           }
 
 
