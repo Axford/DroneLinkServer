@@ -356,7 +356,8 @@ export default class DroneLinkManager {
   generateDroneLinkMessage(ni, dlmMsg, nextHop) {
     var p = DMM.DRONE_MESH_MSG_PRIORITY_LOW;
     if (dlmMsg.msgType < DLM.DRONE_LINK_MSG_TYPE_NAME) {
-      p = DMM.DRONE_MESH_MSG_PRIORITY_HIGH;
+      // we want stuff coming from teh server to take top priority
+      p = DMM.DRONE_MESH_MSG_PRIORITY_CRITICAL;
     }
 
     var buffer = this.getTransmitBuffer(ni, p);
