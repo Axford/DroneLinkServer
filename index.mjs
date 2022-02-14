@@ -10,7 +10,7 @@ import * as DLM from './public/modules/droneLinkMsg.mjs';
 import DroneLinkMsgQueue from './public/modules/DroneLinkMsgQueue.mjs';
 import DroneLinkManager from './public/modules/DroneLinkManager.mjs';
 import UDPInterface from './public/modules/UDPInterface.mjs';
-import * as DMTB from './public/modules/DroneMeshTxbuffer.mjs';
+import * as DMTB from './public/modules/DroneMeshTxBuffer.mjs';
 
 //const broadcastAddress = require('broadcast-address');
 
