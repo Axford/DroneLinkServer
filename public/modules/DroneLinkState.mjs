@@ -56,7 +56,7 @@ export default class DroneLinkState {
 
     setInterval( ()=>{
       me.processDiscoveryQueue();
-    }, 200);
+    }, 50);
   }
 
 
