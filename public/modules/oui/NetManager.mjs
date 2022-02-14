@@ -329,35 +329,36 @@ export default class NetManager {
 
 
       // for each block... calculate vector to all other blocks
-      for (var j=0; j<this.blocks.length; j++) {
-        if (j != i) {
-          var ob = this.blocks[j];
+      if (b.connected)
+        for (var j=0; j<this.blocks.length; j++) {
+          if (j != i) {
+            var ob = this.blocks[j];
 
-          if (ob == b) continue;
+            if (ob == b) continue;
 
-          // see if blocks are colliding, allow for padding
-          // overlap is a vector in direction of minimum overlap
-          var overlap = b.collidingWith(ob, padding);
-          if (overlap.length() > 0) {
-            overlap.multiply(20);
-            b.av.add(overlap);
+            // skip blocks with no connections
+            if (!ob.connected) continue;
 
-          } else {
-            // otherwise add a gentle repulsion
-            var temp = ob.position.clone();
-            temp.subtract(b.position);
-            temp.normalize();
-            temp.multiply(1);
-            ob.av.add(temp);
+            // see if blocks are colliding, allow for padding
+            // overlap is a vector in direction of minimum overlap
+            var overlap = b.collidingWith(ob, padding);
+            if (overlap.length() > 0) {
+              overlap.multiply(20);
+              b.av.add(overlap);
 
-            temp.multiply(-1);
-            b.av.add(temp);
+            } else {
+              // otherwise add a gentle repulsion
+              var temp = ob.position.clone();
+              temp.subtract(b.position);
+              temp.normalize();
+              temp.multiply(1);
+              ob.av.add(temp);
+
+              temp.multiply(-1);
+              b.av.add(temp);
+            }
           }
-
-
-
         }
-      }
 
       // pull blocks gently towards the centre
       /*

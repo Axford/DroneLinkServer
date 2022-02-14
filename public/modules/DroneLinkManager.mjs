@@ -355,9 +355,12 @@ export default class DroneLinkManager {
 
   generateDroneLinkMessage(ni, dlmMsg, nextHop) {
     var p = DMM.DRONE_MESH_MSG_PRIORITY_MEDIUM;
+    var g = DMM.DRONE_MESH_MSG_NOT_GUARANTEED;
     if (dlmMsg.msgType < DLM.DRONE_LINK_MSG_TYPE_NAME) {
       // we want stuff coming from teh server to take top priority
+      //this.clog('high priority'.blue);
       p = DMM.DRONE_MESH_MSG_PRIORITY_CRITICAL;
+      g = DMM.DRONE_MESH_MSG_GUARANTEED;
     }
 
     var buffer = this.getTransmitBuffer(ni, p);
@@ -366,7 +369,7 @@ export default class DroneLinkManager {
       var payloadSize = dlmMsg.totalSize();
 
       // populate with a subscription request packet
-      msg.typeGuaranteeSize = DMM.DRONE_MESH_MSG_GUARANTEED | (payloadSize-1);  // payload is 2 byte... sent as n-1
+      msg.typeGuaranteeSize = g | (payloadSize-1);  // payload is 2 byte... sent as n-1
       msg.txNode = this.node;
       msg.srcNode = this.node;
       msg.nextNode = nextHop;

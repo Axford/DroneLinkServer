@@ -18,6 +18,7 @@ export default class NetBlock {
     this.name = '';
     this.lastHeard = Date.now();
     this.focused = false;
+    this.connected = false;
 
     // a wire to each next hop node
     this.nextHops = {};
@@ -113,11 +114,15 @@ export default class NetBlock {
   }
 
   checkForOldRoutes() {
+    var activeHops = 0;
     for (const [key, nextHop] of Object.entries(this.nextHops)) {
       if (Date.now() - nextHop.lastHeard > 60000) {
         delete this.nextHops[key];
+      } else {
+        activeHops++;
       }
     }
+    this.connected = activeHops > 0;
   }
 
   draw() {
@@ -182,6 +187,8 @@ export default class NetBlock {
     this.destinations[dest.node] = next;
 
     this.nextHops[next.node].lastHeard = Date.now();
+
+    this.connected = true;
 
     // only update metric if this is a direct route
     if (next == dest) {
