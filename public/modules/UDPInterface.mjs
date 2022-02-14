@@ -89,6 +89,7 @@ export default class UDPInterface extends NetworkInterface {
         //this.clog('Data sent !!!');
       }
     });
+    return true;
   }
 
 }

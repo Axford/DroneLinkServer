@@ -10,6 +10,7 @@ import * as DLM from './public/modules/droneLinkMsg.mjs';
 import DroneLinkMsgQueue from './public/modules/DroneLinkMsgQueue.mjs';
 import DroneLinkManager from './public/modules/DroneLinkManager.mjs';
 import UDPInterface from './public/modules/UDPInterface.mjs';
+import * as DMTB from './public/modules/DroneMeshTxbuffer.mjs';
 
 //const broadcastAddress = require('broadcast-address');
 
@@ -424,6 +425,7 @@ function clog(v) {
   //console.log(v);
 }
 
+
 clog(('Starting DroneLink Server...').green);
 
 import os from "os";
@@ -472,9 +474,6 @@ var udpi = new UDPInterface(dlm, 1, clog);
 setInterval(()=>{
   // update diagnostics
   var s = '';
-
-  s += 'txQueue = ' + dlm.txQueue.length + '\n\n';
-
   s += '{bold}Interfaces{/bold}\n';
   for (var i=0; i<dlm.interfaces.length; i++) {
     var ni = dlm.interfaces[i];
@@ -493,8 +492,37 @@ setInterval(()=>{
       s += ', Age: ' + durationToStr((Date.now()-nodeInfo.lastHeard)/1000);
       s += ', Uptime: '+durationToStr(nodeInfo.uptime/1000);
       s += ', Int: '+nodeInfo.netInterface.typeName;
+      s += ', avgAttempts: '+nodeInfo.avgAttempts.toFixed(1);
+      s += ', avgTx: '+nodeInfo.avgTxTime.toFixed(0) + 'ms';
+      s += ', avgAck: '+nodeInfo.avgAckTime.toFixed(0) + 'ms';
       s += '\n';
     }
+  }
+
+  s+= '\n';
+
+  s += '{bold}txQueue{/bold}\n';
+  s += 'Size:' + dlm.txQueue.length;
+  s += ', kicked: ' + dlm.kicked;
+  s += ', choked: ' + dlm.choked;
+  s += '\n\n';
+
+  for (var i=0; i<dlm.txQueue.length; i++) {
+    var b = dlm.txQueue[i];
+    s += i + ') ';
+    if (b.state == DMTB.DRONE_MESH_MSG_BUFFER_STATE_READY) {
+      s += b.getStateName().green + ': ';
+    } else if (b.state == DMTB.DRONE_MESH_MSG_BUFFER_STATE_WAITING) {
+      s += b.getStateName().yellow + ': ';
+    } else {
+      // empty
+      s += b.getStateName().grey;
+    }
+
+    if (b.state > 0) {
+      s += b.msg.toString();
+    }
+    s+= '\n';
   }
 
   diagnosticsBox.content = s;
@@ -574,10 +602,12 @@ io.on('connection', (socket) => {
   socket.on('sendMsg', (msgBuffer)=>{
     var msg = new DLM.DroneLinkMsg(msgBuffer);
     //clog(('[.sM] recv: ' + msg.asString()).green );
-    //handleLinkMsg(msg, 'socket');
 
-    // queue for retransmission
-    queueMsg(msg);
+    // dont send messages addressed to ourself!
+    if (msg.node == sourceId) return;
+
+    // hand to DLM to managge
+    dlm.sendDroneLinkMessage(msg);
   });
 
   // query for existing routes
@@ -593,28 +623,3 @@ io.on('connection', (socket) => {
     dlm.getRoutesFor(msg.target, msg.subject);
   });
 });
-
-
-
-// -----------------------------------------------------------
-
-
-function queueMsg(msg) {
-  msgQueue.add(msg);
-}
-
-
-function sendMessages() {
-  if (msgQueue.length() > 0) {
-    var msg = msgQueue.shift();
-
-    // dont send messages addressed to ourself!
-    if (msg.node == sourceId) return;
-
-    // hand to DLM to managge
-    dlm.sendDroneLinkMessage(msg);
-  }
-}
-
-
-setInterval(sendMessages, 50);

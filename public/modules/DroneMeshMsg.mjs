@@ -81,6 +81,11 @@ export class DroneMeshMsg {
     if (buffer) this.parse(buffer);
   }
 
+  copy(msg) {
+    // copy another message
+    this.parse(msg.encode());
+  }
+
   parse(rawBuffer) {
     var buffer = new Uint8Array(rawBuffer, 0);
     this.typeGuaranteeSize = buffer[0];

@@ -314,7 +314,7 @@ export default class NetManager {
 
         // compare it to the target length based on metric
         var hvl = hv.length();
-        var targetLen = constrain(hop.metric * 20, 20, 400);
+        var targetLen = constrain(hop.metric * 20, 20, 300) + 50;
         var hvr = (hvl - targetLen) / 10;
 
         // update accel vector
