@@ -137,7 +137,7 @@ export default class Parameter {
         // fire a name query
         //console.log(this.addr + ' name query');
         var qm = new DLM.DroneLinkMsg();
-        qm.source = 252;
+        qm.source = this.state.localAddress;
         qm.node = this.channel.node.id;
         qm.channel = this.channel.channel;
         qm.param = this.param;

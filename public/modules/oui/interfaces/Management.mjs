@@ -41,7 +41,7 @@ export default class Management {
 						var filename = f.name;
 						newBut.on('click', ()=>{
 							var qm = new DLM.DroneLinkMsg();
-				      qm.source = 0;
+				      qm.source = this.state.localAddress;
 				      qm.node = this.channel.node.id;
 				      qm.channel = 1;
 				      qm.param = 17;
@@ -160,6 +160,7 @@ export default class Management {
 		this.reset = $('<button class="btn btn-sm btn-danger mb-2 mr-3">Reset</button>');
 		this.reset.on('click', ()=>{
 			var qm = new DLM.DroneLinkMsg();
+			qm.source = this.state.localAddress;
 			qm.node = this.channel.node.id;
 			qm.channel = 1;
 			qm.param = 10;

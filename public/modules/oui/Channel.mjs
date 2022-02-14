@@ -47,7 +47,7 @@ export default class Channel {
     this.uiEnable = $('<button class="btn btn-tiny btn-success float-right" style="display:none">Enable</button>');
     this.uiEnable.on('click',()=>{
       var qm = new DLM.DroneLinkMsg();
-      qm.source = 252;
+      qm.source = this.state.localAddress;
       qm.node = me.node.id;
       qm.channel = me.channel;
       qm.param = DLM.DRONE_MODULE_PARAM_STATUS;
@@ -55,7 +55,7 @@ export default class Channel {
       this.state.send(qm);
 
       qm = new DLM.DroneLinkMsg();
-      qm.source = 252;
+      qm.source = this.state.localAddress;
       qm.node = me.node.id;
       qm.channel = me.channel;
       qm.param = DLM.DRONE_MODULE_PARAM_STATUS;
@@ -67,7 +67,7 @@ export default class Channel {
     this.uiDisable = $('<button class="btn btn-tiny btn-secondary float-right" style="display:none">Disable</button>');
     this.uiDisable.on('click',()=>{
       var qm = new DLM.DroneLinkMsg();
-      qm.source = 252;
+      qm.source = this.state.localAddress;
       qm.node = me.node.id;
       qm.channel = me.channel;
       qm.param = DLM.DRONE_MODULE_PARAM_STATUS;
@@ -75,7 +75,7 @@ export default class Channel {
       this.state.send(qm);
 
       qm = new DLM.DroneLinkMsg();
-      qm.source = 252;
+      qm.source = this.state.localAddress;
       qm.node = me.node.id;
       qm.channel = me.channel;
       qm.param = DLM.DRONE_MODULE_PARAM_STATUS;
