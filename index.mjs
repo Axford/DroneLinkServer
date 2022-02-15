@@ -14,6 +14,8 @@ import * as DMTB from './public/modules/DroneMeshTxBuffer.mjs';
 
 //const broadcastAddress = require('broadcast-address');
 
+var dlm = {};
+
 import SerialPort from 'serialport';
 
 import blessed from 'neo-blessed';
@@ -24,6 +26,10 @@ const screen = blessed.screen({
 });
 
 var pauseLog = false;
+
+function footerContent() {
+  return '[q]'.green + 'Quit   '+'[l]'.green+'Log   '+'[d]'.green+'Diagnostics   '+'[p]'.green+'Pause Log   '+'[f]'.green+'Firmware   '+'[s]'.green+(dlm.logToFile ? 'Saving Log'.green : 'Save Log');
+}
 
 let logBox = blessed.log({
   parent: screen,
@@ -89,7 +95,7 @@ var footerBox = blessed.box({
   left: 'center',
   width: '100%',
   height: 1,
-  content: '[q]'.green + 'Quit   '+'[l]'.green+'Log   '+'[d]'.green+'Diagnostics   '+'[p]'.green+'Pause Log   '+'[f]'.green+'Firmware',
+  content: footerContent(),
   tags: true,
   style: {
     fg: 'white',
@@ -357,6 +363,12 @@ screen.key(['p'], function(ch, key) {
   pauseLog = !pauseLog;
 });
 
+screen.key(['s'], function(ch, key) {
+  dlm.setLogToFile(!dlm.logToFile);
+  footerBox.content = footerContent();
+  screen.render();
+});
+
 screen.key(['f'], function(ch, key) {
   logBox.hide();
   logOptionsBox.hide();
@@ -458,9 +470,13 @@ clog('Using server node address: ' + sourceId);
 var firmwarePath = config[env].firmwarePath;
 clog('Firmware path: ' + firmwarePath);
 
+var logFilePath = config[env].logFilePath;
+clog('logFilePath path: ' + logFilePath);
+
 // init DLM
-var dlm = new DroneLinkManager(sourceId, clog);
+dlm = new DroneLinkManager(sourceId, clog);
 dlm.firmwarePath = firmwarePath;
+dlm.logFilePath = logFilePath;
 
 // prep msgQueue
 var msgQueue = new DroneLinkMsgQueue();

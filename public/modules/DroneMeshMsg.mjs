@@ -225,5 +225,27 @@ export class DroneMeshMsg {
   }
 
 
+  encodeForLog() {
+    // prefixes a total size and timestamp
+    // return Uint8Array
+    var packetSize = this.getTotalSize() + 5;
+    var buffer = new Uint8Array(packetSize);
+    buffer[0] = packetSize;
+
+    // encode timestamp
+    buffer[1] = (this.timestamp >> 24) & 0xFF;
+    buffer[2] = (this.timestamp >> 16) & 0xFF;
+    buffer[3] = (this.timestamp >> 8) & 0xFF;
+    buffer[4] = (this.timestamp) & 0xFF;
+
+    // encode actual packet
+    var mb = this.encode();
+
+    for (var i=0; i<this.getTotalSize(); i++) {
+      buffer[5+i] = mb[i];
+    }
+    return buffer;
+  }
+
 
 }

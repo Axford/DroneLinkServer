@@ -29,6 +29,9 @@ var stateLog = new DroneLinkLog(state);
 import NetManager from './modules/oui/NetManager.mjs';
 var networkGraph;
 
+import AnalysisManager from './modules/oui/AnalysisManager.mjs';
+var analyser;
+
 var liveMode = true;
 
 var parsedLog = [];
@@ -299,12 +302,15 @@ function init() {
   $('#viewMapButton').on('click', ()=>{
     $('#mapPanel').show();
     $('#networkPanel').hide();
+    $('#analysisPanel').hide();
 
     $('#viewMapButton').removeClass('btn-secondary');
     $('#viewNetworkButton').removeClass('btn-primary');
+    $('#viewAnalysisButton').removeClass('btn-primary');
 
     $('#viewMapButton').addClass('btn-primary');
     $('#viewNetworkButton').addClass('btn-secondary');
+    $('#viewAnalysisButton').addClass('btn-secondary');
 
     map.resize();
   });
@@ -322,14 +328,37 @@ function init() {
   $('#viewNetworkButton').on('click', ()=>{
     $('#mapPanel').hide();
     $('#networkPanel').show();
+    $('#analysisPanel').hide();
 
     $('#viewMapButton').removeClass('btn-primary');
     $('#viewNetworkButton').removeClass('btn-secondary');
+    $('#viewAnalysisButton').removeClass('btn-primary');
 
     $('#viewMapButton').addClass('btn-secondary');
     $('#viewNetworkButton').addClass('btn-primary');
+    $('#viewAnalysisButton').addClass('btn-secondary');
 
     networkGraph.resize();
+  });
+
+  $('#viewAnalysisButton').on('click', ()=>{
+    $('#mapPanel').hide();
+    $('#networkPanel').hide();
+    $('#analysisPanel').show();
+
+    $('#viewMapButton').removeClass('btn-primary');
+    $('#viewNetworkButton').removeClass('btn-primary');
+    $('#viewAnalysisButton').removeClass('btn-secondary');
+
+    $('#viewMapButton').addClass('btn-secondary');
+    $('#viewNetworkButton').addClass('btn-secondary');
+    $('#viewAnalysisButton').addClass('btn-primary');
+  });
+
+  analyser = new AnalysisManager($('#analysisOutput'), state);
+
+  $('#analysisResetButton').on('click', ()=>{
+    analyser.reset();
   });
 
   // configure state controls

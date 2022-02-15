@@ -82,12 +82,20 @@ export default class DroneLinkManager {
       Subscription: true
     };
 
+    this.logFilePath = '';
+    this.logToFile = false;
+    this.logStream = null;
+
     this.clog('DroneLinkManager started');
 
     // slow process timer
     setInterval( ()=>{
-      this.checkForOldRoutes();
-      this.updateSubscriptions();
+      try {
+        this.checkForOldRoutes();
+        this.updateSubscriptions();
+      } catch (err) {
+        this.clog('ERROR: ' + err);
+      }
     }, 1000);
 
     // transmit timer
@@ -102,7 +110,11 @@ export default class DroneLinkManager {
 
     // hello Timer
     setInterval( ()=>{
-      this.generateHellos();
+      try {
+        this.generateHellos();
+      } catch (err) {
+        this.clog('ERROR: ' + err);
+      }
     }, DRONE_LINK_MANAGER_HELLO_INTERVAL);
 
     // firmware transmission, max 1000 per second
@@ -111,6 +123,34 @@ export default class DroneLinkManager {
     }, 1);
   }
 
+
+  setLogToFile(nv) {
+    if (nv) {
+      // delete existing log file
+      fs.statSync(this.logFilePath, function (err, stats) {
+
+       if (err) {
+         clog('ERROR deleting log file: '+err);
+       }
+
+       fs.unlinkSync(this.logFilePath,function(err){
+          if(err) clog('ERROR deleting log file: '+err);
+          clog('log file deleted successfully'.green);
+       });
+      });
+
+      // open file
+      this.logStream = fs.createWriteStream(this.logFilePath, {flags:'a'});
+    } else {
+      // close file
+      if (this.logStream) {
+        this.logStream.end();
+        this.logStream = null;
+      }
+    }
+
+    this.logToFile = nv;
+  }
 
 
   getTxQueueSize() {
@@ -507,6 +547,11 @@ export default class DroneLinkManager {
     // update lastHeard for tx node
     var txNodeInfo = this.getNodeInfo(msg.txNode, false);
     if (txNodeInfo && txNodeInfo.heard) txNodeInfo.lastHeard = Date.now();
+
+    // log to file
+    if (this.logToFile && this.logStream) {
+      this.logStream.write(msg.encodeForLog());
+    }
 
     if (msg.isAck()) {
       this.receiveAck(msg);

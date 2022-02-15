@@ -459,3 +459,77 @@ main {
 #networkPanel {
   height:100%;
 }
+
+#analysisPanel {
+  padding: 4px 4px;
+  background-color: #242a30;
+}
+
+#analysisOutput {
+  width:100%;
+  overflow:scroll;
+  height:calc(100vh - 50px);  
+}
+
+.analysisNode {
+  display: flex;
+  background-color:white;
+  border-radius: 6px;
+  margin-bottom:8px;
+}
+
+.analysisNodeTitle {
+  width:100px;
+  padding: 4px 4px;
+}
+
+.analysisNodeContents {
+  flex-grow:1;
+  display:flex;
+  flex-direction: column;
+  padding-top: 2px;
+}
+
+
+.analysisModule {
+  display: flex;
+  padding: 0px 4px;
+  background-color:#a4aab0;
+  border-radius: 4px;
+  margin-bottom:2px;
+}
+
+.analysisModuleTitle {
+  width:100px;
+  padding: 0px 4px;
+}
+
+.analysisModuleContents {
+  flex-grow:1;
+  display:flex;
+  flex-direction:column;
+}
+
+.analysisParam {
+  display: flex;
+  padding: 0px 4px;
+  background-color:#545a60;
+  border-radius: 4px;
+  margin-bottom:1px;
+}
+
+.analysisParamTitle {
+  width:80px;
+  color:white;
+  padding: 0px 4px;
+  font-size:9px;
+}
+
+.analysisParamBarGraph {
+  flex-grow:1;
+}
+
+.analysisParamBar{
+  background-color:#5f5;
+  height:100%;
+}
