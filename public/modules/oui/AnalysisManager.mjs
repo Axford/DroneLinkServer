@@ -5,6 +5,7 @@ export default class AnalysisManager {
   constructor(ui, state) {
     this.ui = ui;
     this.state = state;
+    this.visible = false;
 
     this.nodes = {};
 
@@ -155,7 +156,7 @@ export default class AnalysisManager {
 
     // redraw
     setInterval(()=>{
-      if (this.needsRedraw) {
+      if (this.needsRedraw && this.visible) {
 
         var dt = (Date.now() - this.startTime) / 1000;
 

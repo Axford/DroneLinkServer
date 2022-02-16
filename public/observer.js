@@ -303,6 +303,8 @@ function init() {
     $('#mapPanel').show();
     $('#networkPanel').hide();
     $('#analysisPanel').hide();
+    networkGraph.visible = false;
+    analyser.visible = false;
 
     $('#viewMapButton').removeClass('btn-secondary');
     $('#viewNetworkButton').removeClass('btn-primary');
@@ -329,6 +331,8 @@ function init() {
     $('#mapPanel').hide();
     $('#networkPanel').show();
     $('#analysisPanel').hide();
+    networkGraph.visible = true;
+    analyser.visible = false;
 
     $('#viewMapButton').removeClass('btn-primary');
     $('#viewNetworkButton').removeClass('btn-secondary');
@@ -345,6 +349,8 @@ function init() {
     $('#mapPanel').hide();
     $('#networkPanel').hide();
     $('#analysisPanel').show();
+    networkGraph.visible = false;
+    analyser.visible = true;
 
     $('#viewMapButton').removeClass('btn-primary');
     $('#viewNetworkButton').removeClass('btn-primary');

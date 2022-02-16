@@ -9,6 +9,7 @@ Manages the mesh network link over local network interfaces (routing table, etc)
 import * as DLM from './droneLinkMsg.mjs';
 import * as DMM from './DroneMeshMsg.mjs';
 import * as DMRE from './DroneMeshRouteEntry.mjs';
+import * as DMR from './DroneMeshRouter.mjs';
 import * as DMTB from './DroneMeshTxBuffer.mjs';
 import fs from 'fs';
 
@@ -79,7 +80,8 @@ export default class DroneLinkManager {
       DroneLinkMsg: true,
       RouteEntry: true,
       Transmit: true,
-      Subscription: true
+      Subscription: true,
+      Router: true
     };
 
     this.logFilePath = '';
@@ -399,6 +401,44 @@ export default class DroneLinkManager {
   }
 
 
+  generateRouterRequestFor(target) {
+    var nodeInfo = this.getNodeInfo(target, false);
+    if (nodeInfo) {
+      this.generateRouterRequest(nodeInfo.netInterface, target, nodeInfo.nextHop);
+    }
+  }
+
+
+  generateRouterRequest(ni, target, nextHop) {
+    var buffer = this.getTransmitBuffer(ni, DMM.DRONE_MESH_MSG_PRIORITY_HIGH);
+
+    if (buffer) {
+      var msg = buffer.msg;
+      if (this.logOptions.Router)
+        this.clog(('generateRouterRequest for '+target));
+
+      // populate
+      msg.typeGuaranteeSize = DMM.DRONE_MESH_MSG_GUARANTEED | (DMM.DRONE_MESH_MSG_HEADER_SIZE + DMR.DRONE_MESH_ROUTER_SIZE - 1);  // payload is 1 byte... sent as n-1
+      msg.txNode = this.node;
+      msg.srcNode = this.node;
+      msg.nextNode = nextHop;
+      msg.destNode = target;
+      msg.seq = this.gSeq;
+      msg.setPriorityAndType(DMM.DRONE_MESH_MSG_PRIORITY_HIGH, DMM.DRONE_MESH_MSG_TYPE_ROUTER_REQUEST);
+
+      // padding
+      msg.uint8_tPayload[0] = 0;
+
+      this.gSeq++;
+      if (this.gSeq > 255) this.gSeq = 0;
+
+      return true;
+    }
+
+    return false;
+  }
+
+
   generateDroneLinkMessage(ni, dlmMsg, nextHop) {
     var p = DMM.DRONE_MESH_MSG_PRIORITY_MEDIUM;
     var g = DMM.DRONE_MESH_MSG_NOT_GUARANTEED;
@@ -581,6 +621,8 @@ export default class DroneLinkManager {
 
         case DMM.DRONE_MESH_MSG_TYPE_ROUTEENTRY_RESPONSE: this.receiveRouteEntryResponse(netInterface, msg, metric); break;
 
+        case DMM.DRONE_MESH_MSG_TYPE_ROUTER_RESPONSE: this.receiveRouterResponse(netInterface, msg, metric); break;
+
         case DMM.DRONE_MESH_MSG_TYPE_FIRMWARE_START_RESPONSE: this.receiveFirmwareStartResponse(netInterface, msg, metric, interfaceAddress); break;
 
         case DMM.DRONE_MESH_MSG_TYPE_FIRMWARE_REWIND: this.receiveFirmwareRewind(netInterface, msg, metric); break;
@@ -710,7 +752,6 @@ export default class DroneLinkManager {
               nodeInfo.subTimer = Date.now();
               nodeInfo.subState = SUB_STATE_REQUESTED;
             }
-
           }
         }
 
@@ -810,8 +851,41 @@ export default class DroneLinkManager {
       //TODO
       // hopAlong(msg)
     }
-
   }
+
+
+  receiveRouterResponse(netInterface, msg, metric) {
+    var loopTime = Date.now();
+
+    if (this.logOptions.Router)
+      this.clog(('  Router Response from '+msg.srcNode + ', tx by '+msg.txNode).green);
+
+    // are we the destination?
+    if (msg.destNode == this.node) {
+
+      try {
+        // unwrap contained Router msg
+        var dmr = new DMR.DroneMeshRouter( msg.rawPayload );
+
+        //if (this.logOptions.Router)
+        //  this.clog('    ' + dmre.toString());
+
+        // publish
+        if (this.io) this.io.emit('router.update', {
+          node:msg.srcNode,
+          dmr:dmr.encode()
+        });
+      } catch(err) {
+        this.clog(('ERROR: '+err).red);
+      }
+
+    } else {
+      // pass along to next hop
+      //TODO
+      // hopAlong(msg)
+    }
+  }
+
 
   receiveFirmwareStartResponse(netInterface, msg, metric, interfaceAddress) {
     var loopTime = Date.now();

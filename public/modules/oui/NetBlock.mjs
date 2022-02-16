@@ -19,6 +19,12 @@ export default class NetBlock {
     this.lastHeard = Date.now();
     this.focused = false;
     this.connected = false;
+    this.txQueueSize = 0;
+    this.txQueueActive = 0;
+    this.kicked = 0;
+    this.choked = 0;
+    this.kickRate = 0;
+    this.chokeRate = 0;
 
     // a wire to each next hop node
     this.nextHops = {};
@@ -45,7 +51,7 @@ export default class NetBlock {
     this.position = new Vector(w * Math.random(), h * Math.random());
     this.velocity = new Vector(0,0);
     this.width = 100;
-    this.radius = 20;
+    this.radius = 25;
     this.height = this.headerHeight;
     this.av = new Vector(0,0);
     this.updatePosition(this.position);
@@ -161,11 +167,22 @@ export default class NetBlock {
       ctx.stroke();
     }
 
-    // label
+    // node id label
     ctx.fillStyle = '#000';
-    ctx.font = this.mgr.uiRoot.css('font');
+    //ctx.font = this.mgr.uiRoot.css('font');
+    ctx.font = '1rem bold Arial,sans-serif';
+    //console.log('font: ', ctx.font);
 		ctx.textAlign = 'center';
-    ctx.fillText(this.node, px + this.position.x, py + this.y1 + this.headerHeight - 6);
+    //ctx.fillText(this.node, px + this.position.x, py + this.y1 + this.headerHeight - 6);
+    ctx.fillText(this.node, px + this.position.x, py + this.y1 + this.headerHeight - 17);
+
+    // stats label
+    var s = this.kickRate.toFixed(1)+','+ this.chokeRate.toFixed(1);
+    //var s = this.txQueueSize;
+    ctx.font = '0.9rem Arial,sans-serif';
+    ctx.fillText(s, px + this.position.x, py + this.y1 + this.headerHeight - 4);
+
+    ctx.fillText(this.txQueueSize, px + this.position.x, py + this.y1 + this.headerHeight + 10);
 
   }
 

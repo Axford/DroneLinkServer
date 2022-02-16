@@ -34,6 +34,9 @@ export const DRONE_MESH_MSG_TYPE_ROUTEENTRY_RESPONSE    =6;
 
 export const DRONE_MESH_MSG_TYPE_DRONELINKMSG           =7;
 
+export const DRONE_MESH_MSG_TYPE_ROUTER_REQUEST         =20;
+export const DRONE_MESH_MSG_TYPE_ROUTER_RESPONSE        =21;
+
 // batch firmware messages
 export const DRONE_MESH_MSG_TYPE_FIRMWARE_START_REQUEST   =22;
 export const DRONE_MESH_MSG_TYPE_FIRMWARE_START_RESPONSE  =23;
@@ -163,6 +166,9 @@ export class DroneMeshMsg {
       case DRONE_MESH_MSG_TYPE_ROUTEENTRY_RESPONSE: return 'RoutingEntry Resp';
 
       case DRONE_MESH_MSG_TYPE_DRONELINKMSG: return 'DLM';
+
+      case DRONE_MESH_MSG_TYPE_ROUTER_REQUEST: return 'Router Req';
+      case DRONE_MESH_MSG_TYPE_ROUTER_RESPONSE: return 'Router Resp';
 
       case DRONE_MESH_MSG_TYPE_FIRMWARE_START_REQUEST:  return 'Firmware Start Req';
       case DRONE_MESH_MSG_TYPE_FIRMWARE_START_RESPONSE:  return 'Firmware Start Resp';

@@ -639,4 +639,11 @@ io.on('connection', (socket) => {
     // ask dlm to query route entries
     dlm.getRoutesFor(msg.target, msg.subject);
   });
+
+  // generate a Router request
+  socket.on('router.request', (msg)=>{
+    
+    // ask dlm to query route entries
+    dlm.generateRouterRequestFor(msg.target);
+  });
 });

@@ -1,6 +1,7 @@
 import loadStylesheet from '../loadStylesheet.js';
 import * as DLM from '../droneLinkMsg.mjs';
 import * as DMRE from '../DroneMeshRouteEntry.mjs';
+import * as DMR from '../DroneMeshRouter.mjs';
 import NetBlock from './NetBlock.mjs';
 import Vector from '../Vector.mjs';
 
@@ -14,6 +15,8 @@ export default class NetManager {
   constructor(socket, uiRoot) {
     this.uiRoot = uiRoot;
     this.socket = socket;
+
+    this.visible = false;
 
     this.needsRedraw = true;
     this.frame = 0;
@@ -126,9 +129,15 @@ export default class NetManager {
       console.log('route.removed', msg);
     });
 
-
     // query existing routes to speed initial network build
     this.socket.emit('getRoutes', 0);
+
+    this.socket.on('router.update', (msg)=>{
+      console.log('router.update', msg);
+      var re = new DMR.DroneMeshRouter(msg.dmr);
+      console.log('router info', re);
+      this.routerUpdate(msg.node, re);
+    });
 
     setInterval(()=>{
       // cycle through building route entry info
@@ -194,6 +203,12 @@ export default class NetManager {
 
         this.discoverySubject++;
       } else {
+        // fire off a router query
+        console.log('router.request', target);
+        this.socket.emit('router.request', {
+          target: target
+        });
+
         this.discoverySubject = 0;
         this.discoveryTarget++;
       }
@@ -240,7 +255,7 @@ export default class NetManager {
   draw() {
     var loopTime = Date.now();
     if (loopTime - this.lastDraw > 1000) this.needsRedraw = true;
-    if (!this.needsRedraw) return;
+    if (!this.needsRedraw || !this.visible) return;
 
     this.lastDraw = loopTime;
 
@@ -278,6 +293,8 @@ export default class NetManager {
   }
 
   updatePositions() {
+    if (!this.visible) return;
+    
     // adjust positions of all blocks
 
     var c = this.canvas[0];
@@ -453,6 +470,23 @@ export default class NetManager {
       next == dest ? re.avgAckTime : -1
     );
     //next.addHop(dest, re.metric);
+
+    this.draw();
+  }
+
+  routerUpdate(nodeId, r) {
+    // find matching node
+    var node = this.nodes[nodeId];
+
+    if (node) {
+      // update router info for node
+      node.txQueueSize = r.txQueueSize;
+      node.txQueueActive = r.txQueueActive;
+      node.kicked = r.kicked;
+      node.choked = r.choked;
+      node.kickRate = r.kickRate;
+      node.chokeRate = r.chokeRate;
+    }
 
     this.draw();
   }
