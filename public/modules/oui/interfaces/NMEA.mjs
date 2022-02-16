@@ -55,7 +55,7 @@ export default class NMEA {
     var h = this.ui.height();
 
     // fetch params
-    var location = this.state.getParamValues(node, channel, 8, [0,0,0,0]);
+    var location = this.state.getParamValues(node, channel, 8, [0,0,0]);
     var satellites = this.state.getParamValues(node, channel, 9, [0])[0];
 		var speed = this.state.getParamValues(node, channel, 11, [0])[0];
 		var HDOP = this.state.getParamValues(node, channel, 12, [0])[0];
