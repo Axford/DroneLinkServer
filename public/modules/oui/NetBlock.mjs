@@ -177,7 +177,7 @@ export default class NetBlock {
     ctx.fillText(this.node, px + this.position.x, py + this.y1 + this.headerHeight - 17);
 
     // stats label
-    var s = this.kickRate.toFixed(1)+','+ this.chokeRate.toFixed(1);
+    var s = this.kickRate.toFixed(1)+', '+ this.chokeRate.toFixed(1);
     //var s = this.txQueueSize;
     ctx.font = '0.9rem Arial,sans-serif';
     ctx.fillText(s, px + this.position.x, py + this.y1 + this.headerHeight - 4);

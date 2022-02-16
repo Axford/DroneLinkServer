@@ -1,5 +1,6 @@
 import loadStylesheet from '../loadStylesheet.js';
 import * as DLM from '../droneLinkMsg.mjs';
+import * as DMM from '../DroneMeshMsg.mjs';
 import * as DMRE from '../DroneMeshRouteEntry.mjs';
 import * as DMR from '../DroneMeshRouter.mjs';
 import NetBlock from './NetBlock.mjs';
@@ -139,10 +140,43 @@ export default class NetManager {
       this.routerUpdate(msg.node, re);
     });
 
+    this.socket.on('traceroute.response', (msg)=>{
+      try {
+        // reconstruct msg
+        var dm = new DMM.DroneMeshMsg(msg);
+
+        // decode payload
+        var s = '';
+
+        var p =0;
+        for (var i=0; i < dm.getPayloadSize(); i++) {
+          s += dm.uint8_tPayload[p] + ' -> ';
+          p += 1;
+        }
+
+        console.log('traceroute.response', dm);
+
+      } catch(err) {
+        console.error(err);
+      }
+    });
+
     setInterval(()=>{
       // cycle through building route entry info
-      this.discoverRouteEntries();
+      if (this.visible) this.discoverRouteEntries();
     }, 200);
+
+
+    setInterval(()=>{
+      // generate traceroute requests for focusNode
+      var node = this.nodes[this.focusNode];
+      if (node && this.visible) {
+        console.log('traceroute.request', node.node);
+        this.socket.emit('traceroute.request', {
+          target: node.node
+        });
+      }
+    }, 5000);
 
 
     this.resize(); // will trigger a redraw
@@ -156,7 +190,7 @@ export default class NetManager {
     this.focusNode = node;
     for (var i=0; i<this.blocks.length; i++) {
       if (this.blocks[i].node == node) {
-        this.blocks[i].focus()
+        this.blocks[i].focus();
       } else {
         this.blocks[i].blur();
       }
@@ -294,7 +328,7 @@ export default class NetManager {
 
   updatePositions() {
     if (!this.visible) return;
-    
+
     // adjust positions of all blocks
 
     var c = this.canvas[0];

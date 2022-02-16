@@ -81,7 +81,8 @@ export default class DroneLinkManager {
       RouteEntry: true,
       Transmit: true,
       Subscription: true,
-      Router: true
+      Router: true,
+      Traceroute: true
     };
 
     this.logFilePath = '';
@@ -401,6 +402,45 @@ export default class DroneLinkManager {
   }
 
 
+  generateTracerouteRequestFor(target) {
+    var nodeInfo = this.getNodeInfo(target, false);
+    if (nodeInfo) {
+      this.generateTracerouteRequest(nodeInfo.netInterface, target, nodeInfo.nextHop);
+    }
+  }
+
+
+  generateTracerouteRequest(ni, target, nextHop) {
+    var buffer = this.getTransmitBuffer(ni, DMM.DRONE_MESH_MSG_PRIORITY_HIGH);
+
+    if (buffer) {
+      var msg = buffer.msg;
+      if (this.logOptions.Traceroute)
+        this.clog(('generate Traceroute Request for '+target));
+
+      // populate
+      msg.typeGuaranteeSize = DMM.DRONE_MESH_MSG_GUARANTEED | 1;  // payload is 2 bytes... sent as n-1
+      msg.txNode = this.node;
+      msg.srcNode = this.node;
+      msg.nextNode = nextHop;
+      msg.destNode = target;
+      msg.seq = this.gSeq;
+      msg.setPriorityAndType(DMM.DRONE_MESH_MSG_PRIORITY_HIGH, DMM.DRONE_MESH_MSG_TYPE_TRACEROUTE_REQUEST);
+
+      // padding
+      msg.uint8_tPayload[0] = this.node;
+      msg.uint8_tPayload[1] = 0;
+
+      this.gSeq++;
+      if (this.gSeq > 255) this.gSeq = 0;
+
+      return true;
+    }
+
+    return false;
+  }
+
+
   generateRouterRequestFor(target) {
     var nodeInfo = this.getNodeInfo(target, false);
     if (nodeInfo) {
@@ -617,7 +657,7 @@ export default class DroneLinkManager {
 
         case DMM.DRONE_MESH_MSG_TYPE_DRONELINKMSG: this.receiveDroneLinkMsg(netInterface, msg, metric); break;
 
-        //case DMM.DRONE_MESH_MSG_TYPE_TRACEROUTE: this.receiveTraceroute(netInterface, msg, metric); break;
+        case DMM.DRONE_MESH_MSG_TYPE_TRACEROUTE_RESPONSE: this.receiveTracerouteResponse(netInterface, msg, metric); break;
 
         case DMM.DRONE_MESH_MSG_TYPE_ROUTEENTRY_RESPONSE: this.receiveRouteEntryResponse(netInterface, msg, metric); break;
 
@@ -824,6 +864,39 @@ export default class DroneLinkManager {
         //TODO
         // hopAlong(msg)
       }
+    }
+  }
+
+
+  receiveTracerouteResponse(netInterface, msg, metric) {
+    var loopTime = Date.now();
+
+    if (this.logOptions.Traceroute)
+      this.clog(('  Traceroute Response from '+msg.srcNode).green);
+
+    // are we the destination?
+    if (msg.destNode == this.node) {
+
+      // unwrap contained RouteEntry
+      //var dmre = new DMRE.DroneMeshRouteEntry( msg.rawPayload );
+
+      if (this.logOptions.Traceroute) {
+        var s = '';
+        var p = 0;
+        for (var i=0; i < msg.getPayloadSize(); i++) {
+          s += msg.uint8_tPayload[p] + ' -> ';
+          p += 1;
+        }
+        this.clog(s);
+      }
+
+      // publish
+      if (this.io) this.io.emit('traceroute.response', msg.encode());
+
+    } else {
+      // pass along to next hop
+      //TODO
+      // hopAlong(msg)
     }
   }
 

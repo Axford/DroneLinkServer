@@ -642,8 +642,13 @@ io.on('connection', (socket) => {
 
   // generate a Router request
   socket.on('router.request', (msg)=>{
-    
     // ask dlm to query route entries
     dlm.generateRouterRequestFor(msg.target);
+  });
+
+  // generate a traceroute request
+  socket.on('traceroute.request', (msg)=>{
+    // ask dlm to traceroute
+    dlm.generateTracerouteRequestFor(msg.target);
   });
 });
