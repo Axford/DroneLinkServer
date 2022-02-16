@@ -11,6 +11,7 @@ export default class AnalysisManager {
     this.needsRedraw = false;
     this.numPackets = 0;
     this.maxPackets = 0;
+    this.startTime = Date.now();
 
     // node.new
     state.on('node.new', (node)=>{
@@ -73,6 +74,9 @@ export default class AnalysisManager {
             var title = $('<div class="analysisParamTitle">'+data.param+'. </div>');
             ele.append(title);
 
+            var info = $('<div class="analysisParamInfo"></div>');
+            ele.append(info);
+
             var v = 100 * 1 / this.maxPackets;
 
             var graph = $('<div class="analysisParamBarGraph"><div class="analysisParamBar" style="width:'+v+'%"></div></div>');
@@ -87,6 +91,7 @@ export default class AnalysisManager {
               name: '',
               ui:ele,
               title:title,
+              info:info,
               graph:graph,
               packets:0
             };
@@ -152,6 +157,8 @@ export default class AnalysisManager {
     setInterval(()=>{
       if (this.needsRedraw) {
 
+        var dt = (Date.now() - this.startTime) / 1000;
+
         if (this.maxPackets == 0 ) return;
 
         // sort nodes
@@ -192,6 +199,10 @@ export default class AnalysisManager {
               var v = 100 * param.packets / this.maxPackets;
 
               param.graph.children().css('width', v + '%');
+
+              // update info
+              var s = param.packets + ', ' + (param.packets / dt).toFixed(1) + '/s';
+              param.info.html(s);
             }
           }
         }
@@ -208,6 +219,7 @@ export default class AnalysisManager {
 
     this.maxPackets = 0;
     this.numPackets = 0;
+    this.startTime = Date.now();
 
     // update barGraphs
     //for each node

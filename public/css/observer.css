@@ -468,7 +468,7 @@ main {
 #analysisOutput {
   width:100%;
   overflow:scroll;
-  height:calc(100vh - 50px);  
+  height:calc(100vh - 50px);
 }
 
 .analysisNode {
@@ -520,6 +520,13 @@ main {
 
 .analysisParamTitle {
   width:80px;
+  color:white;
+  padding: 0px 4px;
+  font-size:9px;
+}
+
+.analysisParamInfo {
+  width:60px;
   color:white;
   padding: 0px 4px;
   font-size:9px;
