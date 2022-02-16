@@ -17,6 +17,7 @@ export class DroneMeshRouteEntry {
     this.avgAckTime = 0;
     this.avgTxTime = 0;
     this.avgAckTime = 0;
+    this.interfaceAddress = null;
 
     this.timestamp = Date.now();
 

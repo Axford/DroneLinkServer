@@ -41,7 +41,7 @@ export default class UDPInterface extends NetworkInterface {
         // check this message is for us
         if (newMsg.nextNode == this.dlm.node || newMsg.nextNode == 0) {
           // pass onto DLM for processing
-          this.dlm.receivePacket(this, newMsg, metric);
+          this.dlm.receivePacket(this, newMsg, metric, info.address);
 
           this.packetsReceived++;
         } else {
@@ -77,10 +77,11 @@ export default class UDPInterface extends NetworkInterface {
   }
 
 
-  sendPacket(msg) {
+  sendPacket(msg, interfaceAddress) {
     //this.clog(('Send by UDP: ' + msg.toString()).yellow);
     this.packetsSent++;
-    this.server.send(msg.encode(), 8007, '255.255.255.255', function(error){
+    var addr = interfaceAddress ? interfaceAddress : '255.255.255.255';
+    this.server.send(msg.encode(), 8007, addr, function(error){
       if(error){
         //console.error('BLERGH '+ error);
         this.clog(('UDP error: '+error).red);

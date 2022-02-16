@@ -502,15 +502,16 @@ setInterval(()=>{
   for (const [node, nodeInfo] of Object.entries(dlm.routeMap)) {
     if (nodeInfo.heard) {
       s += (' ' + nodeInfo.node).yellow;
-      s += ': Seq: '+nodeInfo.seq;
-      s += ', Metric: '+nodeInfo.metric;
-      s += ', Next: '+nodeInfo.nextHop;
-      s += ', Age: ' + durationToStr((Date.now()-nodeInfo.lastHeard)/1000);
-      s += ', Uptime: '+durationToStr(nodeInfo.uptime/1000);
-      s += ', Int: '+nodeInfo.netInterface.typeName;
-      s += ', avgAttempts: '+nodeInfo.avgAttempts.toFixed(1);
-      s += ', avgTx: '+nodeInfo.avgTxTime.toFixed(0) + 'ms';
-      s += ', avgAck: '+nodeInfo.avgAckTime.toFixed(0) + 'ms';
+      s += ': Sq: '+nodeInfo.seq;
+      s += ', Mt: '+nodeInfo.metric;
+      s += ', Nx: '+nodeInfo.nextHop;
+      s += ', Ag: ' + durationToStr((Date.now()-nodeInfo.lastHeard)/1000);
+      s += ', Up: '+durationToStr(nodeInfo.uptime/1000);
+      s += ', I: '+nodeInfo.netInterface.typeName;
+      s += ', Att: '+nodeInfo.avgAttempts.toFixed(1);
+      s += ', Tx: '+nodeInfo.avgTxTime.toFixed(0) + 'ms';
+      s += ', Ack: '+nodeInfo.avgAckTime.toFixed(0) + 'ms';
+      s += ', A: '+nodeInfo.interfaceAddress;
       s += '\n';
     }
   }

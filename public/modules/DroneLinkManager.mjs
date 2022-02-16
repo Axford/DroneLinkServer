@@ -229,9 +229,17 @@ export default class DroneLinkManager {
 
       // check for packets ready to send
       if (b.state == DMTB.DRONE_MESH_MSG_BUFFER_STATE_READY) {
+        // get nodeInfo for the nextHop... and thus the interfaceAddress
+        // update stats
+        var interfaceAddress = null;
+        var nextNodeInfo = this.getNodeInfo(b.msg.nextNode, false);
+        if (nextNodeInfo) {
+          interfaceAddress = nextNodeInfo.interfaceAddress;
+        }
+
         // send via appropriate interface
         if (b.netInterface &&
-            b.netInterface.sendPacket(b.msg)) {
+            b.netInterface.sendPacket(b.msg, interfaceAddress)) {
           if (this.logOptions.Transmit)
             this.clog(('Send by '+b.netInterface.typeName+': ' + b.msg.toString()).yellow);
 
@@ -245,8 +253,6 @@ export default class DroneLinkManager {
           } else {
             // otherwise set to empty
             b.state = DMTB.DRONE_MESH_MSG_BUFFER_STATE_EMPTY;
-            // update stats
-            var nextNodeInfo = this.getNodeInfo(b.msg.nextNode, false);
             if (nextNodeInfo) {
               nextNodeInfo.avgTxTime = (nextNodeInfo.avgTxTime * 49 + (loopTime - b.created)) / 50;
             }
@@ -543,10 +549,13 @@ export default class DroneLinkManager {
   }
 
 
-  receivePacket(netInterface, msg, metric) {
+  receivePacket(netInterface, msg, metric, interfaceAddress) {
     // update lastHeard for tx node
     var txNodeInfo = this.getNodeInfo(msg.txNode, false);
-    if (txNodeInfo && txNodeInfo.heard) txNodeInfo.lastHeard = Date.now();
+    if (txNodeInfo && txNodeInfo.heard) {
+      txNodeInfo.lastHeard = Date.now();
+      txNodeInfo.interfaceAddress = interfaceAddress;
+    }
 
     // log to file
     if (this.logToFile && this.logStream) {
@@ -572,7 +581,7 @@ export default class DroneLinkManager {
 
         case DMM.DRONE_MESH_MSG_TYPE_ROUTEENTRY_RESPONSE: this.receiveRouteEntryResponse(netInterface, msg, metric); break;
 
-        case DMM.DRONE_MESH_MSG_TYPE_FIRMWARE_START_RESPONSE: this.receiveFirmwareStartResponse(netInterface, msg, metric); break;
+        case DMM.DRONE_MESH_MSG_TYPE_FIRMWARE_START_RESPONSE: this.receiveFirmwareStartResponse(netInterface, msg, metric, interfaceAddress); break;
 
         case DMM.DRONE_MESH_MSG_TYPE_FIRMWARE_REWIND: this.receiveFirmwareRewind(netInterface, msg, metric); break;
 
@@ -804,7 +813,7 @@ export default class DroneLinkManager {
 
   }
 
-  receiveFirmwareStartResponse(netInterface, msg, metric) {
+  receiveFirmwareStartResponse(netInterface, msg, metric, interfaceAddress) {
     var loopTime = Date.now();
 
     this.clog(('  Firmware Start Response from '+msg.srcNode).green);
@@ -816,7 +825,9 @@ export default class DroneLinkManager {
       this.firmwareNodes[msg.srcNode] = {
         ready: msg.uint8_tPayload[0] == 1,
         rewinds: 0,
-        rewindOffset:0
+        rewindOffset:0,
+        netInterface:netInterface,
+        interfaceAddress:interfaceAddress
       }
     }
 
@@ -974,8 +985,9 @@ export default class DroneLinkManager {
       // work out how many bytes will be in this next packet
       var payloadSize = constrain(this.firmwareSize - this.firmwarePos, 1, 44) + 4;
 
-      for (var i=0; i<this.interfaces.length; i++) {
-        var ni = this.interfaces[i];
+      // loop over all primed nodes... and generate a unicast packet for each
+      for (const [nodeId, nodeEntry] of Object.entries(this.firmwareNodes)) {
+        var ni = nodeEntry.netInterface;
 
         if (ni.state) {
           var buffer = this.getTransmitBuffer(ni, DMM.DRONE_MESH_MSG_PRIORITY_CRITICAL);
@@ -986,8 +998,8 @@ export default class DroneLinkManager {
             msg.typeGuaranteeSize =  DMM.DRONE_MESH_MSG_NOT_GUARANTEED | (payloadSize-1) ;  // payload is 1 byte... sent as n-1
             msg.txNode = this.node;
             msg.srcNode = this.node;
-            msg.nextNode = 0;
-            msg.destNode = 0;
+            msg.nextNode = nodeId; // always one hop for firmware updates
+            msg.destNode = nodeId;
             msg.seq = 0;
             msg.setPriorityAndType(DMM.DRONE_MESH_MSG_PRIORITY_CRITICAL, DMM.DRONE_MESH_MSG_TYPE_FIRMWARE_WRITE);
 
@@ -1005,6 +1017,7 @@ export default class DroneLinkManager {
           }
         }
       }
+
 
       // update firmwarePos
       this.firmwarePos += payloadSize-4;
