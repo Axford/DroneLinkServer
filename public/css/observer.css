@@ -525,6 +525,30 @@ main {
   font-size:9px;
 }
 
+.analysisParamPriority {
+  color:black;
+  font-size:9px;
+  width:14px;
+  text-align:center;
+}
+
+.analysisParamPriority0 {
+  background-color: #f55;
+  color:white;
+}
+
+.analysisParamPriority1 {
+  background-color: #fa5;
+}
+
+.analysisParamPriority2 {
+  background-color: #5f5;
+}
+
+.analysisParamPriority3 {
+  background-color: #fff;
+}
+
 .analysisParamInfo {
   width:60px;
   color:white;

@@ -31,6 +31,11 @@ export const DRONE_LINK_MSG_TYPE_NAMES = [
 
 export const DRONE_LINK_MSG_TYPE_SIZES = [1,4,4,4, 1,1,1,1, 1,1,1,1, 1,1,1,1];
 
+export const DRONE_LINK_MSG_PRIORITY_LOW        = 0;
+export const DRONE_LINK_MSG_PRIORITY_MEDIUM     = 1;
+export const DRONE_LINK_MSG_PRIORITY_HIGH       = 2;
+export const DRONE_LINK_MSG_PRIORITY_CRITICAL   = 3;
+
 
 
 export function sendDroneLinkMsg(msgObj) {
@@ -64,6 +69,7 @@ export class DroneLinkMsg {
     this.node = 0;
     this.channel = 0;
     this.param = 0;
+    this.priority = DRONE_LINK_MSG_PRIORITY_LOW;
     this.msgType = 0;
     this.msgLength = 0;
     this.writable = false;
@@ -112,7 +118,8 @@ export class DroneLinkMsg {
     this.source = buffer[0];
     this.node = buffer[1];
     this.channel = buffer[2];
-    this.param = buffer[3];
+    this.param = buffer[3] & 0b00111111;
+    this.priority = buffer[3] >> 6;
     this.msgType = (buffer[4] >> 4) & 0x07;
     this.msgLength = (buffer[4] & 0x0F) + 1;
     this.writable = (buffer[4] & DRONE_LINK_MSG_WRITABLE) > 0;
@@ -128,7 +135,8 @@ export class DroneLinkMsg {
     this.source = buffer[5 + 0];
     this.node = buffer[5 + 1];
     this.channel = buffer[5 + 2];
-    this.param = buffer[5 + 3];
+    this.param = buffer[5 + 3] & 0b00111111;
+    this.priority = buffer[5 + 3] >> 6;
     this.msgType = (buffer[5 + 4] >> 4) & 0x07;
     this.msgLength = (buffer[5 + 4] & 0x0F) + 1;
     this.writable = (buffer[5 + 4] & DRONE_LINK_MSG_WRITABLE) > 0;
@@ -142,6 +150,7 @@ export class DroneLinkMsg {
     this.node = msg.node;
     this.channel = msg.channel;
     this.param = msg.param;
+    this.priority = msg.priority;
     this.msgType = msg.msgType;
     this.msgLength = msg.msgLength;
     this.writable = msg.writable;
@@ -198,6 +207,10 @@ export class DroneLinkMsg {
 		this.param = a.param;
   }
 
+  setPriority(p) {
+    this.priority = p;
+  }
+
   setString(s) {
 		this.msgType = DRONE_LINK_MSG_TYPE_CHAR;
     this.msgLength = s.length;
@@ -218,7 +231,7 @@ export class DroneLinkMsg {
 		buffer[1] = this.source;
     buffer[2] = this.node;
     buffer[3] = this.channel;
-    buffer[4] = this.param;
+    buffer[4] = this.priority << 6 | (this.param & 0b00111111);
     buffer[5] = (this.writable ? DRONE_LINK_MSG_WRITABLE : 0) | (this.msgType << 4) | ((this.msgLength-1) & 0x0F);
 
     for (var i=0; i<this.msgLength; i++) {
@@ -235,7 +248,7 @@ export class DroneLinkMsg {
     buffer[0] = this.source;
     buffer[1] = this.node;
     buffer[2] = this.channel;
-    buffer[3] = this.param;
+    buffer[3] = this.priority << 6 | (this.param & 0b00111111);
     buffer[4] = (this.writable ? DRONE_LINK_MSG_WRITABLE : 0) | (this.msgType << 4) | ((this.msgLength-1) & 0x0F);
 
     for (var i=0; i<this.msgLength; i++) {
@@ -261,7 +274,7 @@ export class DroneLinkMsg {
     buffer[5+0] = this.source;
     buffer[5+1] = this.node;
     buffer[5+2] = this.channel;
-    buffer[5+3] = this.param;
+    buffer[5+3] = this.priority << 6 | (this.param & 0b00111111)
     buffer[5+4] = (this.writable ? DRONE_LINK_MSG_WRITABLE : 0) | (this.msgType << 4) | ((this.msgLength-1) & 0x0F);
 
     for (var i=0; i<this.msgLength; i++) {

@@ -75,6 +75,9 @@ export default class AnalysisManager {
             var title = $('<div class="analysisParamTitle">'+data.param+'. </div>');
             ele.append(title);
 
+            var priority = $('<div class="analysisParamPriority analysisParamPriority'+data.priority+'">'+data.priority+'</div>');
+            ele.append(priority);
+
             var info = $('<div class="analysisParamInfo"></div>');
             ele.append(info);
 
@@ -196,14 +199,22 @@ export default class AnalysisManager {
 
             // for each param
             for (const [paramId, param] of Object.entries(channel.params)) {
-              // update barGraph
-              var v = 100 * param.packets / this.maxPackets;
 
-              param.graph.children().css('width', v + '%');
+              // only show params with packets > 0 and hide mgmt params
+              if (param.packets > 0 && param.param > 7) {
+              //if (param.packets > 0) {
+                param.ui.show();
+                // update barGraph
+                var v = 100 * param.packets / this.maxPackets;
 
-              // update info
-              var s = param.packets + ', ' + (param.packets / dt).toFixed(1) + '/s';
-              param.info.html(s);
+                param.graph.children().css('width', v + '%');
+
+                // update info
+                var s = param.packets + ', ' + (param.packets / dt).toFixed(1) + '/s';
+                param.info.html(s);
+              } else {
+                param.ui.hide();
+              }
             }
           }
         }
