@@ -307,7 +307,7 @@ export default class DroneLinkManager {
       var ni = this.interfaces[i];
 
       if (ni.state) {
-        this.generateHello(ni, this.node, this.helloSeq, 15, loopTime - this.bootTime);
+        this.generateHello(ni, this.node, this.helloSeq, 0, loopTime - this.bootTime);
       } else {
         if (this.logOptions.Hello)
           this.clog('Cant generate hello - interface down'.orange);
@@ -419,7 +419,7 @@ export default class DroneLinkManager {
         this.clog(('generate Traceroute Request for '+target));
 
       // populate
-      msg.typeGuaranteeSize = DMM.DRONE_MESH_MSG_GUARANTEED | 1;  // payload is 2 bytes... sent as n-1
+      msg.typeGuaranteeSize = DMM.DRONE_MESH_MSG_GUARANTEED | 0;  // payload is 1 bytes... sent as n-1
       msg.txNode = this.node;
       msg.srcNode = this.node;
       msg.nextNode = nextHop;
@@ -429,7 +429,6 @@ export default class DroneLinkManager {
 
       // padding
       msg.uint8_tPayload[0] = this.node;
-      msg.uint8_tPayload[1] = 0;
 
       this.gSeq++;
       if (this.gSeq > 255) this.gSeq = 0;
@@ -738,8 +737,18 @@ export default class DroneLinkManager {
     if (this.logOptions.Hello)
       this.clog('  Hello from '+msg.srcNode + ' tx by '+msg.txNode + ', metric='+metric+', seq='+msg.seq);
 
-    // calc total metric inc RSSI to us
-    var newMetric = constrain(msg.uint8_tPayload[0] + metric, 0, 255);
+    var helloMetric = msg.uint8_tPayload[0];
+
+    // set an initial new total metric, inc RSSI to us
+    var newMetric = constrain(helloMetric + metric, 0, 255);
+
+    // lookup info on tx Node... to calc a better metric than RSSI
+    var txNodeInfo = this.getNodeInfo(msg.txNode, false);
+    if (txNodeInfo) {
+      // use avgAttempts to txNode to update total metric
+      newMetric = constrain(helloMetric + Math.ceil (txNodeInfo.avgAttempts + 0.1), 0, 255);
+    }
+
     // little endian byte order
     var newUptime = (msg.uint8_tPayload[4] << 24) +
                     (msg.uint8_tPayload[3] << 16) +
@@ -751,7 +760,17 @@ export default class DroneLinkManager {
     var nodeInfo = this.getNodeInfo(msg.srcNode, true);
     if (nodeInfo) {
       // if its a brand new route entry it will have metric 255... so good to overwrite
-      var feasibleRoute = nodeInfo.metric == 255;
+      var feasibleRoute = false;
+      if (nodeInfo.metric == 255) {
+        feasibleRoute = true;
+      } else {
+        // update existing metric info based on latest link quality
+        var nextHopInfo = this.getNodeInfo(nodeInfo.nextHop, false);
+        if (nextHopInfo) {
+          // use avgAttempts to nexthop to update total metric
+          nodeInfo.metric = constrain(nodeInfo.helloMetric + Math.ceil(nextHopInfo.avgAttempts + 0.1), 0, 255);
+        }
+      }
 
       // if new uptime is less than current uptime
       if (newUptime < nodeInfo.uptime) feasibleRoute = true;
@@ -780,6 +799,7 @@ export default class DroneLinkManager {
           this.clog("  Updating route info");
         nodeInfo.seq = msg.seq;
         nodeInfo.metric = newMetric;
+        nodeInfo.helloMetric = helloMetric;
         nodeInfo.netInterface = netInterface;
         nodeInfo.nextHop = msg.txNode;
         nodeInfo.uptime = newUptime;
@@ -804,6 +824,7 @@ export default class DroneLinkManager {
         newMetric = nodeInfo.metric;
       }
 
+      /* don't retransmit, as we don't want to be a router
       // if metric < 255 then retransmit the Hello on all interfaces
       // subject to timer
       if (loopTime > nodeInfo.lastBroadcast + 5000) {
@@ -814,6 +835,7 @@ export default class DroneLinkManager {
           nodeInfo.lastBroadcast = loopTime;
         }
       }
+      */
 
     }
   }

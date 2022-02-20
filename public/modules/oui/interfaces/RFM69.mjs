@@ -32,6 +32,11 @@ export default class RFM69 {
       if (this.RSSI.length > 100) this.RSSI.shift();
     }
 
+		if (data.param == 11 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
+			var p = Math.round(data.values[0]);
+			this.powerSelect.val(p);
+		}
+
     this.update();
   }
 
@@ -89,7 +94,7 @@ export default class RFM69 {
 
     this.drawValue(w/2,0,'Rejected', packets[2].toFixed(0));
 		this.drawValue(w/2,40,'', rates[2].toFixed(1) + '/s');
-		
+
     this.drawValue(3*w/4,0,'RSSI', -rssi.toFixed(0));
   }
 
@@ -97,6 +102,28 @@ export default class RFM69 {
 		this.built = true;
 
 		this.ui = $('<div class="RFM69 text-center"></div>');
+
+		// power select
+		this.powerSelect = $('<select class="RFMPowerSelect"></select>');
+    // add power options
+		for (var i=-14; i<=20; i++) {
+			this.powerSelect.append($('<option value="'+i+'">'+i+'</option>'));
+		}
+    this.powerSelect.change((e)=>{
+      // get value
+      var newPower = this.powerSelect.val();
+
+			var qm = new DLM.DroneLinkMsg();
+			qm.node = this.channel.node.id;
+			qm.channel = this.channel.channel;
+			qm.param = 11;
+			qm.setFloat([ newPower ]);
+			this.state.send(qm);
+    });
+
+    this.ui.append(this.powerSelect);
+
+		// canvas
     this.canvas = $('<canvas height=100 />');
 
 		this.ui.append(this.canvas);

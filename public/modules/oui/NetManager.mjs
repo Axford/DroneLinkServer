@@ -154,7 +154,7 @@ export default class NetManager {
           p += 1;
         }
 
-        console.log('traceroute.response', dm);
+        console.log('traceroute.response', s );
 
       } catch(err) {
         console.error(err);
@@ -365,7 +365,7 @@ export default class NetManager {
 
         // compare it to the target length based on metric
         var hvl = hv.length();
-        var targetLen = constrain(hop.metric * 20, 20, 300) + 50;
+        var targetLen = constrain(hop.metric * 20, 20, 150) + 150;
         var hvr = (hvl - targetLen) / 10;
 
         // update accel vector
