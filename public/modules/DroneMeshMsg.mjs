@@ -37,6 +37,8 @@ export const DRONE_MESH_MSG_TYPE_DRONELINKMSG           =7;
 export const DRONE_MESH_MSG_TYPE_ROUTER_REQUEST         =20;
 export const DRONE_MESH_MSG_TYPE_ROUTER_RESPONSE        =21;
 
+export const DRONE_MESH_MSG_TYPE_LINK_CHECK_REQUEST     =26;
+
 // batch firmware messages
 export const DRONE_MESH_MSG_TYPE_FIRMWARE_START_REQUEST   =22;
 export const DRONE_MESH_MSG_TYPE_FIRMWARE_START_RESPONSE  =23;
@@ -124,6 +126,10 @@ export class DroneMeshMsg {
     return constrain( (this.typeGuaranteeSize & 0b00111111) + 1, 0, DRONE_MESH_MSG_MAX_PAYLOAD_SIZE);
   }
 
+  setPayloadSize(v) {
+    this.typeGuaranteeSize = (this.typeGuaranteeSize & 0b11000000) | (v - 1);
+  }
+
   getTotalSize() {
     return this.getPayloadSize() + DRONE_MESH_MSG_HEADER_SIZE + 1;
   }
@@ -170,12 +176,12 @@ export class DroneMeshMsg {
       case DRONE_MESH_MSG_TYPE_ROUTER_REQUEST: return 'Router Req';
       case DRONE_MESH_MSG_TYPE_ROUTER_RESPONSE: return 'Router Resp';
 
+      case DRONE_MESH_MSG_TYPE_LINK_CHECK_REQUEST: return 'LinkCheck Req';
+
       case DRONE_MESH_MSG_TYPE_FIRMWARE_START_REQUEST:  return 'Firmware Start Req';
       case DRONE_MESH_MSG_TYPE_FIRMWARE_START_RESPONSE:  return 'Firmware Start Resp';
       case DRONE_MESH_MSG_TYPE_FIRMWARE_WRITE:  return 'Firmware Write';
       case DRONE_MESH_MSG_TYPE_FIRMWARE_REWIND:  return 'Firmware Rewind';
-      case DRONE_MESH_MSG_TYPE_FIRMWARE_END_REQUEST:  return 'Firmware End Req';
-      case DRONE_MESH_MSG_TYPE_FIRMWARE_END_RESPONSE:  return 'Firmware End Resp';
 
     default:
       return '???';

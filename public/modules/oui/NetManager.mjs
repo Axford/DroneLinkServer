@@ -33,6 +33,12 @@ export default class NetManager {
     this.focusNode = 0;
     this.localAddress = 0;
 
+    this.traceRoute = [];
+    this.traceRouteNode = 0;
+    this.traceRouteTimer = Date.now();
+    this.traceRouteDuration = 0;
+    this.traceRouteLog = []; // history of traces
+
     this.pan = false;
     this.panPosition = new Vector(0,0);
     this.panStart = new Vector(0,0);
@@ -149,12 +155,30 @@ export default class NetManager {
         var s = '';
 
         var p =0;
+        this.traceRoute = [];
         for (var i=0; i < dm.getPayloadSize(); i++) {
-          s += dm.uint8_tPayload[p] + ' -> ';
+          this.traceRoute.push( dm.uint8_tPayload[p] );
+          if (i % 2 == 0) {
+            s += dm.uint8_tPayload[p];
+          } else {
+            s += ' ['+dm.uint8_tPayload[p] + '] ';
+          }
+
           p += 1;
         }
 
+        this.traceRouteDuration = Date.now() - this.traceRouteTimer;
+
+        this.traceRouteLog.unshift({
+          node: this.traceRouteNode,
+          seq: dm.seq,
+          duration: this.traceRouteDuration,
+          data: [...this.traceRoute]
+        });
+        //this.traceRouteLog.unshift(this.traceRouteNode + ' [s:'+dm.seq+']: ' + this.traceRouteDuration + ' ms, '+ s );
+
         console.log('traceroute.response', s );
+        this.needsRedraw = true;
 
       } catch(err) {
         console.error(err);
@@ -172,11 +196,25 @@ export default class NetManager {
       var node = this.nodes[this.focusNode];
       if (node && this.visible) {
         console.log('traceroute.request', node.node);
+
+        if (this.traceRoute.length == 0 && this.traceRouteNode > 0) {
+          // previous traceRoute must have failed... note in log
+          this.traceRouteLog.unshift({
+            node: this.traceRouteNode,
+            seq: -1,
+            duration: -1,
+            data: []
+          });
+        }
+
+        this.traceRoute = [];
+        this.traceRouteNode = node.node;
+        this.traceRouteTimer = Date.now();
         this.socket.emit('traceroute.request', {
           target: node.node
         });
       }
-    }, 5000);
+    }, 3000);
 
 
     this.resize(); // will trigger a redraw
@@ -307,6 +345,9 @@ export default class NetManager {
     ctx.fillStyle = '#343a40';
     ctx.fillRect(0,0,w,h);
 
+    // draw traceroute
+    this.drawTraceRoute();
+
     // draw wires
     for (var i=0; i<this.blocks.length; i++) {
       this.blocks[i].drawWires();
@@ -320,11 +361,104 @@ export default class NetManager {
     // frame counter
     ctx.fillStyle = '#5F5';
     ctx.font = '10px bold sans-serif';
-		ctx.textAlign = 'left';
-    ctx.fillText(this.frame, 5, 10);
+		ctx.textAlign = 'right';
+    ctx.fillText(this.frame, w-5, 10);
 
     this.needsRedraw = false;
   }
+
+
+  drawTraceRoute() {
+    var c = this.canvas[0];
+    var ctx = c.getContext("2d");
+
+    // keep log within sensible length
+    if (this.traceRouteLog.length > 20) this.traceRouteLog.pop();
+
+    var w = ctx.canvas.width;
+    var cx = w/2;
+
+    var h = ctx.canvas.height;
+    var cy = h/2;
+
+    ctx.font = '12px sans-serif';
+		ctx.textAlign = 'left';
+
+    // draw timer
+    if (this.traceRouteNode > 0) {
+      if (this.traceRoute.length > 0) {
+        //ctx.fillStyle = '#5f5';
+        //ctx.fillText(this.traceRouteDuration + ' ms', 15, 17);
+      } else {
+        ctx.fillStyle = '#aaa';
+        ctx.fillText('Tracing to '+this.traceRouteNode+': ' + ((Date.now() - this.traceRouteTimer)/1000).toFixed(1) + 's', 15, 17);
+      }
+    }
+
+    var x1 = 10;
+    var y1 = 40;
+
+    for (var i=0; i < this.traceRouteLog.length; i++) {
+      var log = this.traceRouteLog[i];
+
+
+      if (log.data.length > 0) {
+        ctx.textAlign = 'left';
+
+        // duration
+        ctx.fillStyle = '#fff';
+        ctx.fillText(log.duration + ' ms', x1, y1);
+        x1 += 50;
+
+        // seq
+        ctx.fillStyle = '#aaf';
+        ctx.fillText(log.seq, x1, y1);
+        x1 += 40;
+
+
+        // trace
+        ctx.textAlign = 'center';
+        var ti = 0;
+        while (ti < log.data.length) {
+          if (ti % 2 == 0) {
+            // draw node
+            ctx.fillStyle = '#000';
+            if (log.node == log.data[ti]) ctx.fillStyle = '#080';
+            ctx.fillRect(x1-15, y1-12, 30, 16);
+
+            ctx.fillStyle = '#fff';
+            if (log.node == log.data[ti]) ctx.fillStyle = '#fff';
+            ctx.fillText(log.data[ti], x1, y1);
+
+            x1 += 25;
+
+          } else {
+            // draw metric
+            ctx.fillStyle = '#fff';
+            ctx.fillText(log.data[ti], x1, y1);
+            x1 += 25;
+          }
+          ti++;
+        }
+
+      } else {
+        // fail
+        x1 += 20;
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#800';
+        ctx.fillRect(x1-15, y1-12, 30, 16);
+
+        ctx.fillStyle = '#fff';
+        ctx.fillText(log.node, x1, y1);
+      }
+
+
+      // increment log line
+      y1 += 20;
+      x1 = 10;
+    }
+  }
+
 
   updatePositions() {
     if (!this.visible) return;

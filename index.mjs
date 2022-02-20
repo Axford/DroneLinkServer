@@ -511,6 +511,7 @@ setInterval(()=>{
       s += ', Att: '+nodeInfo.avgAttempts.toFixed(1);
       s += ', Tx: '+nodeInfo.avgTxTime.toFixed(0) + 'ms';
       s += ', Ack: '+nodeInfo.avgAckTime.toFixed(0) + 'ms';
+      s += ', GU: '+nodeInfo.givenUp;
       s += ', A: '+nodeInfo.interfaceAddress;
       s += '\n';
     }

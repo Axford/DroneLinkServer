@@ -28,6 +28,8 @@ const DRONE_LINK_MANAGER_MAX_RETRY_INTERVAL   =2000;
 const DRONE_LINK_MANAGER_MAX_RETRIES          =10;
 const DRONE_LINK_MANAGER_MAX_ACK_INTERVAL     =250;
 
+const DRONE_LINK_MANAGER_LINK_CHECK_INTERVAL  = 2000;
+
 function constrain(v, minv, maxv) {
   return Math.max(Math.min(v, maxv), minv);
 }
@@ -82,7 +84,8 @@ export default class DroneLinkManager {
       Transmit: true,
       Subscription: true,
       Router: true,
-      Traceroute: true
+      Traceroute: true,
+      LinkCheck: true
     };
 
     this.logFilePath = '';
@@ -95,6 +98,7 @@ export default class DroneLinkManager {
     setInterval( ()=>{
       try {
         this.checkForOldRoutes();
+        this.checkDirectLinks();
         this.updateSubscriptions();
       } catch (err) {
         this.clog('ERROR: ' + err);
@@ -226,6 +230,38 @@ export default class DroneLinkManager {
     } );
 
 
+    // a negative return value means item a is sorted before b
+    this.txQueue.sort( (a,b) => {
+      // only need to sort non-empty packets
+      if (a.state > DMM.DRONE_MESH_MSG_BUFFER_STATE_EMPTY && b.state > DMM.DRONE_MESH_MSG_BUFFER_STATE_EMPTY) {
+        // send Acks before new packets
+        var a1 = a.msg.isAck() ? 0 : 1;
+        var b1 = b.msg.isAck() ? 0 : 1;
+        if (a1 == 0 && b1 == 1) {
+          return -1;
+        } else if (a1 == 1 && b1 == 0) {
+          return 1;
+        } else {
+          // send higher priority items first
+          a1 = a.msg.getPriority();
+          b1 = b.msg.getPriority();
+          if (a1 != b1) {
+            return b1 - a1;
+          }
+          // send older items first (FIFO)
+          return a.created - b.created;
+        }
+      } else {
+        if (a.state > DMM.DRONE_MESH_MSG_BUFFER_STATE_EMPTY) {
+          return -1;
+        } else if (b.state > DMM.DRONE_MESH_MSG_BUFFER_STATE_EMPTY) {
+          return 1;
+        }
+      }
+      return 0;
+    } );
+
+
     // look through txQueue
     for (var i=0; i<this.txQueue.length; i++) {
       var b = this.txQueue[i];
@@ -267,6 +303,14 @@ export default class DroneLinkManager {
           this.clog('send fail'.red);
           // send failed, see how long we've been trying for
           if (loopTime > b.created + DRONE_LINK_MANAGER_MAX_RETRY_INTERVAL) {
+
+            // update stats on nextNode
+            var nextNodeInfo = this.getNodeInfo(b.msg.nextNode, false);
+            if (nextNodeInfo) {
+              nextNodeInfo.avgAttempts = (nextNodeInfo.avgAttempts * 99 + b.attempts) / 100;
+              nextNodeInfo.givenUp++;
+            }
+
             // give up and release the buffer
             b.state = DMTB.DRONE_MESH_MSG_BUFFER_STATE_EMPTY;
           }
@@ -285,6 +329,7 @@ export default class DroneLinkManager {
             var nextNodeInfo = this.getNodeInfo(b.msg.nextNode, false);
             if (nextNodeInfo) {
               nextNodeInfo.avgAttempts = (nextNodeInfo.avgAttempts * 99 + b.attempts) / 100;
+              nextNodeInfo.givenUp++;
             }
           } else {
             // reset to ready to trigger retransmission
@@ -478,6 +523,36 @@ export default class DroneLinkManager {
   }
 
 
+  generateLinkCheckRequest(ni, target, nextHop) {
+    var buffer = this.getTransmitBuffer(ni, DMM.DRONE_MESH_MSG_PRIORITY_MEDIUM);
+
+    if (buffer) {
+      var msg = buffer.msg;
+      if (this.logOptions.LinkCheck)
+        this.clog(('generate Link Check Request for '+target));
+
+      // populate
+      msg.typeGuaranteeSize = DMM.DRONE_MESH_MSG_GUARANTEED | 0;  // payload is 1 bytes... sent as n-1
+      msg.txNode = this.node;
+      msg.srcNode = this.node;
+      msg.nextNode = nextHop;
+      msg.destNode = target;
+      msg.seq = this.gSeq;
+      msg.setPriorityAndType(DMM.DRONE_MESH_MSG_PRIORITY_MEDIUM, DMM.DRONE_MESH_MSG_TYPE_LINK_CHECK_REQUEST);
+
+      // padding
+      msg.uint8_tPayload[0] = 0;
+
+      this.gSeq++;
+      if (this.gSeq > 255) this.gSeq = 0;
+
+      return true;
+    }
+
+    return false;
+  }
+
+
   generateDroneLinkMessage(ni, dlmMsg, nextHop) {
     var p = DMM.DRONE_MESH_MSG_PRIORITY_MEDIUM;
     var g = DMM.DRONE_MESH_MSG_NOT_GUARANTEED;
@@ -565,6 +640,25 @@ export default class DroneLinkManager {
   }
 
 
+  checkDirectLinks() {
+    var loopTime = Date.now();
+    for (const [node, nodeInfo] of Object.entries(this.routeMap)) {
+      // see if this is a directly connected
+      if (loopTime < nodeInfo.lastHello + 10 * DRONE_LINK_MANAGER_HELLO_INTERVAL) {
+        // see how long since we last had an Ack from this node?
+        if (loopTime > nodeInfo.lastAck + DRONE_LINK_MANAGER_LINK_CHECK_INTERVAL) {
+          if (nodeInfo.interface) {
+            this.generateLinkCheckRequest(nodeInfo.interface, nodeInfo.node, nodeInfo.node);
+            // update lastAck so we don't try again too soon
+            nodeInfo.lastAck = loopTime;
+          }
+        }
+      }
+    }
+  }
+
+
+
   updateSubscriptions() {
     var loopTime = Date.now();
     for (const [node, nodeInfo] of Object.entries(this.routeMap)) {
@@ -612,6 +706,12 @@ export default class DroneLinkManager {
       nodeInfo.subState = SUB_STATE_PENDING;
       nodeInfo.subTimer = 0;
       nodeInfo.uptime = 0;
+      nodeInfo.avgAttempts = 0;
+      nodeInfo.avgTxTime = 0;
+      nodeInfo.avgActTime = 0;
+      nodeInfo.givenUp = 0;
+      nodeInfo.lastHello = 0;
+      nodeInfo.lastAck = 0;
 
       routeExists = true;
     }
@@ -662,6 +762,8 @@ export default class DroneLinkManager {
 
         case DMM.DRONE_MESH_MSG_TYPE_ROUTER_RESPONSE: this.receiveRouterResponse(netInterface, msg, metric); break;
 
+        case DMM.DRONE_MESH_MSG_TYPE_LINK_CHECK_REQUEST: this.receiveLinkCheckRequest(netInterface, msg, metric);
+
         case DMM.DRONE_MESH_MSG_TYPE_FIRMWARE_START_RESPONSE: this.receiveFirmwareStartResponse(netInterface, msg, metric, interfaceAddress); break;
 
         case DMM.DRONE_MESH_MSG_TYPE_FIRMWARE_REWIND: this.receiveFirmwareRewind(netInterface, msg, metric); break;
@@ -693,6 +795,7 @@ export default class DroneLinkManager {
           // update stats on nextNode
           var nextNodeInfo = this.getNodeInfo(msg.txNode, false);
           if (nextNodeInfo) {
+            nextNodeInfo.lastAckTime = Date.now();
             //this.clog('ack ok'.green);
             nextNodeInfo.avgAttempts = (nextNodeInfo.avgAttempts * 49 + b.attempts) / 50;
             nextNodeInfo.avgAckTime = (nextNodeInfo.avgAckTime * 49 + (Date.now() - b.created)) / 50;
@@ -704,13 +807,14 @@ export default class DroneLinkManager {
 
 
   generateAck(netInterface, msg) {
-    var buffer = this.getTransmitBuffer(netInterface, msg.getPriority());
+    // treat Acks as critical so we can clear them fast
+    var buffer = this.getTransmitBuffer(netInterface, DMM.DRONE_MESH_MSG_PRIORITY_CRITICAL);
 
     if (buffer) {
       var amsg = buffer.msg;
       //this.clog('Generating Ack to ' + msg.srcNode);
       // populate with a subscription request packet
-      amsg.typeGuaranteeSize = DMM.DRONE_MESH_MSG_GUARANTEED | (msg.getPayloadSize()-1) ;
+      amsg.typeGuaranteeSize = DMM.DRONE_MESH_MSG_GUARANTEED | 0 ;
       // set Ack
       amsg.setPacketType(DMM.DRONE_MESH_MSG_ACK);
       amsg.txNode = this.node;
@@ -746,6 +850,7 @@ export default class DroneLinkManager {
     var txNodeInfo = this.getNodeInfo(msg.txNode, false);
     if (txNodeInfo) {
       // use avgAttempts to txNode to update total metric
+      txNodeInfo.lastHello = Date.now();
       newMetric = constrain(helloMetric + Math.ceil (txNodeInfo.avgAttempts + 0.1), 0, 255);
     }
 
@@ -899,21 +1004,51 @@ export default class DroneLinkManager {
     // are we the destination?
     if (msg.destNode == this.node) {
 
-      // unwrap contained RouteEntry
-      //var dmre = new DMRE.DroneMeshRouteEntry( msg.rawPayload );
+      try {
+        // add our receiving metric info to complete the trace
+        // tweak buffer to add our traceroute info
+        var payloadLen = msg.getPayloadSize();
 
-      if (this.logOptions.Traceroute) {
-        var s = '';
-        var p = 0;
-        for (var i=0; i < msg.getPayloadSize(); i++) {
-          s += msg.uint8_tPayload[p] + ' -> ';
-          p += 1;
+        if (payloadLen < DMM.DRONE_MESH_MSG_MAX_PAYLOAD_SIZE-2) {
+          // calc index of insertion point
+          var p = payloadLen;
+
+          // lookup txNode and get avgAttempts value as metric
+          var m = metric;
+
+          var txInfo = this.getNodeInfo(msg.txNode, false);
+          if (txInfo) {
+            m = Math.ceil(txInfo.avgAttempts + 0.1);
+          }
+
+          // add our info
+          msg.uint8_tPayload[p] = m;
+          msg.uint8_tPayload[p+1] = this.node;
+
+          // update payload size
+          msg.setPayloadSize(payloadLen+2);
         }
-        this.clog(s);
-      }
 
-      // publish
-      if (this.io) this.io.emit('traceroute.response', msg.encode());
+
+        // unwrap contained RouteEntry
+        //var dmre = new DMRE.DroneMeshRouteEntry( msg.rawPayload );
+
+        if (this.logOptions.Traceroute) {
+          var s = '';
+          var p = 0;
+          for (var i=0; i < msg.getPayloadSize(); i++) {
+            s += msg.uint8_tPayload[p] + ' -> ';
+            p += 1;
+          }
+          this.clog(s);
+        }
+
+        // publish
+        if (this.io) this.io.emit('traceroute.response', msg.encode());
+
+      } catch (err) {
+        this.clog(('ERROR: receiveTracerouteResponse' + err).red)
+      }
 
     } else {
       // pass along to next hop
@@ -978,6 +1113,19 @@ export default class DroneLinkManager {
       // pass along to next hop
       //TODO
       // hopAlong(msg)
+    }
+  }
+
+
+  receiveLinkCheckRequest(netInterface, msg, metric) {
+    var loopTime = Date.now();
+
+    if (this.logOptions.LinkCheck)
+      this.clog(('  Link Check Request from '+msg.srcNode + ', tx by '+msg.txNode).green);
+
+    // are we the destination?
+    if (msg.destNode == this.node) {
+      // nothing to be done, just needed an Ack
     }
   }
 
