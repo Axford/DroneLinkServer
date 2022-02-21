@@ -11,7 +11,9 @@ import * as DMM from './DroneMeshMsg.mjs';
 import * as DMRE from './DroneMeshRouteEntry.mjs';
 import * as DMR from './DroneMeshRouter.mjs';
 import * as DMTB from './DroneMeshTxBuffer.mjs';
+import DroneLinkMeshMsgSequencer from './DroneLinkMeshMsgSequencer.mjs';
 import fs from 'fs';
+
 
 const DRONE_LINK_MANAGER_MAX_ROUTE_AGE = 60000;
 
@@ -29,6 +31,8 @@ const DRONE_LINK_MANAGER_MAX_RETRIES          =10;
 const DRONE_LINK_MANAGER_MAX_ACK_INTERVAL     =250;
 
 const DRONE_LINK_MANAGER_LINK_CHECK_INTERVAL  = 2000;
+
+const DRONE_LINK_MANAGER_AVG_SAMPLES          = 16;
 
 function constrain(v, minv, maxv) {
   return Math.max(Math.min(v, maxv), minv);
@@ -307,7 +311,7 @@ export default class DroneLinkManager {
             // update stats on nextNode
             var nextNodeInfo = this.getNodeInfo(b.msg.nextNode, false);
             if (nextNodeInfo) {
-              nextNodeInfo.avgAttempts = (nextNodeInfo.avgAttempts * 99 + b.attempts) / 100;
+              nextNodeInfo.avgAttempts = (nextNodeInfo.avgAttempts * (DRONE_LINK_MANAGER_AVG_SAMPLES-1) + b.attempts) / DRONE_LINK_MANAGER_AVG_SAMPLES;
               nextNodeInfo.givenUp++;
             }
 
@@ -328,7 +332,7 @@ export default class DroneLinkManager {
             // update stats on nextNode
             var nextNodeInfo = this.getNodeInfo(b.msg.nextNode, false);
             if (nextNodeInfo) {
-              nextNodeInfo.avgAttempts = (nextNodeInfo.avgAttempts * 99 + b.attempts) / 100;
+              nextNodeInfo.avgAttempts = (nextNodeInfo.avgAttempts * (DRONE_LINK_MANAGER_AVG_SAMPLES-1) + b.attempts) / DRONE_LINK_MANAGER_AVG_SAMPLES;
               nextNodeInfo.givenUp++;
             }
           } else {
@@ -713,6 +717,7 @@ export default class DroneLinkManager {
       nodeInfo.lastHello = 0;
       nodeInfo.helloInterface = null;
       nodeInfo.lastAck = 0;
+      nodeInfo.gSequencer = new DroneLinkMeshMsgSequencer();
 
       routeExists = true;
     }
@@ -720,12 +725,24 @@ export default class DroneLinkManager {
     if (routeExists) {
       nodeInfo = this.routeMap[node];
       if (heard) {
+        if (!nodeInfo.heard) {
+          nodeInfo.gSequencer.clear();
+        }
         nodeInfo.lastHeard = Date.now();
         nodeInfo.heard = true;
       }
       return this.routeMap[node];
     }
     return null;
+  }
+
+
+  getMetricFromNodeInfo(nodeInfo) {
+    var metric = 20;
+    if (nodeInfo) {
+      metric = Math.min(20, Math.ceil (2 * nodeInfo.avgAttempts + 0.1));
+    }
+    return constrain(metric, 1, 20);
   }
 
 
@@ -746,8 +763,19 @@ export default class DroneLinkManager {
       this.receiveAck(msg);
 
     } else {
-      if (msg.isGuaranteed())
+      if (msg.isGuaranteed()) {
         this.generateAck(netInterface, msg);
+
+        // check to see if we've already received this packet
+        var srcNodeInfo = this.getNodeInfo(msg.srcNode, false);
+        if (srcNodeInfo) {
+          if (srcNodeInfo.gSequencer.isDuplicate(msg.seq)) {
+            this.clog(('SEEMS LIKE A DUP ' + msg.seq).red);
+            return;
+          }
+        }
+      }
+
 
       // pass to appropriate receive handler
       switch (msg.getPayloadType()) {
@@ -798,8 +826,8 @@ export default class DroneLinkManager {
           if (nextNodeInfo) {
             nextNodeInfo.lastAckTime = Date.now();
             //this.clog('ack ok'.green);
-            nextNodeInfo.avgAttempts = (nextNodeInfo.avgAttempts * 49 + b.attempts) / 50;
-            nextNodeInfo.avgAckTime = (nextNodeInfo.avgAckTime * 49 + (Date.now() - b.created)) / 50;
+            nextNodeInfo.avgAttempts = (nextNodeInfo.avgAttempts * (DRONE_LINK_MANAGER_AVG_SAMPLES-1) + b.attempts) / DRONE_LINK_MANAGER_AVG_SAMPLES;
+            nextNodeInfo.avgAckTime = (nextNodeInfo.avgAckTime * (DRONE_LINK_MANAGER_AVG_SAMPLES-1) + (Date.now() - b.created)) / DRONE_LINK_MANAGER_AVG_SAMPLES;
           }
         }
       }
@@ -853,7 +881,7 @@ export default class DroneLinkManager {
       // use avgAttempts to txNode to update total metric
       txNodeInfo.lastHello = Date.now();
       txNodeInfo.helloInterface = netInterface;
-      newMetric = constrain(helloMetric + Math.ceil (txNodeInfo.avgAttempts + 0.1), 0, 255);
+      newMetric = constrain(helloMetric + this.getmetricFromNodeInfo(txNodeInfo), 0, 255);
     }
 
     // little endian byte order
@@ -875,7 +903,7 @@ export default class DroneLinkManager {
         var nextHopInfo = this.getNodeInfo(nodeInfo.nextHop, false);
         if (nextHopInfo) {
           // use avgAttempts to nexthop to update total metric
-          nodeInfo.metric = constrain(nodeInfo.helloMetric + Math.ceil(nextHopInfo.avgAttempts + 0.1), 0, 255);
+          nodeInfo.metric = constrain(nodeInfo.helloMetric + this.getMetricFromNodeInfo(nextHopInfo), 0, 255);
         }
       }
 
@@ -1020,7 +1048,7 @@ export default class DroneLinkManager {
 
           var txInfo = this.getNodeInfo(msg.txNode, false);
           if (txInfo) {
-            m = Math.ceil(txInfo.avgAttempts + 0.1);
+            m = this.getMetricFromNodeInfo(txInfo.avgAttempts);
           }
 
           // add our info
