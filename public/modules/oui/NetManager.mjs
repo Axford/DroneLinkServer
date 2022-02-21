@@ -397,6 +397,7 @@ export default class NetManager {
 
     var x1 = 10;
     var y1 = 40;
+    var lseq = -1;
 
     for (var i=0; i < this.traceRouteLog.length; i++) {
       var log = this.traceRouteLog[i];
@@ -411,8 +412,16 @@ export default class NetManager {
         x1 += 50;
 
         // seq
-        ctx.fillStyle = '#aaf';
+        if (log.seq == lseq) {
+          // duplicate
+          ctx.fillStyle = '#aaf';
+          ctx.fillRect(x1-5, y1-12, 30, 16);
+          ctx.fillStyle = '#000';
+        } else {
+          ctx.fillStyle = '#aaf';
+        }
         ctx.fillText(log.seq, x1, y1);
+        lseq = log.seq;
         x1 += 40;
 
 

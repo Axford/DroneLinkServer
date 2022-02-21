@@ -647,8 +647,8 @@ export default class DroneLinkManager {
       if (loopTime < nodeInfo.lastHello + 10 * DRONE_LINK_MANAGER_HELLO_INTERVAL) {
         // see how long since we last had an Ack from this node?
         if (loopTime > nodeInfo.lastAck + DRONE_LINK_MANAGER_LINK_CHECK_INTERVAL) {
-          if (nodeInfo.interface) {
-            this.generateLinkCheckRequest(nodeInfo.interface, nodeInfo.node, nodeInfo.node);
+          if (nodeInfo.helloInterface) {
+            this.generateLinkCheckRequest(nodeInfo.helloInterface, nodeInfo.node, nodeInfo.node);
             // update lastAck so we don't try again too soon
             nodeInfo.lastAck = loopTime;
           }
@@ -711,6 +711,7 @@ export default class DroneLinkManager {
       nodeInfo.avgActTime = 0;
       nodeInfo.givenUp = 0;
       nodeInfo.lastHello = 0;
+      nodeInfo.helloInterface = null;
       nodeInfo.lastAck = 0;
 
       routeExists = true;
@@ -851,6 +852,7 @@ export default class DroneLinkManager {
     if (txNodeInfo) {
       // use avgAttempts to txNode to update total metric
       txNodeInfo.lastHello = Date.now();
+      txNodeInfo.helloInterface = netInterface;
       newMetric = constrain(helloMetric + Math.ceil (txNodeInfo.avgAttempts + 0.1), 0, 255);
     }
 
