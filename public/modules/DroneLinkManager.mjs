@@ -747,59 +747,64 @@ export default class DroneLinkManager {
 
 
   receivePacket(netInterface, msg, metric, interfaceAddress) {
-    // update lastHeard for tx node
-    var txNodeInfo = this.getNodeInfo(msg.txNode, false);
-    if (txNodeInfo && txNodeInfo.heard) {
-      txNodeInfo.lastHeard = Date.now();
-      txNodeInfo.interfaceAddress = interfaceAddress;
-    }
+    try {
 
-    // log to file
-    if (this.logToFile && this.logStream) {
-      this.logStream.write(msg.encodeForLog());
-    }
-
-    if (msg.isAck()) {
-      this.receiveAck(msg);
-
-    } else {
-      if (msg.isGuaranteed()) {
-        this.generateAck(netInterface, msg);
-
-        // check to see if we've already received this packet
-        var srcNodeInfo = this.getNodeInfo(msg.srcNode, false);
-        if (srcNodeInfo) {
-          if (srcNodeInfo.gSequencer.isDuplicate(msg.seq)) {
-            this.clog(('SEEMS LIKE A DUP ' + msg.seq).red);
-            return;
+          // update lastHeard for tx node
+          var txNodeInfo = this.getNodeInfo(msg.txNode, false);
+          if (txNodeInfo && txNodeInfo.heard) {
+            txNodeInfo.lastHeard = Date.now();
+            txNodeInfo.interfaceAddress = interfaceAddress;
           }
-        }
-      }
+
+          // log to file
+          if (this.logToFile && this.logStream) {
+            this.logStream.write(msg.encodeForLog());
+          }
+
+          if (msg.isAck()) {
+            this.receiveAck(msg);
+
+          } else {
+            if (msg.isGuaranteed()) {
+              this.generateAck(netInterface, msg);
+
+              // check to see if we've already received this packet
+              var srcNodeInfo = this.getNodeInfo(msg.srcNode, false);
+              if (srcNodeInfo) {
+                if (srcNodeInfo.gSequencer.isDuplicate(msg.seq)) {
+                  this.clog(('SEEMS LIKE A DUP ' + msg.seq).red);
+                  return;
+                }
+              }
+            }
 
 
-      // pass to appropriate receive handler
-      switch (msg.getPayloadType()) {
-        case DMM.DRONE_MESH_MSG_TYPE_HELLO: this.receiveHello(netInterface, msg, metric); break;
+            // pass to appropriate receive handler
+            switch (msg.getPayloadType()) {
+              case DMM.DRONE_MESH_MSG_TYPE_HELLO: this.receiveHello(netInterface, msg, metric); break;
 
-        case DMM.DRONE_MESH_MSG_TYPE_SUBSCRIPTION_RESPONSE: this.receiveSubscriptionResponse(netInterface, msg, metric); break;
+              case DMM.DRONE_MESH_MSG_TYPE_SUBSCRIPTION_RESPONSE: this.receiveSubscriptionResponse(netInterface, msg, metric); break;
 
-        case DMM.DRONE_MESH_MSG_TYPE_DRONELINKMSG: this.receiveDroneLinkMsg(netInterface, msg, metric); break;
+              case DMM.DRONE_MESH_MSG_TYPE_DRONELINKMSG: this.receiveDroneLinkMsg(netInterface, msg, metric); break;
 
-        case DMM.DRONE_MESH_MSG_TYPE_TRACEROUTE_RESPONSE: this.receiveTracerouteResponse(netInterface, msg, metric); break;
+              case DMM.DRONE_MESH_MSG_TYPE_TRACEROUTE_RESPONSE: this.receiveTracerouteResponse(netInterface, msg, metric); break;
 
-        case DMM.DRONE_MESH_MSG_TYPE_ROUTEENTRY_RESPONSE: this.receiveRouteEntryResponse(netInterface, msg, metric); break;
+              case DMM.DRONE_MESH_MSG_TYPE_ROUTEENTRY_RESPONSE: this.receiveRouteEntryResponse(netInterface, msg, metric); break;
 
-        case DMM.DRONE_MESH_MSG_TYPE_ROUTER_RESPONSE: this.receiveRouterResponse(netInterface, msg, metric); break;
+              case DMM.DRONE_MESH_MSG_TYPE_ROUTER_RESPONSE: this.receiveRouterResponse(netInterface, msg, metric); break;
 
-        case DMM.DRONE_MESH_MSG_TYPE_LINK_CHECK_REQUEST: this.receiveLinkCheckRequest(netInterface, msg, metric);
+              case DMM.DRONE_MESH_MSG_TYPE_LINK_CHECK_REQUEST: this.receiveLinkCheckRequest(netInterface, msg, metric);
 
-        case DMM.DRONE_MESH_MSG_TYPE_FIRMWARE_START_RESPONSE: this.receiveFirmwareStartResponse(netInterface, msg, metric, interfaceAddress); break;
+              case DMM.DRONE_MESH_MSG_TYPE_FIRMWARE_START_RESPONSE: this.receiveFirmwareStartResponse(netInterface, msg, metric, interfaceAddress); break;
 
-        case DMM.DRONE_MESH_MSG_TYPE_FIRMWARE_REWIND: this.receiveFirmwareRewind(netInterface, msg, metric); break;
+              case DMM.DRONE_MESH_MSG_TYPE_FIRMWARE_REWIND: this.receiveFirmwareRewind(netInterface, msg, metric); break;
 
-      default:
-        this.clog(('Unknown payload type: '+ msg.toString()).orange);
-      }
+            default:
+              this.clog(('Unknown payload type: '+ msg.toString()).orange);
+            }
+          }
+    } catch (err) {
+      this.clog(('ERROR in receivePacket: ' + err).red);
     }
   }
 
@@ -867,9 +872,6 @@ export default class DroneLinkManager {
 
     var loopTime = Date.now();
 
-    if (this.logOptions.Hello)
-      this.clog('  Hello from '+msg.srcNode + ' tx by '+msg.txNode + ', metric='+metric+', seq='+msg.seq);
-
     var helloMetric = msg.uint8_tPayload[0];
 
     // set an initial new total metric, inc RSSI to us
@@ -881,7 +883,7 @@ export default class DroneLinkManager {
       // use avgAttempts to txNode to update total metric
       txNodeInfo.lastHello = Date.now();
       txNodeInfo.helloInterface = netInterface;
-      newMetric = constrain(helloMetric + this.getmetricFromNodeInfo(txNodeInfo), 0, 255);
+      newMetric = constrain(helloMetric + this.getMetricFromNodeInfo(txNodeInfo), 0, 255);
     }
 
     // little endian byte order
@@ -889,6 +891,9 @@ export default class DroneLinkManager {
                     (msg.uint8_tPayload[3] << 16) +
                     (msg.uint8_tPayload[2] << 8) +
                     (msg.uint8_tPayload[1]);
+
+    if (this.logOptions.Hello)
+      this.clog('  Hello from '+msg.srcNode + ' tx by '+msg.txNode + ', Metric: '+newMetric+', Sq: '+msg.seq+', Up: ' + newUptime);
 
 
     // fetch/create routing entry
