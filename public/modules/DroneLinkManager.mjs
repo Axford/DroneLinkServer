@@ -657,6 +657,9 @@ export default class DroneLinkManager {
             nodeInfo.lastAck = loopTime;
           }
         }
+      } else {
+        // taper off avgAttempts info ready for potential future connection?
+        nodeInfo.avgAttempts *= 0.9;
       }
     }
   }
