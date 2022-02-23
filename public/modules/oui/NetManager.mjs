@@ -637,8 +637,8 @@ export default class NetManager {
   routeUpdate(re) {
     // check src and dest exist
     var src = this.addBlock(re.src, true);
-    var next = this.addBlock(re.nextHop, false);
-    var dest = this.addBlock(re.node, false);
+    var next = this.addBlock(re.nextHop, true);
+    var dest = this.addBlock(re.node, true);
 
     src.addHop(next, dest,
       next == dest ? re.metric : 255,
@@ -650,6 +650,7 @@ export default class NetManager {
 
     this.draw();
   }
+
 
   routerUpdate(nodeId, r) {
     // find matching node

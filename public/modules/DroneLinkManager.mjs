@@ -411,7 +411,7 @@ export default class DroneLinkManager {
       msg.nextNode = next;
       msg.destNode = dest;
       msg.seq = 0;
-      msg.setPriorityAndType(DMM.DRONE_MESH_MSG_PRIORITY_MEDIUM, DMM.DRONE_MESH_MSG_TYPE_SUBSCRIPTION_REQUEST);
+      msg.setPriorityAndType(DMM.DRONE_MESH_MSG_PRIORITY_HIGH, DMM.DRONE_MESH_MSG_TYPE_SUBSCRIPTION_REQUEST);
 
       // populate payload = channel, param
       msg.uint8_tPayload[0] = channel;
@@ -603,11 +603,19 @@ export default class DroneLinkManager {
 
 
   getRoutesFor(target, subject) {
-    // don't bother asking for routes from ourself
-    if (target == this.node) return;
-
     if (this.logOptions.RouteEntry)
       this.clog(('getRoutesFor: '+ target +', '+ subject).yellow);
+
+    // check for routes from ourself
+    if (target == this.node) {
+      // publish
+      if (this.io &&
+          this.routeMap[subject] &&
+          this.routeMap[subject].heard)
+          this.io.emit('route.update', this.routeMap[subject].encode());
+      return;
+    }
+
     var nodeInfo = this.getNodeInfo(target, false);
     if (nodeInfo && nodeInfo.heard) {
       var ni = nodeInfo.netInterface;
