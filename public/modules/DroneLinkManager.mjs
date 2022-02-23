@@ -528,7 +528,7 @@ export default class DroneLinkManager {
 
 
   generateLinkCheckRequest(ni, target, nextHop) {
-    var buffer = this.getTransmitBuffer(ni, DMM.DRONE_MESH_MSG_PRIORITY_MEDIUM);
+    var buffer = this.getTransmitBuffer(ni, DMM.DRONE_MESH_MSG_PRIORITY_LOW);
 
     if (buffer) {
       var msg = buffer.msg;
@@ -542,7 +542,7 @@ export default class DroneLinkManager {
       msg.nextNode = nextHop;
       msg.destNode = target;
       msg.seq = this.gSeq;
-      msg.setPriorityAndType(DMM.DRONE_MESH_MSG_PRIORITY_MEDIUM, DMM.DRONE_MESH_MSG_TYPE_LINK_CHECK_REQUEST);
+      msg.setPriorityAndType(DMM.DRONE_MESH_MSG_PRIORITY_LOW, DMM.DRONE_MESH_MSG_TYPE_LINK_CHECK_REQUEST);
 
       // padding
       msg.uint8_tPayload[0] = 0;
@@ -661,8 +661,8 @@ export default class DroneLinkManager {
         if (loopTime > nodeInfo.lastAck + DRONE_LINK_MANAGER_LINK_CHECK_INTERVAL) {
           if (nodeInfo.helloInterface) {
             this.generateLinkCheckRequest(nodeInfo.helloInterface, nodeInfo.node, nodeInfo.node);
-            // update lastAck so we don't try again too soon
-            nodeInfo.lastAck = loopTime;
+            // update lastAck so we don't try again too soon... add a bit of randomisation to avoid synchronous link checks
+            nodeInfo.lastAck = loopTime + Math.random()*100;
           }
         }
       } else {

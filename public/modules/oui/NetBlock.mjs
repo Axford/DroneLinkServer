@@ -147,6 +147,12 @@ export default class NetBlock {
     var px = this.mgr.panPosition.x;
     var py = this.mgr.panPosition.y;
 
+    // shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.beginPath();
+    ctx.arc(px + this.position.x+1, py + this.position.y+2, this.radius+2, 0, 2 * Math.PI);
+    ctx.fill();
+
     // update fillStyle
     this.fillStyle = this.getStyle( this.getAlpha() );
 
