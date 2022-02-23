@@ -1,5 +1,5 @@
 
-export const DRONE_MESH_ROUTER_SIZE = 12;
+export const DRONE_MESH_ROUTER_SIZE = 13;
 
 
 export class DroneMeshRouter {
@@ -11,6 +11,7 @@ export class DroneMeshRouter {
     this.choked = 0;
     this.kickRate = 0;
     this.chokeRate = 0;
+    this.utilisation = 0;
 
     this.timestamp = Date.now();
 
@@ -25,6 +26,7 @@ export class DroneMeshRouter {
     this.choked = (buffer[9] << 24) + (buffer[8] << 16) + (buffer[7] << 8) + buffer[6];
     this.kickRate = buffer[10] / 10.0;
     this.chokeRate = buffer[11] / 10.0;
+    this.utilisation = buffer[12] / 100.0;
   }
 
   toString() {
@@ -52,6 +54,7 @@ export class DroneMeshRouter {
 
     buffer[10] = Math.round(this.kickRate * 10);
     buffer[11] = Math.round(this.chokeRate * 10);
+    buffer[12] = Math.round(this.utilisation * 100);
 
     return buffer;
   }

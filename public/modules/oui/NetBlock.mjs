@@ -25,6 +25,7 @@ export default class NetBlock {
     this.choked = 0;
     this.kickRate = 0;
     this.chokeRate = 0;
+    this.utilisation = 0;
 
     // a wire to each next hop node
     this.nextHops = {};
@@ -176,14 +177,31 @@ export default class NetBlock {
     //ctx.fillText(this.node, px + this.position.x, py + this.y1 + this.headerHeight - 6);
     ctx.fillText(this.node, px + this.position.x, py + this.y1 + this.headerHeight - 17);
 
+    // utilisation bargraph
+    ctx.fillStyle = '#555';
+    var bw = this.radius * 2 - 8;
+    var bh = 12;
+    ctx.fillRect(px + this.position.x - bw/2, py + this.position.y - 3, bw, bh);
+
+    ctx.fillStyle = "hsl(" + (135 * (1-this.utilisation)) + ',' +
+                     '100%,' +
+                     '70%, 100%)';
+    ctx.fillRect(px + this.position.x - bw/2, py + this.position.y - 2, bw * this.utilisation, bh-2);
+
+
     // stats label
-    var s = this.kickRate.toFixed(1)+', '+ this.chokeRate.toFixed(1);
+    /*
+    var s = (100 * this.utilisation).toFixed(0) + '%';
+    //var s = this.kickRate.toFixed(1)+', '+ this.chokeRate.toFixed(1);
     //var s = this.txQueueSize;
     ctx.font = '0.9rem Arial,sans-serif';
     ctx.fillText(s, px + this.position.x, py + this.y1 + this.headerHeight - 4);
+    */
 
+    // queue size
+    ctx.fillStyle = '#000';
+    ctx.font = '0.9rem Arial,sans-serif';
     ctx.fillText(this.txQueueSize, px + this.position.x, py + this.y1 + this.headerHeight + 10);
-
   }
 
   drawWires() {

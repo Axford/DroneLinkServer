@@ -664,6 +664,7 @@ export default class NetManager {
       node.choked = r.choked;
       node.kickRate = r.kickRate;
       node.chokeRate = r.chokeRate;
+      node.utilisation = r.utilisation;
     }
 
     this.draw();
