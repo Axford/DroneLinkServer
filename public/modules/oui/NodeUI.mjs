@@ -288,21 +288,7 @@ export default class NodeUI {
     // ignore if not focused
     if (!this.focused) return;
 
-    // ignore if not on configuration tab
-    if (!this.cui.is(":visible")) return;
-
-    // ignore if editor not visible
-    if (!this.cuiEditorBlock.is(":visible")) return;
-
-    var coord = e.lngLat;
-    var cursor = this.aceEditor.selection.getCursor();
-    var radius = 5;
-    if (this.scriptMarkers.length > 0) {
-      radius = this.scriptMarkers[this.scriptMarkers.length-1].targetRadius;
-    }
-    var newCmd = '\n_Nav.goto '+coord.lng.toFixed(12)+' '+coord.lat.toFixed(12) + ' ' + radius.toFixed(1);
-    console.log('inserting:', newCmd, cursor.row);
-    this.aceEditor.session.insert({row: cursor.row+1, column:0}, newCmd);
+    this.panels.Configuration.insertGoto(e.lngLat);
   }
 
 

@@ -158,7 +158,7 @@ export default class Graph extends Panel {
               this.node.scriptMarkers[i].getElement().classList.add('active');
 
               // set outline
-              var outlineData = this.createGeoJSONCircle([this.node.scriptMarkers[i]._lngLat.lng, this.node.scriptMarkers[i]._lngLat.lat], this.node.scriptMarkers[i].targetRadius);
+              var outlineData = this.node.createGeoJSONCircle([this.node.scriptMarkers[i]._lngLat.lng, this.node.scriptMarkers[i]._lngLat.lat], this.node.scriptMarkers[i].targetRadius);
               var src = this.node.map.getSource('scriptOutline' + this.id);
               if (src) src.setData(outlineData);
 
@@ -357,5 +357,23 @@ export default class Graph extends Panel {
     console.log('done',numMarkers, this.node.scriptMarkers.length, this.node.scriptMarkers);
   }
 
+
+  insertGoto(coord) {
+    // ignore if not on configuration tab
+    if (!this.visible) return;
+
+    // ignore if editor not visible
+    if (!this.cuiEditorBlock.is(":visible")) return;
+
+    //var cursor = this.aceEditor.selection.getCursor();
+    var cursor = this.aceEditor.getCursorPosition();
+    var radius = 5;
+    if (this.node.scriptMarkers.length > 0) {
+      radius = this.node.scriptMarkers[this.node.scriptMarkers.length-1].targetRadius;
+    }
+    var newCmd = '_Nav.goto '+coord.lng.toFixed(12)+' '+coord.lat.toFixed(12) + ' ' + radius.toFixed(1) + '\n';
+    console.log('inserting:', newCmd, cursor.row);
+    this.aceEditor.session.insert(cursor, newCmd);
+  }
 
 }
