@@ -1,7 +1,7 @@
 import loadStylesheet from '../../loadStylesheet.js';
 import * as DLM from '../../droneLinkMsg.mjs';
 
-loadStylesheet('./css/modules/interfaces/Management.css');
+loadStylesheet('./css/modules/oui/interfaces/Management.css');
 
 
 export default class Management {

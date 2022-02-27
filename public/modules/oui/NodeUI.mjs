@@ -226,7 +226,9 @@ export default class NodeUI {
       }
       updated = true;
     } else {
-      if (priority >= this.mapParams[paramName].priority) {
+      if (priority > this.mapParams[paramName].priority ||
+      (priority == this.mapParams[paramName].priority &&
+      channel < this.mapParams[paramName].channel)) {
         this.mapParams[paramName].priority = priority;
         this.mapParams[paramName].value = value;
         this.mapParams[paramName].channel = channel;
@@ -319,10 +321,8 @@ export default class NodeUI {
       panel.update();
     }
 
-    console.log('flyTo', this.mapParams.location);
     if (this.mapParams.location &&
         this.mapParams.location.value[0] != 0) {
-          console.log('flyTo');
       this.map.flyTo({
         center: this.mapParams.location.value
       });
