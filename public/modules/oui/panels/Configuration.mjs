@@ -137,13 +137,13 @@ export default class Graph extends Panel {
       var cursor = this.aceEditor.selection.getCursor();
       // get line for cursor
       var line = this.aceEditor.session.getLine(cursor.row);
-      console.log('line:', line);
+      //console.log('line:', line);
       if (line.includes('.goto')) {
-        console.log('goto!');
+        //console.log('goto!');
         const regexp = /\s*([_]\w+)?\.\w+\s+(-?(0|[1-9]\d*)(\.\d+)?)\s+(-?(0|[1-9]\d*)(\.\d+)?)\s+(-?(0|[1-9]\d*)(\.\d+)?)/;
         const match = line.match(regexp);
         if (match) {
-          console.log('coord:',match[1],match[4],match[7]);
+          //console.log('coord:',match[1],match[4],match[7]);
 
           /*
           // move map center to coord
@@ -200,7 +200,7 @@ export default class Graph extends Panel {
         return response.json();
       })
       .then(data => {
-        console.log(data);
+        //console.log(data);
         this.cuiFilesOnNodeTitle.html( data.files.length +' Files on Node');
         this.cuiFilesOnNodeFiles.empty();
         data.files.forEach((f)=>{
@@ -272,7 +272,7 @@ export default class Graph extends Panel {
         const regexp = /(\s*([_]\w+)?\.goto)\s+(-?[0-9]\d*(\.\d+)?)\s+(-?[0-9]\d*(\.\d+)?)\s+(-?[0-9]\d*(\.\d+)?)/;
         const match = line.match(regexp);
         if (match) {
-          console.log('goto:',match[3],match[5],match[7]);
+          //console.log('goto:',match[3],match[5],match[7]);
           var lon = parseFloat(match[3]);
           var lat = parseFloat(match[5]);
           var radius = parseFloat(match[7]);
@@ -282,7 +282,7 @@ export default class Graph extends Panel {
           var el = document.createElement('div');
           el.className = 'scriptMarker';
 
-          console.log(numMarkers, this.node.scriptMarkers.length, this.node.scriptMarkers);
+          //console.log(numMarkers, this.node.scriptMarkers.length, this.node.scriptMarkers);
 
 
           var marker;
@@ -306,7 +306,7 @@ export default class Graph extends Panel {
               var newCmd = sess.getLine(e.target.lineNumber);
               newCmd = newCmd.replace(/(\s*([_]\w+)?\.goto)\s+(-?[0-9]\d*(\.\d+)?)\s+(-?[0-9]\d*(\.\d+)?)\s+(-?[0-9]\d*(\.\d+)?)/, replacer);
 
-              console.log('new pos', lngLat);
+              //console.log('new pos', lngLat);
               sess.replace({
                   start: {row: e.target.lineNumber, column: 0},
                   end: {row: e.target.lineNumber, column: Number.MAX_VALUE}
@@ -354,7 +354,7 @@ export default class Graph extends Panel {
       if (src) src.setData(outlineData);
     }
 
-    console.log('done',numMarkers, this.node.scriptMarkers.length, this.node.scriptMarkers);
+    //console.log('done',numMarkers, this.node.scriptMarkers.length, this.node.scriptMarkers);
   }
 
 
@@ -372,7 +372,7 @@ export default class Graph extends Panel {
       radius = this.node.scriptMarkers[this.node.scriptMarkers.length-1].targetRadius;
     }
     var newCmd = '_Nav.goto '+coord.lng.toFixed(12)+' '+coord.lat.toFixed(12) + ' ' + radius.toFixed(1) + '\n';
-    console.log('inserting:', newCmd, cursor.row);
+    //console.log('inserting:', newCmd, cursor.row);
     this.aceEditor.session.insert(cursor, newCmd);
   }
 

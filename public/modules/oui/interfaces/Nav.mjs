@@ -122,25 +122,25 @@ export default class Nav {
     // location
 		if (data.param == 10 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
 			// pass onto node for mapping
-			this.channel.node.updateMapParam('location', 2, data.values, this.channel, 10);
+			this.channel.node.updateMapParam('location', 2, data.values, this.channel.channel, 10);
 		}
 
     // heading
 		if (data.param == 8 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
 			// pass onto node for mapping
-			this.channel.node.updateMapParam('heading', 2, data.values, this.channel, 8);
+			this.channel.node.updateMapParam('heading', 2, data.values, this.channel.channel, 8);
 		}
 
     // target
 		if (data.param == 12 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
 			// pass onto node for mapping
-			this.channel.node.updateMapParam('target', 2, data.values, this.channel, 12);
+			this.channel.node.updateMapParam('target', 2, data.values, this.channel.channel, 12);
 		}
 
     // last
 		if (data.param == 15 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
 			// pass onto node for mapping
-			this.channel.node.updateMapParam('last', 2, data.values, this.channel, 15);
+			this.channel.node.updateMapParam('last', 2, data.values, this.channel.channel, 15);
 		}
 
     // mode

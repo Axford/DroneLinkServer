@@ -319,8 +319,10 @@ export default class NodeUI {
       panel.update();
     }
 
+    console.log('flyTo', this.mapParams.location);
     if (this.mapParams.location &&
         this.mapParams.location.value[0] != 0) {
+          console.log('flyTo');
       this.map.flyTo({
         center: this.mapParams.location.value
       });

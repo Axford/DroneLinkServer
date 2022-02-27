@@ -16,7 +16,7 @@ export default class HMC5883L {
 		// heading
 		if (data.param == 11 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
 			// pass onto node for mapping
-			this.channel.node.updateMapParam('heading', 3, data.values, this.channel, 11);
+			this.channel.node.updateMapParam('heading', 3, data.values, this.channel.channel, 11);
 		}
 
     if (data.param == 10 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {

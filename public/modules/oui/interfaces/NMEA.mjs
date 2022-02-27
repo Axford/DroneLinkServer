@@ -16,7 +16,7 @@ export default class NMEA {
 		// location
 		if (data.param == 8 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
 			// pass onto node for mapping
-			this.channel.node.updateMapParam('location', 3, data.values, this.channel, 8);
+			this.channel.node.updateMapParam('location', 3, data.values, this.channel.channel, 8);
 		}
 
 
