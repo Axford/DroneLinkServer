@@ -1,6 +1,7 @@
 import Panel from './Panel.mjs';
 import loadStylesheet from '../../loadStylesheet.js';
 
+import * as DMFS from '../../DroneMeshFS.mjs';
 
 loadStylesheet('./css/modules/oui/panels/Configuration.css');
 
@@ -178,6 +179,42 @@ export default class Graph extends Panel {
     //console.log(this.aceEditor.session);
     //this.aceEditor.session.setMode(syntax.mode);
     this.cuiEditorBlock.append(this.cuiEditor);
+
+
+    // event handlers
+    this.node.state.socket.on('fs.file.response', (data)=>{
+      // see if it's for us
+      if (data.node != this.node.id) return;
+
+      // hydrate
+      data.payload = new DMFS.DroneMeshFSFileResponse(data.payload);
+
+      console.log('fs.file.response: ' + data.node + '=>' + data.payload.toString());
+
+      if (data.payload.isDirectory()) {
+        console.log('fs.file.response: enumerating directory of ' + data.payload.size);
+        // enumerate entries
+        for (var i=0; i<data.payload.size; i++) {
+          this.getNodeFileByIndex(data.payload.path, i)
+        }
+      } else {
+        var sizeStr =  '';
+        if (data.payload.size < 1000) {
+          sizeStr = data.payload.size.toFixed(0);
+        } else {
+          sizeStr = (data.payload.size/1024).toFixed(1) + 'k';
+        }
+        var fe = $('<div class="file clearfix">'+data.payload.path+' <span class="size float-right">'+sizeStr+'</span></div>');
+        fe.data('name',data.payload.path);
+        fe.on('click',()=>{
+          this.cuiFilesOnNodeFiles.children().removeClass('selected');
+          this.selectedNodeFilename = fe.data('name');
+          fe.addClass('selected');
+          this.cuiGetFileBut.show();
+        });
+        this.cuiFilesOnNodeFiles.append(fe);
+      }
+    });
   }
 
   update() {
@@ -191,6 +228,42 @@ export default class Graph extends Panel {
   }
 
 
+  getNodeFileByPath(path) {
+    var qm = new DMFS.DroneMeshFSFileRequest();
+    qm.flags = DMFS.DRONE_MESH_MSG_FS_FLAG_PATH_INFO;
+    qm.id = 0;
+    qm.path = path;
+
+    var data = {
+      node: this.node.id,
+      payload: qm.encode()
+    };
+
+    console.log('Emitting fs.file.request: ' + qm.toString() );
+    this.node.state.socket.emit('fs.file.request', data);
+  }
+
+  getNodeFileByIndex(path, index) {
+    var qm = new DMFS.DroneMeshFSFileRequest();
+    qm.flags = DMFS.DRONE_MESH_MSG_FS_FLAG_INDEX_INFO;
+    qm.id = index;
+    qm.path = path;
+
+    var data = {
+      node: this.node.id,
+      payload: qm.encode()
+    };
+
+    console.log('Emitting fs.file.request: ' + qm.toString() );
+    this.node.state.socket.emit('fs.file.request', data);
+  }
+
+  getNodeFileList() {
+    this.cuiFilesOnNodeFiles.empty();
+    this.getNodeFileByPath('/');
+  }
+
+/*
   getNodeFileList() {
     fetch('http://' + this.node.ipAddress + '/listfiles?json')
       .then(response => {
@@ -227,6 +300,7 @@ export default class Graph extends Panel {
         this.cuiGetFileBut.hide();
       });
   }
+  */
 
   loadFileFromNode() {
     this.cuiEditorTitle.html('Downloading...' + this.selectedNodeFilename);

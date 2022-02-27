@@ -11,6 +11,7 @@ import * as DMM from './DroneMeshMsg.mjs';
 import * as DMRE from './DroneMeshRouteEntry.mjs';
 import * as DMR from './DroneMeshRouter.mjs';
 import * as DMTB from './DroneMeshTxBuffer.mjs';
+import * as DMFS from './DroneMeshFS.mjs';
 import DroneLinkMeshMsgSequencer from './DroneLinkMeshMsgSequencer.mjs';
 import fs from 'fs';
 
@@ -89,7 +90,8 @@ export default class DroneLinkManager {
       Subscription: true,
       Router: true,
       Traceroute: true,
-      LinkCheck: true
+      LinkCheck: true,
+      FS: true
     };
 
     this.logFilePath = '';
@@ -600,6 +602,49 @@ export default class DroneLinkManager {
   }
 
 
+  sendFileRequest(data) {
+    // msg.node = target, msg.payload = DMFS request
+
+    // hydrate payload
+    data.payload = new DMFS.DroneMeshFSFileRequest(data.payload);
+
+    this.clog('fs.file.request: '+data.node + '=> '+data.payload.toString());
+
+    var nodeInfo = this.getNodeInfo(data.node, false);
+    if (!nodeInfo) return;
+
+    var p = DMM.DRONE_MESH_MSG_PRIORITY_CRITICAL;
+    var g = DMM.DRONE_MESH_MSG_GUARANTEED;
+
+    var buffer = this.getTransmitBuffer(nodeInfo.netInterface, p);
+    if (buffer) {
+      var msg = buffer.msg;
+      var payloadSize = DMFS.DRONE_MESH_MSG_FS_FILE_REQUEST_SIZE;
+
+      msg.typeGuaranteeSize = g | (payloadSize-1);
+      msg.txNode = this.node;
+      msg.srcNode = this.node;
+      msg.nextNode = nodeInfo.nextHop;
+      msg.destNode = data.node;
+      msg.seq = this.gSeq;
+      msg.setPriorityAndType(p, DMM.DRONE_MESH_MSG_TYPE_FS_FILE_REQUEST);
+
+      this.gSeq++;
+      if (this.gSeq > 255) this.gSeq = 0;
+
+      // populate payload
+      var buffer = data.payload.encode();
+      for (var i=0; i<payloadSize; i++) {
+        msg.uint8_tPayload[i] = buffer[i];
+      }
+
+
+
+      return true;
+    }
+
+    return false;
+  }
 
 
   getRoutesFor(target, subject) {
@@ -804,7 +849,12 @@ export default class DroneLinkManager {
 
               case DMM.DRONE_MESH_MSG_TYPE_ROUTER_RESPONSE: this.receiveRouterResponse(netInterface, msg, metric); break;
 
-              case DMM.DRONE_MESH_MSG_TYPE_LINK_CHECK_REQUEST: this.receiveLinkCheckRequest(netInterface, msg, metric);
+              case DMM.DRONE_MESH_MSG_TYPE_LINK_CHECK_REQUEST: this.receiveLinkCheckRequest(netInterface, msg, metric); break;
+
+              // filesystem
+              case DMM.DRONE_MESH_MSG_TYPE_FS_FILE_RESPONSE: this.receiveFSFileResponse(netInterface, msg, metric); break;
+
+              // firmware
 
               case DMM.DRONE_MESH_MSG_TYPE_FIRMWARE_START_RESPONSE: this.receiveFirmwareStartResponse(netInterface, msg, metric, interfaceAddress); break;
 
@@ -1174,6 +1224,31 @@ export default class DroneLinkManager {
       // nothing to be done, just needed an Ack
     }
   }
+
+
+  receiveFSFileResponse(netInterface, msg, metric) {
+    var loopTime = Date.now();
+
+    if (this.logOptions.FS)
+      this.clog(('  FS File Response from '+msg.srcNode + ', tx by '+msg.txNode).green);
+
+    // are we the destination?
+    if (msg.destNode == this.node) {
+      try {
+        // unwrap contained msg
+        var fsr = new DMFS.DroneMeshFSFileResponse( msg.rawPayload );
+
+        // publish
+        if (this.io) this.io.emit('fs.file.response', {
+          node:msg.srcNode,
+          payload:fsr.encode()
+        });
+      } catch(err) {
+        this.clog(('ERROR in receiveFSFileResponse: '+err).red);
+      }
+    }
+  }
+
 
 
   receiveFirmwareStartResponse(netInterface, msg, metric, interfaceAddress) {

@@ -652,4 +652,9 @@ io.on('connection', (socket) => {
     // ask dlm to traceroute
     dlm.generateTracerouteRequestFor(msg.target);
   });
+
+
+  socket.on('fs.file.request', (msg)=>{
+    dlm.sendFileRequest(msg);
+  });
 });

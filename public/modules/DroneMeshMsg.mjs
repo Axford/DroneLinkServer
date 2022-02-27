@@ -44,6 +44,17 @@ export const DRONE_MESH_MSG_TYPE_FIRMWARE_START_REQUEST   =22;
 export const DRONE_MESH_MSG_TYPE_FIRMWARE_START_RESPONSE  =23;
 export const DRONE_MESH_MSG_TYPE_FIRMWARE_WRITE           =24;
 export const DRONE_MESH_MSG_TYPE_FIRMWARE_REWIND          =25;
+
+// filesystem messages
+export const DRONE_MESH_MSG_TYPE_FS_FILE_REQUEST          =10;
+export const DRONE_MESH_MSG_TYPE_FS_FILE_RESPONSE         =11;
+export const DRONE_MESH_MSG_TYPE_FS_RESIZE_REQUEST        =12;
+export const DRONE_MESH_MSG_TYPE_FS_RESIZE_RESPONSE       =13;
+export const DRONE_MESH_MSG_TYPE_FS_READ_REQUEST          =14;
+export const DRONE_MESH_MSG_TYPE_FS_READ_RESPONSE         =15;
+export const DRONE_MESH_MSG_TYPE_FS_WRITE_REQUEST         =16;
+export const DRONE_MESH_MSG_TYPE_FS_WRITE_RESPONSE        =17;
+
 // -------------------------------------------------------------------------
 
 // Priorities
@@ -59,6 +70,7 @@ export const DRONE_MESH_INTERFACE_TYPE_UDP        =0;
 export const DRONE_MESH_INTERFACE_TYPE_RFM69      =1;
 export const DRONE_MESH_INTERFACE_TYPE_PTP        =2;  // point to point telemetry radio
 export const DRONE_MESH_INTERFACE_TYPE_IRIDIUM    =3;
+
 
 
 function constrain(v, minv, maxv) {
@@ -182,6 +194,9 @@ export class DroneMeshMsg {
       case DRONE_MESH_MSG_TYPE_FIRMWARE_START_RESPONSE:  return 'Firmware Start Resp';
       case DRONE_MESH_MSG_TYPE_FIRMWARE_WRITE:  return 'Firmware Write';
       case DRONE_MESH_MSG_TYPE_FIRMWARE_REWIND:  return 'Firmware Rewind';
+
+      case DRONE_MESH_MSG_TYPE_FS_FILE_REQUEST: return 'FS File Request';
+      case DRONE_MESH_MSG_TYPE_FS_FILE_RESPONSE: return 'FS File Response';
 
     default:
       return '???';
