@@ -3,20 +3,16 @@ import loadStylesheet from '../loadStylesheet.js';
 import * as DLM from '../droneLinkMsg.mjs';
 
 // oui
-import Channel from './Channel.mjs';
-import GraphManager from './GraphManager.mjs';
+//import Channel from './Channel.mjs';
+//import GraphManager from './GraphManager.mjs';
 import Tabs from './Tabs.mjs';
 
 // panels
-import NodeSettings from './panels/NodeSettings.mjs';
+import ManagementPanel from './panels/Management.mjs';
+import ConfigurationPanel from './panels/Configuration.mjs';
+import GraphPanel from './panels/Graph.mjs';
+import NodeSettingsPanel from './panels/NodeSettings.mjs';
 
-// widgets
-/*
-import NavWidget from '../widgets/NavWidget.mjs';
-import RFM69TelemetryWidget from '../widgets/RFM69TelemetryWidget.mjs';
-import INA219Widget from '../widgets/INA219Widget.mjs';
-import NMEAWidget from '../widgets/NMEAWidget.mjs';
-*/
 
 loadStylesheet('./css/modules/oui/NodeUI.css');
 
@@ -40,21 +36,6 @@ export default class NodeUI {
     // used to track mappable params like location or heading
     this.mapParams = {};
 
-/*
-    this.gotLocationModule=  false;
-    this.gotLocation= false;
-    this.locationType=  '';
-    this.locationModule=  0;
-
-    this.gotCompass= false;
-    this.compassModule= 0;
-    this.compassType= '';
-
-
-    this.gotTarget= false;
-    this.targetModule= 0;
-    this.gotLast= false;
-    */
 
     this.lastHeard=  (new Date()).getTime();
 
@@ -79,8 +60,6 @@ export default class NodeUI {
 
     this.uiWidgets = $('<div class="widgets"></div>');
     $(this.ui).append(this.uiWidgets);
-
-    //this.widgets = {};
 
     // prep a layer for scriptMarker outlines
     var scriptOutlineName = 'scriptOutline' + this.id;
@@ -132,8 +111,13 @@ export default class NodeUI {
     this.pui.node = this;
     $('#nodeManager').append(this.pui);
 
+    // container for tabs
     this.puiNav = $('<div class="panelNav"></div>');
     this.pui.append(this.puiNav);
+
+    // container for panels
+    this.puiPanels = $('<div class="panels"></div>');
+    this.pui.append(this.puiPanels);
 
     // create tabs
     this.puiTabs = new Tabs(this.puiNav);
@@ -141,205 +125,20 @@ export default class NodeUI {
       me.showPanel(tabName);
     });
 
-    this.puiTabs.add('Management', 'Management', '<i class="fas fa-table"></i>');
+    // panels
+    this.panels = {};
 
-    this.puiTabs.add('Configuration', 'Configuration', '<i class="fas fa-folder-open"></i>');
+    this.panels.Management = new ManagementPanel(this, this.puiTabs, this.puiPanels);
 
-    this.puiTabs.add('Graph', 'Node Graph', '<i class="fas fa-project-diagram"></i>');
+    this.panels.Configuration = new ConfigurationPanel(this, this.puiTabs, this.puiPanels);
 
+    this.panels.Graph = new GraphPanel(this, this.puiTabs, this.puiPanels);
 
-    this.nodeSettingsUI = new NodeSettings(this, this.puiTabs);
-
-
-    this.puiPanels = $('<div class="panels"></div>');
-    this.pui.append(this.puiPanels);
-
-    // create mgmt ui
-    this.mui = $('<div class="managementUI" style="display:none"/>');
-    this.mui.data('tab', 'Management');
-    //this.muiName = $('<div class="nodeName"></div>');
-    //this.mui.append(this.muiName);
-    this.mui.node = this;
-    this.muiChannels = {};
-
-    this.puiPanels.append(this.mui);
-
-
-
-    // create config ui
-    this.cui = $('<div class="configurationUI" style="display:none"/>');
-    this.cui.data('tab', 'Configuration');
-    this.cui.node = this;
-    this.puiPanels.append(this.cui);
-
-    // file mgmt block
-    this.cuiFileBlock = $('<div class="fileBlock"></div>');
-    this.cui.append(this.cuiFileBlock);
-
-    // on server
-    this.cuiFilesOnServer = $('<div class="filePane"></div>');
-    this.cuiFileBlock.append(this.cuiFilesOnServer);
-
-    //    title
-    this.cuiFilesOnServerTitle = $('<div class="title">Files on Server</div>');
-    this.cuiFilesOnServer.append(this.cuiFilesOnServerTitle);
-
-    //    nav
-    this.cuiFilesOnServerNav = $('<div class="nav"></div>');
-    this.cuiFilesOnServer.append(this.cuiFilesOnServerNav);
-
-    //    filelist
-    this.cuiFilesOnServerFiles = $('<div class="files"></div>');
-    this.cuiFilesOnServer.append(this.cuiFilesOnServerFiles);
-
-    // on node
-    this.cuiFilesOnNode = $('<div class="filePane" style="display:none"></div>');
-    this.cuiFileBlock.append(this.cuiFilesOnNode);
-
-    //    title
-    this.cuiFilesOnNodeTitle = $('<div class="title">Files on Node</div>');
-    this.cuiFilesOnNode.append(this.cuiFilesOnNodeTitle);
-
-    //    nav
-    this.cuiFilesOnNodeNav = $('<div class="nav"></div>');
-    this.cuiFilesOnNode.append(this.cuiFilesOnNodeNav);
-
-    this.cuiGetFileListBut = $('<button class="btn btn-sm btn-primary">List</button>');
-    this.cuiGetFileListBut.on('click',()=>{ this.getNodeFileList()  });
-    this.cuiFilesOnNodeNav.append(this.cuiGetFileListBut);
-
-
-    this.cuiGetFileBut = $('<button class="btn btn-sm btn-primary ml-1" style="display:none">Edit</button>');
-    this.cuiGetFileBut.on('click',()=>{
-      this.loadFileFromNode();
-    });
-    this.cuiFilesOnNodeNav.append(this.cuiGetFileBut);
-
-
-
-    //    filelist
-    this.cuiFilesOnNodeFiles = $('<div class="files"></div>');
-    this.cuiFilesOnNode.append(this.cuiFilesOnNodeFiles);
-
-
-
-    // file editor block
-    this.cuiEditorBlock = $('<div class="editorBlock" style="display:none"></div>');
-    this.cui.append(this.cuiEditorBlock);
-
-    // nav
-    this.cuiEditorNav = $('<div class="editorNav clearfix"></div>');
-    this.cuiEditorBlock.append(this.cuiEditorNav);
-
-    this.cuiEditorSaveBut = $('<button class="btn btn-sm btn-primary float-right" style="display:none">Save</button>');
-    this.cuiEditorSaveBut.on('click',()=>{
-      this.cuiEditorNav.addClass('saving');
-      var contents = this.aceEditor.session.getValue();
-      var blob = new Blob ([contents], { type: "text/plain" });
-      var fileOfBlob = new File([blob], this.cuiEditorTitle.html());
-      var fd = new FormData();
-      fd.append("file1", fileOfBlob);
-      var xmlhttp=new XMLHttpRequest();
-      xmlhttp.open("POST", 'http://' + this.ipAddress + '/', true);
-      xmlhttp.onload = function (e) {
-        if (xmlhttp.readyState === 4) {
-          if (xmlhttp.status === 200) {
-            //
-            me.cuiEditorNav.addClass('saved');
-            me.cuiEditorNav.removeClass('saving');
-            me.getNodeFileList();
-          } else {
-            //console.error(xmlhttp.statusText);
-            me.cuiEditorNav.addClass('error');
-            me.cuiEditorNav.removeClass('saving');
-          }
-        }
-      };
-      xmlhttp.onerror = function (e) {
-        console.error(xmlhttp.statusText);
-        me.cuiEditorNav.addClass('error');
-        me.cuiEditorNav.removeClass('saving');
-      };
-      xmlhttp.send(fd);
-    });
-    this.cuiEditorNav.append(this.cuiEditorSaveBut);
-
-    this.cuiEditorTitle = $('<div class="title"></div>');
-    this.cuiEditorNav.append(this.cuiEditorTitle);
-
-    // editor
-    this.cuiEditor = $('<div class="editor"></div>');
-
-    ace.config.setModuleUrl('ace/mode/dcode',"/modules/mode-dcode.js");
-
-    this.aceEditor = ace.edit(this.cuiEditor[0], {
-        mode: "ace/mode/dcode",
-        theme:'ace/theme/dracula',
-        selectionStyle: "text"
-    });
-    this.aceEditor.on('change', ()=>{
-      this.cuiEditorNav.removeClass('saved');
-      this.analyseFile();
-    });
-    this.aceEditor.session.selection.on('changeCursor', (e)=>{
-
-      var cursor = this.aceEditor.selection.getCursor();
-      // get line for cursor
-      var line = this.aceEditor.session.getLine(cursor.row);
-      console.log('line:', line);
-      if (line.includes('.goto')) {
-        console.log('goto!');
-        const regexp = /\s*([_]\w+)?\.\w+\s+(-?(0|[1-9]\d*)(\.\d+)?)\s+(-?(0|[1-9]\d*)(\.\d+)?)\s+(-?(0|[1-9]\d*)(\.\d+)?)/;
-        const match = line.match(regexp);
-        if (match) {
-          console.log('coord:',match[1],match[4],match[7]);
-
-          /*
-          // move map center to coord
-          var lon =  parseFloat(match[1]);
-          var lat = parseFloat(match[4]);
-          if (lon && lat) this.map.setCenter([ lon, lat])
-          */
-          // find matching marker
-          for (var i=0; i<this.scriptMarkers.length; i++) {
-            if (this.scriptMarkers[i].lineNumber == cursor.row) {
-              // found it
-              this.scriptMarkers[i].getElement().classList.add('active');
-
-              // set outline
-              var outlineData = this.createGeoJSONCircle([this.scriptMarkers[i]._lngLat.lng, this.scriptMarkers[i]._lngLat.lat], this.scriptMarkers[i].targetRadius);
-              var src = this.map.getSource('scriptOutline' + this.id);
-              if (src) src.setData(outlineData);
-
-              // see if visible
-              if (!this.map.getBounds().contains(this.scriptMarkers[i].getLngLat())) {
-                this.map.flyTo({center:this.scriptMarkers[i].getLngLat()});
-              }
-            } else {
-              this.scriptMarkers[i].getElement().classList.remove('active');
-            }
-          }
-        }
-
-      }
-    });
-    //const syntax = new DCodeSyntax();
-    //console.log(this.aceEditor.session);
-    //this.aceEditor.session.setMode(syntax.mode);
-    this.cuiEditorBlock.append(this.cuiEditor);
-
-
-    // create graph ui
-    this.graphui = $('<div class="graphUI" style="display:none"/>');
-    this.puiPanels.append(this.graphui);
-    this.graphui.data('tab', 'Graph');
-    this.graphui.node = this;
-    this.graphManager = new GraphManager(this, this.graphui);
+    this.panels.NodeSettings = new NodeSettingsPanel(this, this.puiTabs, this.puiPanels);
 
 
     // query ipAddress
     var qm = new DLM.DroneLinkMsg();
-    qm.source = 252;
     qm.node = this.id;
     qm.channel = 1;
     qm.param = 12;
@@ -347,31 +146,9 @@ export default class NodeUI {
     qm.msgLength = 1;
     this.state.send(qm);
 
+
     // show management tab
     this.puiTabs.selectTab('Management');
-
-
-    this.state.on('module.new', (data)=>{
-      if (data.node != this.id) return;
-      console.log('module.new: ' + data.node + '> ' + data.channel);
-
-      // create new channel UI
-      this.muiChannels[data.channel] = new Channel(this, state, data);
-
-      // sort
-      var children = this.mui.children();
-      var sortList = Array.prototype.sort.bind(children);
-
-      sortList((a,b)=>{
-        return $(a).data('channel') - $(b).data('channel');
-      });
-
-      this.mui.append(children);
-
-      // create new graph element for the module/channel
-      this.graphManager.addBlock(state, data);
-
-    });
 
 
     // listen for overall map values
@@ -392,7 +169,7 @@ export default class NodeUI {
         if (data.values[0]) {
           this.ipAddress = data.values.join('.');
           // show config node files panel
-          this.cuiFilesOnNode.show();
+          this.panels.Configuration.cuiFilesOnNode.show();
         } else {
           console.error('undefined ipaddress:', data);
         }
@@ -424,10 +201,9 @@ export default class NodeUI {
 
 
   resize() {
-    this.graphManager.resize();
-
-    // trigger interface redraw
-    this.updateInterfaces();
+    for (const [panelName, panel] of Object.entries(this.panels)) {
+      panel.resize();
+    }
   }
 
 
@@ -470,6 +246,8 @@ export default class NodeUI {
       } else if (paramName == 'last') {
         this.updateLast(value);
       }
+
+      this.panels.NodeSettings.update();
     }
   }
 
@@ -527,199 +305,18 @@ export default class NodeUI {
     this.aceEditor.session.insert({row: cursor.row+1, column:0}, newCmd);
   }
 
-  getNodeFileList() {
-    fetch('http://' + this.ipAddress + '/listfiles?json')
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Network response was not OK');
-        }
-        return response.json();
-      })
-      .then(data => {
-        console.log(data);
-        this.cuiFilesOnNodeTitle.html( data.files.length +' Files on Node');
-        this.cuiFilesOnNodeFiles.empty();
-        data.files.forEach((f)=>{
-          var sizeStr =  '';
-          if (f.size < 1000) {
-            sizeStr = f.size.toFixed(0);
-          } else {
-            sizeStr = (f.size/1024).toFixed(1) + 'k';
-          }
-          var fe = $('<div class="file clearfix">'+f.name+' <span class="size float-right">'+sizeStr+'</span></div>');
-          fe.data('name',f.name);
-          fe.on('click',()=>{
-            this.cuiFilesOnNodeFiles.children().removeClass('selected');
-            this.selectedNodeFilename = fe.data('name');
-            fe.addClass('selected');
-            this.cuiGetFileBut.show();
-          });
-          this.cuiFilesOnNodeFiles.append(fe);
-        });
-      })
-      .catch(error => {
-        this.cuiFilesOnNodeFiles.html('Error fetching files: '+error);
-        console.error('There has been a problem with your fetch operation:', error);
-        this.cuiGetFileBut.hide();
-      });
-  }
-
-  loadFileFromNode() {
-    this.cuiEditorTitle.html('Downloading...' + this.selectedNodeFilename);
-    this.cuiEditorNav.removeClass('saved');
-    this.cuiEditorNav.removeClass('error');
-    this.aceEditor.session.setValue('',-1);
-    this.cuiEditorBlock.show();
-
-    fetch('http://' + this.ipAddress + '/file?action=download&name='+this.selectedNodeFilename)
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Network response was not OK');
-        }
-        return response.text();
-      })
-      .then(data => {
-        this.aceEditor.session.setValue(data,-1);
-        this.cuiEditorTitle.html(this.selectedNodeFilename);
-        this.cuiEditorSaveBut.show();
-
-        this.analyseFile();
-      })
-      .catch(error => {
-        this.aceEditor.session.setValue('Error fetching file: '+error,-1);
-        this.cuiEditorTitle.html('Error!');
-        this.cuiEditorSaveBut.hide();
-        console.error('Error downloading: ' + this.selectedNodeFilename);
-      });
-  }
-
-  analyseFile() {
-    // analyse contents of file loaded into editor
-    // e.g. extract navigation markers
-    var sess = this.aceEditor.session;
-
-    var numLines = sess.getLength();
-    var numMarkers = 0;
-    for (var i=1; i<=numLines; i++) {
-      var line = sess.getLine(i);
-
-      // analyse line
-      if (line.includes('.goto')) {
-        const regexp = /(\s*([_]\w+)?\.goto)\s+(-?[0-9]\d*(\.\d+)?)\s+(-?[0-9]\d*(\.\d+)?)\s+(-?[0-9]\d*(\.\d+)?)/;
-        const match = line.match(regexp);
-        if (match) {
-          console.log('goto:',match[3],match[5],match[7]);
-          var lon = parseFloat(match[3]);
-          var lat = parseFloat(match[5]);
-          var radius = parseFloat(match[7]);
-
-          // create or update marker
-          // -- target marker --
-          var el = document.createElement('div');
-          el.className = 'scriptMarker';
-
-          console.log(numMarkers, this.scriptMarkers.length, this.scriptMarkers);
-
-
-          var marker;
-          if (numMarkers < this.scriptMarkers.length) {
-            marker = this.scriptMarkers[numMarkers];
-          } else {
-            marker = new mapboxgl.Marker(el)
-                .setLngLat([lon,lat])
-                .setDraggable(true)
-                .addTo(this.map);
-
-            marker.on('dragend', (e)=>{
-              const lngLat = e.target.getLngLat();
-              var newCmd = '  _Nav.goto '+lngLat.lng.toFixed(12) + ' ' +lngLat.lat.toFixed(12)+ ' '+e.target.targetRadius;
-
-              function replacer(match, p1, p2, p3, p4, p5, p6, p7, offset, string) {
-                // p1 is the namespace/command combined
-                // p2, p4 and p6 are the outer matches for the 3 coord params
-                return [p1, lngLat.lng.toFixed(12), lngLat.lat.toFixed(12), e.target.targetRadius].join(' ');
-              }
-              var newCmd = sess.getLine(e.target.lineNumber);
-              newCmd = newCmd.replace(/(\s*([_]\w+)?\.goto)\s+(-?[0-9]\d*(\.\d+)?)\s+(-?[0-9]\d*(\.\d+)?)\s+(-?[0-9]\d*(\.\d+)?)/, replacer);
-
-              console.log('new pos', lngLat);
-              sess.replace({
-                  start: {row: e.target.lineNumber, column: 0},
-                  end: {row: e.target.lineNumber, column: Number.MAX_VALUE}
-              }, newCmd);
-
-              this.aceEditor.selection.moveCursorTo(e.target.lineNumber, newCmd.length, false);
-              this.aceEditor.selection.clearSelection();
-
-            })
-
-            this.scriptMarkers.push(marker);
-          }
-
-          if (lon && lat) {
-            marker.setLngLat([lon,lat]);
-            marker.lineNumber = i;
-            marker.targetRadius = radius;
-          } else {
-            console.error('invalid coords:', lon, lat);
-          }
-
-
-          numMarkers++;
-        }
-      }
-    }
-
-    // delete redundant markers
-    while (numMarkers < this.scriptMarkers.length) {
-      this.scriptMarkers[this.scriptMarkers.length-1].remove();
-      this.scriptMarkers.pop();
-    }
-
-    if (this.scriptMarkers.length == 0) {
-      // clear script target outline
-      // set outline
-      var outlineData = {
-        "type": "Feature",
-        "geometry": {
-            "type": "Point",
-            "coordinates":  [  ]
-        }
-      }
-      var src = this.map.getSource('scriptOutline' + this.id);
-      if (src) src.setData(outlineData);
-    }
-
-    console.log('done',numMarkers, this.scriptMarkers.length, this.scriptMarkers);
-  }
-
 
   showPanel(tabName) {
-    // hide everythign else
+    // hide everything else
     var me = this;
 
-
-    // hide panels
-    this.puiPanels.children().each(function () {
-      if ($(this).data('tab') == tabName) {
-        $(this).show();
+    // iterate over panel mgmt objects
+    for (const [panelName, panel] of Object.entries(this.panels)) {
+      if (panel.tabName == tabName) {
+        panel.show();
       } else {
-        $(this).hide();
+        panel.hide();
       }
-
-    });
-
-    // trigger a graph resize... just in case
-    this.graphManager.resize();
-
-    // trigger interface redraw
-    this.updateInterfaces();
-  }
-
-
-  updateInterfaces() {
-    for (const [key, chan] of Object.entries(this.muiChannels)) {
-      if (chan.interface) chan.interface.update();
     }
   }
 
@@ -731,14 +328,15 @@ export default class NodeUI {
     this.ui.classList.add('focus');
     this.pui.show();
 
-    // trigger interface redraw
-    this.updateInterfaces();
+    // update panels
+    for (const [panelName, panel] of Object.entries(this.panels)) {
+      panel.update();
+    }
 
-    //this.mui.css('display','grid');
-
-    if (this.gotLocation && this.location[0] != 0) {
+    if (this.mapParams.location &&
+        this.mapParams.location.value[0] != 0) {
       this.map.flyTo({
-        center: this.location
+        center: this.mapParams.location.value
       });
     }
   }

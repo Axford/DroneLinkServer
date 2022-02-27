@@ -1,0 +1,21 @@
+
+.NodeSettingsPanel {
+
+}
+
+
+.NodeSettingsPanel table {
+  color:white;
+}
+
+.NodeSettingsPanel th {
+  padding: 2px 8px;
+  font-size:1rem;
+  border-bottom:1px solid #aaa;
+}
+
+.NodeSettingsPanel td {
+  color:white;
+  font-size:1rem;
+  padding: 2px 8px;
+}

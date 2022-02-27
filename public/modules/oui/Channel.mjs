@@ -28,7 +28,7 @@ loadStylesheet('./css/modules/oui/Channel.css');
 
 
 export default class Channel {
-  constructor(node, state, data) {
+  constructor(node, state, data, container) {
     var me = this;
     this.node = node;
     this.state = state;
@@ -41,7 +41,7 @@ export default class Channel {
 
     this.ui = $('<div class="Channel"/>');
     this.ui.data('channel', data.channel);
-    this.node.mui.append(this.ui);
+    container.append(this.ui);
 
     // status buttons
     this.uiEnable = $('<button class="btn btn-tiny btn-success float-right" style="display:none">Enable</button>');

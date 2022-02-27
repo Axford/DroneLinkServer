@@ -1,0 +1,18 @@
+.ManagementPanel .interfaceInfo {
+  background-color: #aaa;
+  color: black;
+  border-radius: 4px;
+  padding: 0px 6px 2px 6px;
+  font-weight:normal;
+  font-size: 0.8em;
+  margin-bottom:8px;
+  width:100px;
+  text-align:center;
+}
+
+
+.ManagementPanel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-gap: 8px;
+}
