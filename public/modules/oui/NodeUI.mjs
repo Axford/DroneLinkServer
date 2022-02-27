@@ -373,88 +373,10 @@ export default class NodeUI {
 
     });
 
-    // listen for key module type info
-    this.state.on('module.type', (data)=>{
-      if (data.node != this.id) return;
-
-      console.log('module.type: ' + data.node + '> '+ data.type + '[' + data.type.length + ']');
-
-      // create Widget
-      /*
-      if (!this.widgets[data.channel]) {
-        if (data.type == 'Nav') {
-          this.widgets[data.channel] = new NavWidget(this);
-        } else if (data.type == 'RFM69Telemetry') {
-          this.widgets[data.channel] = new RFM69TelemetryWidget(this);
-        } else if (data.type == 'INA219') {
-          this.widgets[data.channel] = new INA219Widget(this);
-        } else if (data.type == 'NMEA') {
-          this.widgets[data.channel] = new NMEAWidget(this);
-        }
-      }
-      */
-
-      /*
-      if (data.type == 'Nav' && this.locationType != 'Nav') {
-        console.log('Found Nav: '+data.channel);
-        this.gotLocationModule = true;
-        this.locationModule = data.channel;
-        this.locationType = 'Nav';
-      }
-
-      if (data.type == 'Nav' && this.targetModule == 0) {
-        console.log('Using Nav for waypoint targets');
-        this.targetModule = data.channel;
-
-        // query for target regularly
-        setInterval(()=>{
-          var qm = new DLM.DroneLinkMsg();
-          qm.source = 252;
-          qm.node = this.id;
-          qm.channel = data.channel;
-          qm.param = 12;
-          qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
-          qm.msgLength = 1;
-          this.state.send(qm);
-        }, 5000);
-      }
-
-      if (data.type == 'NMEA') {
-        this.gotLocationModule = true;
-        this.locationModule = data.channel;
-        this.locationType = 'NMEA';
-      }
-
-      if (data.type == 'TankSteerBoat') {
-        // simulation module
-        console.log('using TankSteerBoat');
-        this.gotLocationModule = true;
-        this.locationModule = data.channel;
-        this.locationType = 'TankSteerBoat';
-        this.compassModule = data.channel;
-        this.compassType = 'TankSteerBoat';
-      }
-
-      if (data.type == 'TurnRate' && this.compassType == '') {
-        this.compassModule = data.channel;
-        this.compassType = 'TurnRate';
-      }
-      */
-    });
-
 
     // listen for overall map values
     this.state.on('param.value', (data)=>{
       if (data.node != this.id) return;
-
-      /*
-         Update widgets
-      */
-      /*
-      if (this.widgets[data.channel]) {
-        this.widgets[data.channel].newParamValue(data);
-      }
-      */
 
       // listen for hostname
       if (data.channel == 1 && data.param == 8 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_CHAR) {
@@ -475,41 +397,6 @@ export default class NodeUI {
           console.error('undefined ipaddress:', data);
         }
       }
-
-      //this.updateLocation(data.values);
-
-      // compass heading
-      /*
-      if (this.compassType != '' &&
-          this.compassModule == data.channel) {
-        //console.log('pv: '+ data.node + '>' + data.channel + '.' + data.param);
-
-        if (this.compassType == 'TurnRate') {
-          if (data.param == 12 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
-            this.updateHeading(data.values[0]);
-          }
-        }
-
-        if (this.compassType == 'TankSteerBoat') {
-          if (data.param == 8 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
-            this.updateHeading(data.values[0]);
-          }
-        }
-      }
-      */
-
-      // target
-      /*
-      if (this.targetModule == data.channel) {
-        if (data.param == 12 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
-          // 12 - target
-          this.updateTarget(data.values);
-        } else if (data.param == 15 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
-          // 15 - last waypoint/location
-          this.updateLast(data.values);
-        }
-      }
-      */
 
       // update lastHeard
       var now = (new Date()).getTime();
@@ -584,7 +471,6 @@ export default class NodeUI {
         this.updateLast(value);
       }
     }
-
   }
 
 
