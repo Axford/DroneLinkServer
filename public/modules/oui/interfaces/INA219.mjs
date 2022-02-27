@@ -25,6 +25,24 @@ export default class INA219 {
   }
 
 	onParamValue(data) {
+
+		if (data.param == 15 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
+      // cellV
+      var d = data.values[0];
+
+			if (d < 3.3) {
+				this.widget.removeClass('warning');
+				this.widget.addClass('danger');
+			} else if (d < 3.6) {
+				this.widget.removeClass('danger');
+				this.widget.addClass('warning');
+			} else {
+				this.widget.removeClass('danger');
+				this.widget.removeClass('warning');
+			}
+      this.widgetText.html(d.toFixed(1) + 'v');
+    }
+
     this.update();
   }
 
@@ -76,6 +94,13 @@ export default class INA219 {
 
 		this.ui.append(this.canvas);
     this.channel.interfaceTab.append(this.ui);
+
+		// widget
+		this.widget = $('<div class="widget"><i class="fas fa-car-battery"></i></div>');
+		this.channel.node.addWidget(this.widget);
+
+		this.widgetText = $('<span>?v</span>');
+		this.widget.append(this.widgetText);
 
     this.built = true;
 

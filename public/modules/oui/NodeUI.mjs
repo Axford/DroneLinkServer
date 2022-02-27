@@ -5,13 +5,18 @@ import * as DLM from '../droneLinkMsg.mjs';
 // oui
 import Channel from './Channel.mjs';
 import GraphManager from './GraphManager.mjs';
+import Tabs from './Tabs.mjs';
+
+// panels
+import NodeSettings from './panels/NodeSettings.mjs';
 
 // widgets
+/*
 import NavWidget from '../widgets/NavWidget.mjs';
 import RFM69TelemetryWidget from '../widgets/RFM69TelemetryWidget.mjs';
 import INA219Widget from '../widgets/INA219Widget.mjs';
 import NMEAWidget from '../widgets/NMEAWidget.mjs';
-
+*/
 
 loadStylesheet('./css/modules/oui/NodeUI.css');
 
@@ -30,7 +35,12 @@ export default class NodeUI {
     this.selectedNodeFilename = '';
     this.scriptMarkers = [];
     this.focused = false;
+    this.heading= 0;
 
+    // used to track mappable params like location or heading
+    this.mapParams = {};
+
+/*
     this.gotLocationModule=  false;
     this.gotLocation= false;
     this.locationType=  '';
@@ -39,11 +49,12 @@ export default class NodeUI {
     this.gotCompass= false;
     this.compassModule= 0;
     this.compassType= '';
-    this.heading= 0;
+
 
     this.gotTarget= false;
     this.targetModule= 0;
     this.gotLast= false;
+    */
 
     this.lastHeard=  (new Date()).getTime();
 
@@ -66,11 +77,10 @@ export default class NodeUI {
     this.uiLastHeard.innerHTML = '0s';
     this.ui.appendChild(this.uiLastHeard);
 
-    this.uiWidgets = document.createElement('div');
-    this.uiWidgets.className = 'widgets';
-    this.ui.appendChild(this.uiWidgets);
+    this.uiWidgets = $('<div class="widgets"></div>');
+    $(this.ui).append(this.uiWidgets);
 
-    this.widgets = {};
+    //this.widgets = {};
 
     // prep a layer for scriptMarker outlines
     var scriptOutlineName = 'scriptOutline' + this.id;
@@ -125,29 +135,28 @@ export default class NodeUI {
     this.puiNav = $('<div class="panelNav"></div>');
     this.pui.append(this.puiNav);
 
-    this.puiMgmtBut = $('<a class="tab active">Management</a>')
-    this.puiNav.append(this.puiMgmtBut)
-    this.puiMgmtBut.on('click', ()=> { this.showPanel(this.puiMgmtBut, this.mui) });
+    // create tabs
+    this.puiTabs = new Tabs(this.puiNav);
+    this.puiTabs.on('select', (tabName)=>{
+      me.showPanel(tabName);
+    });
 
-    this.puiConfigBut = $('<a class="tab inactive">Configuration</a>')
-    this.puiNav.append(this.puiConfigBut)
-    this.puiConfigBut.on('click', ()=> {  this.showPanel(this.puiConfigBut,this.cui) });
+    this.puiTabs.add('Management', 'Management', '<i class="fas fa-table"></i>');
 
-    this.puiGraphBut = $('<a class="tab inactive">Graph</a>')
-    this.puiNav.append(this.puiGraphBut)
-    this.puiGraphBut.on('click', ()=> {  this.showPanel(this.puiGraphBut,this.graphui) });
+    this.puiTabs.add('Configuration', 'Configuration', '<i class="fas fa-folder-open"></i>');
 
-    /*
-    this.puiFirmwareBut = $('<button class="btn btn-secondary">Firmware</button>')
-    this.puiNav.append(this.puiFirmwareBut)
-    this.puiFirmwareBut.on('click', ()=> {  this.showPanel(this.puiFirmwareBut,this.fui) });
-    */
+    this.puiTabs.add('Graph', 'Node Graph', '<i class="fas fa-project-diagram"></i>');
+
+
+    this.nodeSettingsUI = new NodeSettings(this, this.puiTabs);
+
 
     this.puiPanels = $('<div class="panels"></div>');
     this.pui.append(this.puiPanels);
 
     // create mgmt ui
-    this.mui = $('<div class="managementUI"/>');
+    this.mui = $('<div class="managementUI" style="display:none"/>');
+    this.mui.data('tab', 'Management');
     //this.muiName = $('<div class="nodeName"></div>');
     //this.mui.append(this.muiName);
     this.mui.node = this;
@@ -159,6 +168,7 @@ export default class NodeUI {
 
     // create config ui
     this.cui = $('<div class="configurationUI" style="display:none"/>');
+    this.cui.data('tab', 'Configuration');
     this.cui.node = this;
     this.puiPanels.append(this.cui);
 
@@ -322,6 +332,7 @@ export default class NodeUI {
     // create graph ui
     this.graphui = $('<div class="graphUI" style="display:none"/>');
     this.puiPanels.append(this.graphui);
+    this.graphui.data('tab', 'Graph');
     this.graphui.node = this;
     this.graphManager = new GraphManager(this, this.graphui);
 
@@ -335,6 +346,9 @@ export default class NodeUI {
     qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
     qm.msgLength = 1;
     this.state.send(qm);
+
+    // show management tab
+    this.puiTabs.selectTab('Management');
 
 
     this.state.on('module.new', (data)=>{
@@ -366,6 +380,7 @@ export default class NodeUI {
       console.log('module.type: ' + data.node + '> '+ data.type + '[' + data.type.length + ']');
 
       // create Widget
+      /*
       if (!this.widgets[data.channel]) {
         if (data.type == 'Nav') {
           this.widgets[data.channel] = new NavWidget(this);
@@ -377,24 +392,14 @@ export default class NodeUI {
           this.widgets[data.channel] = new NMEAWidget(this);
         }
       }
+      */
 
+      /*
       if (data.type == 'Nav' && this.locationType != 'Nav') {
         console.log('Found Nav: '+data.channel);
         this.gotLocationModule = true;
         this.locationModule = data.channel;
         this.locationType = 'Nav';
-
-        // speculative query for location
-        /*
-        var qm = new DLM.DroneLinkMsg();
-        qm.source = 252;
-        qm.node = this.id;
-        qm.channel = 7;
-        qm.param = 10;
-        qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
-        qm.msgLength = 1;
-        this.state.send(qm);
-*/
       }
 
       if (data.type == 'Nav' && this.targetModule == 0) {
@@ -421,6 +426,7 @@ export default class NodeUI {
       }
 
       if (data.type == 'TankSteerBoat') {
+        // simulation module
         console.log('using TankSteerBoat');
         this.gotLocationModule = true;
         this.locationModule = data.channel;
@@ -433,6 +439,7 @@ export default class NodeUI {
         this.compassModule = data.channel;
         this.compassType = 'TurnRate';
       }
+      */
     });
 
 
@@ -443,9 +450,11 @@ export default class NodeUI {
       /*
          Update widgets
       */
+      /*
       if (this.widgets[data.channel]) {
         this.widgets[data.channel].newParamValue(data);
       }
+      */
 
       // listen for hostname
       if (data.channel == 1 && data.param == 8 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_CHAR) {
@@ -463,55 +472,14 @@ export default class NodeUI {
           // show config node files panel
           this.cuiFilesOnNode.show();
         } else {
-          console.error('undefined hostname:', data);
+          console.error('undefined ipaddress:', data);
         }
       }
 
-      // listen for location
-      if (this.gotLocationModule &&
-          this.locationModule == data.channel) {
-        //console.log('pv: '+ data.node + '>' + data.channel + '.' + data.param);
-
-        if (this.locationType == 'Nav') {
-          /* Nav mapping:
-            8. heading
-            9. distance
-            10. location
-            12. target
-            14. mode
-          */
-          //console.log(data.param, data.values);
-          if (data.param == 10 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT && data.values[0] != 0) {
-            this.updateLocation(data.values);
-          }
-        }
-
-        if (this.locationType == 'NMEA') {
-          /*
-          #define NMEA_PARAM_LOCATION           8
-          #define NMEA_PARAM_SATELLITES         9
-          #define NMEA_PARAM_HEADING            10
-          #define NMEA_PARAM_SPEED              11
-          #define NMEA_PARAM_HDOP               12
-          #define NMEA_PARAM_PORT               13
-          #define NMEA_PARAM_BAUD               14
-          */
-          if (data.param == 8 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT&& data.values[0] != 0) {
-            this.updateLocation(data.values);
-          }
-        }
-
-        if (this.locationType == 'TankSteerBoat') {
-          /*
-          location .9
-          */
-          if (data.param == 9 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT&& data.values[0] != 0) {
-            this.updateLocation(data.values);
-          }
-        }
-      }
+      //this.updateLocation(data.values);
 
       // compass heading
+      /*
       if (this.compassType != '' &&
           this.compassModule == data.channel) {
         //console.log('pv: '+ data.node + '>' + data.channel + '.' + data.param);
@@ -527,10 +495,11 @@ export default class NodeUI {
             this.updateHeading(data.values[0]);
           }
         }
-
       }
+      */
 
       // target
+      /*
       if (this.targetModule == data.channel) {
         if (data.param == 12 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
           // 12 - target
@@ -540,6 +509,7 @@ export default class NodeUI {
           this.updateLast(data.values);
         }
       }
+      */
 
       // update lastHeard
       var now = (new Date()).getTime();
@@ -571,6 +541,50 @@ export default class NodeUI {
 
     // trigger interface redraw
     this.updateInterfaces();
+  }
+
+
+  // called by interfaces to register widget UI
+  addWidget(widget) {
+    this.uiWidgets.append(widget);
+  }
+
+
+  updateMapParam(paramName, priority, value, channel, param) {
+    var updated = false;
+
+    if (!this.mapParams[paramName]) {
+      // create
+      this.mapParams[paramName] = {
+        priority: priority,
+        value:value,
+        channel:channel,
+        param:param
+      }
+      updated = true;
+    } else {
+      if (priority >= this.mapParams[paramName].priority) {
+        this.mapParams[paramName].priority = priority;
+        this.mapParams[paramName].value = value;
+        this.mapParams[paramName].channel = channel;
+        this.mapParams[paramName].param = param;
+        updated = true;
+      }
+    }
+
+    if (updated) {
+      // trigger updates
+      if (paramName == 'location') {
+        this.updateLocation(value);
+      } else if (paramName == 'heading') {
+        this.updateHeading(value);
+      } else if (paramName == 'target') {
+        this.updateTarget(value);
+      } else if (paramName == 'last') {
+        this.updateLast(value);
+      }
+    }
+
   }
 
 
@@ -794,22 +808,20 @@ export default class NodeUI {
   }
 
 
-  showPanel(but, panel) {
+  showPanel(tabName) {
     // hide everythign else
     var me = this;
-    // restyle buttons
-    this.puiNav.children().each(function () {
-        $(this).removeClass('active');
-        $(this).addClass('inactive');
-    });
+
+
     // hide panels
     this.puiPanels.children().each(function () {
+      if ($(this).data('tab') == tabName) {
+        $(this).show();
+      } else {
         $(this).hide();
-    });
+      }
 
-    but.addClass('active');
-    but.removeClass('inactive');
-    if (panel) panel.show();
+    });
 
     // trigger a graph resize... just in case
     this.graphManager.resize();
@@ -1046,8 +1058,8 @@ export default class NodeUI {
           var qm = new DLM.DroneLinkMsg();
           qm.source = 252;
           qm.node = this.id;
-          qm.channel = this.targetModule;
-          qm.param = 12;
+          qm.channel = this.mapParams['target'].channel;
+          qm.param = this.mapParams['target'].param;
           qm.setFloat([ lngLat.lng, lngLat.lat, this.target[2] ])
           this.state.send(qm);
 
@@ -1055,8 +1067,8 @@ export default class NodeUI {
           qm = new DLM.DroneLinkMsg();
           qm.source = 252;
           qm.node = this.id;
-          qm.channel = this.targetModule;
-          qm.param = 12;
+          qm.channel = this.mapParams['target'].channel;
+          qm.param = this.mapParams['target'].param;
           qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
           qm.msgLength = 1;
           this.state.send(qm);

@@ -87,7 +87,7 @@ export default class Parameter {
 
       if (this.msgType == 255) {
         this.msgType = data.msgType;
-        this.uiAddr.html(this.addr + ' ' +  DLM.DRONE_LINK_MSG_TYPE_NAMES[this.msgType]);
+        this.uiAddr.html(this.addr + ' ' +  DLM.DRONE_LINK_MSG_TYPE_NAMES[this.msgType] + ' p' + data.priority);
         this.ui.addClass('type_' + DLM.DRONE_LINK_MSG_TYPE_NAMES[this.msgType]);
       }
 

@@ -13,15 +13,37 @@ export default class NMEA {
 
 	onParamValue(data) {
 
+		// location
+		if (data.param == 8 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
+			// pass onto node for mapping
+			this.channel.node.updateMapParam('location', 3, data.values, this.channel, 8);
+		}
+
+
     if (data.param == 20 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
 
 			this.rawVectors.push(data.values);
 
-      //console.log('new compass vector: ',this.rawVectors);
-
       // if too many vectors, lose one
       if (this.rawVectors.length > 200) this.rawVectors.shift();
 		}
+
+		// num satellites
+		if (data.param == 9 &&  (data.msgType == DLM.DRONE_LINK_MSG_TYPE_UINT8_T || data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT)) {
+      // 9 - satellites
+      var d = data.values[0];
+			if (d < 4) {
+				this.widget.removeClass('warning');
+				this.widget.addClass('danger');
+			} else if (d < 10) {
+				this.widget.removeClass('danger');
+				this.widget.addClass('warning');
+			} else {
+				this.widget.removeClass('danger');
+				this.widget.removeClass('warning');
+			}
+      this.widgetText.html(d.toFixed(0));
+    }
 
     this.update();
   }
@@ -140,6 +162,13 @@ export default class NMEA {
 
 		this.ui.append(this.canvas);
     this.channel.interfaceTab.append(this.ui);
+
+		// widget
+		this.widget = $('<div class="widget"><i class="fas fa-satellite-dish"></i></div>');
+		this.channel.node.addWidget(this.widget);
+
+		this.widgetText = $('<span>?</span>');
+		this.widget.append(this.widgetText);
 
     this.built = true;
 

@@ -119,9 +119,47 @@ export default class Nav {
 
 
   onParamValue(data) {
+    // location
+		if (data.param == 10 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
+			// pass onto node for mapping
+			this.channel.node.updateMapParam('location', 2, data.values, this.channel, 10);
+		}
+
+    // heading
+		if (data.param == 8 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
+			// pass onto node for mapping
+			this.channel.node.updateMapParam('heading', 2, data.values, this.channel, 8);
+		}
+
+    // target
+		if (data.param == 12 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
+			// pass onto node for mapping
+			this.channel.node.updateMapParam('target', 2, data.values, this.channel, 12);
+		}
+
+    // last
+		if (data.param == 15 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
+			// pass onto node for mapping
+			this.channel.node.updateMapParam('last', 2, data.values, this.channel, 15);
+		}
+
     // mode
     if (data.param == 14 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_UINT8_T) {
       this.modeSelect.val(data.values[0]);
+    }
+
+    // distance
+    if (data.param == 9 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
+      // 9 - distance
+      var d = data.values[0];
+      if (d == undefined) d = 0;
+      var dStr = '';
+      if ( d < 1000) {
+        dStr = d.toFixed( d < 10 ? 1 : 0) + 'm';
+      } else {
+        dStr = (d/1000).toFixed( 1 ) + 'km';
+      }
+      this.widgetText.html(dStr);
     }
 
     this.update();
@@ -187,6 +225,13 @@ export default class Nav {
 
     this.ui.append(this.canvas);
     this.channel.interfaceTab.append(this.ui);
+
+    // widget
+		this.widget = $('<div class="widget"><i class="fas fa-drafting-compass"></i></div>');
+		this.channel.node.addWidget(this.widget);
+
+		this.widgetText = $('<span>?m</span>');
+		this.widget.append(this.widgetText);
 
     this.built = true;
 

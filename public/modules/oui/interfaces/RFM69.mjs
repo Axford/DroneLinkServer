@@ -26,7 +26,20 @@ export default class RFM69 {
 
 	onParamValue(data) {
     if (data.param == 8 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
-      this.RSSI.push(data.values[0]);
+			var d = data.values[0];
+      this.RSSI.push(d);
+
+			this.widgetText.html('-' + d.toFixed(0) + 'db');
+			if (d > 40) {
+				this.widget.removeClass('warning');
+				this.widget.addClass('danger');
+			} else if (d > 30) {
+				this.widget.removeClass('danger');
+				this.widget.addClass('warning');
+			} else {
+				this.widget.removeClass('danger');
+				this.widget.removeClass('warning');
+			}
 
       // if too many vectors, lose one
       if (this.RSSI.length > 100) this.RSSI.shift();
@@ -128,6 +141,13 @@ export default class RFM69 {
 
 		this.ui.append(this.canvas);
     this.channel.interfaceTab.append(this.ui);
+
+		// widget
+		this.widget = $('<div class="widget"><i class="fas fa-broadcast-tower"></i></div>');
+		this.channel.node.addWidget(this.widget);
+
+		this.widgetText = $('<span>?db</span>');
+		this.widget.append(this.widgetText);
 
     this.built = true;
 
