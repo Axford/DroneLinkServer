@@ -34,11 +34,30 @@
   height: 15vh;
 }
 
-.filePane .file {
+.filePane .directory {
   padding:2px 4px;
-  border-bottom: 1px solid #aaa;
   cursor: pointer;
   user-select: none;
+}
+
+.filePane .directory .title {
+
+}
+
+.filePane .directory .children {
+  margin-left:12px;
+  border-left:1px solid #aaa;
+  padding-left:8px;
+}
+
+.filePane .file {
+  padding:2px 4px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.filePane .file .title {
+
 }
 
 .filePane .file .size {

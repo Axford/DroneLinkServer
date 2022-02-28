@@ -5,8 +5,184 @@ import * as DMFS from '../../DroneMeshFS.mjs';
 
 loadStylesheet('./css/modules/oui/panels/Configuration.css');
 
+//--------------------------------------------------------
+// DroneFSEntry
+//--------------------------------------------------------
 
-export default class Graph extends Panel {
+class DroneFSEntry {
+  constructor(socket, nodeId, parent, path, isDir, container) {
+    this.socket = socket;
+    this.nodeId = nodeId;
+    this.parent = parent;
+    this.fullpath = path;
+    this.isDir = isDir;
+    this.container = container;
+    this.children = {}; // indexed by id
+    this.size = 0;
+    this.enumerated = false;
+
+    // separate path from name
+    var fp = 0;
+    for (var i=path.length-1; i>=0; i--) {
+      if (path[i] == '/') {
+        fp = i;
+        break;
+      }
+    }
+
+    this.path = path.substr(0, fp+1);
+    this.name = path.substr(fp+1, path.length);
+
+    console.log('fs.new entry: ['+this.path+'] ['+this.name+']');
+
+    this.ui = {};
+    this.ui.container = $('<div class="'+(this.isDir ? 'directory' : 'file')+'"></div>');
+    this.container.append(this.ui.container);
+
+    this.ui.title = $('<div class="title">'+ this.title() +'</div>');
+    this.ui.container.append(this.ui.title);
+
+    if (this.isDir) {
+      this.ui.children = $('<div class="children"></div>');
+      this.ui.container.append(this.ui.children);
+    }
+  }
+
+
+  title() {
+    var s = '';
+    if (this.isDir) {
+      s = '<i class="fas fa-folder-open mr-2"></i> ' + this.path;
+    } else {
+      var sizeStr =  '';
+      if (this.size < 1000) {
+        sizeStr = this.size.toFixed(0);
+      } else {
+        sizeStr = (this.size/1024).toFixed(1) + 'k';
+      }
+
+      s = this.name + '  ('+sizeStr+')';
+    }
+    return s;
+  }
+
+
+  update() {
+    this.ui.title.html(this.title());
+  }
+
+
+  getNodeFileByPath(path) {
+    var qm = new DMFS.DroneMeshFSFileRequest();
+    qm.flags = DMFS.DRONE_MESH_MSG_FS_FLAG_PATH_INFO;
+    qm.id = 0;
+    qm.path = path;
+
+    var data = {
+      node: this.nodeId,
+      payload: qm.encode()
+    };
+
+    console.log('Emitting fs.file.request: ' + qm.toString() );
+    this.socket.emit('fs.file.request', data);
+  }
+
+
+  getNodeFileByIndex(path, index) {
+    var qm = new DMFS.DroneMeshFSFileRequest();
+    qm.flags = DMFS.DRONE_MESH_MSG_FS_FLAG_INDEX_INFO;
+    qm.id = index;
+    qm.path = path;
+
+    var data = {
+      node: this.nodeId,
+      payload: qm.encode()
+    };
+
+    console.log('Emitting fs.file.request: ' + qm.toString() );
+    this.socket.emit('fs.file.request', data);
+  }
+
+
+  enumerate() {
+    // get info about self
+    this.getNodeFileByPath(this.fullpath);
+
+    this.enumerated = true;
+  }
+
+
+  handleFileResponse(fr) {
+
+    // separate path from name
+    var fp = 0;
+    for (var i=fr.path.length-1; i>=0; i--) {
+      if (fr.path[i] == '/') {
+        fp = i;
+        break;
+      }
+    }
+    var path = fr.path.substr(0, fp+1);
+    var name = fr.path.substr(fp+1, fr.path.length);
+
+    // is this about us?
+    if (fr.path == this.fullpath) {
+      console.log('fs.file.response: its about us');
+      this.size = fr.size;
+      this.isDir = fr.isDirectory();
+
+      if (fr.isDirectory()) {
+        console.log('fs.file.response: enumerating directory of ' + fr.size);
+
+        // enumerate entries
+        for (var i=0; i<fr.size; i++) {
+          this.getNodeFileByIndex(this.fullpath, i);
+        }
+      }
+
+      this.update();
+
+    } else {
+
+      if (this.isDir) {
+
+        var createChild = false;
+
+        // is this about one of our immediate children?
+        if (path == this.path) {
+          console.log('fs.file.response: its one of our children');
+
+          // do we need to create a new child?
+          if (!this.children[fr.id]) {
+            createChild = true;
+            this.children[fr.id] = new DroneFSEntry(this.socket, this.nodeId, this, fr.path, fr.isDirectory(), this.ui.children);
+            this.children[fr.id].size = fr.size;
+            this.children[fr.id].id = fr.id;
+            this.children[fr.id].update();
+          }
+        }
+
+        // pass to children
+        if (!createChild) {
+          for (const [id, obj] of Object.entries(this.children)) {
+            obj.handleFileResponse(fr);
+          }
+        }
+
+      }
+
+    }
+  }
+
+}
+
+
+//--------------------------------------------------------
+// Configuration
+//--------------------------------------------------------
+
+
+export default class Configuration extends Panel {
 
   constructor(node, tabs, panels) {
     super(node, tabs, panels);
@@ -16,6 +192,8 @@ export default class Graph extends Panel {
     this.icon = 'fas fa-folder-open';
 
     this.build();
+
+    this.root = new DroneFSEntry(this.node.state.socket, this.node.id, null, '/', true, this.cuiFilesOnNodeFiles);
   }
 
 
@@ -191,6 +369,10 @@ export default class Graph extends Panel {
 
       console.log('fs.file.response: ' + data.node + '=>' + data.payload.toString());
 
+      // pass to root to handle
+      this.root.handleFileResponse(data.payload);
+
+      /*
       if (data.payload.isDirectory()) {
         console.log('fs.file.response: enumerating directory of ' + data.payload.size);
         // enumerate entries
@@ -206,6 +388,8 @@ export default class Graph extends Panel {
         }
         var fe = $('<div class="file clearfix">'+data.payload.path+' <span class="size float-right">'+sizeStr+'</span></div>');
         fe.data('name',data.payload.path);
+        fe.data('id', data.payload.id);
+        fe.data('size', data.payload.size);
         fe.on('click',()=>{
           this.cuiFilesOnNodeFiles.children().removeClass('selected');
           this.selectedNodeFilename = fe.data('name');
@@ -214,6 +398,7 @@ export default class Graph extends Panel {
         });
         this.cuiFilesOnNodeFiles.append(fe);
       }
+      */
     });
   }
 
@@ -228,80 +413,21 @@ export default class Graph extends Panel {
   }
 
 
-  getNodeFileByPath(path) {
-    var qm = new DMFS.DroneMeshFSFileRequest();
-    qm.flags = DMFS.DRONE_MESH_MSG_FS_FLAG_PATH_INFO;
-    qm.id = 0;
-    qm.path = path;
-
-    var data = {
-      node: this.node.id,
-      payload: qm.encode()
-    };
-
-    console.log('Emitting fs.file.request: ' + qm.toString() );
-    this.node.state.socket.emit('fs.file.request', data);
-  }
-
-  getNodeFileByIndex(path, index) {
-    var qm = new DMFS.DroneMeshFSFileRequest();
-    qm.flags = DMFS.DRONE_MESH_MSG_FS_FLAG_INDEX_INFO;
-    qm.id = index;
-    qm.path = path;
-
-    var data = {
-      node: this.node.id,
-      payload: qm.encode()
-    };
-
-    console.log('Emitting fs.file.request: ' + qm.toString() );
-    this.node.state.socket.emit('fs.file.request', data);
-  }
-
   getNodeFileList() {
-    this.cuiFilesOnNodeFiles.empty();
-    this.getNodeFileByPath('/');
+    this.root.enumerate();
+  }
+
+
+  loadFileFromNode() {
+    this.cuiEditorTitle.html('Downloading...' + this.selectedNodeFilename);
+    this.cuiEditorNav.removeClass('saved');
+    this.cuiEditorNav.removeClass('error');
+    this.aceEditor.session.setValue('',-1);
+    this.cuiEditorBlock.show();
+
   }
 
 /*
-  getNodeFileList() {
-    fetch('http://' + this.node.ipAddress + '/listfiles?json')
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Network response was not OK');
-        }
-        return response.json();
-      })
-      .then(data => {
-        //console.log(data);
-        this.cuiFilesOnNodeTitle.html( data.files.length +' Files on Node');
-        this.cuiFilesOnNodeFiles.empty();
-        data.files.forEach((f)=>{
-          var sizeStr =  '';
-          if (f.size < 1000) {
-            sizeStr = f.size.toFixed(0);
-          } else {
-            sizeStr = (f.size/1024).toFixed(1) + 'k';
-          }
-          var fe = $('<div class="file clearfix">'+f.name+' <span class="size float-right">'+sizeStr+'</span></div>');
-          fe.data('name',f.name);
-          fe.on('click',()=>{
-            this.cuiFilesOnNodeFiles.children().removeClass('selected');
-            this.selectedNodeFilename = fe.data('name');
-            fe.addClass('selected');
-            this.cuiGetFileBut.show();
-          });
-          this.cuiFilesOnNodeFiles.append(fe);
-        });
-      })
-      .catch(error => {
-        this.cuiFilesOnNodeFiles.html('Error fetching files: '+error);
-        console.error('There has been a problem with your fetch operation:', error);
-        this.cuiGetFileBut.hide();
-      });
-  }
-  */
-
   loadFileFromNode() {
     this.cuiEditorTitle.html('Downloading...' + this.selectedNodeFilename);
     this.cuiEditorNav.removeClass('saved');
@@ -330,6 +456,7 @@ export default class Graph extends Panel {
         console.error('Error downloading: ' + this.selectedNodeFilename);
       });
   }
+  */
 
   analyseFile() {
     // analyse contents of file loaded into editor
