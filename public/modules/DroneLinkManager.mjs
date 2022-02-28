@@ -602,7 +602,7 @@ export default class DroneLinkManager {
   }
 
 
-  sendFileRequest(data) {
+  sendFSFileRequest(data) {
     // msg.node = target, msg.payload = DMFS request
 
     // hydrate payload
@@ -638,7 +638,48 @@ export default class DroneLinkManager {
         msg.uint8_tPayload[i] = buffer[i];
       }
 
+      return true;
+    }
 
+    return false;
+  }
+
+
+  sendFSReadRequest(data) {
+    // msg.node = target, msg.payload = DMFS request
+
+    // hydrate payload
+    data.payload = new DMFS.DroneMeshFSReadRequest(data.payload);
+
+    this.clog('fs.read.request: '+data.node + '=> '+data.payload.toString());
+
+    var nodeInfo = this.getNodeInfo(data.node, false);
+    if (!nodeInfo) return;
+
+    var p = DMM.DRONE_MESH_MSG_PRIORITY_CRITICAL;
+    var g = DMM.DRONE_MESH_MSG_GUARANTEED;
+
+    var buffer = this.getTransmitBuffer(nodeInfo.netInterface, p);
+    if (buffer) {
+      var msg = buffer.msg;
+      var payloadSize = DMFS.DRONE_MESH_MSG_FS_READ_REQUEST_SIZE;
+
+      msg.typeGuaranteeSize = g | (payloadSize-1);
+      msg.txNode = this.node;
+      msg.srcNode = this.node;
+      msg.nextNode = nodeInfo.nextHop;
+      msg.destNode = data.node;
+      msg.seq = this.gSeq;
+      msg.setPriorityAndType(p, DMM.DRONE_MESH_MSG_TYPE_FS_READ_REQUEST);
+
+      this.gSeq++;
+      if (this.gSeq > 255) this.gSeq = 0;
+
+      // populate payload
+      var buffer = data.payload.encode();
+      for (var i=0; i<payloadSize; i++) {
+        msg.uint8_tPayload[i] = buffer[i];
+      }
 
       return true;
     }
@@ -828,7 +869,7 @@ export default class DroneLinkManager {
               var srcNodeInfo = this.getNodeInfo(msg.srcNode, false);
               if (srcNodeInfo) {
                 if (srcNodeInfo.gSequencer.isDuplicate(msg.seq)) {
-                  this.clog(('SEEMS LIKE A DUP ' + msg.seq).red);
+                  this.clog(('SEEMS LIKE A DUP ' + msg.seq + ', ' + msg.toString()).red);
                   return;
                 }
               }
@@ -853,6 +894,8 @@ export default class DroneLinkManager {
 
               // filesystem
               case DMM.DRONE_MESH_MSG_TYPE_FS_FILE_RESPONSE: this.receiveFSFileResponse(netInterface, msg, metric); break;
+
+              case DMM.DRONE_MESH_MSG_TYPE_FS_READ_RESPONSE: this.receiveFSReadResponse(netInterface, msg, metric); break;
 
               // firmware
 
@@ -1245,6 +1288,30 @@ export default class DroneLinkManager {
         });
       } catch(err) {
         this.clog(('ERROR in receiveFSFileResponse: '+err).red);
+      }
+    }
+  }
+
+
+  receiveFSReadResponse(netInterface, msg, metric) {
+    var loopTime = Date.now();
+
+    if (this.logOptions.FS)
+      this.clog(('  FS Read Response from '+msg.srcNode + ', tx by '+msg.txNode).green);
+
+    // are we the destination?
+    if (msg.destNode == this.node) {
+      try {
+        // unwrap contained msg
+        var fsr = new DMFS.DroneMeshFSReadResponse( msg.rawPayload );
+
+        // publish
+        if (this.io) this.io.emit('fs.read.response', {
+          node:msg.srcNode,
+          payload:fsr.encode()
+        });
+      } catch(err) {
+        this.clog(('ERROR in receiveFSReadResponse: '+err).red);
       }
     }
   }

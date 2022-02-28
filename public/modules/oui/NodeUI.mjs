@@ -169,7 +169,7 @@ export default class NodeUI {
         if (data.values[0]) {
           this.ipAddress = data.values.join('.');
           // show config node files panel
-          this.panels.Configuration.cuiFilesOnNode.show();
+          //this.panels.Configuration.cuiFilesOnNode.show();
         } else {
           console.error('undefined ipaddress:', data);
         }

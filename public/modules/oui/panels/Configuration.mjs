@@ -10,7 +10,8 @@ loadStylesheet('./css/modules/oui/panels/Configuration.css');
 //--------------------------------------------------------
 
 class DroneFSEntry {
-  constructor(socket, nodeId, parent, path, isDir, container) {
+  constructor(manager, socket, nodeId, parent, path, isDir, container) {
+    this.manager = manager;
     this.socket = socket;
     this.nodeId = nodeId;
     this.parent = parent;
@@ -20,6 +21,10 @@ class DroneFSEntry {
     this.children = {}; // indexed by id
     this.size = 0;
     this.enumerated = false;
+    this.isSelected = false;
+    this.isDownloading = false;
+    this.isDownloaded = false;
+    this.downloadInterval = null;
 
     // separate path from name
     var fp = 0;
@@ -39,11 +44,26 @@ class DroneFSEntry {
     this.ui.container = $('<div class="'+(this.isDir ? 'directory' : 'file')+'"></div>');
     this.container.append(this.ui.container);
 
-    this.ui.title = $('<div class="title">'+ this.title() +'</div>');
-    this.ui.container.append(this.ui.title);
+    this.ui.header = $('<div class="header"/>');
+    this.ui.header.on('click', ()=>{
+      this.manager.onFSEntryClick(this);
+    });
+    this.ui.header.on('dblclick', ()=>{
+      this.manager.onFSEntryDblClick(this);
+    });
+    this.ui.container.append(this.ui.header);
+
+    this.ui.title = $('<div class="title"/>');
+    this.ui.header.append(this.ui.title);
+
+    this.ui.size = $('<div class="size"/>');
+    this.ui.header.append(this.ui.size);
+
+    this.ui.download = $('<canvas class="download" height="10" style="display:none;"></canvas>');
+    this.ui.container.append(this.ui.download);
 
     if (this.isDir) {
-      this.ui.children = $('<div class="children"></div>');
+      this.ui.children = $('<div class="children"/>');
       this.ui.container.append(this.ui.children);
     }
   }
@@ -52,23 +72,53 @@ class DroneFSEntry {
   title() {
     var s = '';
     if (this.isDir) {
-      s = '<i class="fas fa-folder-open mr-2"></i> ' + this.path;
-    } else {
-      var sizeStr =  '';
-      if (this.size < 1000) {
-        sizeStr = this.size.toFixed(0);
+      if (this.path = '/') {
+        s += '<i class="fas fa-database mr-1"></i> ';
       } else {
-        sizeStr = (this.size/1024).toFixed(1) + 'k';
+        s += '<i class="fas fa-folder-open mr-1"></i> ';
       }
-
-      s = this.name + '  ('+sizeStr+')';
+      s += this.path;
+    } else {
+      s = this.name;
     }
     return s;
+  }
+
+  sizeString() {
+    var sizeStr =  '';
+    if (!this.isDir) {
+      if (this.size < 1000) {
+        sizeStr = this.size.toFixed(0) + ' B';
+      } else {
+        sizeStr = (this.size/1024).toFixed(1) + ' kB';
+      }
+    }
+    return sizeStr;
   }
 
 
   update() {
     this.ui.title.html(this.title());
+    if (this.isDownloaded) this.ui.title.addClass('downloaded');
+    this.ui.size.html(this.sizeString());
+  }
+
+
+  select(entry) {
+    if (entry == this) {
+      this.isSelected = true;
+      this.ui.header.addClass('selected');
+    } else {
+      if (this.isSelected) this.ui.header.removeClass('selected');
+      this.isSelected = false;
+    }
+
+    // recurse to children
+    if (this.isDir) {
+      for (const [id, child] of Object.entries(this.children)) {
+        child.select(entry)
+      }
+    }
   }
 
 
@@ -155,7 +205,7 @@ class DroneFSEntry {
           // do we need to create a new child?
           if (!this.children[fr.id]) {
             createChild = true;
-            this.children[fr.id] = new DroneFSEntry(this.socket, this.nodeId, this, fr.path, fr.isDirectory(), this.ui.children);
+            this.children[fr.id] = new DroneFSEntry(this.manager, this.socket, this.nodeId, this, fr.path, fr.isDirectory(), this.ui.children);
             this.children[fr.id].size = fr.size;
             this.children[fr.id].id = fr.id;
             this.children[fr.id].update();
@@ -171,6 +221,165 @@ class DroneFSEntry {
 
       }
 
+    }
+  }
+
+
+  download() {
+    if (this.isDir) return;
+
+    // allocate buffer to hold file data
+    this.filedata = new Uint8Array(this.size);
+
+    // setup structure to track block download
+    this.blocks = [];
+    this.numBlocks = Math.ceil(this.size / 32);
+    for (var i=0; i<this.numBlocks; i++) {
+      this.blocks.push({
+        offset: i * 32,
+        requested:false,
+        requestedTime:Date.now(),
+        received:false,
+        error:false
+      });
+    }
+
+    // start the monitoring process
+    if (!this.isDownloading) {
+      this.isDownloading = true;
+      this.ui.download.show();
+
+      this.downloadInterval = setInterval(()=>{
+        this.monitorDownload();
+      }, 100);
+    }
+  }
+
+
+  sendFSReadRequest(id, offset) {
+    var qm = new DMFS.DroneMeshFSReadRequest();
+    qm.id = id;
+    qm.offset = offset;
+
+    var data = {
+      node: this.nodeId,
+      payload: qm.encode()
+    };
+
+    console.log('Emitting fs.read.request: ' + qm.toString() );
+    this.socket.emit('fs.read.request', data);
+  }
+
+
+  handleReadResponse(fr) {
+
+    // is this about us?
+    if (fr.id == this.id) {
+      console.log('fs.read.response: its about us');
+
+      var blockIndex = Math.floor(fr.offset / 32);
+
+      // check size
+      if (fr.size > 0) {
+        this.blocks[blockIndex].received = true;
+
+        // copy data to buffer
+        for (var i=0; i<fr.size; i++) {
+          this.filedata[fr.offset + i] = fr.data[i];
+        }
+      } else {
+        // error retrieving block
+        this.blocks[blockIndex].received = false;
+        this.blocks[blockIndex].error = true;
+      }
+
+
+
+    } else {
+      if (this.isDir) {
+        // pass to children
+        for (const [id, obj] of Object.entries(this.children)) {
+          obj.handleReadResponse(fr);
+        }
+      }
+    }
+  }
+
+
+  monitorDownload() {
+    if (!this.isDownloading) return;
+
+    var loopTime = Date.now();
+
+    // check status and request blocks if we have capacity
+    var requested = 0;
+    for (var i=0; i<this.numBlocks; i++) {
+      if (requested > 4) break;
+
+      if (!this.blocks[i].error && !this.blocks[i].received) {
+        var doRequest = false;
+        if (this.blocks[i].requested) {
+          requested++;
+          // check timer
+          if (loopTime > this.blocks[i].requestedTime + 2000) {
+            // re-request the block
+            doRequest = true;
+          }
+        } else {
+          // request the block
+          doRequest = true;
+          requested++;
+        }
+        if (doRequest) {
+          this.blocks[i].requested = true;
+          this.blocks[i].requestedTime = loopTime;
+          this.sendFSReadRequest(this.id, this.blocks[i].offset);
+        }
+      }
+    }
+
+    // render progress
+    var c = this.ui.download[0];
+		var ctx = c.getContext("2d");
+
+    // keep width updated
+    var w = this.ui.download.width();
+    ctx.canvas.width = w;
+    var h = this.ui.download.height();
+
+    ctx.fillStyle = '#343a40';
+		ctx.fillRect(0,0,w,h);
+
+    var bw = w / this.numBlocks;
+    var progress = 0;
+    for (var i=0; i<this.numBlocks; i++) {
+      var x1 = w * (i/(this.numBlocks));
+
+      if (this.blocks[i].error) {
+        ctx.fillStyle = '#f55';
+        ctx.fillRect(x1,0,bw,h);
+      }  else if (this.blocks[i].received) {
+        ctx.fillStyle = '#5f5';
+        ctx.fillRect(x1,0,bw,h);
+        progress++;
+      } else if (this.blocks[i].requested) {
+        ctx.fillStyle = '#fc5';
+        ctx.fillRect(x1,0,bw,h);
+      }
+    }
+
+    var complete = progress == this.numBlocks;
+
+    if (complete) {
+      clearInterval(this.downloadInterval);
+      this.isDownloading = false;
+      this.isDownloaded = true;
+      this.ui.download.hide();
+
+      this.update();
+
+      // inform manager download is complete
+      this.manager.onDownloadComplete(this);
     }
   }
 
@@ -193,7 +402,29 @@ export default class Configuration extends Panel {
 
     this.build();
 
-    this.root = new DroneFSEntry(this.node.state.socket, this.node.id, null, '/', true, this.cuiFilesOnNodeFiles);
+    this.root = new DroneFSEntry(this, this.node.state.socket, this.node.id, null, '/', true, this.cuiFilesOnNodeFiles);
+
+    this.selectedEntry = null;
+  }
+
+
+  onFSEntryClick(entry) {
+    this.root.select(entry);
+    this.selectedEntry = entry;
+
+    if (entry.isDir) {
+      this.cuiGetFileBut.hide();
+    } else {
+      this.cuiGetFileBut.show();
+    }
+  }
+
+
+  onFSEntryDblClick(entry) {
+    // select
+    this.onFSEntryClick(entry);
+    // and edit
+    this.loadFileFromNode();
   }
 
 
@@ -223,7 +454,7 @@ export default class Configuration extends Panel {
     this.cuiFilesOnServer.append(this.cuiFilesOnServerFiles);
 
     // on node
-    this.cuiFilesOnNode = $('<div class="filePane" style="display:none"></div>');
+    this.cuiFilesOnNode = $('<div class="filePane"></div>');
     this.cuiFileBlock.append(this.cuiFilesOnNode);
 
     //    title
@@ -371,40 +602,33 @@ export default class Configuration extends Panel {
 
       // pass to root to handle
       this.root.handleFileResponse(data.payload);
+    });
 
-      /*
-      if (data.payload.isDirectory()) {
-        console.log('fs.file.response: enumerating directory of ' + data.payload.size);
-        // enumerate entries
-        for (var i=0; i<data.payload.size; i++) {
-          this.getNodeFileByIndex(data.payload.path, i)
-        }
-      } else {
-        var sizeStr =  '';
-        if (data.payload.size < 1000) {
-          sizeStr = data.payload.size.toFixed(0);
-        } else {
-          sizeStr = (data.payload.size/1024).toFixed(1) + 'k';
-        }
-        var fe = $('<div class="file clearfix">'+data.payload.path+' <span class="size float-right">'+sizeStr+'</span></div>');
-        fe.data('name',data.payload.path);
-        fe.data('id', data.payload.id);
-        fe.data('size', data.payload.size);
-        fe.on('click',()=>{
-          this.cuiFilesOnNodeFiles.children().removeClass('selected');
-          this.selectedNodeFilename = fe.data('name');
-          fe.addClass('selected');
-          this.cuiGetFileBut.show();
-        });
-        this.cuiFilesOnNodeFiles.append(fe);
-      }
-      */
+
+    this.node.state.socket.on('fs.read.response', (data)=>{
+      // see if it's for us
+      if (data.node != this.node.id) return;
+
+      // hydrate
+      data.payload = new DMFS.DroneMeshFSReadResponse(data.payload);
+
+      console.log('fs.read.response: ' + data.node + '=>' + data.payload.toString());
+
+      // pass to root to handle
+      this.root.handleReadResponse(data.payload);
     });
   }
 
   update() {
     if (!this.visible) return;
 
+  }
+
+  show() {
+    super.show();
+    if (!this.root.enumerated) {
+      this.root.enumerate();
+    }
   }
 
 
@@ -419,44 +643,32 @@ export default class Configuration extends Panel {
 
 
   loadFileFromNode() {
-    this.cuiEditorTitle.html('Downloading...' + this.selectedNodeFilename);
-    this.cuiEditorNav.removeClass('saved');
-    this.cuiEditorNav.removeClass('error');
-    this.aceEditor.session.setValue('',-1);
-    this.cuiEditorBlock.show();
-
+    if (this.selectedEntry.isDownloaded) {
+      this.onDownloadComplete(this.selectedEntry);
+    } else {
+      this.selectedEntry.download();
+    }
   }
 
-/*
-  loadFileFromNode() {
-    this.cuiEditorTitle.html('Downloading...' + this.selectedNodeFilename);
+  onDownloadComplete(entry) {
+    // get data from entry
+
+    var data = '';
+    for (var i=0; i<entry.filedata.length; i++) {
+      data += String.fromCharCode(entry.filedata[i]);
+    }
+    this.aceEditor.session.setValue(data,-1);
+
     this.cuiEditorNav.removeClass('saved');
     this.cuiEditorNav.removeClass('error');
-    this.aceEditor.session.setValue('',-1);
+
     this.cuiEditorBlock.show();
+    this.cuiEditorTitle.html(entry.fullpath);
+    this.cuiEditorSaveBut.show();
 
-    fetch('http://' + this.node.ipAddress + '/file?action=download&name='+this.selectedNodeFilename)
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Network response was not OK');
-        }
-        return response.text();
-      })
-      .then(data => {
-        this.aceEditor.session.setValue(data,-1);
-        this.cuiEditorTitle.html(this.selectedNodeFilename);
-        this.cuiEditorSaveBut.show();
-
-        this.analyseFile();
-      })
-      .catch(error => {
-        this.aceEditor.session.setValue('Error fetching file: '+error,-1);
-        this.cuiEditorTitle.html('Error!');
-        this.cuiEditorSaveBut.hide();
-        console.error('Error downloading: ' + this.selectedNodeFilename);
-      });
+    this.analyseFile();
   }
-  */
+
 
   analyseFile() {
     // analyse contents of file loaded into editor

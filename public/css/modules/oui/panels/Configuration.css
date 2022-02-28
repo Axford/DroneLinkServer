@@ -15,10 +15,6 @@
 
 }
 
-.filePane .title {
-  color:white;
-}
-
 .filePane .nav {
   color:black;
   background-color: #ccc;
@@ -34,39 +30,74 @@
   height: 15vh;
 }
 
-.filePane .directory {
-  padding:2px 4px;
+.filePane .directory, .filePane .file {
+  padding-left:10px;
   cursor: pointer;
   user-select: none;
+  position:relative;
 }
 
-.filePane .directory .title {
+.filePane .directory .header, .filePane .file .header {
+  display:flex;
+  color:white;
+  padding: 2px 4px;
+}
 
+.filePane .directory .header.selected, .filePane .file .header.selected {
+  background-color: #007bff;
+}
+
+.filePane .directory .title, .filePane .file .title {
+  flex-grow:3;
+  flex-basis:70%;
+}
+
+.filePane .directory .size, .filePath .file .size {
+  flex-basis:auto;
+  width:40px;
+}
+
+.filePane .file canvas.download {
+  width:100%;
+  height:10px;
+}
+
+.filePane .file .title.downloaded {
+  color:#5f5;
+  font-weight:bold;
 }
 
 .filePane .directory .children {
-  margin-left:12px;
-  border-left:1px solid #aaa;
-  padding-left:8px;
+  margin-left:6px;
 }
 
-.filePane .file {
-  padding:2px 4px;
-  cursor: pointer;
-  user-select: none;
+.filePane .directory .children .file:before, .filePane .directory .children .directory:before {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  width: 10px;
+  height: 1px;
+  margin: auto;
+  content: '';
+  background-color: #666;
 }
 
-.filePane .file .title {
-
+.filePane .directory .children .file:after, .filePane .directory .children .directory:after {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 1px;
+  height: 100%;
+  content: '';
+  background-color: #666;
 }
 
-.filePane .file .size {
-
+  .filePane .directory .children .file:last-child:after, .filePane .directory .children .directory:last-child:after {
+  height: 10px;
 }
 
-.filePane .file.selected {
-  background-color: #5f5;
-  color:black;
+
 }
 
 .ConfigurationPanel .editorBlock {

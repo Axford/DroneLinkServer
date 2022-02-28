@@ -197,6 +197,8 @@ export class DroneMeshMsg {
 
       case DRONE_MESH_MSG_TYPE_FS_FILE_REQUEST: return 'FS File Request';
       case DRONE_MESH_MSG_TYPE_FS_FILE_RESPONSE: return 'FS File Response';
+      case DRONE_MESH_MSG_TYPE_FS_READ_REQUEST: return 'FS Read Request';
+      case DRONE_MESH_MSG_TYPE_FS_READ_RESPONSE: return 'FS Read Response';
 
     default:
       return '???';

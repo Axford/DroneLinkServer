@@ -655,6 +655,10 @@ io.on('connection', (socket) => {
 
 
   socket.on('fs.file.request', (msg)=>{
-    dlm.sendFileRequest(msg);
+    dlm.sendFSFileRequest(msg);
+  });
+
+  socket.on('fs.read.request', (msg)=>{
+    dlm.sendFSReadRequest(msg);
   });
 });
