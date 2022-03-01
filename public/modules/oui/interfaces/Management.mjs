@@ -87,7 +87,7 @@ export default class Management {
 			var ipString = ipAddress.join('.');
 			this.ipAddress.html('IP: '+ipString);
 
-			this.updateMacros(ipString);
+			//this.updateMacros(ipString);
 		}
 	}
 

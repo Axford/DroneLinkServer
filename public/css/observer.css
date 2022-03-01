@@ -413,6 +413,21 @@ main {
   white-space:nowrap;
 }
 
+.marker.selected {
+  background-image: radial-gradient(circle at center, rgba(0,105,255,1) 0, rgba(0,0,0,0) 100%);
+  border: 2px solid rgba(0,105,255,0.7);
+}
+
+.markerLabel {
+  text-align:left;
+  font-size:14px;
+  font-weight:normal;
+  margin-left:12px;
+  color:white;
+  overflow:visible;
+  white-space:nowrap;
+}
+
 .targetMarker {
   background-image: radial-gradient(circle at center, rgba(255,255,0,0.8) 0, rgba(0,0,0,0) 100%);
   background-size: cover;

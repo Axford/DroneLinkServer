@@ -27,6 +27,7 @@ export default class NodeUI {
     this.target=  [0,0,0];
     this.last=  [0,0,0];
     this.id=  id;
+    this.name = '';
     this.ipAddress = '';
     this.selectedNodeFilename = '';
     this.scriptMarkers = [];
@@ -158,6 +159,8 @@ export default class NodeUI {
       // listen for hostname
       if (data.channel == 1 && data.param == 8 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_CHAR) {
         if (data.values[0]) {
+          this.name = data.values[0];
+          if (this.mapLabel) this.mapLabel.innerHTML = this.name;
           this.uiLabel.innerHTML = data.node + ' > ' + data.values[0];
         } else {
           console.error('undefined hostname:', data);
@@ -314,6 +317,7 @@ export default class NodeUI {
 
     this.focused = true;
     this.ui.classList.add('focus');
+    if (this.mapEl) this.mapEl.classList.add('selected');
     this.pui.show();
 
     // update panels
@@ -331,6 +335,7 @@ export default class NodeUI {
 
   blur() {
     this.ui.classList.remove('focus');
+    if (this.mapEl) this.mapEl.classList.remove('selected');
     this.pui.hide();
     this.focused = false;
     //this.mui.css('display','none');
@@ -390,6 +395,17 @@ export default class NodeUI {
     arrow.className = 'fas fa-arrow-up';
     this.mapEl.appendChild(arrow);
     this.marker = new mapboxgl.Marker(this.mapEl)
+          .setLngLat(this.location)
+          .addTo(this.map);
+
+    // -- marker label --
+    this.mapLabel = document.createElement('div');
+    this.mapLabel.className = 'markerLabel';
+    this.mapLabel.innerHTML = this.name;
+    this.markerLabel = new mapboxgl.Marker({
+      element:this.mapLabel,
+      anchor:'left'
+    })
           .setLngLat(this.location)
           .addTo(this.map);
 
@@ -466,8 +482,11 @@ export default class NodeUI {
       this.gotLocation = true;
       this.initNodeLocation();
     } else {
-      if (this.location && this.location.length >=2)
+      if (this.location && this.location.length >=2) {
         this.marker.setLngLat(this.location);
+        this.markerLabel.setLngLat(this.location);
+      }
+
     }
   }
 

@@ -199,6 +199,10 @@ export class DroneMeshMsg {
       case DRONE_MESH_MSG_TYPE_FS_FILE_RESPONSE: return 'FS File Response';
       case DRONE_MESH_MSG_TYPE_FS_READ_REQUEST: return 'FS Read Request';
       case DRONE_MESH_MSG_TYPE_FS_READ_RESPONSE: return 'FS Read Response';
+      case DRONE_MESH_MSG_TYPE_FS_RESIZE_REQUEST: return 'FS Resize Request';
+      case DRONE_MESH_MSG_TYPE_FS_RESIZE_RESPONSE: return 'FS Resize Response';
+      case DRONE_MESH_MSG_TYPE_FS_WRITE_REQUEST: return 'FS Write Request';
+      case DRONE_MESH_MSG_TYPE_FS_WRITE_RESPONSE: return 'FS Write Response';
 
     default:
       return '???';

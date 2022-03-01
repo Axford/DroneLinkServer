@@ -661,4 +661,20 @@ io.on('connection', (socket) => {
   socket.on('fs.read.request', (msg)=>{
     dlm.sendFSReadRequest(msg);
   });
+
+  socket.on('fs.resize.request', (msg)=>{
+    try {
+      dlm.sendFSResizeRequest(msg);
+    } catch(err) {
+      clog('ERROR in fs.resize.request: ' + err);
+    }
+  });
+
+  socket.on('fs.write.request', (msg)=>{
+    try {
+      dlm.sendFSWriteRequest(msg);
+    } catch(err) {
+      clog('ERROR in fs.write.request: ' + err);
+    }
+  });
 });

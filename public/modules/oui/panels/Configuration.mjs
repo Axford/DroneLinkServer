@@ -363,7 +363,9 @@ class DroneFSEntry {
         ctx.fillRect(x1,0,bw,h);
         progress++;
       } else if (this.blocks[i].requested) {
-        ctx.fillStyle = '#fc5';
+        var age = 1 - (loopTime - this.blocks[i].requestedTime)/2000;
+
+        ctx.fillStyle = 'rgba(255,190,50, '+(age).toFixed(2)+')';
         ctx.fillRect(x1,0,bw,h);
       }
     }
@@ -380,6 +382,252 @@ class DroneFSEntry {
 
       // inform manager download is complete
       this.manager.onDownloadComplete(this);
+    }
+  }
+
+
+  sendFSResizeRequest(path, newSize) {
+    var qm = new DMFS.DroneMeshFSResizeRequest();
+    qm.path = path;
+    qm.size = newSize;
+
+    var data = {
+      node: this.nodeId,
+      payload: qm.encode()
+    };
+
+    console.log('Emitting fs.resize.request: ' + qm.toString() );
+    this.socket.emit('fs.resize.request', data);
+  }
+
+
+  sendFSWriteRequest(id, offset) {
+    var qm = new DMFS.DroneMeshFSWriteRequest();
+    qm.id = id;
+    qm.offset = offset;
+
+    // calc size
+    qm.size = Math.min(32, this.size - offset);
+
+    // copy to data to buffer
+    for (var i=0; i<qm.size; i++) {
+      qm.data[i] = this.filedata[offset + i];
+    }
+
+    var data = {
+      node: this.nodeId,
+      payload: qm.encode()
+    };
+
+    console.log('Emitting fs.write.request: ' + qm.toString() );
+    this.socket.emit('fs.write.request', data);
+  }
+
+
+  handleResizeResponse(fr) {
+
+    console.log('fs.resize.response: ' + fr.path + ' vs ' + this.fullpath);
+
+    // is this about us?
+    if (fr.path == this.fullpath) {
+      console.log('fs.resize.response: its about us');
+
+      // check size
+      if (fr.size > 0 && fr.size == this.newSize) {
+        this.resizeConfirmed = true;
+        this.size = this.newSize;
+        console.log('fs.resize.response: resize confirmed');
+      } else {
+        // TODO: error or deleted
+        console.error('handleResizeResponse: zero size returned ' + this.fullpath);
+      }
+
+    } else {
+      if (this.isDir) {
+        // pass to children
+        for (const [id, obj] of Object.entries(this.children)) {
+          obj.handleResizeResponse(fr);
+        }
+      }
+    }
+  }
+
+
+  handleWriteResponse(fr) {
+
+    // is this about us?
+    if (fr.id == this.id) {
+      console.log('fs.write.response: its about us');
+
+      var blockIndex = Math.floor(fr.offset / 32);
+
+      // check size
+      if (fr.size > 0) {
+        this.blocks[blockIndex].written = true;
+
+      } else {
+        // error retrieving block
+        this.blocks[blockIndex].written = false;
+        this.blocks[blockIndex].error = true;
+      }
+
+    } else {
+      if (this.isDir) {
+        // pass to children
+        for (const [id, obj] of Object.entries(this.children)) {
+          obj.handleWriteResponse(fr);
+        }
+      }
+    }
+  }
+
+
+  upload(data) {
+    if (this.isDir) return;
+
+    // update size
+    this.newSize = data.length;
+
+    // allocate buffer to hold file data
+    this.filedata = new Uint8Array(this.newSize);
+
+    // copy data contents
+    for (var i=0; i<data.length; i++) {
+      this.filedata[i] = data[i];
+    }
+
+    // setup structure to track block upload
+    this.blocks = [];
+    this.numBlocks = Math.ceil(this.newSize / 32);
+    for (var i=0; i<this.numBlocks; i++) {
+      this.blocks.push({
+        offset: i * 32,
+        sent:false,
+        sentTime:Date.now(),
+        written:false,
+        error:false
+      });
+    }
+
+    // start the monitoring process
+    if (!this.isUploading) {
+      this.uploadStarted = Date.now();
+      this.resizeConfirmed = false;
+      this.sendFSResizeRequest(this.fullpath, this.newSize);
+
+      this.isUploading = true;
+      this.ui.download.show();
+
+      this.uploadInterval = setInterval(()=>{
+        this.monitorUpload();
+      }, 100);
+    }
+  }
+
+
+  monitorUpload() {
+    if (!this.isUploading) return;
+
+    var loopTime = Date.now();
+
+    if (!this.resizeConfirmed) {
+
+      if (loopTime - this.uploadStarted > 3000) {
+        // abandon
+        clearInterval(this.uploadInterval);
+        this.isUploading = false;
+        this.isUploaded = false;
+        this.ui.download.hide();
+
+        this.update();
+      }
+
+      // render progress
+      var c = this.ui.download[0];
+  		var ctx = c.getContext("2d");
+
+      // keep width updated
+      var w = this.ui.download.width();
+      ctx.canvas.width = w;
+      var h = this.ui.download.height();
+
+      ctx.fillStyle = '#f0a050';
+  		ctx.fillRect(0,0,w,h);
+
+      return;
+    }
+
+    // check status and send blocks if we have capacity
+    var requested = 0;
+    for (var i=0; i<this.numBlocks; i++) {
+      if (requested > 4) break;
+
+      if (!this.blocks[i].error && !this.blocks[i].written) {
+        var doRequest = false;
+        if (this.blocks[i].sent) {
+          requested++;
+          // check timer
+          if (loopTime > this.blocks[i].sentTime + 2000) {
+            // re-request the block
+            doRequest = true;
+          }
+        } else {
+          // request the block
+          doRequest = true;
+          requested++;
+        }
+        if (doRequest) {
+          this.blocks[i].sent = true;
+          this.blocks[i].sentTime = loopTime;
+          this.sendFSWriteRequest(this.id, this.blocks[i].offset);
+        }
+      }
+    }
+
+    // render progress
+    var c = this.ui.download[0];
+		var ctx = c.getContext("2d");
+
+    // keep width updated
+    var w = this.ui.download.width();
+    ctx.canvas.width = w;
+    var h = this.ui.download.height();
+
+    ctx.fillStyle = '#343a40';
+		ctx.fillRect(0,0,w,h);
+
+    var bw = w / this.numBlocks;
+    var progress = 0;
+    for (var i=0; i<this.numBlocks; i++) {
+      var x1 = w * (i/(this.numBlocks));
+
+      if (this.blocks[i].error) {
+        ctx.fillStyle = '#f55';
+        ctx.fillRect(x1,0,bw,h);
+      }  else if (this.blocks[i].written) {
+        ctx.fillStyle = '#5f5';
+        ctx.fillRect(x1,0,bw,h);
+        progress++;
+      } else if (this.blocks[i].sent) {
+        var age = 1 - (loopTime - this.blocks[i].sentTime)/2000;
+
+        ctx.fillStyle = 'rgba(255,190,50, '+(age).toFixed(2)+')';
+        ctx.fillRect(x1,0,bw,h);
+      }
+    }
+
+    var complete = progress == this.numBlocks;
+
+    if (complete) {
+      clearInterval(this.uploadInterval);
+      this.isUploading = false;
+      this.isUploaded = true;
+      this.ui.download.hide();
+
+      this.update();
+
+      // inform manager upload is complete
+      this.manager.onUploadComplete(this);
     }
   }
 
@@ -494,34 +742,15 @@ export default class Configuration extends Panel {
 
     this.cuiEditorSaveBut = $('<button class="btn btn-sm btn-primary float-right" style="display:none">Save</button>');
     this.cuiEditorSaveBut.on('click',()=>{
-      this.cuiEditorNav.addClass('saving');
       var contents = this.aceEditor.session.getValue();
-      var blob = new Blob ([contents], { type: "text/plain" });
-      var fileOfBlob = new File([blob], this.cuiEditorTitle.html());
-      var fd = new FormData();
-      fd.append("file1", fileOfBlob);
-      var xmlhttp=new XMLHttpRequest();
-      xmlhttp.open("POST", 'http://' + this.node.ipAddress + '/', true);
-      xmlhttp.onload = function (e) {
-        if (xmlhttp.readyState === 4) {
-          if (xmlhttp.status === 200) {
-            //
-            me.cuiEditorNav.addClass('saved');
-            me.cuiEditorNav.removeClass('saving');
-            me.getNodeFileList();
-          } else {
-            //console.error(xmlhttp.statusText);
-            me.cuiEditorNav.addClass('error');
-            me.cuiEditorNav.removeClass('saving');
-          }
-        }
-      };
-      xmlhttp.onerror = function (e) {
-        console.error(xmlhttp.statusText);
-        me.cuiEditorNav.addClass('error');
-        me.cuiEditorNav.removeClass('saving');
-      };
-      xmlhttp.send(fd);
+
+      // convert to buffer
+      var buffer = new Uint8Array(contents.length);
+      for (var i=0; i<buffer.length; i++) {
+        buffer[i] = contents.charCodeAt(i);
+      }
+
+      this.selectedEntry.upload(buffer);
     });
     this.cuiEditorNav.append(this.cuiEditorSaveBut);
 
@@ -617,6 +846,34 @@ export default class Configuration extends Panel {
       // pass to root to handle
       this.root.handleReadResponse(data.payload);
     });
+
+
+    this.node.state.socket.on('fs.resize.response', (data)=>{
+      // see if it's for us
+      if (data.node != this.node.id) return;
+
+      // hydrate
+      data.payload = new DMFS.DroneMeshFSResizeResponse(data.payload);
+
+      console.log('fs.resize.response: ' + data.node + '=>' + data.payload.toString());
+
+      // pass to root to handle
+      this.root.handleResizeResponse(data.payload);
+    });
+
+
+    this.node.state.socket.on('fs.write.response', (data)=>{
+      // see if it's for us
+      if (data.node != this.node.id) return;
+
+      // hydrate
+      data.payload = new DMFS.DroneMeshFSWriteResponse(data.payload);
+
+      console.log('fs.write.response: ' + data.node + '=>' + data.payload.toString());
+
+      // pass to root to handle
+      this.root.handleWriteResponse(data.payload);
+    });
   }
 
   update() {
@@ -643,11 +900,14 @@ export default class Configuration extends Panel {
 
 
   loadFileFromNode() {
+    /*
     if (this.selectedEntry.isDownloaded) {
       this.onDownloadComplete(this.selectedEntry);
     } else {
       this.selectedEntry.download();
     }
+    */
+    this.selectedEntry.download();
   }
 
   onDownloadComplete(entry) {
