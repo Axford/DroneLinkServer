@@ -25,7 +25,7 @@ export default class NodeSettings extends Panel {
     this.ui.panel.append(this.ui.mapParamsContainer);
 
     // headings
-    this.ui.mapParamsContainer.append($('<thead><tr> <th>Map Param</th> <th>Priority</th> <th>Channel</th> <th>Param</th> </tr></thead>'));
+    this.ui.mapParamsContainer.append($('<thead><tr> <th>Map Param</th> <th>Priority</th> <th>Channel</th> <th>Param</th> <th>Path</th> </tr></thead>'));
 
     // body
     this.ui.mapParamsBody = $('<tbody/>');
@@ -36,11 +36,22 @@ export default class NodeSettings extends Panel {
     var s = '';
 
     for (const [paramName, paramObj] of Object.entries(this.node.mapParams)) {
+      var obj = this.node.state.getObjectsForAddress(this.node.id, paramObj.channel, paramObj.param);
+
       s += '<tr>';
       s += '<td>'+paramName+'</td>';
       s += '<td>'+paramObj.priority+'</td>';
-      s += '<td>'+paramObj.channel+'</td>';
+      s += '<td>'+paramObj.channel + '</td>';
       s += '<td>'+paramObj.param+'</td>';
+      s += '<td>';
+      if (obj.channel && obj.channel.name) {
+        s+= obj.channel.name;
+      }
+      s += '.';
+      if (obj.param && obj.param.name) {
+        s+= obj.param.name;
+      }
+      s += '</td>';
       s += '</tr>';
     }
 

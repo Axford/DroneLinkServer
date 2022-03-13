@@ -231,7 +231,7 @@ export default class NodeUI {
     } else {
       if (priority > this.mapParams[paramName].priority ||
       (priority == this.mapParams[paramName].priority &&
-      channel < this.mapParams[paramName].channel)) {
+      channel <= this.mapParams[paramName].channel)) {
         this.mapParams[paramName].priority = priority;
         this.mapParams[paramName].value = value;
         this.mapParams[paramName].channel = channel;

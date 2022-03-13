@@ -386,28 +386,13 @@ class DroneFSEntry {
   }
 
 
-  sendFSResizeRequest(path, newSize) {
-    var qm = new DMFS.DroneMeshFSResizeRequest();
-    qm.path = path;
-    qm.size = newSize;
-
-    var data = {
-      node: this.nodeId,
-      payload: qm.encode()
-    };
-
-    console.log('Emitting fs.resize.request: ' + qm.toString() );
-    this.socket.emit('fs.resize.request', data);
-  }
-
-
   sendFSWriteRequest(id, offset) {
     var qm = new DMFS.DroneMeshFSWriteRequest();
     qm.id = id;
     qm.offset = offset;
 
     // calc size
-    qm.size = Math.min(32, this.size - offset);
+    qm.size = Math.min(32, this.newSize - offset);
 
     // copy to data to buffer
     for (var i=0; i<qm.size; i++) {
@@ -424,35 +409,6 @@ class DroneFSEntry {
   }
 
 
-  handleResizeResponse(fr) {
-
-    console.log('fs.resize.response: ' + fr.path + ' vs ' + this.fullpath);
-
-    // is this about us?
-    if (fr.path == this.fullpath) {
-      console.log('fs.resize.response: its about us');
-
-      // check size
-      if (fr.size > 0 && fr.size == this.newSize) {
-        this.resizeConfirmed = true;
-        this.size = this.newSize;
-        console.log('fs.resize.response: resize confirmed');
-      } else {
-        // TODO: error or deleted
-        console.error('handleResizeResponse: zero size returned ' + this.fullpath);
-      }
-
-    } else {
-      if (this.isDir) {
-        // pass to children
-        for (const [id, obj] of Object.entries(this.children)) {
-          obj.handleResizeResponse(fr);
-        }
-      }
-    }
-  }
-
-
   handleWriteResponse(fr) {
 
     // is this about us?
@@ -465,10 +421,13 @@ class DroneFSEntry {
       if (fr.size > 0) {
         this.blocks[blockIndex].written = true;
 
-      } else {
+      } else if (fr.offset < this.newSize) {
         // error retrieving block
         this.blocks[blockIndex].written = false;
         this.blocks[blockIndex].error = true;
+      } else {
+        // this is the response to the completion block
+        console.log('fs.write.response:  completion confirmed');
       }
 
     } else {
@@ -512,8 +471,6 @@ class DroneFSEntry {
     // start the monitoring process
     if (!this.isUploading) {
       this.uploadStarted = Date.now();
-      this.resizeConfirmed = false;
-      this.sendFSResizeRequest(this.fullpath, this.newSize);
 
       this.isUploading = true;
       this.ui.download.show();
@@ -530,37 +487,10 @@ class DroneFSEntry {
 
     var loopTime = Date.now();
 
-    if (!this.resizeConfirmed) {
-
-      if (loopTime - this.uploadStarted > 3000) {
-        // abandon
-        clearInterval(this.uploadInterval);
-        this.isUploading = false;
-        this.isUploaded = false;
-        this.ui.download.hide();
-
-        this.update();
-      }
-
-      // render progress
-      var c = this.ui.download[0];
-  		var ctx = c.getContext("2d");
-
-      // keep width updated
-      var w = this.ui.download.width();
-      ctx.canvas.width = w;
-      var h = this.ui.download.height();
-
-      ctx.fillStyle = '#f0a050';
-  		ctx.fillRect(0,0,w,h);
-
-      return;
-    }
-
     // check status and send blocks if we have capacity
     var requested = 0;
     for (var i=0; i<this.numBlocks; i++) {
-      if (requested > 4) break;
+      if (requested > 0) break;
 
       if (!this.blocks[i].error && !this.blocks[i].written) {
         var doRequest = false;
@@ -619,6 +549,11 @@ class DroneFSEntry {
     var complete = progress == this.numBlocks;
 
     if (complete) {
+      // send completion packet
+      this.sendFSWriteRequest(this.id, this.newSize);
+
+      this.size = this.newSize;
+
       clearInterval(this.uploadInterval);
       this.isUploading = false;
       this.isUploaded = true;
