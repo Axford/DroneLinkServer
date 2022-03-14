@@ -94,9 +94,27 @@ export default class Management {
 	onParamValue(data) {
     if (data.param == 13 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_UINT32_T) {
 			var uptime = data.values[0];
-			if (uptime == undefined) uptime = '0';
-	    uptime = new Date(uptime * 1000).toISOString().substr(11, 8);
-			this.uptime.html('Uptime: ' + uptime);
+			if (uptime == undefined) uptime = 0;
+
+			var s = '';
+
+			var days = Math.floor(uptime / (3600*24));
+			uptime = uptime - (days * 3600*24);
+			var hours = Math.floor(uptime / (3600));
+			uptime = uptime - (hours * 3600);
+			var minutes = Math.floor(uptime / 60);
+			var seconds = uptime - (minutes * 60);
+
+			if (days > 0) {
+				s += days + 'd ';
+			}
+			if (hours > 0) {
+				s += String(hours).padStart(2, '0') + ':';
+			}
+			s += String(minutes).padStart(2, '0') + ':';
+			s += String(seconds).padStart(2, '0');
+
+			this.uptime.html('Uptime: ' + s);
 		}
 
 		if (data.param == 12 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_UINT8_T) {
