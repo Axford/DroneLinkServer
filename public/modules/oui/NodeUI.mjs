@@ -112,6 +112,10 @@ export default class NodeUI {
     this.pui.node = this;
     $('#nodeManager').append(this.pui);
 
+    // add node name (title) to right panel
+    this.uiTitle = $('<div class="nodeTitle">'+ this.id +'</div>');
+    this.pui.append(this.uiTitle);
+
     // container for tabs
     this.puiNav = $('<div class="panelNav"></div>');
     this.pui.append(this.puiNav);
@@ -160,8 +164,9 @@ export default class NodeUI {
       if (data.channel == 1 && data.param == 8 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_CHAR) {
         if (data.values[0]) {
           this.name = data.values[0];
+          this.uiTitle.html(this.id + ' <span style="color:#07e;">&#9654;</span> ' + this.name);
           if (this.mapLabel) this.mapLabel.innerHTML = this.name;
-          this.uiLabel.innerHTML = data.node + ' > ' + data.values[0];
+          this.uiLabel.innerHTML = data.node + ' <span style="color:#888">&#9654;</span> ' + data.values[0];
         } else {
           console.error('undefined hostname:', data);
         }

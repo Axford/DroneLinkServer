@@ -27,6 +27,15 @@
 
 }
 
+.NodeUI .nodeTitle {
+  font-size: 16px;
+  font-weight:bold;
+  margin-top:-8px;
+  margin-bottom:2px;
+  color:#def;
+  position:relative;
+}
+
 .NodeUI .panelNav {
   margin-left:-8px;
   margin-right:-8px;
