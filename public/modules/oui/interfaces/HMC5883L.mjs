@@ -54,7 +54,7 @@ export default class HMC5883L {
     var rawVector = this.state.getParamValues(node, channel, 10, [0]);
     var calibX = this.state.getParamValues(node, channel, 13, [0]);
     var calibY = this.state.getParamValues(node, channel, 14, [0]);
-		var limits = this.state.getParamValues(node, channel, 18, [0]);
+		var limits = this.state.getParamValues(node, channel, 18, [0,0,0,0]);
 
     // render vector view
     // -------------------------------------------------------------------------
@@ -83,7 +83,14 @@ export default class HMC5883L {
     // draw rawVectors
     ctx.fillStyle = '#55f';
     ctx.strokeStyle = "#aaf";
-    const scaling = (w2/2) / 7;
+
+    const scaling = (w2/2) / Math.max(
+			Math.abs(limits[0]),
+			Math.abs(limits[1]),
+			Math.abs(limits[2]),
+			Math.abs(limits[3])
+		);
+
     for (var i=0; i<this.rawVectors.length; i++) {
       if (i == this.rawVectors.length-1) {
         ctx.fillStyle = '#afa';

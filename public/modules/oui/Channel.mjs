@@ -190,7 +190,7 @@ export default class Channel {
       // instance an interface if available
       if (data.type == 'Depth') {
         this.interface = new Depth(this, state);
-      } else if (data.type == 'HMC5883L') {
+      } else if (data.type == 'HMC5883L' || data.type == 'QMC5883L') {
         this.interface = new HMC5883L(this, state);
       } else if (data.type == 'INA219') {
         this.interface = new INA219(this, state);
