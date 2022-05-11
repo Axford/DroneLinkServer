@@ -1,0 +1,99 @@
+<link rel="stylesheet" href="../css/help.css">
+
+<div class="helpContent">
+
+<div><a href="index.html">&lt; Help Index</a></div>
+
+<h1>Wind</h1>
+<p>Base class: <i>I2CBaseModule</i></p>
+<p>Manages a Wind speed and direction sensor.</p>
+
+<h2>Usage Guide</h2>
+- Wind direction using I2C AS5600 sensor
+- Wind speed from cup anemometor on an digital input with internal pullup
+
+<h2>Example Configuration</h2>
+<pre>Wind.new 14
+   bus 4
+   interval 100
+   $heading [@>8.11]
+   centre 0
+
+   .publish "wind" // .14
+   .publish "centre"
+.done</pre>
+
+<h2>Subs (inputs)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Addr Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>16</td>
+    <td>17</td>
+    <td>heading</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Sub to compass heading to work out world wind direction</td>
+  </tr>
+</table>
+
+<h2>Pubs (outputs / config)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>10</td>
+    <td>direction</td>
+    <td>f</td>
+    <td>1</td>
+    <td>local wind direction</td>
+  </tr>
+  <tr>
+    <td>11</td>
+    <td>speed</td>
+    <td>f</td>
+    <td>1</td>
+    <td>wind speed</td>
+  </tr>
+  <tr>
+    <td>12</td>
+    <td>pins</td>
+    <td>u8</td>
+    <td>1</td>
+    <td>Pin to use for anemometer interrupt signal</td>
+  </tr>
+  <tr>
+    <td>13</td>
+    <td>centre</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Calibration for local wind direction</td>
+  </tr>
+  <tr>
+    <td>14</td>
+    <td>wind</td>
+    <td>f</td>
+    <td>1</td>
+    <td>World wind direction - combination of local direction and heading</td>
+  </tr>
+  <tr>
+    <td>15</td>
+    <td>mode</td>
+    <td>u8</td>
+    <td>1</td>
+    <td>Operation mode 0=standard, 1=inverted (upside down, e.g. for water direction sensor), 2=anemometer</td>
+  </tr>
+</table>
+
+</div>

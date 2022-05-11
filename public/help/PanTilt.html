@@ -1,0 +1,87 @@
+<link rel="stylesheet" href="../css/help.css">
+
+<div class="helpContent">
+
+<div><a href="index.html">&lt; Help Index</a></div>
+
+<h1>PanTilt</h1>
+<p>Base class: <i></i></p>
+<p>Generate servo commands for a pan/tilt head to track a target (e.g. for camera or antenna trackers)</p>
+
+<h2>Usage Guide</h2>
+
+
+<h2>Example Configuration</h2>
+<pre>PanTilt.new 21
+  name "PanTilt"
+  PID (f) 0.005 0.0 0.0001
+  interval 50
+  $target [@>20.8]
+  $heading [@>6.11]
+  .publish "target"
+  .publish "heading"
+  .publish "PID"
+  .publish "pan"
+.done</pre>
+
+<h2>Subs (inputs)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Addr Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>10</td>
+    <td>11</td>
+    <td>target</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Target heading (e.g. from Nav module)</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td>PanTilt</td>
+    <td></td>
+    <td>Generate servo commands for a pan/tilt head to track a target (e.g. for camera or antenna trackers)</td>
+  </tr>
+</table>
+
+<h2>Pubs (outputs / config)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>14</td>
+    <td>PID</td>
+    <td>f</td>
+    <td>3</td>
+    <td>PID values (start with: 0.005 0.0 0.0001)</td>
+  </tr>
+  <tr>
+    <td>15</td>
+    <td>limits</td>
+    <td>f</td>
+    <td>2</td>
+    <td>Limits of servo travel in degrees (default -90 90)</td>
+  </tr>
+  <tr>
+    <td>16</td>
+    <td>pan</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Pan output in range -1..1, to be fed to servo</td>
+  </tr>
+</table>
+
+</div>

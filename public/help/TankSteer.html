@@ -1,0 +1,100 @@
+<link rel="stylesheet" href="../css/help.css">
+
+<div class="helpContent">
+
+<div><a href="index.html">&lt; Help Index</a></div>
+
+<h1>TankSteer</h1>
+<p>Base class: <i></i></p>
+<p>Generate left and right motor speeds from speed and turnRate inputs</p>
+
+<h2>Usage Guide</h2>
+Tank steering:
+   * Sub to target heading
+   * Sub to current heading
+   * Sub to distance
+   * Generate left and right motor speed values
+
+<h2>Example Configuration</h2>
+<pre>TankSteer.new 10
+  name "TankSteer"
+  interval 50
+  trim 0
+  $speed [@>9.14]
+  $turnRate [@>8.16]
+  .publish "left"
+  .publish "right"
+  .publish "turnRate"
+  .publish "speed"
+  .publish "trim"
+.done</pre>
+
+<h2>Subs (inputs)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Addr Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>10</td>
+    <td>11</td>
+    <td>turnRate</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Rate of turn in range -1..1 where positive values are clockwise</td>
+  </tr>
+  <tr>
+    <td>12</td>
+    <td>13</td>
+    <td>speed</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Desired speed in range -1 to 1</td>
+  </tr>
+  <tr>
+    <td>14</td>
+    <td>15</td>
+    <td>trim</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Applied to turnRate value</td>
+  </tr>
+</table>
+
+<h2>Pubs (outputs / config)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>8</td>
+    <td>left</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Left motor speed output in range -1..1</td>
+  </tr>
+  <tr>
+    <td>9</td>
+    <td>right</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Right motor speed output in range -1..1</td>
+  </tr>
+  <tr>
+    <td>16</td>
+    <td>mode</td>
+    <td>u8</td>
+    <td>1</td>
+    <td>1=Automated (responds to speed and turnRate subs) or 0=Manual (ignores subs, but speed and turnRate values can be directly written to)</td>
+  </tr>
+</table>
+
+</div>

@@ -22,8 +22,9 @@ and published as values (<b>value1, value2</b>, etc) in range -1..1 on a regular
 <pre>Receiver.new 14
   name "Receiver"
   interval 200
-  pins IN0_0 IN0_1 32 0
+  pins 34
   limits 980 2020
+  mode 1 // PPM
   $switch [@>14.13]
   $input1 [@>9.14]
   $input2 [@>8.16]
@@ -104,7 +105,7 @@ and published as values (<b>value1, value2</b>, etc) in range -1..1 on a regular
     <td>pins</td>
     <td>u8</td>
     <td>2</td>
-    <td>Receiver input pins, one per receiver channel (see <a href="pins.html">Pin Mappings</a>)</td>
+    <td>Receiver input pins, one per receiver channel (see <a href="pins.html">Pin Mappings</a>) or a single pin for PPM</td>
   </tr>
   <tr>
     <td>11</td>
@@ -147,6 +148,13 @@ and published as values (<b>value1, value2</b>, etc) in range -1..1 on a regular
     <td>u32</td>
     <td>2</td>
     <td>Raw PWM timing input values for each channel</td>
+  </tr>
+  <tr>
+    <td>31</td>
+    <td>mode</td>
+    <td>u8</td>
+    <td>1</td>
+    <td>0=PWM, 1=PPM on first defined pin (Default PPM)</td>
   </tr>
 </table>
 

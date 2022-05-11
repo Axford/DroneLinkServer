@@ -179,6 +179,84 @@
             "../DroneNode/src/droneModules/HMC5883LModule.h"
         ]
     },
+    "LSM9DS1": {
+        "type": [
+            "LSM9DS1"
+        ],
+        "inherits": [
+            "I2CBaseModule"
+        ],
+        "description": [
+            "Manages a LSM9DS1 I2C Compass"
+        ],
+        "config": [
+            "LSM9DS1.new 6\n  name \"Compass\"\n  interval 200\n  bus 0\n  status 1\n  calibX -3.5 0 2.3\n  calibY -3.6 0 1.7\n  // default location\n  location -1.8 52 100\n  //$location [@>GPS.location]\n  $location [@>5.8]\n  .publish \"heading\"\n  .publish \"vector\"\n  .publish \"calibX\"\n  .publish \"calibY\"\n.done"
+        ],
+        "pub": [
+            {
+                "address": 10,
+                "type": "f",
+                "numValues": 4,
+                "name": "vector",
+                "description": "Raw magnetic field vector"
+            },
+            {
+                "address": 11,
+                "type": "f",
+                "numValues": 1,
+                "name": "heading",
+                "description": "Heading adjusted for magnetic declination"
+            },
+            {
+                "address": 12,
+                "type": "f",
+                "numValues": 1,
+                "name": "declination",
+                "description": "Current declination value"
+            },
+            {
+                "address": 13,
+                "type": "f",
+                "numValues": 3,
+                "name": "calibX",
+                "description": "Min, center and max magnetic readings for the X axis"
+            },
+            {
+                "address": 14,
+                "type": "f",
+                "numValues": 3,
+                "name": "calibY",
+                "description": "Min, center and max magnetic readings for the Y axis"
+            },
+            {
+                "address": 15,
+                "type": "f",
+                "numValues": 1,
+                "name": "trim",
+                "description": "Manual calibration value to adjust heading to match hull (e.g. for a misaligned physical mount)"
+            },
+            {
+                "address": 18,
+                "type": "f",
+                "numValues": 4,
+                "name": "limits",
+                "description": "Averaged limits at the four quadrants, used to refine the calibration onoine"
+            }
+        ],
+        "sub": [
+            {
+                "address": 16,
+                "addrAddress": 17,
+                "type": "f",
+                "numValues": 2,
+                "name": "location",
+                "description": "Current location from GPS"
+            }
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/LSM9DS1Module.h"
+        ]
+    },
     "Management": {
         "type": [
             "Management"
@@ -455,6 +533,133 @@
             "../DroneNode/src/droneModules/NavModule.h"
         ]
     },
+    "NetworkInterface": {
+        "type": [
+            "NetworkInterface"
+        ],
+        "description": [
+            "Base class for network interfaces"
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/NetworkInterfaceModule.h"
+        ]
+    },
+    "ODrive": {
+        "type": [
+            "ODrive"
+        ],
+        "inherits": [
+            "Drone"
+        ],
+        "description": [
+            "Manages an ODrive module via serial"
+        ],
+        "config": [
+            "ODrive.new 11\n  name \"ODrive\"\n  interval 100\n  port 2\n  limits -10 10\n  invert 0\n  $left [@>10.8]\n  $right [@>10.9]\n\n  // publish\n  .publish \"left\"\n  .publish \"right\"\n.done"
+        ],
+        "pub": [
+            {
+                "address": 12,
+                "type": "f",
+                "numValues": 2,
+                "name": "limits",
+                "description": "Min and max speed limits in range -1 to 1 (default -1 1)"
+            },
+            {
+                "address": 13,
+                "type": "u8",
+                "numValues": 1,
+                "name": "port",
+                "description": "Serial port (0..2, default: 2)"
+            },
+            {
+                "address": 14,
+                "type": "u8",
+                "numValues": 2,
+                "name": "invert",
+                "description": "Invert axes (0 = normal, 1 = invert)"
+            },
+            {
+                "address": 15,
+                "type": "u8",
+                "numValues": 1,
+                "name": "invert",
+                "description": "Switch axes (0=normal, 1=switched i.e. switch left and right motors)"
+            }
+        ],
+        "sub": [
+            {
+                "address": 8,
+                "addrAddress": 9,
+                "type": "f",
+                "numValues": 1,
+                "name": "left",
+                "description": "Desired left motor speed in range -1 to 1"
+            },
+            {
+                "address": 10,
+                "addrAddress": 11,
+                "type": "f",
+                "numValues": 1,
+                "name": "right",
+                "description": "Desired right motor speed in range -1 to 1"
+            }
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/ODriveModule.h"
+        ]
+    },
+    "PanTilt": {
+        "type": [
+            "PanTilt"
+        ],
+        "description": [
+            "Generate servo commands for a pan/tilt head to track a target (e.g. for camera or antenna trackers)"
+        ],
+        "guide": [
+            ""
+        ],
+        "config": [
+            "PanTilt.new 21\n  name \"PanTilt\"\n  PID (f) 0.005 0.0 0.0001\n  interval 50\n  $target [@>20.8]\n  $heading [@>6.11]\n  .publish \"target\"\n  .publish \"heading\"\n  .publish \"PID\"\n  .publish \"pan\"\n.done"
+        ],
+        "sub": [
+            {
+                "address": 10,
+                "addrAddress": 11,
+                "type": "f",
+                "numValues": 1,
+                "name": "target",
+                "description": "Target heading (e.g. from Nav module)"
+            },
+            "12;13;f;1;Current heading (e.g. from Compass)"
+        ],
+        "pub": [
+            {
+                "address": 14,
+                "type": "f",
+                "numValues": 3,
+                "name": "PID",
+                "description": "PID values (start with: 0.005 0.0 0.0001)"
+            },
+            {
+                "address": 15,
+                "type": "f",
+                "numValues": 2,
+                "name": "limits",
+                "description": "Limits of servo travel in degrees (default -90 90)"
+            },
+            {
+                "address": 16,
+                "type": "f",
+                "numValues": 1,
+                "name": "pan",
+                "description": "Pan output in range -1..1, to be fed to servo"
+            }
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/PanTiltModule.h"
+        ]
+    },
     "Polar": {
         "type": [
             "Polar"
@@ -542,6 +747,84 @@
             "../DroneNode/src/droneModules/PolarModule.h"
         ]
     },
+    "QMC5883L": {
+        "type": [
+            "QMC5883L"
+        ],
+        "inherits": [
+            "I2CBaseModule"
+        ],
+        "description": [
+            "Manages a QMC5883L I2C Compass"
+        ],
+        "config": [
+            "QMC5883L.new 6\n  name \"Compass\"\n  interval 200\n  bus 0\n  status 1\n  calibX -3.5 0 2.3\n  calibY -3.6 0 1.7\n  // default location\n  location -1.8 52 100\n  //$location [@>GPS.location]\n  $location [@>5.8]\n  .publish \"heading\"\n  .publish \"vector\"\n  .publish \"calibX\"\n  .publish \"calibY\"\n.done"
+        ],
+        "pub": [
+            {
+                "address": 10,
+                "type": "f",
+                "numValues": 4,
+                "name": "vector",
+                "description": "Raw magnetic field vector"
+            },
+            {
+                "address": 11,
+                "type": "f",
+                "numValues": 1,
+                "name": "heading",
+                "description": "Heading adjusted for magnetic declination"
+            },
+            {
+                "address": 12,
+                "type": "f",
+                "numValues": 1,
+                "name": "declination",
+                "description": "Current declination value"
+            },
+            {
+                "address": 13,
+                "type": "f",
+                "numValues": 3,
+                "name": "calibX",
+                "description": "Min, center and max magnetic readings for the X axis"
+            },
+            {
+                "address": 14,
+                "type": "f",
+                "numValues": 3,
+                "name": "calibY",
+                "description": "Min, center and max magnetic readings for the Y axis"
+            },
+            {
+                "address": 15,
+                "type": "f",
+                "numValues": 1,
+                "name": "trim",
+                "description": "Manual calibration value to adjust heading to match hull (e.g. for a misaligned physical mount)"
+            },
+            {
+                "address": 18,
+                "type": "f",
+                "numValues": 4,
+                "name": "limits",
+                "description": "Averaged limits at the four quadrants, used to refine the calibration onoine"
+            }
+        ],
+        "sub": [
+            {
+                "address": 16,
+                "addrAddress": 17,
+                "type": "f",
+                "numValues": 2,
+                "name": "location",
+                "description": "Current location from GPS"
+            }
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/QMC5883LModule.h"
+        ]
+    },
     "RFM69Telemetry": {
         "type": [
             "RFM69Telemetry"
@@ -573,6 +856,13 @@
                 "numValues": 3,
                 "name": "speed",
                 "description": "Packet rates per second for sent, received and rejected"
+            },
+            {
+                "address": 11,
+                "type": "f",
+                "numValues": 1,
+                "name": "power",
+                "description": "Radio transmit power (-14..20), default 20"
             }
         ],
         "filename": [
@@ -590,7 +880,7 @@
             "Reads up to 4 PWM channels from an RC receiver"
         ],
         "config": [
-            "Receiver.new 14\n  name \"Receiver\"\n  interval 200\n  pins IN0_0 IN0_1 32 0\n  limits 980 2020\n  $switch [@>14.13]\n  $input1 [@>9.14]\n  $input2 [@>8.16]\n  //.publish \"pins\"\n  .publish \"value1\"\n  .publish \"value2\"\n  .publish \"value3\"\n  .publish \"input\"\n  .publish \"limits\"\n  .publish \"input1\"\n  .publish \"input2\"\n  .publish \"switch\"\n.done"
+            "Receiver.new 14\n  name \"Receiver\"\n  interval 200\n  pins 34\n  limits 980 2020\n  mode 1 // PPM\n  $switch [@>14.13]\n  $input1 [@>9.14]\n  $input2 [@>8.16]\n  //.publish \"pins\"\n  .publish \"value1\"\n  .publish \"value2\"\n  .publish \"value3\"\n  .publish \"input\"\n  .publish \"limits\"\n  .publish \"input1\"\n  .publish \"input2\"\n  .publish \"switch\"\n.done"
         ],
         "guide": [
             "<p>PWM values from an RC receiver are decoded using interrupt routines, then converted\nand published as values (<b>value1, value2</b>, etc) in range -1..1 on a regular <b>interval</b>.  Output values can be subscribed to from other modules (e.g. Servo or TankSteer).  Up to 4 channels can be read.</p>\n\n<p>The valid range of PWM input values (i.e. pulse timings in ms) are defined by the <b>limits</b> parameter.</p>\n\n<p>Deadman protection is triggered after 5 seconds of no valid PWM signals and all output values are set to zero.</p>\n\n<p>The module can optionally be chained behind other modules (e.g. for automated navigation) with a virtual switch to flip outputs between channel subscriptions (passthrough mode) vs RC receiver inputs.  The <b>switch</b> parameter controls which mode the module is in - if switch is less than 0.5 then it is in passthrough (subscription values are output), otherwise in active mode (i.e. RC receiver values are output). </p>"
@@ -601,7 +891,7 @@
                 "type": "u8",
                 "numValues": 2,
                 "name": "pins",
-                "description": "Receiver input pins, one per receiver channel (see <a href=\"pins.html\">Pin Mappings</a>)"
+                "description": "Receiver input pins, one per receiver channel (see <a href=\"pins.html\">Pin Mappings</a>) or a single pin for PPM"
             },
             {
                 "address": 11,
@@ -644,6 +934,13 @@
                 "numValues": 2,
                 "name": "input",
                 "description": "Raw PWM timing input values for each channel"
+            },
+            {
+                "address": 31,
+                "type": "u8",
+                "numValues": 1,
+                "name": "mode",
+                "description": "0=PWM, 1=PPM on first defined pin (Default PPM)"
             }
         ],
         "sub": [
@@ -823,6 +1120,72 @@
             "../DroneNode/src/droneModules/StatusModule.h"
         ]
     },
+    "TankSteer": {
+        "type": [
+            "TankSteer"
+        ],
+        "description": [
+            "Generate left and right motor speeds from speed and turnRate inputs"
+        ],
+        "guide": [
+            "Tank steering:\n   * Sub to target heading\n   * Sub to current heading\n   * Sub to distance\n   * Generate left and right motor speed values"
+        ],
+        "config": [
+            "TankSteer.new 10\n  name \"TankSteer\"\n  interval 50\n  trim 0\n  $speed [@>9.14]\n  $turnRate [@>8.16]\n  .publish \"left\"\n  .publish \"right\"\n  .publish \"turnRate\"\n  .publish \"speed\"\n  .publish \"trim\"\n.done"
+        ],
+        "pub": [
+            {
+                "address": 8,
+                "type": "f",
+                "numValues": 1,
+                "name": "left",
+                "description": "Left motor speed output in range -1..1"
+            },
+            {
+                "address": 9,
+                "type": "f",
+                "numValues": 1,
+                "name": "right",
+                "description": "Right motor speed output in range -1..1"
+            },
+            {
+                "address": 16,
+                "type": "u8",
+                "numValues": 1,
+                "name": "mode",
+                "description": "1=Automated (responds to speed and turnRate subs) or 0=Manual (ignores subs, but speed and turnRate values can be directly written to)"
+            }
+        ],
+        "sub": [
+            {
+                "address": 10,
+                "addrAddress": 11,
+                "type": "f",
+                "numValues": 1,
+                "name": "turnRate",
+                "description": "Rate of turn in range -1..1 where positive values are clockwise"
+            },
+            {
+                "address": 12,
+                "addrAddress": 13,
+                "type": "f",
+                "numValues": 1,
+                "name": "speed",
+                "description": "Desired speed in range -1 to 1"
+            },
+            {
+                "address": 14,
+                "addrAddress": 15,
+                "type": "f",
+                "numValues": 1,
+                "name": "trim",
+                "description": "Applied to turnRate value"
+            }
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/TankSteerModule.h"
+        ]
+    },
     "Timer": {
         "type": [
             "Timer"
@@ -832,6 +1195,44 @@
         ],
         "filename": [
             "../DroneNode/src/droneModules/TimerModule.h"
+        ]
+    },
+    "TurnRate": {
+        "type": [
+            "TurnRate"
+        ],
+        "description": [
+            "Generate a turnRate command based on target vs current heading using a PID controller"
+        ],
+        "guide": [
+            "Tank steering:\n   * Sub to target heading\n   * Sub to current heading\n   * Tuning parameters (PID)\n   * Generate turn rate"
+        ],
+        "config": [
+            "TurnRate.new 8\n  name \"TurnRate\"\n  PID (f) 0.005 0.0 0.0001\n  interval 50\n  $target [@>22.14]\n  $heading [@>50.8]\n  .publish \"target\"\n  .publish \"heading\"\n  .publish \"PID\"\n  .publish \"turnRate\"\n.done"
+        ],
+        "sub": [
+            {
+                "address": 10,
+                "addrAddress": 11,
+                "type": "f",
+                "numValues": 1,
+                "name": "target",
+                "description": "Target heading (e.g. from Nav module)"
+            },
+            "12;13;f;1;Current heading (e.g. from Compass)",
+            "14;15;f;3;PID values (start with: 0.005 0.0 0.0001)"
+        ],
+        "pub": [
+            {
+                "address": 16,
+                "type": "f",
+                "numValues": 1,
+                "name": "turnRate",
+                "description": "turnRate output in range -1..1, where 1 is clockwise"
+            }
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/TurnRateModule.h"
         ]
     },
     "UDPTelemetry": {
@@ -862,6 +1263,80 @@
         ],
         "filename": [
             "../DroneNode/src/droneModules/UDPTelemetryModule.h"
+        ]
+    },
+    "Wind": {
+        "type": [
+            "Wind"
+        ],
+        "inherits": [
+            "I2CBaseModule"
+        ],
+        "description": [
+            "Manages a Wind speed and direction sensor."
+        ],
+        "guide": [
+            "- Wind direction using I2C AS5600 sensor\n- Wind speed from cup anemometor on an digital input with internal pullup"
+        ],
+        "config": [
+            "Wind.new 14\n   bus 4\n   interval 100\n   $heading [@>8.11]\n   centre 0\n\n   .publish \"wind\" // .14\n   .publish \"centre\"\n.done"
+        ],
+        "pub": [
+            {
+                "address": 10,
+                "type": "f",
+                "numValues": 1,
+                "name": "direction",
+                "description": "local wind direction"
+            },
+            {
+                "address": 11,
+                "type": "f",
+                "numValues": 1,
+                "name": "speed",
+                "description": "wind speed"
+            },
+            {
+                "address": 12,
+                "type": "u8",
+                "numValues": 1,
+                "name": "pins",
+                "description": "Pin to use for anemometer interrupt signal"
+            },
+            {
+                "address": 13,
+                "type": "f",
+                "numValues": 1,
+                "name": "centre",
+                "description": "Calibration for local wind direction"
+            },
+            {
+                "address": 14,
+                "type": "f",
+                "numValues": 1,
+                "name": "wind",
+                "description": "World wind direction - combination of local direction and heading"
+            },
+            {
+                "address": 15,
+                "type": "u8",
+                "numValues": 1,
+                "name": "mode",
+                "description": "Operation mode 0=standard, 1=inverted (upside down, e.g. for water direction sensor), 2=anemometer"
+            }
+        ],
+        "sub": [
+            {
+                "address": 16,
+                "addrAddress": 17,
+                "type": "f",
+                "numValues": 1,
+                "name": "heading",
+                "description": "Sub to compass heading to work out world wind direction"
+            }
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/WindModule.h"
         ]
     }
 }

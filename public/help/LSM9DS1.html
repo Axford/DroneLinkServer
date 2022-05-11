@@ -1,0 +1,110 @@
+<link rel="stylesheet" href="../css/help.css">
+
+<div class="helpContent">
+
+<div><a href="index.html">&lt; Help Index</a></div>
+
+<h1>LSM9DS1</h1>
+<p>Base class: <i>I2CBaseModule</i></p>
+<p>Manages a LSM9DS1 I2C Compass</p>
+
+
+<h2>Example Configuration</h2>
+<pre>LSM9DS1.new 6
+  name "Compass"
+  interval 200
+  bus 0
+  status 1
+  calibX -3.5 0 2.3
+  calibY -3.6 0 1.7
+  // default location
+  location -1.8 52 100
+  //$location [@>GPS.location]
+  $location [@>5.8]
+  .publish "heading"
+  .publish "vector"
+  .publish "calibX"
+  .publish "calibY"
+.done</pre>
+
+<h2>Subs (inputs)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Addr Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>16</td>
+    <td>17</td>
+    <td>location</td>
+    <td>f</td>
+    <td>2</td>
+    <td>Current location from GPS</td>
+  </tr>
+</table>
+
+<h2>Pubs (outputs / config)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>10</td>
+    <td>vector</td>
+    <td>f</td>
+    <td>4</td>
+    <td>Raw magnetic field vector</td>
+  </tr>
+  <tr>
+    <td>11</td>
+    <td>heading</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Heading adjusted for magnetic declination</td>
+  </tr>
+  <tr>
+    <td>12</td>
+    <td>declination</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Current declination value</td>
+  </tr>
+  <tr>
+    <td>13</td>
+    <td>calibX</td>
+    <td>f</td>
+    <td>3</td>
+    <td>Min, center and max magnetic readings for the X axis</td>
+  </tr>
+  <tr>
+    <td>14</td>
+    <td>calibY</td>
+    <td>f</td>
+    <td>3</td>
+    <td>Min, center and max magnetic readings for the Y axis</td>
+  </tr>
+  <tr>
+    <td>15</td>
+    <td>trim</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Manual calibration value to adjust heading to match hull (e.g. for a misaligned physical mount)</td>
+  </tr>
+  <tr>
+    <td>18</td>
+    <td>limits</td>
+    <td>f</td>
+    <td>4</td>
+    <td>Averaged limits at the four quadrants, used to refine the calibration onoine</td>
+  </tr>
+</table>
+
+</div>

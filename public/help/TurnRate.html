@@ -1,0 +1,85 @@
+<link rel="stylesheet" href="../css/help.css">
+
+<div class="helpContent">
+
+<div><a href="index.html">&lt; Help Index</a></div>
+
+<h1>TurnRate</h1>
+<p>Base class: <i></i></p>
+<p>Generate a turnRate command based on target vs current heading using a PID controller</p>
+
+<h2>Usage Guide</h2>
+Tank steering:
+   * Sub to target heading
+   * Sub to current heading
+   * Tuning parameters (PID)
+   * Generate turn rate
+
+<h2>Example Configuration</h2>
+<pre>TurnRate.new 8
+  name "TurnRate"
+  PID (f) 0.005 0.0 0.0001
+  interval 50
+  $target [@>22.14]
+  $heading [@>50.8]
+  .publish "target"
+  .publish "heading"
+  .publish "PID"
+  .publish "turnRate"
+.done</pre>
+
+<h2>Subs (inputs)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Addr Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>10</td>
+    <td>11</td>
+    <td>target</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Target heading (e.g. from Nav module)</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td>TurnRate</td>
+    <td></td>
+    <td>Generate a turnRate command based on target vs current heading using a PID controller</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td>TurnRate</td>
+    <td></td>
+    <td>Generate a turnRate command based on target vs current heading using a PID controller</td>
+  </tr>
+</table>
+
+<h2>Pubs (outputs / config)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>16</td>
+    <td>turnRate</td>
+    <td>f</td>
+    <td>1</td>
+    <td>turnRate output in range -1..1, where 1 is clockwise</td>
+  </tr>
+</table>
+
+</div>

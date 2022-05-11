@@ -1,0 +1,94 @@
+<link rel="stylesheet" href="../css/help.css">
+
+<div class="helpContent">
+
+<div><a href="index.html">&lt; Help Index</a></div>
+
+<h1>ODrive</h1>
+<p>Base class: <i>Drone</i></p>
+<p>Manages an ODrive module via serial</p>
+
+
+<h2>Example Configuration</h2>
+<pre>ODrive.new 11
+  name "ODrive"
+  interval 100
+  port 2
+  limits -10 10
+  invert 0
+  $left [@>10.8]
+  $right [@>10.9]
+
+  // publish
+  .publish "left"
+  .publish "right"
+.done</pre>
+
+<h2>Subs (inputs)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Addr Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>8</td>
+    <td>9</td>
+    <td>left</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Desired left motor speed in range -1 to 1</td>
+  </tr>
+  <tr>
+    <td>10</td>
+    <td>11</td>
+    <td>right</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Desired right motor speed in range -1 to 1</td>
+  </tr>
+</table>
+
+<h2>Pubs (outputs / config)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>12</td>
+    <td>limits</td>
+    <td>f</td>
+    <td>2</td>
+    <td>Min and max speed limits in range -1 to 1 (default -1 1)</td>
+  </tr>
+  <tr>
+    <td>13</td>
+    <td>port</td>
+    <td>u8</td>
+    <td>1</td>
+    <td>Serial port (0..2, default: 2)</td>
+  </tr>
+  <tr>
+    <td>14</td>
+    <td>invert</td>
+    <td>u8</td>
+    <td>2</td>
+    <td>Invert axes (0 = normal, 1 = invert)</td>
+  </tr>
+  <tr>
+    <td>15</td>
+    <td>invert</td>
+    <td>u8</td>
+    <td>1</td>
+    <td>Switch axes (0=normal, 1=switched i.e. switch left and right motors)</td>
+  </tr>
+</table>
+
+</div>
