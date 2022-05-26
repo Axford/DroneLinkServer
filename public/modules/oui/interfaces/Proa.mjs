@@ -230,8 +230,8 @@ export default class Proa {
     ctx.strokeStyle = '#fff';
     ctx.lineWidth = 5;
     ctx.beginPath();
-    ctx.moveTo(pb[0] + x1, pb[1] + y1);
-    ctx.lineTo(pb[0] - x1, pb[1] - y1);
+    ctx.moveTo(pb[0] - x1, pb[1] - y1);
+    ctx.lineTo(pb[0] + x1/2, pb[1] + y1/2);
     ctx.stroke();
 
     // left pontoon
