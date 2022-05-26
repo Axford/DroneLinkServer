@@ -23,6 +23,7 @@ import Servo from './interfaces/Servo.mjs';
 import TankSteer from './interfaces/TankSteer.mjs';
 import TurnRate from './interfaces/TurnRate.mjs';
 import UDPTelemetry from './interfaces/UDPTelemetry.mjs';
+import Wind from './interfaces/Wind.mjs';
 
 
 loadStylesheet('./css/modules/oui/Channel.css');
@@ -224,6 +225,8 @@ export default class Channel {
         this.interface = new TurnRate(this, state);
       } else if (data.type == 'UDPTelemetry') {
         this.interface = new UDPTelemetry(this, state);
+      } else if (data.type == 'Wind') {
+        this.interface = new Wind(this, state);
       }
 
 

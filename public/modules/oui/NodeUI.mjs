@@ -255,6 +255,8 @@ export default class NodeUI {
         this.updateTarget(value);
       } else if (paramName == 'last') {
         this.updateLast(value);
+      } else if (paramName == 'wind') {
+        this.updateWind(value);
       }
 
       this.panels.NodeSettings.update();
@@ -483,6 +485,11 @@ export default class NodeUI {
       if (src) src.setData(this.targetTrace);
     }
 
+    // update wind
+    if (this.windDir && this.windIndicator) {
+      this.updateWind(this.windDir);
+    }
+
     if (!this.gotLocation) {
       this.gotLocation = true;
       this.initNodeLocation();
@@ -709,6 +716,70 @@ export default class NodeUI {
         var src = this.map.getSource(traceName);
         if (src) src.setData(this.lastTrace);
       }
+    }
+  }
+
+
+  //Destination point given distance and bearing from start point
+  /*
+  const φ2 = Math.asin( Math.sin(φ1)*Math.cos(d/R) +
+                        Math.cos(φ1)*Math.sin(d/R)*Math.cos(brng) );
+  const λ2 = λ1 + Math.atan2(Math.sin(brng)*Math.sin(d/R)*Math.cos(φ1),
+                             Math.cos(d/R)-Math.sin(φ1)*Math.sin(φ2));
+  */
+  calculateDestinationFromDistanceAndBearing(start, d, bearing) {
+    var p = [0,0];
+    var R = 6371e3; // metres
+    var lat1r = start[1] * Math.PI/180; // φ, λ in radians
+    var lon1r = start[0] * Math.PI/180;
+    var br = bearing * Math.PI/180;
+
+    var a = Math.sin(lat1r)*Math.cos(d/R) + Math.cos(lat1r)*Math.sin(d/R)*Math.cos(br);
+    p[1] = Math.asin( a );
+    p[0] = lon1r + Math.atan2(
+      Math.sin(br)*Math.sin(d/R)*Math.cos(lat1r),
+      Math.cos(d/R) - Math.sin(lat1r)*a
+    );
+    // convert to degrees
+    p[0] = p[0] * 180/Math.PI;
+    p[1] = p[1] * 180/Math.PI;
+    // normalise lon
+    p[0] = ((p[0] + 540) % 360) - 180;
+    return p;
+  }
+
+
+  updateWind(wind) {
+    // can't visualise until we have a valid location
+    if (!this.gotLocation) return;
+
+    this.windDir = wind;
+
+    if (this.windIndicator) {
+      this.windIndicator.coordinates[0] = this.location;
+      var windCoords = this.calculateDestinationFromDistanceAndBearing(this.location, 10, wind);
+      this.windIndicator.coordinates[1] = windCoords;
+
+      var src = this.map.getSource('windIndicator' + this.id);
+      if (src) src.setData(this.windIndicator);
+
+    } else {
+      // init windIndicator
+      var traceName = 'windIndicator' + this.id;
+      var windCoords = this.calculateDestinationFromDistanceAndBearing(this.location, 10, wind);
+
+      this.windIndicator = { "type": "LineString", "coordinates": [ this.location, windCoords ] };
+      this.map.addSource(traceName, { type: 'geojson', data: this.windIndicator });
+      this.map.addLayer({
+        'id': traceName,
+        'type': 'line',
+        'source': traceName,
+        'paint': {
+          'line-color': 'blue',
+          'line-opacity': 1,
+          'line-width': 3
+        }
+      });
     }
   }
 
