@@ -77,6 +77,7 @@ export default class Proa {
 
     var sheet = this.state.getParamValues(node, channel, 17, [0])[0];
     var flags = this.state.getParamValues(node, channel, 21, [0,0,0]);
+    var debugInfo = this.state.getParamValues(node, channel, 30, [0,0,0,0]);
 
     var left = this.state.getParamValues(node, channel, 22, [0])[0];
     left *= 90;
@@ -170,7 +171,7 @@ export default class Proa {
 		// hands
     drawLabelledHand(ctx, heading, '', rInner,rOuter2, '#5F5');
     drawLabelledHand(ctx, target, '', rInner, rOuter2, '#FF5');
-    drawLabelledHand(ctx, course, '', rInner, rOuter2, '#5FF');
+    drawLabelledHand(ctx, course, '', rInner-20, rOuter2, '#5FF');
     drawLabelledHand(ctx, wind, '', 10, rOuter2+20, '#55F');
 
     // legend - top right
@@ -192,6 +193,10 @@ export default class Proa {
     drawLabel(ctx, flags[0] > 0 ? 'Starboard' : 'Port', 'Tack', 5, 50, '#fff');
     drawLabel(ctx, flags[1] > 0 ? 'Y' : 'N', 'Locked?', 5, 100, '#fff');
     drawLabel(ctx, flags[2] > 0 ? 'Y' : 'N', 'Last CT+', 5, 150, '#fff');
+
+    // debug
+    drawLabel(ctx, debugInfo[1].toFixed(0) , 'Frame Err', 5, 200, '#fff');
+    drawLabel(ctx, debugInfo[2].toFixed(0) , 'CoW Err', 5, 250, '#fff');
 
     // draw Proa in inner region
     // -------------------------
@@ -222,17 +227,24 @@ export default class Proa {
     ctx.lineTo(pr[0], pr[1]);
     ctx.stroke();
 
-    var plen = rInner * 0.3;
+    var plen = rInner * 0.4;
 
     // bow pontoon (COW)
     var x1 = plen * Math.cos(h2 + degreesToRadians(cow));
     var y1 = plen * Math.sin(h2 + degreesToRadians(cow));
-    ctx.strokeStyle = '#fff';
+    ctx.strokeStyle = '#5FF';
     ctx.lineWidth = 5;
     ctx.beginPath();
     ctx.moveTo(pb[0] - x1, pb[1] - y1);
     ctx.lineTo(pb[0] + x1/2, pb[1] + y1/2);
     ctx.stroke();
+    // put a blob at the front
+    ctx.fillStyle = '#5FF';
+    ctx.beginPath();
+    ctx.arc(pb[0] + x1/2, pb[1] + y1/2, 6, 0, 2 * Math.PI);
+    ctx.fill();
+
+    plen = rInner * 0.3;
 
     // left pontoon
     x1 = plen * Math.cos(h2 + degreesToRadians(left));
@@ -256,18 +268,30 @@ export default class Proa {
 
     // wing
     var wl = rInner * 0.5;
-    ctx.strokeStyle = '#aaaaff';
-    ctx.lineWidth = 5;
+    var wang = h2 + degreesToRadians(wing);
+    var chordOffset = Math.PI / 2;
+    var chordR = wl * 0.1;
+    ctx.fillStyle = '#aaaaff';
+    ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(wp[0], wp[1]);
-    ctx.lineTo(wp[0] + wl*Math.cos(h2 + degreesToRadians(wing)), wp[1] + wl*Math.sin(h2 + degreesToRadians(wing)) );
-    ctx.stroke();
+    ctx.moveTo(wp[0] - wl/4*Math.cos(wang), wp[1] - wl/4*Math.sin(wang) );
+    ctx.lineTo(wp[0] + chordR*Math.cos(wang-chordOffset), wp[1] + chordR*Math.sin(wang-chordOffset) );
+    ctx.lineTo(wp[0] + wl*Math.cos(wang), wp[1] + wl*Math.sin(wang) );
+    ctx.lineTo(wp[0] + chordR*Math.cos(wang+chordOffset), wp[1] + chordR*Math.sin(wang+chordOffset) );
+    ctx.lineTo(wp[0] - wl/4*Math.cos(wang), wp[1] - wl/4*Math.sin(wang) );
+    ctx.fill();
 
 
     // target frame orientation
     // calc position of pontoons
     // bow
-    var h3 = course + frameOffset;
+
+
+    drawLabelledHand(ctx, course + frameOffset, '', 10, rInner, '#F00');
+
+/*
+    var h3 = (course + frameOffset) - 90;
+
     pb = [ cx + prad*Math.cos(h3), cy + prad*Math.sin(h3)  ];
     // left
     pl = [ cx + prad*Math.cos(h3 - degreesToRadians(120)), cy + prad*Math.sin(h3 - degreesToRadians(120))  ];
@@ -284,7 +308,7 @@ export default class Proa {
     ctx.lineTo(ps[0], ps[1]);
     ctx.moveTo(pl[0], pl[1]);
     ctx.lineTo(pr[0], pr[1]);
-    ctx.stroke();
+    ctx.stroke();*/
 
   }
 
@@ -296,6 +320,30 @@ export default class Proa {
 
 	build() {
     this.ui = $('<div class="Proa text-center"></div>');
+
+    this.passiveModeBut = $('<button class="btn btn-sm btn-secondary">Passive</button>');
+    this.passiveModeBut.click((e)=>{
+      var qm = new DLM.DroneLinkMsg();
+			qm.node = this.channel.node.id;
+			qm.channel = this.channel.channel;
+			qm.param = 29;
+			qm.setUint8([ 0 ]);
+			this.state.send(qm);
+    });
+    this.ui.append(this.passiveModeBut);
+
+    this.activeModeBut = $('<button class="btn btn-sm btn-primary">Active</button>');
+    this.activeModeBut.click((e)=>{
+      var qm = new DLM.DroneLinkMsg();
+			qm.node = this.channel.node.id;
+			qm.channel = this.channel.channel;
+			qm.param = 29;
+			qm.setUint8([ 1 ]);
+			this.state.send(qm);
+    });
+    this.ui.append(this.activeModeBut);
+
+
     this.canvas = $('<canvas height=300 />');
     this.canvas.on('click', (e)=>{
       //  manually adjust target on click
