@@ -12,6 +12,31 @@ function degreesToRadians(a) {
   return a * Math.PI / 180;
 }
 
+function drawPill(ctx, label, x, y, w, color) {
+  ctx.fillStyle = color;
+	// draw pill
+	var r = 8;
+	var x1 = x - w/2 + r;
+	var x2 = x + w/2 - r;
+
+	ctx.beginPath();
+	ctx.arc(x1, y+r, r, 0, 2 * Math.PI);
+	ctx.fill();
+
+	ctx.beginPath();
+	ctx.fillRect(x1,y, w - 2*r, 2*r);
+
+	ctx.beginPath();
+	ctx.arc(x2, y + r, r, 0, 2 * Math.PI);
+	ctx.fill();
+
+	// draw label
+  ctx.textAlign = 'center';
+  ctx.font = '12px sans-serif';
+	ctx.fillStyle = '#fff';
+  ctx.fillText(label, x, y+12);
+}
+
 
 function drawLabelledHand(ctx, ang, label, r1, r2, color) {
   var angR = (ang - 90) * Math.PI / 180;
@@ -285,9 +310,19 @@ export default class Proa {
     // target frame orientation
     // calc position of pontoons
     // bow
-
-
     drawLabelledHand(ctx, course + frameOffset, '', 10, rInner, '#F00');
+
+    // draw controlMode
+    var controlModeStr = 'Normal';
+    var controlModeClr = '#585';
+    if (debugInfo[3] == 2) {
+      controlModeStr = 'Run';
+      controlModeClr = '#558';
+    } else if (debugInfo[3] == 1) {
+      controlModeStr = 'Brake';
+      controlModeClr = '#855';
+    }
+    drawPill(ctx, controlModeStr, w-40, h-20, 70, controlModeClr);
 
 /*
     var h3 = (course + frameOffset) - 90;
