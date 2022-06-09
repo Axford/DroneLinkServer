@@ -292,6 +292,16 @@ export default class Parameter {
 		}
 		console.log('Sending: ' + qm.asString() );
 		this.state.send(qm);
+
+		// now send an immediate query for the new value
+		qm = new DLM.DroneLinkMsg();
+		qm.source = 252;
+		qm.node = this.channel.node.id;
+		qm.channel = this.channel.channel;
+		qm.param = this.param;
+		qm.writable = false;
+		qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
+		this.state.send(qm);
 	}
 
 

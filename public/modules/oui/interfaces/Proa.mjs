@@ -105,9 +105,9 @@ export default class Proa {
     var debugInfo = this.state.getParamValues(node, channel, 30, [0,0,0,0]);
 
     var left = this.state.getParamValues(node, channel, 22, [0])[0];
-    left *= 90;
+    left *= 120;
     var right = this.state.getParamValues(node, channel, 23, [0])[0];
-    right *= 90;
+    right *= 120;
     var wing = this.state.getParamValues(node, channel, 17, [0])[0];
     wing *= 90;
     var cow = this.state.getParamValues(node, channel, 24, [0])[0];
