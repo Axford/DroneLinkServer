@@ -398,9 +398,9 @@ export default class NodeUI {
     // -- marker --
     this.mapEl = document.createElement('div');
     this.mapEl.className = 'marker';
-    var arrow = document.createElement('i');
-    arrow.className = 'fas fa-arrow-up';
-    this.mapEl.appendChild(arrow);
+    this.mapElArrow = document.createElement('i');
+    this.mapElArrow.className = 'fas fa-circle-dot';
+    this.mapEl.appendChild(this.mapElArrow);
     this.marker = new mapboxgl.Marker(this.mapEl)
           .setLngLat(this.location)
           .addTo(this.map);
@@ -505,6 +505,7 @@ export default class NodeUI {
   updateHeading(heading) {
     //console.log(heading);
     if (this.gotLocation) {
+      this.mapElArrow.className = 'fas fa-arrow-up';
       this.marker.setRotation(heading);
     }
   }
