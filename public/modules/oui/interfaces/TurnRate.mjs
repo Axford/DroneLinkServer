@@ -95,7 +95,7 @@ export default class TurnRate {
 		ctx.arc(cx, 100, 80, h2, h2 + turnRate, turnRate < 0);
 		ctx.lineTo(cx + 65*Math.cos(h2+1.1*turnRate), 100 + 65*Math.sin(h2+1.1*turnRate));
 		ctx.arc(cx, 100, 50, h2 + turnRate, h2, turnRate > 0);
-		ctx.fillStyle = mode == 2 ? '#a00' : '#0a0';
+		ctx.fillStyle = mode == 2 ? '#c55' : '#0a0';
 		ctx.fill();
 
 		// background circles (axes)
