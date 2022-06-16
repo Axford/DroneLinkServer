@@ -2,6 +2,32 @@ import loadStylesheet from '../../loadStylesheet.js';
 import * as DLM from '../../droneLinkMsg.mjs';
 
 
+function drawPill(ctx, label, x, y, w, color) {
+  ctx.fillStyle = color;
+	// draw pill
+	var r = 8;
+	var x1 = x - w/2 + r;
+	var x2 = x + w/2 - r;
+
+	ctx.beginPath();
+	ctx.arc(x1, y+r, r, 0, 2 * Math.PI);
+	ctx.fill();
+
+	ctx.beginPath();
+	ctx.fillRect(x1,y, w - 2*r, 2*r);
+
+	ctx.beginPath();
+	ctx.arc(x2, y + r, r, 0, 2 * Math.PI);
+	ctx.fill();
+
+	// draw label
+  ctx.textAlign = 'center';
+  ctx.font = '12px sans-serif';
+	ctx.fillStyle = '#fff';
+  ctx.fillText(label, x, y+12);
+}
+
+
 export default class TurnRate {
 	constructor(channel, state) {
     this.channel = channel;
@@ -35,6 +61,8 @@ export default class TurnRate {
     var heading = this.state.getParamValues(node, channel, 12, [0])[0];
     var h2 = (heading - 90) * Math.PI / 180;
 
+		var mode =  this.state.getParamValues(node, channel, 19, [0])[0];
+
 		var c = this.canvas[0];
 		var ctx = c.getContext("2d");
 
@@ -49,6 +77,7 @@ export default class TurnRate {
 		ctx.fillRect(0,0,w,200);
 
 		// draw giant turnRate arrow
+		/*
 		var x1 = (w/2) * turnRate;
 		ctx.fillStyle = '#0a0';
     ctx.beginPath();
@@ -59,6 +88,15 @@ export default class TurnRate {
 		ctx.lineTo(cx, h/2+40);
 		ctx.lineTo(cx, h/2-40);
     ctx.fill();
+*/
+
+		// turn rate arc
+		ctx.beginPath();
+		ctx.arc(cx, 100, 80, h2, h2 + turnRate, turnRate < 0);
+		ctx.lineTo(cx + 65*Math.cos(h2+1.1*turnRate), 100 + 65*Math.sin(h2+1.1*turnRate));
+		ctx.arc(cx, 100, 50, h2 + turnRate, h2, turnRate > 0);
+		ctx.fillStyle = mode == 2 ? '#a00' : '#0a0';
+		ctx.fill();
 
 		// background circles (axes)
     ctx.strokeStyle = '#fff';
@@ -80,6 +118,8 @@ export default class TurnRate {
       ctx.lineTo(cx + 90*Math.cos(ang), 100 + 90*Math.sin(ang) );
     }
     ctx.stroke();
+
+
 
 		// heading
     ctx.strokeStyle = '#5F5';
@@ -116,6 +156,18 @@ export default class TurnRate {
     ctx.font = '20px bold serif';
 		ctx.textAlign = 'center';
     ctx.fillText(turnRate.toFixed(1), cx, 105);
+
+		// draw controlMode
+    var controlModeStr = 'Normal';
+    var controlModeClr = '#585';
+    if (mode == 2) {
+      controlModeStr = 'Gybe';
+      controlModeClr = '#a55';
+    } else if (mode == 1) {
+      controlModeStr = 'Gybe?';
+      controlModeClr = '#885';
+    }
+    drawPill(ctx, controlModeStr, w-40, h-20, 70, controlModeClr);
   }
 
 	build() {
