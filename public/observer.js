@@ -37,6 +37,15 @@ var liveMode = true;
 var parsedLog = [];
 var logMarkers = [];
 
+function saveMapLocation(lngLat) {
+  localStorage.location = JSON.stringify({
+    lng:lngLat.lng,
+    lat:lngLat.lat
+  });
+  // TODO
+  localStorage.zoom = JSON.stringify(17.5);
+}
+
 socket.on('localAddress', (id)=>{
   // set local address on state
   state.localAddress = id;
@@ -453,12 +462,26 @@ function init() {
     $('#logPlaybackStatus').html(info.packets + ' / '+ ('0000'+minutes).slice(-2) + ':' + ('0000'+seconds).slice(-2) +' ');
   });
 
+  // load last position from local storage
+  var lngLat;
+  var zoom;
+  try {
+    var lngLat = JSON.parse(localStorage.location);
+    var zoom = JSON.parse(localStorage.zoom);
+  } catch (e) {
+    lngLat = {
+      lng: -1.804,
+      lat: 51.575
+    }
+    zoom = 17.5;
+  }
+
   // configure map
   map = new mapboxgl.Map({
     container: 'map',
     style: 'mapbox://styles/mapbox/satellite-v9',
-    center: [-1.804, 51.575],
-    zoom: 17.5
+    center: [lngLat.lng, lngLat.lat],
+    zoom: zoom
   });
 
   map.on('style.load', () => {
@@ -483,6 +506,9 @@ function init() {
     map.on('mousemove',(e)=>{
       // update coord div
       $('.mapCoords').html(e.lngLat.lng.toFixed(6) + ', ' + e.lngLat.lat.toFixed(6));
+
+      // update last location in localstorage
+      saveMapLocation(e.lngLat);
     });
 
 
