@@ -34,6 +34,7 @@ export default class Wind {
     this.state = state;
     this.built = false;
     this.receivedWind = false;
+    this.receivedLocalWind = false;
 
     this.rawVectors = [];  // history of raw vector values
 
@@ -59,12 +60,17 @@ export default class Wind {
 
 	onParamValue(data) {
 
-		// wind
+		// global wind
 		if (data.param == 14 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
       this.receivedWind = true;
 
 			// pass onto node for mapping
 			this.channel.node.updateMapParam('wind', 3, data.values, this.channel.channel, 14);
+		}
+
+    // local wind
+    if (data.param == 10 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
+      this.receivedLocalWind = true;
 		}
 
     this.update();
@@ -102,59 +108,63 @@ export default class Wind {
 		ctx.fillStyle = '#343a40';
 		ctx.fillRect(0,0,w1,h);
 
-    // histogram
-    var maxBin = 1;
-    for (var i=0; i<this.numBins; i++) {
-      if (this.histoBins[i] > maxBin) maxBin = this.histoBins[i];
-    }
+    if (this.receivedWind) {
 
-    for (var i=0; i<this.numBins; i++) {
-      var a1 = 2 * Math.PI * i / this.numBins - Math.PI/2;
-      var a2 = a1 + 2 * Math.PI / this.numBins;
-      var r = 30 + 50 * this.histoBins[i] / maxBin;
+      // histogram
+      var maxBin = 1;
+      for (var i=0; i<this.numBins; i++) {
+        if (this.histoBins[i] > maxBin) maxBin = this.histoBins[i];
+      }
 
-      ctx.fillStyle = '#55f';
+      for (var i=0; i<this.numBins; i++) {
+        var a1 = 2 * Math.PI * i / this.numBins - Math.PI/2;
+        var a2 = a1 + 2 * Math.PI / this.numBins;
+        var r = 30 + 50 * this.histoBins[i] / maxBin;
+
+        ctx.fillStyle = '#55f';
+        ctx.beginPath();
+        ctx.arc(cx, 100, r, a1, a2);
+        ctx.lineTo(cx,100);
+        ctx.fill();
+      }
+
+
+      // rings
+      ctx.strokeStyle = '#fff';
+      ctx.fillStyle = '#343a40';
+      ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.arc(cx, 100, r, a1, a2);
-      ctx.lineTo(cx,100);
+      ctx.arc(cx, 100, 80, 0, 2 * Math.PI);
+      ctx.stroke();
+  		ctx.beginPath();
+      ctx.arc(cx, 100, 30, 0, 2 * Math.PI);
       ctx.fill();
+      ctx.stroke();
+
+      // ticks
+      ctx.beginPath();
+      for (var i =0; i<12; i++) {
+        var ang = (i*30) * Math.PI / 180;
+        ctx.moveTo(cx + 80*Math.cos(ang), 100 + 80*Math.sin(ang));
+        ctx.lineTo(cx + 90*Math.cos(ang), 100 + 90*Math.sin(ang) );
+      }
+      ctx.stroke();
+
+
+      // wind
+      ctx.strokeStyle = '#5F5';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(cx + 30*Math.cos(wind2), 100 + 30*Math.sin(wind2));
+      ctx.lineTo(cx + 90*Math.cos(wind2), 100 + 90*Math.sin(wind2) );
+      ctx.stroke();
+
+      // text
+      ctx.fillStyle = '#5F5';
+      ctx.font = '20px bold serif';
+  		ctx.textAlign = 'center';
+      ctx.fillText(wind.toFixed(0) + '°', cx, 106);
     }
-
-
-    // rings
-    ctx.strokeStyle = '#fff';
-    ctx.fillStyle = '#343a40';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.arc(cx, 100, 80, 0, 2 * Math.PI);
-    ctx.stroke();
-		ctx.beginPath();
-    ctx.arc(cx, 100, 30, 0, 2 * Math.PI);
-    ctx.fill();
-    ctx.stroke();
-
-    // ticks
-    ctx.beginPath();
-    for (var i =0; i<12; i++) {
-      var ang = (i*30) * Math.PI / 180;
-      ctx.moveTo(cx + 80*Math.cos(ang), 100 + 80*Math.sin(ang));
-      ctx.lineTo(cx + 90*Math.cos(ang), 100 + 90*Math.sin(ang) );
-    }
-    ctx.stroke();
-
-		// wind
-    ctx.strokeStyle = '#5F5';
-    ctx.lineWidth = 5;
-    ctx.beginPath();
-    ctx.moveTo(cx + 30*Math.cos(wind2), 100 + 30*Math.sin(wind2));
-    ctx.lineTo(cx + 90*Math.cos(wind2), 100 + 90*Math.sin(wind2) );
-    ctx.stroke();
-
-    // text
-    ctx.fillStyle = '#5F5';
-    ctx.font = '20px bold serif';
-		ctx.textAlign = 'center';
-    ctx.fillText(wind.toFixed(0) + '°', cx, 106);
 
 		drawPill(ctx, 'World', cx, 5, w1*0.8, '#585');
 
@@ -167,35 +177,39 @@ export default class Wind {
 		ctx.fillStyle = '#343a40';
 		ctx.fillRect(w1,0,w,h);
 
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.arc(cx, 100, 80, 0, 2 * Math.PI);
-    ctx.stroke();
-		ctx.beginPath();
-    ctx.arc(cx, 100, 30, 0, 2 * Math.PI);
-    ctx.stroke();
+    if (this.receivedLocalWind) {
 
-    ctx.beginPath();
-    for (var i =0; i<12; i++) {
-      var ang = (i*30) * Math.PI / 180;
-      ctx.moveTo(cx + 80*Math.cos(ang), 100 + 80*Math.sin(ang));
-      ctx.lineTo(cx + 90*Math.cos(ang), 100 + 90*Math.sin(ang) );
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(cx, 100, 80, 0, 2 * Math.PI);
+      ctx.stroke();
+  		ctx.beginPath();
+      ctx.arc(cx, 100, 30, 0, 2 * Math.PI);
+      ctx.stroke();
+
+      ctx.beginPath();
+      for (var i =0; i<12; i++) {
+        var ang = (i*30) * Math.PI / 180;
+        ctx.moveTo(cx + 80*Math.cos(ang), 100 + 80*Math.sin(ang));
+        ctx.lineTo(cx + 90*Math.cos(ang), 100 + 90*Math.sin(ang) );
+      }
+      ctx.stroke();
+
+
+      // wind
+      ctx.strokeStyle = '#5F5';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(cx + 30*Math.cos(localWind2), 100 + 30*Math.sin(localWind2));
+      ctx.lineTo(cx + 90*Math.cos(localWind2), 100 + 90*Math.sin(localWind2) );
+      ctx.stroke();
+
+      ctx.fillStyle = '#5F5';
+      ctx.font = '20px bold serif';
+  		ctx.textAlign = 'center';
+      ctx.fillText(localWind.toFixed(0) + '°', cx, 106);
     }
-    ctx.stroke();
-
-		// wind
-    ctx.strokeStyle = '#5F5';
-    ctx.lineWidth = 5;
-    ctx.beginPath();
-    ctx.moveTo(cx + 30*Math.cos(localWind2), 100 + 30*Math.sin(localWind2));
-    ctx.lineTo(cx + 90*Math.cos(localWind2), 100 + 90*Math.sin(localWind2) );
-    ctx.stroke();
-
-    ctx.fillStyle = '#5F5';
-    ctx.font = '20px bold serif';
-		ctx.textAlign = 'center';
-    ctx.fillText(localWind.toFixed(0) + '°', cx, 106);
 
 		drawPill(ctx, 'Local', cx, 5, w1*0.8, '#558');
   }
