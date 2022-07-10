@@ -361,7 +361,7 @@ export default class DroneLinkManager {
         this.generateHello(ni, this.node, this.helloSeq, 0, loopTime - this.bootTime);
       } else {
         if (this.logOptions.Hello)
-          this.clog('Cant generate hello - interface down'.orange);
+          this.clog(('Cant generate hello - interface down: ' + ni.typeName).yellow);
       }
     }
 
@@ -378,7 +378,7 @@ export default class DroneLinkManager {
 
     if (buffer) {
       var msg = buffer.msg;
-      //this.clog('generating hello on interface: ' + ni.typeName);
+      this.clog('generating hello on interface: ' + ni.typeName);
       // populate hello packet
       msg.typeGuaranteeSize =  DMM.DRONE_MESH_MSG_NOT_GUARANTEED | (5-1) ;  // payload is 1 byte... sent as n-1
       msg.txNode = this.node;

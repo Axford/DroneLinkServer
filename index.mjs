@@ -10,13 +10,12 @@ import * as DLM from './public/modules/droneLinkMsg.mjs';
 import DroneLinkMsgQueue from './public/modules/DroneLinkMsgQueue.mjs';
 import DroneLinkManager from './public/modules/DroneLinkManager.mjs';
 import UDPInterface from './public/modules/UDPInterface.mjs';
+import SerialInterface from './public/modules/SerialInterface.mjs';
 import * as DMTB from './public/modules/DroneMeshTxBuffer.mjs';
 
 //const broadcastAddress = require('broadcast-address');
 
 var dlm = {};
-
-import SerialPort from 'serialport';
 
 import blessed from 'neo-blessed';
 
@@ -432,7 +431,14 @@ setInterval(()=>{
 
 
 function clog(v) {
-  if (!pauseLog) logBox.add(v);
+  if (!pauseLog) {
+    var s = '';
+    if (typeof this == 'object') {
+      s += '['+ this.constructor.name +'] ';
+    }
+    s += v;
+    logBox.add(s);
+  }
   logBox.screen.render();
   //console.log(v);
 }
@@ -481,8 +487,9 @@ dlm.logFilePath = logFilePath;
 // prep msgQueue
 var msgQueue = new DroneLinkMsgQueue();
 
-// create interfaces
+// create interfaces (they will self-register with the dlm)
 var udpi = new UDPInterface(dlm, 1, clog);
+var seriali = new SerialInterface(dlm, 2, clog, config[env].telemetryPort);
 
 
 // -----------------------------------------------------------
