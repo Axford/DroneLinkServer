@@ -52,9 +52,10 @@ export default class HMC5883L {
     var h2 = (heading - 90) * Math.PI / 180;
 
     var rawVector = this.state.getParamValues(node, channel, 10, [0]);
-    var calibX = this.state.getParamValues(node, channel, 13, [0]);
-    var calibY = this.state.getParamValues(node, channel, 14, [0]);
+    var calibX = this.state.getParamValues(node, channel, 13, [0,0,0]);
+    var calibY = this.state.getParamValues(node, channel, 14, [0,0,0]);
 		var limits = this.state.getParamValues(node, channel, 18, [0,0,0,0]);
+		var samples = this.state.getParamValues(node, channel, 19, [0,0,0,0]);
 
     // render vector view
     // -------------------------------------------------------------------------
@@ -84,12 +85,19 @@ export default class HMC5883L {
     ctx.fillStyle = '#55f';
     ctx.strokeStyle = "#aaf";
 
-    const scaling = (w2/2) / Math.max(
-			Math.abs(limits[0]),
-			Math.abs(limits[1]),
-			Math.abs(limits[2]),
-			Math.abs(limits[3])
-		);
+		// update maxVal
+		var maxVal = 1;
+		maxVal = Math.max(maxVal, Math.abs(calibX[0]));
+		maxVal = Math.max(maxVal, Math.abs(calibX[2]));
+		maxVal = Math.max(maxVal, Math.abs(calibY[0]));
+		maxVal = Math.max(maxVal, Math.abs(calibY[2]));
+
+    var scaling = 1;
+		if (w2 < h) {
+			scaling = 0.8 * (w2/2) / maxVal;
+		} else {
+			scaling = 0.8 * (h/2) / maxVal;
+		}
 
     for (var i=0; i<this.rawVectors.length; i++) {
       if (i == this.rawVectors.length-1) {
@@ -169,6 +177,18 @@ export default class HMC5883L {
 		ctx.fillStyle = '#343a40';
 		ctx.fillRect(0,0,w1,h);
 
+		// calibration markers (based on samples)
+		for (var i=0; i<4; i++) {
+			var ang = ((360-i*90) - 90) * Math.PI / 180;
+
+			ctx.strokeStyle = samples[i] > 20 ? '#0a0' : '#555';
+	    ctx.lineWidth = Math.min(samples[i], 20);
+	    ctx.beginPath();
+	    ctx.arc(cx, 100, 90, ang-0.4, ang+0.4);
+	    ctx.stroke();
+		}
+
+		// background circles
     ctx.strokeStyle = '#fff';
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -178,6 +198,7 @@ export default class HMC5883L {
     ctx.arc(cx, 100, 30, 0, 2 * Math.PI);
     ctx.stroke();
 
+		// ticks
     ctx.beginPath();
     for (var i =0; i<12; i++) {
       var ang = (i*30) * Math.PI / 180;
