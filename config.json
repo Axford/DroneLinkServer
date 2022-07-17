@@ -22,5 +22,11 @@
     "firmwarePath":"/Users/damianaxford/Documents/GitHub/DroneNode/.pio/build/esp32doit-devkit-v1/firmware.bin",
     "logFilePath":"/Users/damianaxford/Documents/GitHub/DroneLinkServer/mesh.log",
     "telemetryPort":"/dev/cu.SLAB_USBtoUART"
+  },
+  "Damians-MBP.localdomain":{
+    "id":250,
+    "firmwarePath":"/Users/damianaxford/Documents/GitHub/DroneNode/.pio/build/esp32doit-devkit-v1/firmware.bin",
+    "logFilePath":"/Users/damianaxford/Documents/GitHub/DroneLinkServer/mesh.log",
+    "telemetryPort":"/dev/cu.SLAB_USBtoUART"
   }
 }

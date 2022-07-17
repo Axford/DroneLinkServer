@@ -56,6 +56,7 @@ export default class HMC5883L {
     var calibY = this.state.getParamValues(node, channel, 14, [0,0,0]);
 		var limits = this.state.getParamValues(node, channel, 18, [0,0,0,0]);
 		var samples = this.state.getParamValues(node, channel, 19, [0,0,0,0]);
+		var trim = this.state.getParamValues(node, channel, 15, [0]);
 
     // render vector view
     // -------------------------------------------------------------------------
@@ -179,10 +180,10 @@ export default class HMC5883L {
 
 		// calibration markers (based on samples)
 		for (var i=0; i<4; i++) {
-			var ang = ((360-i*90) - 90) * Math.PI / 180;
+			var ang = ((trim + 360-i*90) - 90) * Math.PI / 180;
 
-			ctx.strokeStyle = samples[i] > 20 ? '#0a0' : '#555';
-	    ctx.lineWidth = Math.min(samples[i], 20);
+			ctx.strokeStyle = samples[i] > 100 ? '#0a0' : '#555';
+	    ctx.lineWidth = Math.min(samples[i], 100) / 5;
 	    ctx.beginPath();
 	    ctx.arc(cx, 100, 90, ang-0.4, ang+0.4);
 	    ctx.stroke();
