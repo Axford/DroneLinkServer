@@ -76,6 +76,7 @@ export default class Sailor {
     var sheet = this.state.getParamValues(node, channel, 17, [0])[0];
     var flags = this.state.getParamValues(node, channel, 21, [0,0,0]);
 
+    var wing = this.state.getParamValues(node, channel, 22, [0])[0];
 
     var c = this.canvas[0];
     var ctx = c.getContext("2d");
@@ -153,6 +154,12 @@ export default class Sailor {
     drawLabelledHand(ctx, course, '', 30, 90, '#5FF');
     drawLabelledHand(ctx, wind, '', 60, 110, '#55F');
 
+    // draw estimated wing orientation
+    if (wing != 0) {
+      var wingAng = wind + 180 - wing * 30;
+      drawLabelledHand(ctx, wingAng, '', 30, 110, '#F55');
+    }
+
     // legend - top right
 		ctx.textAlign = 'right';
     ctx.font = '12px serif';
@@ -164,6 +171,11 @@ export default class Sailor {
     ctx.fillText('Course', w-5, 40);
     ctx.fillStyle = '#55F';
     ctx.fillText('Wind', w-5, 54);
+    if (wing != 0) {
+      ctx.fillStyle = '#F55';
+      ctx.fillText('Wing', w-5, 68);
+    }
+    
 
     // sheet - center
     ctx.fillStyle = '#FFF';

@@ -135,6 +135,12 @@ export default class DroneLinkLog {
     this.playback = false;
   }
 
+  forward() {
+    // skip forward 1min
+    // which is the equivalent of moving the playback start back a minute
+    this.playbackStart -= 60000;
+  }
+
   pause() {
     this.playback = false;
     this.trigger('status', null);

@@ -480,6 +480,10 @@ function init() {
     parseLog();
   });
 
+  $('#logForwardButton').on('click', ()=>{
+    logger.forward();
+  });
+
   logger.on('status', ()=>{
     // update recording status
     $('#logRecordButton').html(logger.recording ? '<i class="fas fa-stop"></i>' : '<i class="fas fa-circle"></i>');

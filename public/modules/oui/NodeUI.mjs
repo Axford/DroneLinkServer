@@ -56,7 +56,7 @@ export default class NodeUI {
 
     this.uiLastHeard = document.createElement('div');
     this.uiLastHeard.className = 'lastHeard';
-    this.uiLastHeard.innerHTML = '0s';
+    this.uiLastHeard.innerHTML = '-';
     this.ui.appendChild(this.uiLastHeard);
 
     this.uiWidgets = $('<div class="widgets"></div>');
@@ -190,19 +190,29 @@ export default class NodeUI {
 
     // update lastHeard UI every second
     setInterval(()=>{
-      var now = (new Date()).getTime();
 
-      var dt = (now - this.lastHeard)/1000;
-      if (dt > 120) {
-        this.uiLastHeard.classList.add('danger');
-      } else if (dt > 60) {
-        this.uiLastHeard.classList.add('warning');
-        this.uiLastHeard.classList.remove('danger');
+      if (this.state.state[this.id].interface == 'firebase') {
+        this.uiLastHeard.innerHTML = '-';
+
+        this.ui.classList.add('faded');
+
       } else {
-        this.uiLastHeard.classList.remove('danger');
-        this.uiLastHeard.classList.remove('warning');
+        var now = (new Date()).getTime();
+
+        var dt = (now - this.lastHeard)/1000;
+        if (dt > 120) {
+          this.uiLastHeard.classList.add('danger');
+        } else if (dt > 60) {
+          this.uiLastHeard.classList.add('warning');
+          this.uiLastHeard.classList.remove('danger');
+        } else {
+          this.uiLastHeard.classList.remove('danger');
+          this.uiLastHeard.classList.remove('warning');
+        }
+        this.uiLastHeard.innerHTML = dt.toFixed(0)+ 's';
+
+        this.ui.classList.remove('faded');
       }
-      this.uiLastHeard.innerHTML = dt.toFixed(0)+ 's';
 
     }, 1000)
   }
