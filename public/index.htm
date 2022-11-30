@@ -37,6 +37,26 @@
 
   <script src="https://unpkg.com/react-bootstrap@next/dist/react-bootstrap.min.js" crossorigin></script>
 
+  <script type="module">
+    // Import the functions you need from the SDKs you need
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.14.0/firebase-app.js";
+    // TODO: Add SDKs for Firebase products that you want to use
+    // https://firebase.google.com/docs/web/setup#available-libraries
+  
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyCk0qtHjpFO90FBXJtqXVPB2RSBc8b2e_g",
+      authDomain: "dronelink-25dbc.firebaseapp.com",
+      projectId: "dronelink-25dbc",
+      storageBucket: "dronelink-25dbc.appspot.com",
+      messagingSenderId: "722464451302",
+      appId: "1:722464451302:web:590b5f4213069c772d6927"
+    };
+  
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+  </script>
+
 	<script type="module" src="main.js"></script>
 </body>
 </html>

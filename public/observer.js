@@ -3,12 +3,53 @@ import loadStylesheet from './modules/loadStylesheet.js';
 
 loadStylesheet('./css/observer.css');
 
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.14.0/firebase-app.js";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+import { getFirestore,  collection, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.14.0/firebase-firestore.js";
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyCk0qtHjpFO90FBXJtqXVPB2RSBc8b2e_g",
+  authDomain: "dronelink-25dbc.firebaseapp.com",
+  projectId: "dronelink-25dbc",
+  storageBucket: "dronelink-25dbc.appspot.com",
+  messagingSenderId: "722464451302",
+  appId: "1:722464451302:web:590b5f4213069c772d6927"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+
+console.log('Loaded firebase');
+
+// Initialize Cloud Firestore and get a reference to the service
+const db = getFirestore(app);
+
+/*
+try {
+  const docRef = doc(db, 'nodes', '250');
+  setDoc(docRef, { 
+    id: 250,
+    name: "Server"
+   }, { merge: true });
+
+
+  console.log("Document written");
+} catch (e) {
+  console.error("Error adding document: ", e);
+}
+*/
+
+
+
 import io from '../libs/socketio/socket.io.esm.min.mjs';
 var socket = io();
 
 import * as DLM from './modules/droneLinkMsg.mjs';
 import DroneLinkState from './modules/DroneLinkState.mjs';
-var state = new DroneLinkState(socket);
+var state = new DroneLinkState(socket, db);
 
 import NodeUI from './modules/oui/NodeUI.mjs';
 import { controllers, initGamepads } from './modules/gamepads.js';

@@ -5,21 +5,33 @@ loadStylesheet('./css/modules/oui/Parameter.css');
 
 
 export default class Parameter {
+	
 	constructor(channel, param, state) {
-    this.channel = channel;
-    this.param = param;
-    this.state = state;
-    this.built = false;
-    this.addr = this.channel.node.id + '>' + this.channel.channel + '.' + param;
-    this.title = '?';
-    this.msgType = 255;
+		var me = this;
+		this.channel = channel;
+		this.param = param;
+		this.state = state;
+		this.built = false;
+		this.addr = this.channel.node.id + '>' + this.channel.channel + '.' + param;
+		this.title = '?';
+		this.msgType = 255;
 		this.addrResolved = false;
 		this.paramValues = [0,0,0,0];
 		this.writable = false;
 
 		this.editor = null;
 
-    this.build();
+		this.state.on('param.name', (data)=>{
+			console.log('pn', data);
+			if (data.node != me.channel.node.id ||
+			data.channel != me.channel.channel ||
+			data.param != me.param) return;
+			
+			me.title = data.name;
+			me.uiName.html(me.title);
+		});
+
+		this.build();
 	}
 
 

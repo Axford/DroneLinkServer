@@ -8,6 +8,9 @@
 import * as DLM from './droneLinkMsg.mjs';
 import DroneLinkMsgQueue from './DroneLinkMsgQueue.mjs';
 
+import { getFirestore,  collection, doc, setDoc, query, onSnapshot, where } from "https://www.gstatic.com/firebasejs/9.14.0/firebase-firestore.js";
+
+
 
 function arraysEqual(a,b) {
   if (a === b) return true;
@@ -30,10 +33,11 @@ function arraysEqual(a,b) {
 
 export default class DroneLinkState {
 
-  constructor(socket) {
+  constructor(socket, db) {
     var me = this;
     this.state = {};
     this.socket = socket;
+    this.db = db;
     this.localAddress = 250; // default, overriden in observer.js
     this.discoveryQueue = new DroneLinkMsgQueue();
     this.callbacks = {}; // each key is an event type, values are an array of callback functions
@@ -45,10 +49,31 @@ export default class DroneLinkState {
       var msg = new DLM.DroneLinkMsg(msgBuffer);
       //if (msg.node == 2 && msg.channel == 7)
       //  console.log('DLM.msg: ' + msg.asString());
-      me.handleLinkMsg(msg);
+      me.handleLinkMsg(msg, true, 'socket');
 
       me.trigger('raw', msg);
     });
+
+    // create firestore snapshot and thereby gather an initial state 
+    const q = query(collection(me.db, "nodes"), where("id", "<", 255 ));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === "added" || change.type == "modified") {
+          // use to build initial state, if not heard before
+          var docData = change.doc.data();
+
+          if (!me.state.hasOwnProperty(docData.id)) {
+            console.log("Firebase, New node");
+          
+            me.processNewNodeState(docData);
+          }
+        }
+        if (change.type === "removed") {
+          //console.log("Firebase, Removed node: ", change.doc.data());
+        }
+      });
+    });
+
 
     setInterval( ()=>{
       me.discovery();
@@ -57,6 +82,10 @@ export default class DroneLinkState {
     setInterval( ()=>{
       me.processDiscoveryQueue();
     }, 50);
+
+    setInterval( ()=>{
+      me.updateFirebase();
+    }, 1000);
   }
 
 
@@ -70,7 +99,55 @@ export default class DroneLinkState {
   }
 
 
-  handleLinkMsg(msg) {
+  processNewNodeState(nodeState) {
+    var me = this;
+
+    if (!nodeState.hasOwnProperty('channels')) return;
+
+    // convert nodeState into equivalent droneLink messages and feed to normal handler
+
+    var qm = new DLM.DroneLinkMsg();
+    qm.source = this.localAddress;
+
+    // for each channel
+    Object.keys(nodeState.channels).forEach(channelKey => {
+      var channel = nodeState.channels[channelKey]; 
+
+      console.log('channel: ' + channelKey);
+    
+      // for each param  
+      Object.keys(channel.params).forEach(paramKey => {
+        var param = channel.params[paramKey];
+
+        console.log('param: ' + paramKey + ', ', param.values);
+
+        // generate the value message
+        qm.node = nodeState.id;
+        qm.channel = channelKey;
+        qm.param = paramKey;
+        
+        switch(param.msgType) {
+          case DLM.DRONE_LINK_MSG_TYPE_UINT8_T: qm.setUint8(param.values); break;
+          case DLM.DRONE_LINK_MSG_TYPE_UINT32_T: qm.setUint32(param.values); break;
+          case DLM.DRONE_LINK_MSG_TYPE_FLOAT: qm.setFloat(param.values); break;
+          case DLM.DRONE_LINK_MSG_TYPE_CHAR: qm.setString(param.values[0]); break;
+        }
+
+        qm.writable = param.writable;
+        me.handleLinkMsg(qm, false, 'firebase');
+
+        // and then the "name" message
+        if (param.name > '') {
+          console.log('updating name: ' + param.name);
+          qm.setName(param.name);
+          me.handleLinkMsg(qm, false, 'firebase');
+        }
+      });
+    });
+  }
+
+
+  handleLinkMsg(msg, queryNames, interfaceName) {
     var me = this;
     var now = (new Date()).getTime();
     //console.log('hLM', msg.asString());
@@ -81,26 +158,29 @@ export default class DroneLinkState {
       me.trigger('node.new', msg.node);
 
       // speculative hostname query
-      var qm = new DLM.DroneLinkMsg();
-      qm.source = this.localAddress;
-      qm.node = msg.node;
-      qm.channel = 1;
-      qm.param = 8;
-      qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
-      qm.msgLength = 1;
-      me.send(qm);
+      if (queryNames) {
+        var qm = new DLM.DroneLinkMsg();
+        qm.source = this.localAddress;
+        qm.node = msg.node;
+        qm.channel = 1;
+        qm.param = 8;
+        qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
+        qm.msgLength = 1;
+        me.send(qm);
 
-      // speculative Nav type query
-      /*
-      qm = new DLM.DroneLinkMsg();
-      qm.source = this.localAddress;
-      qm.node = msg.node;
-      qm.channel = 7;
-      qm.param = DLM.DRONE_MODULE_PARAM_TYPE;
-      qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
-      qm.msgLength = 1;
-      me.send(qm);
-      */
+        // speculative Nav type query
+        /*
+        qm = new DLM.DroneLinkMsg();
+        qm.source = this.localAddress;
+        qm.node = msg.node;
+        qm.channel = 7;
+        qm.param = DLM.DRONE_MODULE_PARAM_TYPE;
+        qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
+        qm.msgLength = 1;
+        me.send(qm);
+        */
+      }
+      
     }
 
     //console.log(msg.channel, mvalue);
@@ -109,25 +189,27 @@ export default class DroneLinkState {
         !me.state[msg.node].channels.hasOwnProperty(msg.channel)) {
       me.trigger('module.new', { node: msg.node, channel:msg.channel });
 
-      // queue a type query
-      var qm = new DLM.DroneLinkMsg();
-      qm.source = this.localAddress;
-      qm.node = msg.node;
-      qm.channel = msg.channel;
-      qm.param = DLM.DRONE_MODULE_PARAM_TYPE;
-      qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
-      qm.msgLength = 1;
-      me.send(qm);
+      if (queryNames) {
+        // queue a type query
+        var qm = new DLM.DroneLinkMsg();
+        qm.source = this.localAddress;
+        qm.node = msg.node;
+        qm.channel = msg.channel;
+        qm.param = DLM.DRONE_MODULE_PARAM_TYPE;
+        qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
+        qm.msgLength = 1;
+        me.send(qm);
 
-      // queue a name query
-      qm = new DLM.DroneLinkMsg();
-      qm.source = this.localAddress;
-      qm.node = msg.node;
-      qm.channel = msg.channel;
-      qm.param = DLM.DRONE_MODULE_PARAM_NAME;
-      qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
-      qm.msgLength = 1;
-      me.send(qm);
+        // queue a name query
+        qm = new DLM.DroneLinkMsg();
+        qm.source = this.localAddress;
+        qm.node = msg.node;
+        qm.channel = msg.channel;
+        qm.param = DLM.DRONE_MODULE_PARAM_NAME;
+        qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
+        qm.msgLength = 1;
+        me.send(qm);
+      }
     } else {
       // heard module
       me.trigger('module.heard', { node: msg.node, channel:msg.channel });
@@ -178,7 +260,7 @@ export default class DroneLinkState {
     newState[msg.node] = {
       channels: {},
       lastHeard: now,
-      interface: 'socket',
+      interface: interfaceName,
       lastHeard:now
     }
     newState[msg.node].channels[msg.channel] = {
@@ -214,8 +296,6 @@ export default class DroneLinkState {
     }
 
     _.merge(me.state, newState);
-
-
   }
 
 
@@ -250,6 +330,69 @@ export default class DroneLinkState {
 
   processDiscoveryQueue() {
     this.discoveryQueue.process(this.socket);
+  }
+
+  updateFirebase() {
+    var now = (new Date()).getTime();
+
+    // check each node for last time it changed vs when we last updated firebase
+    Object.keys(this.state).forEach(key => {
+      var node = this.state[key]; 
+    
+      if (!node.firebaseLastUpdated ||
+          (node.lastHeard > node.firebaseLastUpdated) && (node.firebaseLastUpdated + 10000 < now)) {
+
+        // create a document object with key info to merge into firebase
+
+        // for each channel
+        var nodeInfo = {
+          id: parseInt(node.id ? node.id : key),
+          interface:node.interface,
+          lastHeard:node.lastHeard,
+          name: node.name ? node.name : '',
+          channels: {}
+        };
+
+        Object.keys(node.channels).forEach(channelKey => {
+          var channel = node.channels[channelKey]; 
+          nodeInfo.channels[channelKey] = {
+            name: channel.name ? channel.name : '',
+            params: {}
+          };
+          
+          // for each param  
+          Object.keys(channel.params).forEach(paramKey => {
+            var param = channel.params[paramKey];
+
+            if (param.bytesPerValue) {
+              nodeInfo.channels[channelKey].params[paramKey] = {
+                bytesPerValue: param.bytesPerValue ? param.bytesPerValue : 0,
+                msgType: param.msgType ? param.msgType : 0,
+                writable: param.writable,
+                name: param.name ? param.name : ''
+              };
+  
+              if (param.values && param.values.length > 0 ) {
+                nodeInfo.channels[channelKey].params[paramKey].values = _.clone(param.values)
+              }
+            }
+          });
+        });
+
+        // update firebase
+        try {
+          console.log('Firebase nodeinfo', nodeInfo);
+          const docRef = doc(this.db, 'nodes', key.toString());
+          setDoc(docRef, nodeInfo, { merge: true });
+
+          console.log("Firebase, node updated: " + key);
+        } catch (e) {
+          console.error("Firebase, Error updating document: ", e);
+        }
+        
+        node.firebaseLastUpdated = now;
+      }
+    });
   }
 
 
