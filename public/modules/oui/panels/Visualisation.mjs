@@ -99,6 +99,8 @@ export default class Visualisation extends Panel {
 
   update() {
 
+    if (this.node.id != 65) return;
+
     var c = this.ui.canvas[0];
     var ctx = c.getContext("2d");
 
@@ -138,7 +140,7 @@ export default class Visualisation extends Panel {
     ctx.fillRect(0,0,w,h);
 
     // fill central region
-    ctx.strokeStyle = '#fff';
+    ctx.strokeStyle = '#888';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.arc(cx, cy, 140, 0, 2 * Math.PI);
