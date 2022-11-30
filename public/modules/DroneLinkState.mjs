@@ -347,8 +347,8 @@ export default class DroneLinkState {
         // for each channel
         var nodeInfo = {
           id: parseInt(node.id ? node.id : key),
-          interface:node.interface,
-          lastHeard:node.lastHeard,
+          interface:node.interface ? node.interface : '',
+          lastHeard:node.lastHeard ? node.lastHeard : 0,
           name: node.name ? node.name : '',
           channels: {}
         };

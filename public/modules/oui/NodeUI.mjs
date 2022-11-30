@@ -12,7 +12,7 @@ import ManagementPanel from './panels/Management.mjs';
 import ConfigurationPanel from './panels/Configuration.mjs';
 import GraphPanel from './panels/Graph.mjs';
 import NodeSettingsPanel from './panels/NodeSettings.mjs';
-
+import VisualisationPanel from './panels/Visualisation.mjs';
 
 loadStylesheet('./css/modules/oui/NodeUI.css');
 
@@ -140,6 +140,8 @@ export default class NodeUI {
     this.panels.Graph = new GraphPanel(this, this.puiTabs, this.puiPanels);
 
     this.panels.NodeSettings = new NodeSettingsPanel(this, this.puiTabs, this.puiPanels);
+
+    this.panels.Visualisation = new VisualisationPanel(this, this.puiTabs, this.puiPanels);
 
 
     // query ipAddress
