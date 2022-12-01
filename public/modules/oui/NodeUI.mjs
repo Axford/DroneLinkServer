@@ -135,13 +135,15 @@ export default class NodeUI {
 
     this.panels.Management = new ManagementPanel(this, this.puiTabs, this.puiPanels);
 
+    this.panels.Visualisation = new VisualisationPanel(this, this.puiTabs, this.puiPanels);
+
     this.panels.Configuration = new ConfigurationPanel(this, this.puiTabs, this.puiPanels);
 
     this.panels.Graph = new GraphPanel(this, this.puiTabs, this.puiPanels);
 
     this.panels.NodeSettings = new NodeSettingsPanel(this, this.puiTabs, this.puiPanels);
 
-    this.panels.Visualisation = new VisualisationPanel(this, this.puiTabs, this.puiPanels);
+   
 
 
     // query ipAddress
