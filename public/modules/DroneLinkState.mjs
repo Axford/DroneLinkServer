@@ -59,12 +59,13 @@ export default class DroneLinkState {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       snapshot.docChanges().forEach((change) => {
         if (change.type === "added" || change.type == "modified") {
+          //console.log('firebase change', change);
           // use to build initial state, if not heard before
-          var docData = change.doc.data();
-
-          if (!me.state.hasOwnProperty(docData.id)) {
-            console.log("Firebase, New node");
           
+          if (!me.state.hasOwnProperty(parseInt(change.doc.id))) {
+
+            console.log("Firebase, New node");
+            var docData = change.doc.data();
             me.processNewNodeState(docData);
           }
         }
@@ -146,7 +147,7 @@ export default class DroneLinkState {
 
     // extract visualisation if present
     if (nodeState.visualisation > '' ) {
-      console.log('updating vis:',nodeState.visualisation );
+      //console.log('updating vis:',nodeState.visualisation );
       me.state[nodeState.id].visualisation = nodeState.visualisation;
     }
   }
@@ -361,7 +362,7 @@ export default class DroneLinkState {
       var node = this.state[key]; 
     
       if (!node.firebaseLastUpdated ||
-          (node.lastHeard > node.firebaseLastUpdated) && (node.firebaseLastUpdated + 10000 < now)) {
+          (node.lastHeard > node.firebaseLastUpdated) && (node.firebaseLastUpdated + 60000 < now)) {
 
         // create a document object with key info to merge into firebase
 
@@ -402,11 +403,11 @@ export default class DroneLinkState {
 
         // update firebase
         try {
-          console.log('Firebase nodeinfo', nodeInfo);
+          //console.log('Firebase nodeinfo', nodeInfo);
           const docRef = doc(this.db, 'nodes', key.toString());
           setDoc(docRef, nodeInfo, { merge: true });
 
-          console.log("Firebase, node updated: " + key);
+          //console.log("Firebase, node updated: " + key);
         } catch (e) {
           console.error("Firebase, Error updating document: ", e);
         }
