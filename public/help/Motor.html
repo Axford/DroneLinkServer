@@ -57,14 +57,14 @@
     <td>pins</td>
     <td>u8</td>
     <td>3</td>
-    <td>Pin connections for the H Bridge (A, B, EN)</td>
+    <td>Pin connections - dependent on mode (e.g. A, B, EN for standard H-bridge)</td>
   </tr>
   <tr>
     <td>11</td>
     <td>PWMChannel</td>
     <td>u8</td>
     <td>1</td>
-    <td>Which ESP32 PWM channel to use (default 15)</td>
+    <td>Which ESP32 PWM channel to use (default 15), mode 1 requires two channels and will use +1 as well</td>
   </tr>
   <tr>
     <td>12</td>
@@ -79,6 +79,20 @@
     <td>f</td>
     <td>1</td>
     <td>Input range within which to set the motor output to zero, interpreted abs(input).  Default 0.3</td>
+  </tr>
+  <tr>
+    <td>14</td>
+    <td>mode</td>
+    <td>u8</td>
+    <td>1</td>
+    <td>Operational mode. 0: standard H-bridge with A, B, and PWM-EN. 1: BTS7960 with PWM F & R.  2: Cytron with PWM speed + Dir</td>
+  </tr>
+  <tr>
+    <td>15</td>
+    <td>invert</td>
+    <td>u8</td>
+    <td>1</td>
+    <td>Invert output direction (0=normal, 1=inverted)</td>
   </tr>
 </table>
 

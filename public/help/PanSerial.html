@@ -1,0 +1,80 @@
+<link rel="stylesheet" href="../css/help.css">
+
+<div class="helpContent">
+
+<div><a href="index.html">&lt; Help Index</a></div>
+
+<h1>PanSerial</h1>
+<p>Base class: <i></i></p>
+<p>Generate serial commands for a slave pan controller module</p>
+
+<h2>Usage Guide</h2>
+
+
+<h2>Example Configuration</h2>
+<pre>PanSerial.new 21
+  name "PanSerial"
+  PID (f) 0.005 0.0 0.0001
+  interval 50
+  $target [@>20.8]
+  $heading [@>6.11]
+  .publish "target"
+  .publish "heading"
+  .publish "PID"
+  .publish "pan"
+.done</pre>
+
+<h2>Subs (inputs)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Addr Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>10</td>
+    <td>11</td>
+    <td>target</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Target heading (e.g. from Nav module)</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td>PanSerial</td>
+    <td></td>
+    <td>Generate serial commands for a slave pan controller module</td>
+  </tr>
+</table>
+
+<h2>Pubs (outputs / config)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>14</td>
+    <td>PID</td>
+    <td>f</td>
+    <td>3</td>
+    <td>PID values (start with: 0.005 0.0 0.0001)</td>
+  </tr>
+  <tr>
+    <td>15</td>
+    <td>pan</td>
+    <td>u8</td>
+    <td>1</td>
+    <td>Pan output in range 0..255 as sent over serial</td>
+  </tr>
+</table>
+
+</div>

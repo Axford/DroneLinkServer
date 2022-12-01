@@ -9,11 +9,24 @@
 <p>Generate a turnRate command based on target vs current heading using a PID controller</p>
 
 <h2>Usage Guide</h2>
-Tank steering:
-   * Sub to target heading
-   * Sub to current heading
-   * Tuning parameters (PID)
-   * Generate turn rate
+<p>Steering commands are based on:<p>
+
+<ul>
+   <li>Sub to target heading</li>
+   <li>Sub to current heading</li>
+   <li>Tuning parameters (PID)</li>
+   <li>Generate turn rate</li>
+</ul>
+
+<h3>Gybe control</h3>
+<p>If heading error stays large (and same sign) for extended period, then attempt to gybe (i.e. go the longer way round the circle), until the sign of the error changes.</p>
+
+<p>Control parameters are:</p>
+
+<ul>
+ <li>Error threshold to trigger the gybe timer (e.g. 30 degrees)</li>
+ <li>Timeout duration (e.g. 10 seconds) after which to initiate the gybe</li>
+</ul>
 
 <h2>Example Configuration</h2>
 <pre>TurnRate.new 8
@@ -47,20 +60,20 @@ Tank steering:
     <td>Target heading (e.g. from Nav module)</td>
   </tr>
   <tr>
-    <td></td>
-    <td></td>
-    <td></td>
-    <td>TurnRate</td>
-    <td></td>
-    <td>Generate a turnRate command based on target vs current heading using a PID controller</td>
+    <td>12</td>
+    <td>13</td>
+    <td>heading</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Current heading (e.g. from Compass)</td>
   </tr>
   <tr>
-    <td></td>
-    <td></td>
-    <td></td>
-    <td>TurnRate</td>
-    <td></td>
-    <td>Generate a turnRate command based on target vs current heading using a PID controller</td>
+    <td>14</td>
+    <td>15</td>
+    <td>PID</td>
+    <td>f</td>
+    <td>3</td>
+    <td>PID values (start with: 0.005 0.0 0.0001)</td>
   </tr>
 </table>
 
@@ -79,6 +92,27 @@ Tank steering:
     <td>f</td>
     <td>1</td>
     <td>turnRate output in range -1..1, where 1 is clockwise</td>
+  </tr>
+  <tr>
+    <td>17</td>
+    <td>threshold</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Error threshold to trigger the gybe timer (default 20 degrees)</td>
+  </tr>
+  <tr>
+    <td>18</td>
+    <td>tiumeout</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Timeout duration in seconds after which to initiate the gybe (default 10s)</td>
+  </tr>
+  <tr>
+    <td>19</td>
+    <td>mode</td>
+    <td>u8</td>
+    <td>1</td>
+    <td>Mode (0=normal, 1=potential gybe, 2=gybe)</td>
   </tr>
 </table>
 

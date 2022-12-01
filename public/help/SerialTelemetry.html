@@ -4,16 +4,15 @@
 
 <div><a href="index.html">&lt; Help Index</a></div>
 
-<h1>RFM69Telemetry</h1>
+<h1>SerialTelemetry</h1>
 <p>Base class: <i></i></p>
-<p>Manages DroneLink telemetry using an RFM69HW radio module</p>
+<p>Manages DroneLink telemetry over a serial port, optionally via a transparent telemetry module</p>
 
 
 <h2>Example Configuration</h2>
-<pre>RFM69Telemetry.new 3
-  name "RFM69"
+<pre>SerialTelemetry.new 3
+  name "serial"
   status 1  // enable
-  .publish "RSSI"
 .done</pre>
 
 <h2>Subs (inputs)</h2>
@@ -39,10 +38,10 @@
   </tr>
   <tr>
     <td>8</td>
-    <td>RSSI</td>
-    <td>f</td>
+    <td>port</td>
+    <td>u8</td>
     <td>1</td>
-    <td>RSSI of received packets</td>
+    <td>Serial port (0-2, default: 1)</td>
   </tr>
   <tr>
     <td>9</td>
@@ -60,10 +59,10 @@
   </tr>
   <tr>
     <td>11</td>
-    <td>power</td>
-    <td>f</td>
+    <td>baud</td>
+    <td>u32</td>
     <td>1</td>
-    <td>Radio transmit power (-14..20), default 20</td>
+    <td>Baud rate (default: 115200)</td>
   </tr>
 </table>
 
