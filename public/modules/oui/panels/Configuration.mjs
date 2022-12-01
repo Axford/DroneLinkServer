@@ -3,6 +3,10 @@ import loadStylesheet from '../../loadStylesheet.js';
 
 import * as DMFS from '../../DroneMeshFS.mjs';
 
+import { getFirestore,  collection, doc, setDoc, addDoc, getDocs, query, onSnapshot, where } from "https://www.gstatic.com/firebasejs/9.14.0/firebase-firestore.js";
+import { DRONE_MESH_MSG_TYPE_LINK_CHECK_REQUEST } from '../../DroneMeshMsg.mjs';
+
+
 loadStylesheet('./css/modules/oui/panels/Configuration.css');
 
 //--------------------------------------------------------
@@ -118,6 +122,21 @@ class DroneFSEntry {
       for (const [id, child] of Object.entries(this.children)) {
         child.select(entry)
       }
+    }
+  }
+
+
+  findEntryByPath(path) {
+    if (this.fullpath == path) {
+      return this;
+    } else if (this.isDir) {
+      // check children
+      for (const [id, child] of Object.entries(this.children)) {
+        var e = child.findEntryByPath(path);
+        if (e != null) return e;
+      }
+    } else {
+      return null;
     }
   }
 
@@ -569,6 +588,269 @@ class DroneFSEntry {
 }
 
 
+
+//--------------------------------------------------------
+// ServerFSEntry
+//--------------------------------------------------------
+
+class ServerFSEntry {
+  constructor(manager, db, nodeId, parent, path, isDir, container) {
+    this.manager = manager;
+    this.db = db;
+    this.nodeId = nodeId;
+    this.parent = parent;
+    this.fullpath = path;
+    this.isDir = isDir;
+    this.container = container;
+    this.children = {}; // indexed by id
+    this.size = 0;
+    this.enumerated = false;
+    this.isSelected = false;
+    this.isDownloading = false;
+    this.isDownloaded = false;
+    this.downloadInterval = null;
+
+    this.contents = ''; // actual file contents
+
+    // separate path from name
+    var fp = 0;
+    for (var i=path.length-1; i>=0; i--) {
+      if (path[i] == '/') {
+        fp = i;
+        break;
+      }
+    }
+
+    this.path = path.substr(0, fp+1);
+    this.name = path.substr(fp+1, path.length);
+
+    console.log('db.fs.new entry: ['+this.path+'] ['+this.name+']');
+
+    this.ui = {};
+    this.ui.container = $('<div class="'+(this.isDir ? 'directory' : 'file')+'"></div>');
+    this.container.append(this.ui.container);
+
+    this.ui.header = $('<div class="header"/>');
+    this.ui.header.on('click', ()=>{
+      this.manager.onServerFSEntryClick(this);
+    });
+    this.ui.header.on('dblclick', ()=>{
+      this.manager.onServerFSEntryDblClick(this);
+    });
+    this.ui.container.append(this.ui.header);
+
+    this.ui.title = $('<div class="title"/>');
+    this.ui.header.append(this.ui.title);
+
+    this.ui.size = $('<div class="size"/>');
+    this.ui.header.append(this.ui.size);
+
+    this.ui.download = $('<canvas class="download" height="10" style="display:none;"></canvas>');
+    this.ui.container.append(this.ui.download);
+
+    if (this.isDir) {
+      this.ui.children = $('<div class="children"/>');
+      this.ui.container.append(this.ui.children);
+    }
+  }
+
+
+  title() {
+    var s = '';
+    if (this.isDir) {
+      if (this.path = '/') {
+        s += '<i class="fas fa-database mr-1"></i> ';
+      } else {
+        s += '<i class="fas fa-folder-open mr-1"></i> ';
+      }
+      s += this.path;
+    } else {
+      s = this.name;
+    }
+    return s;
+  }
+
+  sizeString() {
+    var sizeStr =  '';
+    if (!this.isDir) {
+      if (this.size < 1000) {
+        sizeStr = this.size.toFixed(0) + ' B';
+      } else {
+        sizeStr = (this.size/1024).toFixed(1) + ' kB';
+      }
+    }
+    return sizeStr;
+  }
+
+
+  update() {
+    this.ui.title.html(this.title());
+    if (this.isDownloaded) this.ui.title.addClass('downloaded');
+    this.ui.size.html(this.sizeString());
+  }
+
+
+  findEntryByPath(path) {
+    if (this.fullpath == path) {
+      return this;
+    } else if (this.isDir) {
+      // check children
+      for (const [id, child] of Object.entries(this.children)) {
+        var e = child.findEntryByPath(path);
+        if (e != null) return e;
+      }
+    } else {
+      return null;
+    }
+  }
+
+
+  select(entry) {
+    if (entry == this) {
+      this.isSelected = true;
+      this.ui.header.addClass('selected');
+    } else {
+      if (this.isSelected) this.ui.header.removeClass('selected');
+      this.isSelected = false;
+    }
+
+    // recurse to children
+    if (this.isDir) {
+      for (const [id, child] of Object.entries(this.children)) {
+        child.select(entry)
+      }
+    }
+  }
+
+  setContents(s) {
+    this.contents = s;
+    this.size = s.length;
+  }
+
+
+  async getServerFileByPath(path) {
+    var me = this;
+
+    if (me.isDir) {
+      // query server for files within this directory
+      const q = query(
+        collection(me.db, "files"), 
+        where("node", "==", me.nodeId),
+        where("parent", "==", me.fullpath)
+      );
+
+      const querySnapshot = await getDocs(q);
+      var numDocs = 0;
+      querySnapshot.forEach((doc) => {
+          // doc.data() is never undefined for query doc snapshots
+          var data = doc.data();
+          console.log(doc.id, " => ", data);
+
+          // do we need to create a new child?
+          if (!this.children[doc.id]) {
+            this.children[doc.id] = new ServerFSEntry(this.manager, this.db, this.nodeId, this, data.path, data.isDir, this.ui.children);
+            this.children[doc.id].setContents(data.contents);
+            this.children[doc.id].id = doc.id;
+
+            this.children[doc.id].update();
+          }
+
+          numDocs++;
+      });
+
+      // update size
+      me.size = numDocs;
+      me.update();
+
+    } else {
+
+      // ?
+
+    }
+  }
+
+
+  enumerate() {
+    console.log('Enumerating: ' + this.fullpath);
+
+    // get info about self
+    this.getServerFileByPath(this.fullpath);
+
+    this.enumerated = true;
+  }
+
+
+  upload(contents) {
+    if (this.isDir) return;
+
+    // update firebase
+    try {
+      var fileInfo = {};
+      fileInfo.contents = contents;
+      fileInfo.size = contents.length;
+
+      const docRef = doc(this.db, 'files', this.id);
+      setDoc(docRef, fileInfo, { merge: true });
+
+      console.log("Firebase, file contents updated: " + this.id);
+
+      this.contents = contents;
+      this.size = contents.length;
+
+      this.update();
+    } catch (e) {
+      console.error("Firebase, Error updating file contents: ", e);
+    }
+  }
+
+
+  async createFromPath(path, contents) {
+
+    // separate parent path from name
+    var fp = 0;
+    for (var i=path.length-1; i>=0; i--) {
+      if (path[i] == '/') {
+        fp = i;
+        break;
+      }
+    }
+
+    var parentPath = path.substr(0, fp+1);
+    var filename = path.substr(fp+1, path.length);
+    var isDir = filename == '';
+
+    // locate parent directory
+    var parent = this.findEntryByPath(parentPath);
+    
+    if (parent != null) {
+      console.log('Creating new file within parentPath: ' + parentPath);
+
+      const docRef = await addDoc(collection(this.db, "files"), {
+        size: contents.length,
+        isDir: isDir,
+        path: path,
+        node: this.nodeId,
+        parent: parentPath,
+        contents: contents
+      });
+      console.log("Document written with ID: ", docRef.id);
+
+
+      parent.children[doc.id] = new ServerFSEntry(this.manager, this.db, this.nodeId, this, path, isDir, this.ui.children);
+      parent.children[doc.id].setContents(contents);
+      parent.children[doc.id].id = docRef.id;
+
+      parent.children[doc.id].update();
+
+    } else {
+      console.error('No matching parent path: ['+ parentPath +']');
+    }
+  }
+
+
+}
+
+
 //--------------------------------------------------------
 // Configuration
 //--------------------------------------------------------
@@ -587,19 +869,16 @@ export default class Configuration extends Panel {
 
     this.root = new DroneFSEntry(this, this.node.state.socket, this.node.id, null, '/', true, this.cuiFilesOnNodeFiles);
 
+    this.serverRoot = new ServerFSEntry(this, this.node.state.db, this.node.id, null, '/', true, this.cuiFilesOnServerFiles);
+
     this.selectedEntry = null;
+    this.selectedServerEntry = null;
   }
 
 
   onFSEntryClick(entry) {
     this.root.select(entry);
     this.selectedEntry = entry;
-
-    if (entry.isDir) {
-      this.cuiGetFileBut.hide();
-    } else {
-      this.cuiGetFileBut.show();
-    }
   }
 
 
@@ -608,6 +887,20 @@ export default class Configuration extends Panel {
     this.onFSEntryClick(entry);
     // and edit
     this.loadFileFromNode();
+  }
+
+
+  onServerFSEntryClick(entry) {
+    this.serverRoot.select(entry);
+    this.selectedServerEntry = entry;
+  }
+
+
+  onServerFSEntryDblClick(entry) {
+    // select
+    this.onServerFSEntryClick(entry);
+    // and edit
+    this.loadFileFromServer();
   }
 
 
@@ -621,6 +914,7 @@ export default class Configuration extends Panel {
     this.ui.panel.append(this.cuiFileBlock);
 
     // on server
+    // ------------------------------------------------------------------------
     this.cuiFilesOnServer = $('<div class="filePane"></div>');
     this.cuiFileBlock.append(this.cuiFilesOnServer);
 
@@ -632,11 +926,18 @@ export default class Configuration extends Panel {
     this.cuiFilesOnServerNav = $('<div class="nav"></div>');
     this.cuiFilesOnServer.append(this.cuiFilesOnServerNav);
 
+    // fetch 
+    this.cuiGetServerFileListBut = $('<button class="btn btn-sm btn-primary">List</button>');
+    this.cuiGetServerFileListBut.on('click',()=>{ this.getServerFileList()  });
+    this.cuiFilesOnServerNav.append(this.cuiGetServerFileListBut);
+
     //    filelist
     this.cuiFilesOnServerFiles = $('<div class="files"></div>');
     this.cuiFilesOnServer.append(this.cuiFilesOnServerFiles);
 
+
     // on node
+    // ------------------------------------------------------------------------
     this.cuiFilesOnNode = $('<div class="filePane"></div>');
     this.cuiFileBlock.append(this.cuiFilesOnNode);
 
@@ -653,14 +954,6 @@ export default class Configuration extends Panel {
     this.cuiFilesOnNodeNav.append(this.cuiGetFileListBut);
 
 
-    this.cuiGetFileBut = $('<button class="btn btn-sm btn-primary ml-1" style="display:none">Edit</button>');
-    this.cuiGetFileBut.on('click',()=>{
-      this.loadFileFromNode();
-    });
-    this.cuiFilesOnNodeNav.append(this.cuiGetFileBut);
-
-
-
     //    filelist
     this.cuiFilesOnNodeFiles = $('<div class="files"></div>');
     this.cuiFilesOnNode.append(this.cuiFilesOnNodeFiles);
@@ -668,28 +961,29 @@ export default class Configuration extends Panel {
 
 
     // file editor block
-    this.cuiEditorBlock = $('<div class="editorBlock" style="display:none"></div>');
+    this.cuiEditorBlock = $('<div class="editorBlock" ></div>');
     this.ui.panel.append(this.cuiEditorBlock);
 
     // nav
     this.cuiEditorNav = $('<div class="editorNav clearfix"></div>');
     this.cuiEditorBlock.append(this.cuiEditorNav);
 
-    this.cuiEditorSaveBut = $('<button class="btn btn-sm btn-primary float-right" style="display:none">Save</button>');
-    this.cuiEditorSaveBut.on('click',()=>{
-      var contents = this.aceEditor.session.getValue();
-
-      // convert to buffer
-      var buffer = new Uint8Array(contents.length);
-      for (var i=0; i<buffer.length; i++) {
-        buffer[i] = contents.charCodeAt(i);
-      }
-
-      this.selectedEntry.upload(buffer);
+    // save to node button
+    this.cuiEditorSaveToNodeBut = $('<button class="btn btn-sm btn-primary float-right" >Save to Node</button>');
+    this.cuiEditorSaveToNodeBut.on('click',()=>{
+      me.saveFileToNode();
     });
-    this.cuiEditorNav.append(this.cuiEditorSaveBut);
+    this.cuiEditorNav.append(this.cuiEditorSaveToNodeBut);
 
-    this.cuiEditorTitle = $('<div class="title"></div>');
+    // save to server button
+    this.cuiEditorSaveToServerBut = $('<button class="btn btn-sm btn-primary float-right mr-2" >Save to Server</button>');
+    this.cuiEditorSaveToServerBut.on('click',()=>{
+      me.saveFileToServer();
+    });
+    this.cuiEditorNav.append(this.cuiEditorSaveToServerBut);
+
+    // editor title
+    this.cuiEditorTitle = $('<input type="text" class="title"></input>');
     this.cuiEditorNav.append(this.cuiEditorTitle);
 
     // editor
@@ -821,6 +1115,9 @@ export default class Configuration extends Panel {
     if (!this.root.enumerated) {
       this.root.enumerate();
     }
+    if (!this.serverRoot.enumerated) {
+      this.serverRoot.enumerate();
+    }
   }
 
 
@@ -828,6 +1125,10 @@ export default class Configuration extends Panel {
 
   }
 
+
+  async getServerFileList() {
+    this.serverRoot.enumerate();
+  }
 
   getNodeFileList() {
     this.root.enumerate();
@@ -852,16 +1153,73 @@ export default class Configuration extends Panel {
     for (var i=0; i<entry.filedata.length; i++) {
       data += String.fromCharCode(entry.filedata[i]);
     }
+    this.setEditorContents(data, entry.fullpath);
+  }
+
+
+  loadFileFromServer() {
+    var data = this.selectedServerEntry.contents;
+    this.setEditorContents(data, this.selectedServerEntry.fullpath);
+  }
+
+
+  setEditorContents(data, fullpath) {
     this.aceEditor.session.setValue(data,-1);
 
     this.cuiEditorNav.removeClass('saved');
     this.cuiEditorNav.removeClass('error');
 
     this.cuiEditorBlock.show();
-    this.cuiEditorTitle.html(entry.fullpath);
-    this.cuiEditorSaveBut.show();
-
+    this.cuiEditorTitle.val(fullpath);
+   
     this.analyseFile();
+  }
+
+
+  onUploadComplete(entry) {
+    console.log('Upload complete');
+  }
+
+
+  saveFileToNode() {
+    var contents = this.aceEditor.session.getValue();
+    var path = this.cuiEditorTitle.val();
+
+    // convert to buffer
+    var buffer = new Uint8Array(contents.length);
+    for (var i=0; i<buffer.length; i++) {
+      buffer[i] = contents.charCodeAt(i);
+    }
+
+    // locate an entry
+    var entry = this.root.findEntryByPath(path)
+    if (entry != null) {
+      this.root.select(entry);
+      entry.upload(buffer);
+
+    } else {
+      // or create a new one!
+      // ?
+
+    }
+
+    
+  }
+
+  saveFileToServer() {
+    var contents = this.aceEditor.session.getValue();
+    var path = this.cuiEditorTitle.val();
+
+    // locate an entry
+    var entry = this.serverRoot.findEntryByPath(path)
+    if (entry != null) {
+      this.serverRoot.select(entry);
+      entry.upload(contents);
+
+    } else {
+      // or create a new one!
+      this.serverRoot.createFromPath(path, contents);
+    }
   }
 
 
