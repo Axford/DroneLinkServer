@@ -61,12 +61,32 @@ export default class DroneLinkState {
         if (change.type === "added" || change.type == "modified") {
           //console.log('firebase change', change);
           // use to build initial state, if not heard before
-          
-          if (!me.state.hasOwnProperty(parseInt(change.doc.id))) {
+          var nodeId = parseInt(change.doc.id);
+
+          if (!me.state.hasOwnProperty(nodeId)) {
 
             console.log("Firebase, New node");
             var docData = change.doc.data();
             me.processNewNodeState(docData);
+          } 
+
+          // do we sync the visScript?
+          console.log('checking visScript', nodeId);
+          if (me.state.hasOwnProperty(nodeId) &&
+              !me.state[nodeId].visScriptLoaded) {
+            
+              me.state[nodeId].visScriptLoaded = true;
+
+              var docData = change.doc.data();
+
+              // extract visualisation if present
+              if (docData.visualisation > '' && me.state[nodeId].visualisation == '') {
+                console.log('updating visScript', docData.visualisation);
+                //console.log('updating vis:',nodeState.visualisation );
+                me.state[nodeId].visualisation = docData.visualisation;
+
+                me.trigger('node.visualisation', nodeId);
+              }
           }
         }
         if (change.type === "removed") {
@@ -144,12 +164,6 @@ export default class DroneLinkState {
         }
       });
     });
-
-    // extract visualisation if present
-    if (nodeState.visualisation > '' ) {
-      //console.log('updating vis:',nodeState.visualisation );
-      me.state[nodeState.id].visualisation = nodeState.visualisation;
-    }
   }
 
 
@@ -283,7 +297,9 @@ export default class DroneLinkState {
       channels: {},
       lastHeard: now,
       interface: interfaceName,
-      lastHeard:now
+      lastHeard:now,
+      visualisation:'',
+      visScriptLoaded:false
     }
     newState[msg.node].channels[msg.channel] = {
       params: {},

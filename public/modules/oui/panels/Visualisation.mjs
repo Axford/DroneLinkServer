@@ -1,5 +1,6 @@
 import Panel from './Panel.mjs';
 import loadStylesheet from '../../loadStylesheet.js';
+import * as DLM from '../../droneLinkMsg.mjs';
 
 loadStylesheet('./css/modules/oui/panels/Visualisation.css');
 
@@ -167,6 +168,25 @@ function drawVector(ctx, v, x, y, r, scaleX, scaleY, color, doFill) {
 }
 
 
+function setModuleStatus(state, node, channel, status) {
+    var qm = new DLM.DroneLinkMsg();
+    qm.source =  state.localAddress;
+    qm.node = node;
+    qm.channel = channel;
+    qm.param = DLM.DRONE_MODULE_PARAM_STATUS;
+    qm.setUint8([status]);
+    state.send(qm);
+
+    qm = new DLM.DroneLinkMsg();
+    qm.source = state.localAddress;
+    qm.node = node;
+    qm.channel = channel;
+    qm.param = DLM.DRONE_MODULE_PARAM_STATUS;
+    qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
+    state.send(qm);
+}
+
+
 export default class Visualisation extends Panel {
 
   constructor(node, tabs, panels) {
@@ -176,9 +196,45 @@ export default class Visualisation extends Panel {
     this.title = 'Visualisation';
     this.icon = 'fas fa-eye';
 
+    this.customButtons = {};
+
     this.visScript = '';
 
     this.build();
+  }
+
+
+  registerCustomButton(name, style, cb) {
+    if (!this.customButtons.hasOwnProperty(name)) {
+        var customButton = $('<button class="btn btn-sm '+style+' mr-2 mb-2">'+name+'</button>');
+        customButton.on('click', ()=>{
+            console.log('Custom button: '+ name);
+            cb();
+        });
+        this.customButtons[name] = customButton;
+        this.customNav.append(customButton);
+    }
+  }
+
+
+  clearCustomButtons() {
+    this.customButtons = {};
+    this.customNav.empty();
+  }
+
+
+  scriptAvailable() {
+    // triggered when a vis script is downloaded from firebase and avail in state object
+    if (this.visScript == '') {
+        if (this.node.state.state[this.node.id] && 
+            this.node.state.state[this.node.id].visualisation) {
+            var vis = this.node.state.state[this.node.id].visualisation;
+            if (vis > '') {
+                // assign new script
+                this.visScript = vis;
+            }
+        }
+    }
   }
 
 
@@ -195,10 +251,14 @@ export default class Visualisation extends Panel {
     });
     this.ui.panel.append(this.cuiEditorShowBut);
     */
-   this.ui.panel.dblclick(()=>{
+    this.ui.panel.dblclick(()=>{
         this.aceEditor.session.setValue(this.visScript,-1);
         this.cuiEditorBlock.show();
-   });
+    });
+
+    // custom nav
+    this.customNav = $('<div class="customNav clearfix"></div>');
+    this.ui.panel.append(this.customNav);
 
     // error overlay
     this.ui.error = $('<div class="errorOverlay" />');
@@ -247,9 +307,12 @@ export default class Visualisation extends Panel {
 
     this.cuiEditorSaveBut = $('<button class="btn btn-sm btn-primary mr-2">Save</button>');
     this.cuiEditorSaveBut.on('click',()=>{
-      var contents = this.aceEditor.session.getValue();
-      // save to firebase
-      this.node.updateVisualisation(this.visScript);
+        me.clearCustomButtons();
+
+        this.visScript = this.aceEditor.session.getValue();
+        var contents = this.visScript;
+        // save to firebase
+        this.node.updateVisualisation(this.visScript);
     });
     this.cuiEditorNav.append(this.cuiEditorSaveBut);
 
@@ -283,6 +346,7 @@ export default class Visualisation extends Panel {
   }
 
   update() {
+    var me = this;
     if (!this.node.focused || !this.visible) return;
 
     var now = (new Date()).getTime();
@@ -293,7 +357,7 @@ export default class Visualisation extends Panel {
     // keep width updated
     var w = this.ui.panel.width();
     ctx.canvas.width = w;
-    var h = document.documentElement.clientHeight - 120;
+    var h = document.documentElement.clientHeight - 140;
     ctx.canvas.height = h;
     var cx = w/2;
     var cy = h/2;
@@ -303,18 +367,6 @@ export default class Visualisation extends Panel {
 
     var state = this.node.state;
 
-
-    // check for visualisation script
-    if (this.visScript == '') {
-        if (this.node.state.state[this.node.id] && 
-            this.node.state.state[this.node.id].visualisation) {
-            var vis = this.node.state.state[this.node.id].visualisation;
-            if (vis > '') {
-                // assign new script
-                this.visScript = vis;
-            }
-        }
-    }
     
     if (this.visScript > '') {
         //console.log('Custom Vis:');

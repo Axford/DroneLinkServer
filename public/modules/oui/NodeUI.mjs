@@ -157,6 +157,13 @@ export default class NodeUI {
     // show management tab
     this.puiTabs.selectTab('Management');
 
+    // listen for visualisation script
+    this.state.on('node.visualisation', (data)=>{ 
+      if (data == me.id) {
+        me.panels.Visualisation.scriptAvailable();
+      }
+    });
+
 
     // listen for overall map values
     this.state.on('param.value', (data)=>{
