@@ -112,6 +112,10 @@ export default class Visualisation extends Panel {
   build() {
     super.build();
 
+    // error overlay
+    this.ui.error = $('<div class="errorOverlay" />');
+    this.ui.panel.append(this.ui.error);
+
     // canvas for vis
     this.ui.canvas = $('<canvas height=400 />');
     this.ui.panel.append(this.ui.canvas);
@@ -124,7 +128,13 @@ export default class Visualisation extends Panel {
     this.cuiEditorNav = $('<div class="editorNav clearfix"></div>');
     this.cuiEditorBlock.append(this.cuiEditorNav);
 
-    this.cuiEditorUpdateBut = $('<button class="btn btn-sm btn-secondary mr-1">Update</button>');
+    this.cuiEditorShowBut = $('<button class="btn btn-sm btn-secondary mr-1">Show</button>');
+    this.cuiEditorShowBut.on('click',()=>{
+        this.aceEditor.session.setValue(this.visScript,-1);
+    });
+    this.cuiEditorNav.append(this.cuiEditorShowBut);
+
+    this.cuiEditorUpdateBut = $('<button class="btn btn-sm btn-secondary mr-2">Update</button>');
     this.cuiEditorUpdateBut.on('click',()=>{
         this.visScript = this.aceEditor.session.getValue();
     });
@@ -190,7 +200,6 @@ export default class Visualisation extends Panel {
             if (vis > '') {
                 // assign new script
                 this.visScript = vis;
-                this.aceEditor.session.setValue(vis,-1);
             }
         }
     }
@@ -199,8 +208,13 @@ export default class Visualisation extends Panel {
         console.log('Custom Vis:');
         try {
             eval(this.visScript);
+
+            this.ui.error.hide();
         } catch(e) {
             console.error(e);
+
+            this.ui.error.html('<b>' + e.message + '</b><br><br><pre>' + e.stack + '</pre>');
+            this.ui.error.show();
         }
     
     }

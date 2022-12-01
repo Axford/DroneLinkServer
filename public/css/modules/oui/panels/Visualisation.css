@@ -2,3 +2,19 @@
 .VisualisationPanel {
 
 }
+
+
+.VisualisationPanel .errorOverlay {
+    position:absolute;
+    background-color: #a02020;
+    color:white;
+    width:100%;
+    display:none;
+    padding: 4px 8px;
+    font-size: 1rem;
+}
+
+.VisualisationPanel .errorOverlay pre {
+    color:white;
+    font-size: 1rem;
+}
