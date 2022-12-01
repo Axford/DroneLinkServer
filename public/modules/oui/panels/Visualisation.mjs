@@ -58,40 +58,109 @@ function radiansToDegrees(a) {
     }
   }
   
-  function drawLabel(ctx, v, label, x, y, color) {
+function drawLabel(ctx, v, label, x, y, color) {
     ctx.fillStyle = color;
     ctx.textAlign = 'left';
     ctx.font = '12px serif';
     ctx.fillText(label, x, y+12);
     ctx.font = '20px bold serif';
     ctx.fillText(v, x, y+35);
-  }
+}
 
-  function drawPill(ctx, label, x, y, w, color) {
+function drawPill(ctx, label, x, y, w, color) {
     ctx.fillStyle = color;
-      // draw pill
-      var r = 8;
-      var x1 = x - w/2 + r;
-      var x2 = x + w/2 - r;
-  
-      ctx.beginPath();
-      ctx.arc(x1, y+r, r, 0, 2 * Math.PI);
-      ctx.fill();
-  
-      ctx.beginPath();
-      ctx.fillRect(x1,y, w - 2*r, 2*r);
-  
-      ctx.beginPath();
-      ctx.arc(x2, y + r, r, 0, 2 * Math.PI);
-      ctx.fill();
-  
-      // draw label
+    // draw pill
+    var r = 8;
+    var x1 = x - w/2 + r;
+    var x2 = x + w/2 - r;
+
+    ctx.beginPath();
+    ctx.arc(x1, y+r, r, 0, 2 * Math.PI);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.fillRect(x1,y, w - 2*r, 2*r);
+
+    ctx.beginPath();
+    ctx.arc(x2, y + r, r, 0, 2 * Math.PI);
+    ctx.fill();
+
+    // draw label
     ctx.textAlign = 'center';
     ctx.font = '12px sans-serif';
-      ctx.fillStyle = '#fff';
+    ctx.fillStyle = '#fff';
     ctx.fillText(label, x, y+12);
-  }
+}
 
+
+function drawTickedCircle(ctx, cx, cy, r, color) {
+    // outer circle
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 140, 0, 2 * Math.PI);
+    ctx.stroke();
+
+    // outer ticks
+    ctx.beginPath();
+    for (var i =0; i<12; i++) {
+    var ang = (i*30) * Math.PI / 180;
+    ctx.moveTo(cx + r*Math.cos(ang), cy + r*Math.sin(ang));
+    ctx.lineTo(cx + (r+10)*Math.cos(ang), cy + (r+10)*Math.sin(ang) );
+    }
+    ctx.stroke();
+}
+
+var boatHullVector = [
+    [-1,0.4],
+    [-0.8,0.6],
+    [0,1],
+    [0.8,0.6],
+    [1,0.4],
+    [1,-0.8],
+    [0,-1],
+    [-1,-0.8],
+    [-1,0.4]
+];
+
+var wingVector = [
+    [-1,0],
+    [-0.7,0.2],
+    [0,0.3],
+    [0.7,0.2],
+    [1,0],
+    [0,-1],
+    [-1,0]
+];
+
+function drawVector(ctx, v, x, y, r, scaleX, scaleY, color, doFill) {
+    if (v.length < 2) return;
+
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+
+    var ang = degreesToRadians(r - 180);
+
+    for(var i=0; i<v.length; i++) {
+        var xa = v[i][0] * scaleX;
+        var ya = v[i][1] * scaleY;
+        var x1 = x + xa*Math.cos(ang) - ya*Math.sin(ang);
+        var y1 = y + xa*Math.sin(ang) + ya*Math.cos(ang);
+
+        if (i==0) {
+            ctx.moveTo(x1,y1);
+        } else {
+            ctx.lineTo(x1,y1);
+        }
+    }
+    
+    if (doFill) {
+        ctx.fill();
+    } else {
+        ctx.stroke();
+    }
+}
 
 
 export default class Visualisation extends Panel {
