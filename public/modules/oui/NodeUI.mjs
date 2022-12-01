@@ -197,6 +197,8 @@ export default class NodeUI {
         this.uiLastHeard.innerHTML = '-';
 
         this.ui.classList.add('faded');
+        this.uiWidgets.hide();
+        $(this.uiLastHeard).hide();
 
       } else {
         var now = (new Date()).getTime();
@@ -214,6 +216,8 @@ export default class NodeUI {
         this.uiLastHeard.innerHTML = dt.toFixed(0)+ 's';
 
         this.ui.classList.remove('faded');
+        $(this.uiLastHeard).show();
+        this.uiWidgets.show();
       }
 
     }, 1000)

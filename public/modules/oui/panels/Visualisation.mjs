@@ -317,7 +317,7 @@ export default class Visualisation extends Panel {
     }
     
     if (this.visScript > '') {
-        console.log('Custom Vis:');
+        //console.log('Custom Vis:');
         try {
             eval(this.visScript);
 
