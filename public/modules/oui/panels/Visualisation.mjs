@@ -59,11 +59,12 @@ function radiansToDegrees(a) {
   }
   
 function drawLabel(ctx, v, label, x, y, color) {
-    ctx.fillStyle = color;
+    ctx.fillStyle = '#fff';
     ctx.textAlign = 'left';
     ctx.font = '12px serif';
     ctx.fillText(label, x, y+12);
-    ctx.font = '20px bold serif';
+    ctx.fillStyle = color;
+    ctx.font = '24px bold serif';
     ctx.fillText(v, x, y+35);
 }
 
@@ -112,15 +113,15 @@ function drawTickedCircle(ctx, cx, cy, r, color) {
 }
 
 var boatHullVector = [
-    [-1,0.4],
+    [-1,0],
     [-0.8,0.6],
     [0,1],
     [0.8,0.6],
-    [1,0.4],
-    [1,-0.8],
+    [1,0],
+    [0.7,-0.9],
     [0,-1],
-    [-1,-0.8],
-    [-1,0.4]
+    [-0.7,-0.9],
+    [-1,0]
 ];
 
 var wingVector = [
