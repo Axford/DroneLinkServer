@@ -157,6 +157,9 @@ function drawVector(ctx, v, x, y, r, scaleX, scaleY, color, doFill) {
     
     if (doFill) {
         ctx.fill();
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 1;
+        ctx.stroke();
     } else {
         ctx.stroke();
     }
