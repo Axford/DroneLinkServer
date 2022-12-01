@@ -3,7 +3,7 @@ import loadStylesheet from '../../loadStylesheet.js';
 
 import * as DMFS from '../../DroneMeshFS.mjs';
 
-import { getFirestore,  collection, doc, setDoc, addDoc, getDocs, query, onSnapshot, where } from "https://www.gstatic.com/firebasejs/9.14.0/firebase-firestore.js";
+import { getFirestore,  collection, doc, setDoc, addDoc, getDocs, deleteDoc, query, onSnapshot, where } from "https://www.gstatic.com/firebasejs/9.14.0/firebase-firestore.js";
 import { DRONE_MESH_MSG_TYPE_LINK_CHECK_REQUEST } from '../../DroneMeshMsg.mjs';
 
 
@@ -609,6 +609,7 @@ class ServerFSEntry {
     this.isDownloading = false;
     this.isDownloaded = false;
     this.downloadInterval = null;
+    this.deleted = false;
 
     this.contents = ''; // actual file contents
 
@@ -691,6 +692,8 @@ class ServerFSEntry {
 
 
   findEntryByPath(path) {
+    if (this.deleted) return null;
+
     if (this.fullpath == path) {
       return this;
     } else if (this.isDir) {
@@ -706,6 +709,8 @@ class ServerFSEntry {
 
 
   select(entry) {
+    if (this.deleted) return;
+
     if (entry == this) {
       this.isSelected = true;
       this.ui.header.addClass('selected');
@@ -783,6 +788,11 @@ class ServerFSEntry {
   upload(contents) {
     if (this.isDir) return;
 
+    if (this.deleted ) {
+      comnsole.error('Attempting to udpate a deleted file!?');
+      return;
+    }
+
     // update firebase
     try {
       var fileInfo = {};
@@ -848,6 +858,33 @@ class ServerFSEntry {
   }
 
 
+  async delete() {
+
+    if (this.isDir) {
+      console.error('Unable to delete directories');
+    }
+
+    this.deleted = true;
+
+    // remove from server
+    await deleteDoc(doc(this.db, "files", this.id));
+
+    // clear selection
+    if (this.isSelected) this.ui.header.removeClass('selected');
+    this.isSelected = false;
+
+    // remove ui container and child objects
+    this.ui.container.remove();
+
+    // remove from parent
+    this.parent.children[this.id] = null;
+    delete this.parent.children[this.id];
+
+    // re-enumerate parent
+    this.parent.enumerate();
+  }
+
+
 }
 
 
@@ -893,6 +930,12 @@ export default class Configuration extends Panel {
   onServerFSEntryClick(entry) {
     this.serverRoot.select(entry);
     this.selectedServerEntry = entry;
+
+    if (entry.isDir) {
+      this.cuiDeleteServerFileBut.hide();
+    } else {
+      this.cuiDeleteServerFileBut.show();
+    }
   }
 
 
@@ -927,9 +970,20 @@ export default class Configuration extends Panel {
     this.cuiFilesOnServer.append(this.cuiFilesOnServerNav);
 
     // fetch 
-    this.cuiGetServerFileListBut = $('<button class="btn btn-sm btn-primary">List</button>');
+    this.cuiGetServerFileListBut = $('<button class="btn btn-sm btn-primary mr-2">List</button>');
     this.cuiGetServerFileListBut.on('click',()=>{ this.getServerFileList()  });
     this.cuiFilesOnServerNav.append(this.cuiGetServerFileListBut);
+
+    // delete
+    this.cuiDeleteServerFileBut = $('<button class="btn btn-sm btn-danger" style="display:none"><i class="fas fa-trash"></i></button>');
+    this.cuiDeleteServerFileBut.on('click',()=>{ 
+      if (this.selectedServerEntry) this.selectedServerEntry.delete();
+      // select root
+      this.serverRoot.select(this.serverRoot);
+      // hide button
+      this.cuiDeleteServerFileBut.hide();
+     });
+    this.cuiFilesOnServerNav.append(this.cuiDeleteServerFileBut);
 
     //    filelist
     this.cuiFilesOnServerFiles = $('<div class="files"></div>');
