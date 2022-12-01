@@ -418,12 +418,14 @@ function init() {
   });
 
   // configure state controls
+  /*
   $('#stateLoadButton').on('click', ()=>{
     loadState();
   });
   $('#stateSaveButton').on('click', ()=>{
     saveState();
   });
+  */
 
   // configure logger
   $('#logRecordButton').on('click', ()=>{
