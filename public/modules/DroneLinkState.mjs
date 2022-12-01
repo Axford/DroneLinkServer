@@ -105,7 +105,6 @@ export default class DroneLinkState {
     if (!nodeState.hasOwnProperty('channels')) return;
 
     // convert nodeState into equivalent droneLink messages and feed to normal handler
-
     var qm = new DLM.DroneLinkMsg();
     qm.source = this.localAddress;
 
@@ -144,6 +143,12 @@ export default class DroneLinkState {
         }
       });
     });
+
+    // extract visualisation if present
+    if (nodeState.visualisation > '' ) {
+      console.log('updating vis:',nodeState.visualisation );
+      me.state[nodeState.id].visualisation = nodeState.visualisation;
+    }
   }
 
 

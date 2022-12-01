@@ -125,8 +125,26 @@ export default class Visualisation extends Panel {
   }
 
   update() {
+    if (!this.node.focused || !this.visible) return;
 
-    if (this.node.id != 65) return;
+    if (this.node.id != 65) {
+
+        // check for visualisation script
+        if (this.node.state.state[this.node.id] && 
+            this.node.state.state[this.node.id].visualisation) {
+            var vis = this.node.state.state[this.node.id].visualisation;
+            if (vis > '') {
+                console.log('Custom Vis:');
+                try {
+                    eval(vis);
+                } catch(e) {
+                    console.error(e);
+                }
+            }
+        }
+
+        return;
+    }
 
     var now = (new Date()).getTime();
 
@@ -184,11 +202,12 @@ export default class Visualisation extends Panel {
     // keep width updated
     var w = this.ui.panel.width();
     ctx.canvas.width = w;
-    var h = 400;
+    var h = 500;
+    ctx.canvas.height = h;
     var cx = w/2;
     var cy = h/2;
 
-    ctx.fillStyle = '#343a40';
+    ctx.fillStyle = '#040a20';
     ctx.fillRect(0,0,w,h);
 
     drawLabel(ctx, speed.toFixed(1), 'Speed m/s', 10, 10, '#fff');
