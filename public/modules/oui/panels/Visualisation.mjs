@@ -13,6 +13,20 @@ function radiansToDegrees(a) {
     return a * Math.PI / 180;
   }
   
+
+  function calculateDistanceBetweenCoordinates(lon1, lat1, lon2, lat2) {
+    const R = 6371e3; // metres
+    var lat1r = lat1 * Math.PI/180; // φ, λ in radians
+    var lat2r = lat2 * Math.PI/180;
+    var lon1r = lon1 * Math.PI/180; // φ, λ in radians
+    var lon2r = lon2 * Math.PI/180;
+  
+    var x = (lon2r-lon1r) * Math.cos((lat1r+lat2r)/2);
+    var y = (lat2r-lat1r);
+    var d = Math.sqrt(x*x + y*y) * R;
+  
+    return d;
+  }
   
   function drawLabelledHand(ctx, ang, label, r1, r2, color) {
     var angR = (ang - 90) * Math.PI / 180;
@@ -26,12 +40,22 @@ function radiansToDegrees(a) {
     ctx.moveTo(cx + r1*Math.cos(angR), cy + r1*Math.sin(angR));
     ctx.lineTo(cx + r2*Math.cos(angR), cy + r2*Math.sin(angR) );
     ctx.stroke();
-  
-    ctx.fillStyle = color;
-    ctx.font = '15px Arial';
-    ctx.textAlign = 'left';
-    //ctx.fillText(ang.toFixed(0) + '°', 10, 25);
-    ctx.fillText(label, cx + 4 + r2*Math.cos(angR), cy + r2*Math.sin(angR));
+
+    if (label > '') {
+        ctx.fillStyle = color;
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+
+        var x1 = cx  + r2*Math.cos(angR);
+        var y1 = cy + r2*Math.sin(angR);
+    
+        ctx.beginPath();
+        ctx.arc(x1, y1, 25, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.fillStyle = '#000';
+        //ctx.fillText(ang.toFixed(0) + '°', 10, 25);
+        ctx.fillText(label, x1, y1 + 4);
+    }
   }
   
   function drawLabel(ctx, v, label, x, y, color) {
@@ -79,6 +103,9 @@ export default class Visualisation extends Panel {
     this.title = 'Visualisation';
     this.icon = 'fas fa-eye';
 
+    this.lastPosition = [0,0,0];
+    this.lastPositionTime = (new Date()).getTime();
+
     this.build();
   }
 
@@ -100,6 +127,8 @@ export default class Visualisation extends Panel {
   update() {
 
     if (this.node.id != 65) return;
+
+    var now = (new Date()).getTime();
 
     var c = this.ui.canvas[0];
     var ctx = c.getContext("2d");
@@ -129,6 +158,29 @@ export default class Visualisation extends Panel {
 
     var gybeMode = this.node.state.getParamValues(node, 11, 19, [0])[0];
 
+    var turnRateThreshold = this.node.state.getParamValues(node, 11, 17, [20])[0];
+
+    var distanceToWaypoint = this.node.state.getParamValues(node, 9, 9, [0])[0];
+
+    var newLast = this.node.state.getParamValues(node, 9, 15, [0,0,0]);
+    var position = this.node.state.getParamValues(node, 7, 8, [0,0,0]);
+
+    if (newLast[0] != this.lastPosition[0] || newLast[1] != this.lastPosition[1]) {
+        // last position changed
+        console.log('last position changed', newLast);
+
+        this.lastPosition = newLast;
+        this.lastPositionTime = now;
+    }
+
+    // calc effective speed
+    var speed = 0;
+    if (this.lastPosition[0] != 0) {
+        var d = calculateDistanceBetweenCoordinates(this.lastPosition[0], this.lastPosition[1], position[0], position[1] );
+        console.log('distance travelled:', this.lastPosition, position, d);
+        speed = d / ((now - this.lastPositionTime)/1000);
+    } 
+
     // keep width updated
     var w = this.ui.panel.width();
     ctx.canvas.width = w;
@@ -139,14 +191,29 @@ export default class Visualisation extends Panel {
     ctx.fillStyle = '#343a40';
     ctx.fillRect(0,0,w,h);
 
-    // fill central region
+    drawLabel(ctx, speed.toFixed(1), 'Speed m/s', 10, 10, '#fff');
+
+    //1.94384
+    drawLabel(ctx, (speed * 1.94384).toFixed(1), 'Speed knots', 10, 60, '#fff');
+
+    // course threshold
+    var ang1 = (course -turnRateThreshold - 90) * Math.PI / 180;
+    var ang2 = (course +turnRateThreshold - 90) * Math.PI / 180;
+    ctx.fillStyle = '#066';
+    ctx.beginPath();
+    ctx.arc(cx,cy, 200, ang1, ang2, false);
+    ctx.arc(cx,cy, 100, ang2, ang1, true);
+    ctx.fill();
+
+
+    // outer circle
     ctx.strokeStyle = '#888';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.arc(cx, cy, 140, 0, 2 * Math.PI);
     ctx.stroke();
 
-    // draw ticks
+    // outer ticks
     ctx.beginPath();
     for (var i =0; i<12; i++) {
       var ang = (i*30) * Math.PI / 180;
@@ -155,9 +222,17 @@ export default class Visualisation extends Panel {
     }
     ctx.stroke();
 
+    // visualise hull 
+    ctx.fillStyle = '#aaa';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 100, 30, h2, 0, 2 * Math.PI);
+    ctx.fill();
+
+
 	// hands
     drawLabelledHand(ctx, heading, '', 30 ,140, '#5F5');
-    drawLabelledHand(ctx, target, '', 140, 400, '#FF5');
+    drawLabelledHand(ctx, target,  distanceToWaypoint.toFixed(0) + 'm', 140, 250, '#FF5');
     drawLabelledHand(ctx, course, '', 100, 200, '#5FF');
     drawLabelledHand(ctx, wind, '', 40, 400, '#55F');
     
@@ -197,18 +272,15 @@ export default class Visualisation extends Panel {
         ctx.fillText('Wing', w-5, 68);
     }
 
-    // visualise hull 
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.ellipse(cx, cy, 100, 30, h2, 0, 2 * Math.PI);
-    ctx.stroke();
-
     // draw rudder... positive values are rudder to the right., valid range -1 to 1
+    if (rudder > 1) rudder = 1;
+    if (rudder < -1) rudder = -1;
     var ang = (heading + 180 - 90) * Math.PI / 180;
     var rang = (heading + 180 - 90 - rudder * 45) * Math.PI / 180;
     var x1 = cx + 100*Math.cos(ang);
     var y1 = cy + 100*Math.sin(ang)
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 5;
     ctx.beginPath();
     ctx.moveTo(x1, y1);
     ctx.lineTo(x1 + 50*Math.cos(rang), y1 + 50*Math.sin(rang) );
