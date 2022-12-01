@@ -220,6 +220,11 @@ export default class NodeUI {
   }
 
 
+  updateVisualisation(visScript) {
+    this.state.updateVisualisation(this.id, visScript);
+  }
+
+
   resize() {
     for (const [panelName, panel] of Object.entries(this.panels)) {
       panel.resize();

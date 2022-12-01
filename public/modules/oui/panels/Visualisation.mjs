@@ -103,8 +103,7 @@ export default class Visualisation extends Panel {
     this.title = 'Visualisation';
     this.icon = 'fas fa-eye';
 
-    this.lastPosition = [0,0,0];
-    this.lastPositionTime = (new Date()).getTime();
+    this.visScript = '';
 
     this.build();
   }
@@ -113,11 +112,48 @@ export default class Visualisation extends Panel {
   build() {
     super.build();
 
-    // container for mapParams
+    // canvas for vis
     this.ui.canvas = $('<canvas height=400 />');
     this.ui.panel.append(this.ui.canvas);
 
-    console.log(this.canvas);
+    // script editor block
+    this.cuiEditorBlock = $('<div class="editorBlock" ></div>');
+    this.ui.panel.append(this.cuiEditorBlock);
+
+    // nav
+    this.cuiEditorNav = $('<div class="editorNav clearfix"></div>');
+    this.cuiEditorBlock.append(this.cuiEditorNav);
+
+    this.cuiEditorUpdateBut = $('<button class="btn btn-sm btn-secondary mr-1">Update</button>');
+    this.cuiEditorUpdateBut.on('click',()=>{
+        this.visScript = this.aceEditor.session.getValue();
+    });
+    this.cuiEditorNav.append(this.cuiEditorUpdateBut);
+
+    this.cuiEditorSaveBut = $('<button class="btn btn-sm btn-primary">Save</button>');
+    this.cuiEditorSaveBut.on('click',()=>{
+      var contents = this.aceEditor.session.getValue();
+      // save to firebase
+      this.node.updateVisualisation(this.visScript);
+    });
+    this.cuiEditorNav.append(this.cuiEditorSaveBut);
+
+    this.cuiEditorTitle = $('<div class="title"></div>');
+    this.cuiEditorNav.append(this.cuiEditorTitle);
+
+    // editor
+    this.cuiEditor = $('<div class="editor"></div>');
+
+    this.aceEditor = ace.edit(this.cuiEditor[0], {
+        mode: "ace/mode/javascript",
+        theme:'ace/theme/dracula',
+        selectionStyle: "text"
+    });
+    this.aceEditor.on('change', ()=>{
+      
+    });
+    this.cuiEditorBlock.append(this.cuiEditor);
+
 
     setInterval(()=>{
         this.update();
@@ -127,82 +163,15 @@ export default class Visualisation extends Panel {
   update() {
     if (!this.node.focused || !this.visible) return;
 
-    if (this.node.id != 65) {
-
-        // check for visualisation script
-        if (this.node.state.state[this.node.id] && 
-            this.node.state.state[this.node.id].visualisation) {
-            var vis = this.node.state.state[this.node.id].visualisation;
-            if (vis > '') {
-                console.log('Custom Vis:');
-                try {
-                    eval(vis);
-                } catch(e) {
-                    console.error(e);
-                }
-            }
-        }
-
-        return;
-    }
-
     var now = (new Date()).getTime();
 
     var c = this.ui.canvas[0];
     var ctx = c.getContext("2d");
 
-    var node = 65;
-    var channel = 10;
-
-    var target = this.node.state.getParamValues(node, channel, 8, [0])[0];
-    var t2 = (target - 90) * Math.PI / 180;
-
-    var heading = this.node.state.getParamValues(node, channel, 10, [0])[0];
-    var h2 = (heading - 90) * Math.PI / 180;
-
-    var wind = this.node.state.getParamValues(node, channel, 12, [0])[0];
-
-    var crosstrack = this.node.state.getParamValues(node, channel, 14, [0])[0];
-
-    var course = this.node.state.getParamValues(node, channel, 16, [0])[0];
-
-    var wind = this.node.state.getParamValues(node, channel, 12, [0])[0];
-
-    var wing = this.node.state.getParamValues(node, channel, 22, [0])[0];
-
-    var wingCompass = this.node.state.getParamValues(64, 4, 11, [0])[0];
-
-    var rudder = this.node.state.getParamValues(node, 13, 8, [0])[0];
-
-    var gybeMode = this.node.state.getParamValues(node, 11, 19, [0])[0];
-
-    var turnRateThreshold = this.node.state.getParamValues(node, 11, 17, [20])[0];
-
-    var distanceToWaypoint = this.node.state.getParamValues(node, 9, 9, [0])[0];
-
-    var newLast = this.node.state.getParamValues(node, 9, 15, [0,0,0]);
-    var position = this.node.state.getParamValues(node, 7, 8, [0,0,0]);
-
-    if (newLast[0] != this.lastPosition[0] || newLast[1] != this.lastPosition[1]) {
-        // last position changed
-        console.log('last position changed', newLast);
-
-        this.lastPosition = newLast;
-        this.lastPositionTime = now;
-    }
-
-    // calc effective speed
-    var speed = 0;
-    if (this.lastPosition[0] != 0) {
-        var d = calculateDistanceBetweenCoordinates(this.lastPosition[0], this.lastPosition[1], position[0], position[1] );
-        console.log('distance travelled:', this.lastPosition, position, d);
-        speed = d / ((now - this.lastPositionTime)/1000);
-    } 
-
     // keep width updated
     var w = this.ui.panel.width();
     ctx.canvas.width = w;
-    var h = 500;
+    var h = 400;
     ctx.canvas.height = h;
     var cx = w/2;
     var cy = h/2;
@@ -210,112 +179,33 @@ export default class Visualisation extends Panel {
     ctx.fillStyle = '#040a20';
     ctx.fillRect(0,0,w,h);
 
-    drawLabel(ctx, speed.toFixed(1), 'Speed m/s', 10, 10, '#fff');
-
-    //1.94384
-    drawLabel(ctx, (speed * 1.94384).toFixed(1), 'Speed knots', 10, 60, '#fff');
-
-    // course threshold
-    var ang1 = (course -turnRateThreshold - 90) * Math.PI / 180;
-    var ang2 = (course +turnRateThreshold - 90) * Math.PI / 180;
-    ctx.fillStyle = '#066';
-    ctx.beginPath();
-    ctx.arc(cx,cy, 200, ang1, ang2, false);
-    ctx.arc(cx,cy, 100, ang2, ang1, true);
-    ctx.fill();
+    var state = this.node.state;
 
 
-    // outer circle
-    ctx.strokeStyle = '#888';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.arc(cx, cy, 140, 0, 2 * Math.PI);
-    ctx.stroke();
-
-    // outer ticks
-    ctx.beginPath();
-    for (var i =0; i<12; i++) {
-      var ang = (i*30) * Math.PI / 180;
-      ctx.moveTo(cx + 140*Math.cos(ang), cy + 140*Math.sin(ang));
-      ctx.lineTo(cx + 150*Math.cos(ang), cy + 150*Math.sin(ang) );
+    // check for visualisation script
+    if (this.visScript == '') {
+        if (this.node.state.state[this.node.id] && 
+            this.node.state.state[this.node.id].visualisation) {
+            var vis = this.node.state.state[this.node.id].visualisation;
+            if (vis > '') {
+                // assign new script
+                this.visScript = vis;
+                this.aceEditor.session.setValue(vis,-1);
+            }
+        }
     }
-    ctx.stroke();
-
-    // visualise hull 
-    ctx.fillStyle = '#aaa';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.ellipse(cx, cy, 100, 30, h2, 0, 2 * Math.PI);
-    ctx.fill();
-
-
-	// hands
-    drawLabelledHand(ctx, heading, '', 30 ,140, '#5F5');
-    drawLabelledHand(ctx, target,  distanceToWaypoint.toFixed(0) + 'm', 140, 250, '#FF5');
-    drawLabelledHand(ctx, course, '', 100, 200, '#5FF');
-    drawLabelledHand(ctx, wind, '', 40, 400, '#55F');
     
-
-    // draw estimated wing orientation
-    if (wing != 0) {
-        var wingAng = wind + 180 - wing * 30;
-        drawLabelledHand(ctx, wingAng, '', 0, 110, '#A00');
-
-        drawLabelledHand(ctx, wingCompass + 180, '', 0, 110, '#F55');
-
-        // draw tail
-        var ang = (wingCompass +180 - 90) * Math.PI / 180;
-        var rang = (wingCompass + 180 + wing * 30 - 90) * Math.PI / 180;
-        var x1 = cx + 120*Math.cos(ang);
-        var y1 = cy + 120*Math.sin(ang);
-        ctx.strokeStyle = '#F99';
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x1 + 50*Math.cos(rang), y1 + 50*Math.sin(rang) );
-        ctx.stroke();
-    }
-  
-    // legend - top right
-    ctx.textAlign = 'right';
-    ctx.font = '12px serif';
-    ctx.fillStyle = '#5F5';
-    ctx.fillText('Heading', w-5, 12);
-    ctx.fillStyle = '#FF5';
-    ctx.fillText('Target', w-5, 26);
-    ctx.fillStyle = '#5FF';
-    ctx.fillText('Course', w-5, 40);
-    ctx.fillStyle = '#55F';
-    ctx.fillText('Wind', w-5, 54);
-    if (wing != 0) {
-        ctx.fillStyle = '#F55';
-        ctx.fillText('Wing', w-5, 68);
+    if (this.visScript > '') {
+        console.log('Custom Vis:');
+        try {
+            eval(this.visScript);
+        } catch(e) {
+            console.error(e);
+        }
+    
     }
 
-    // draw rudder... positive values are rudder to the right., valid range -1 to 1
-    if (rudder > 1) rudder = 1;
-    if (rudder < -1) rudder = -1;
-    var ang = (heading + 180 - 90) * Math.PI / 180;
-    var rang = (heading + 180 - 90 - rudder * 45) * Math.PI / 180;
-    var x1 = cx + 100*Math.cos(ang);
-    var y1 = cy + 100*Math.sin(ang)
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 5;
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x1 + 50*Math.cos(rang), y1 + 50*Math.sin(rang) );
-    ctx.stroke();
 
-    // draw controlMode
-    var controlModeStr = 'Normal';
-    var controlModeClr = '#585';
-    if (gybeMode == 2) {
-      controlModeStr = 'Gybe';
-      controlModeClr = '#a55';
-    } else if (gybeMode == 1) {
-      controlModeStr = 'Gybe?';
-      controlModeClr = '#885';
-    }
-    drawPill(ctx, controlModeStr, w-40, h-20, 70, controlModeClr);
   }
 
   resize() {

@@ -152,6 +152,22 @@ export default class DroneLinkState {
   }
 
 
+  updateVisualisation(id, visScript) {
+    // update visualisation script for node id
+     // update firebase
+     try {
+      var nodeInfo = {};
+      nodeInfo.visualisation = visScript;
+      const docRef = doc(this.db, 'nodes', id.toString());
+      setDoc(docRef, nodeInfo, { merge: true });
+
+      console.log("Firebase, node vis script updated: " + id);
+    } catch (e) {
+      console.error("Firebase, Error updating vis script: ", e);
+    }
+  }
+
+
   handleLinkMsg(msg, queryNames, interfaceName) {
     var me = this;
     var now = (new Date()).getTime();
