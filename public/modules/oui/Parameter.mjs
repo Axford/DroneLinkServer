@@ -22,7 +22,7 @@ export default class Parameter {
 		this.editor = null;
 
 		this.state.on('param.name', (data)=>{
-			console.log('pn', data);
+			//console.log('pn', data);
 			if (data.node != me.channel.node.id ||
 			data.channel != me.channel.channel ||
 			data.param != me.param) return;

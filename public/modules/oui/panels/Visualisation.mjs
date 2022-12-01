@@ -185,6 +185,21 @@ export default class Visualisation extends Panel {
   build() {
     super.build();
 
+    var me = this;
+
+    /*
+    this.cuiEditorShowBut = $('<button class="btn btn-sm btn-secondary mr-1 mb-2">Edit Script</button>');
+    this.cuiEditorShowBut.on('click',()=>{
+        this.aceEditor.session.setValue(this.visScript,-1);
+        this.cuiEditorBlock.show();
+    });
+    this.ui.panel.append(this.cuiEditorShowBut);
+    */
+   this.ui.panel.dblclick(()=>{
+        this.aceEditor.session.setValue(this.visScript,-1);
+        this.cuiEditorBlock.show();
+   });
+
     // error overlay
     this.ui.error = $('<div class="errorOverlay" />');
     this.ui.panel.append(this.ui.error);
@@ -194,18 +209,35 @@ export default class Visualisation extends Panel {
     this.ui.panel.append(this.ui.canvas);
 
     // script editor block
-    this.cuiEditorBlock = $('<div class="editorBlock" ></div>');
-    this.ui.panel.append(this.cuiEditorBlock);
+    this.cuiEditorBlock = $('<div class="visualisationEditorBlock" ></div>');
+    //this.ui.panel.append(this.cuiEditorBlock);
+    // append to body for absolute positioning
+    $(document.body).prepend(this.cuiEditorBlock);
+
 
     // nav
-    this.cuiEditorNav = $('<div class="editorNav clearfix"></div>');
-    this.cuiEditorBlock.append(this.cuiEditorNav);
+    var editorDragging = false;
+    var relX = 0, relY = 0;
 
-    this.cuiEditorShowBut = $('<button class="btn btn-sm btn-secondary mr-1">Show</button>');
-    this.cuiEditorShowBut.on('click',()=>{
-        this.aceEditor.session.setValue(this.visScript,-1);
-    });
-    this.cuiEditorNav.append(this.cuiEditorShowBut);
+    this.cuiEditorNav = $('<div class="editorNav clearfix"></div>');
+    this.cuiEditorNav.mousedown(function(event) {
+        editorDragging = true;
+        relX = event.pageX - me.cuiEditorBlock.offset().left;
+        relY = event.pageY - me.cuiEditorBlock.offset().top;
+      });
+    this.cuiEditorNav.mousemove(function(event){
+        if (editorDragging) {
+          me.cuiEditorBlock
+             .css({
+                 left: event.pageX - relX,
+                 top: event.pageY - relY
+             })
+        }
+      });
+    this.cuiEditorNav.mouseup(function(event) {
+        editorDragging = false;
+      });
+    this.cuiEditorBlock.append(this.cuiEditorNav);
 
     this.cuiEditorUpdateBut = $('<button class="btn btn-sm btn-secondary mr-2">Update</button>');
     this.cuiEditorUpdateBut.on('click',()=>{
@@ -213,13 +245,19 @@ export default class Visualisation extends Panel {
     });
     this.cuiEditorNav.append(this.cuiEditorUpdateBut);
 
-    this.cuiEditorSaveBut = $('<button class="btn btn-sm btn-primary">Save</button>');
+    this.cuiEditorSaveBut = $('<button class="btn btn-sm btn-primary mr-2">Save</button>');
     this.cuiEditorSaveBut.on('click',()=>{
       var contents = this.aceEditor.session.getValue();
       // save to firebase
       this.node.updateVisualisation(this.visScript);
     });
     this.cuiEditorNav.append(this.cuiEditorSaveBut);
+
+    this.cuiEditorHideBut = $('<button class="btn btn-sm btn-secondary">Hide</button>');
+    this.cuiEditorHideBut.on('click',()=>{
+      this.cuiEditorBlock.hide();
+    });
+    this.cuiEditorNav.append(this.cuiEditorHideBut);
 
     this.cuiEditorTitle = $('<div class="title"></div>');
     this.cuiEditorNav.append(this.cuiEditorTitle);
@@ -230,7 +268,8 @@ export default class Visualisation extends Panel {
     this.aceEditor = ace.edit(this.cuiEditor[0], {
         mode: "ace/mode/javascript",
         theme:'ace/theme/dracula',
-        selectionStyle: "text"
+        selectionStyle: "text",
+        fontSize: "8pt"
     });
     this.aceEditor.on('change', ()=>{
       
@@ -254,7 +293,7 @@ export default class Visualisation extends Panel {
     // keep width updated
     var w = this.ui.panel.width();
     ctx.canvas.width = w;
-    var h = 400;
+    var h = document.documentElement.clientHeight - 120;
     ctx.canvas.height = h;
     var cx = w/2;
     var cy = h/2;

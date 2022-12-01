@@ -4,6 +4,28 @@
 }
 
 
+.visualisationEditorBlock {
+    position:absolute;
+    display:none;
+    top:20vh;
+    left:5vw;
+    z-index:3000;
+    box-shadow: 4px 4px 2px;
+    width:50vw;
+    height:70vh;
+    background-color:#555;
+}
+
+.visualisationEditorBlock .editorNav {
+    background-color: #aaa;
+    padding: 4px 4px;
+    margin-bottom: 4px;
+}
+
+.visualisationEditorBlock .editor {
+    height: calc(100% - 36px);
+}
+
 .VisualisationPanel .errorOverlay {
     position:absolute;
     background-color: #a02020;
