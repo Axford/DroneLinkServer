@@ -13,7 +13,27 @@ function radiansToDegrees(a) {
   function degreesToRadians(a) {
     return a * Math.PI / 180;
   }
+
+  function fmod(a,b) { return Number((a - (Math.floor(a / b) * b)).toPrecision(8)); };
   
+
+  function shortestSignedDistanceBetweenCircularValues(origin, target){
+    var signedDiff = 0.0;
+    var raw_diff = origin > target ? origin - target : target - origin;
+    var mod_diff = fmod(raw_diff, 360); //equates rollover values. E.g 0 == 360 degrees in circle
+  
+    if(mod_diff > (360/2) ){
+      //There is a shorter path in opposite direction
+      signedDiff = (360 - mod_diff);
+      if(target>origin) signedDiff = signedDiff * -1;
+    } else {
+      signedDiff = mod_diff;
+      if(origin>target) signedDiff = signedDiff * -1;
+    }
+  
+    return signedDiff;
+  }
+
 
   function calculateDistanceBetweenCoordinates(lon1, lat1, lon2, lat2) {
     const R = 6371e3; // metres
@@ -95,7 +115,9 @@ function drawPill(ctx, label, x, y, w, color) {
 }
 
 
-function drawTickedCircle(ctx, cx, cy, r, color) {
+function drawTickedCircle(ctx, cx, cy, r, color, rot) {
+    rot = rot ? rot : 0;
+
     // outer circle
     ctx.strokeStyle = color;
     ctx.lineWidth = 1;
@@ -106,10 +128,18 @@ function drawTickedCircle(ctx, cx, cy, r, color) {
     // outer ticks
     ctx.beginPath();
     for (var i =0; i<12; i++) {
-    var ang = (i*30) * Math.PI / 180;
-    ctx.moveTo(cx + r*Math.cos(ang), cy + r*Math.sin(ang));
-    ctx.lineTo(cx + (r+10)*Math.cos(ang), cy + (r+10)*Math.sin(ang) );
+      var ang = (rot + (i*30)) * Math.PI / 180;
+      ctx.moveTo(cx + r*Math.cos(ang), cy + r*Math.sin(ang));
+      ctx.lineTo(cx + (r+10)*Math.cos(ang), cy + (r+10)*Math.sin(ang) );
     }
+    ctx.stroke();
+
+    // north tick
+    ctx.lineWidth = 10;
+    ctx.beginPath();
+    var ang = (rot - 90) * Math.PI / 180;
+    ctx.moveTo(cx + r*Math.cos(ang), cy + r*Math.sin(ang));
+    ctx.lineTo(cx + (r+30)*Math.cos(ang), cy + (r+30)*Math.sin(ang) );
     ctx.stroke();
 }
 
