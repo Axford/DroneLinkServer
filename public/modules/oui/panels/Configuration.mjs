@@ -174,6 +174,8 @@ class DroneFSEntry {
 
 
   enumerate() {
+    if (this.enumerated) return;
+
     // get info about self
     this.getNodeFileByPath(this.fullpath);
 
@@ -709,7 +711,10 @@ class ServerFSEntry {
 
 
   select(entry) {
-    if (this.deleted) return;
+    if (this.deleted) {
+      console.error('Attempting to select a deleted entry');
+      return;
+    }
 
     if (entry == this) {
       this.isSelected = true;
@@ -722,7 +727,9 @@ class ServerFSEntry {
     // recurse to children
     if (this.isDir) {
       for (const [id, child] of Object.entries(this.children)) {
-        child.select(entry)
+        if (child && !child.deleted) {
+          child.select(entry);
+        }
       }
     }
   }
@@ -752,7 +759,7 @@ class ServerFSEntry {
           console.log(doc.id, " => ", data);
 
           // do we need to create a new child?
-          if (!this.children[doc.id]) {
+          if (!this.children.hasOwnProperty(doc.id)) {
             this.children[doc.id] = new ServerFSEntry(this.manager, this.db, this.nodeId, this, data.path, data.isDir, this.ui.children);
             this.children[doc.id].setContents(data.contents);
             this.children[doc.id].id = doc.id;
@@ -776,6 +783,8 @@ class ServerFSEntry {
 
 
   enumerate() {
+    if (this.enumerated) return;
+
     console.log('Enumerating: ' + this.fullpath);
 
     // get info about self
@@ -846,11 +855,11 @@ class ServerFSEntry {
       console.log("Document written with ID: ", docRef.id);
 
 
-      parent.children[doc.id] = new ServerFSEntry(this.manager, this.db, this.nodeId, this, path, isDir, this.ui.children);
-      parent.children[doc.id].setContents(contents);
-      parent.children[doc.id].id = docRef.id;
+      parent.children[docRef.id] = new ServerFSEntry(this.manager, this.db, this.nodeId, parent, path, isDir, parent.ui.children);
+      parent.children[docRef.id].setContents(contents);
+      parent.children[docRef.id].id = docRef.id;
 
-      parent.children[doc.id].update();
+      parent.children[docRef.id].update();
 
     } else {
       console.error('No matching parent path: ['+ parentPath +']');
@@ -875,10 +884,6 @@ class ServerFSEntry {
 
     // remove ui container and child objects
     this.ui.container.remove();
-
-    // remove from parent
-    this.parent.children[this.id] = null;
-    delete this.parent.children[this.id];
 
     // re-enumerate parent
     this.parent.enumerate();
@@ -980,6 +985,7 @@ export default class Configuration extends Panel {
       if (this.selectedServerEntry) this.selectedServerEntry.delete();
       // select root
       this.serverRoot.select(this.serverRoot);
+      this.selectedServerEntry = this.serverRoot;
       // hide button
       this.cuiDeleteServerFileBut.hide();
      });
@@ -1169,9 +1175,7 @@ export default class Configuration extends Panel {
     if (!this.root.enumerated) {
       this.root.enumerate();
     }
-    if (!this.serverRoot.enumerated) {
-      this.serverRoot.enumerate();
-    }
+    this.serverRoot.enumerate();
   }
 
 
@@ -1249,6 +1253,7 @@ export default class Configuration extends Panel {
     var entry = this.root.findEntryByPath(path)
     if (entry != null) {
       this.root.select(entry);
+      this.selectedEntry = entry;
       entry.upload(buffer);
 
     } else {
@@ -1268,9 +1273,14 @@ export default class Configuration extends Panel {
     var entry = this.serverRoot.findEntryByPath(path)
     if (entry != null) {
       this.serverRoot.select(entry);
+      this.selectedServerEntry = entry;
       entry.upload(contents);
 
     } else {
+      // select root
+      this.serverRoot.select(this.serverRoot);
+      this.selectedServerEntry = this.serverRoot;
+
       // or create a new one!
       this.serverRoot.createFromPath(path, contents);
     }
