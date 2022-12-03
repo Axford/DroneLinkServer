@@ -76,6 +76,34 @@ export default class Polar {
           .setDraggable(true)
           .addTo(nodeRef.map);
 
+
+      this.mapMarker.on('dragend', (e)=>{
+        // e.target
+        const lngLat = e.target.getLngLat();
+
+        // indicate update in progress
+        e.target.getElement().classList.add('updating');
+
+        // write the new target
+        var qm = new DLM.DroneLinkMsg();
+        qm.node = node;
+        qm.channel = channel;
+        qm.param = 8;
+        qm.setFloat([ lngLat.lng, lngLat.lat ])
+        this.state.send(qm);
+
+        // then send a query for the new target value
+        qm = new DLM.DroneLinkMsg();
+        qm.node = node;
+        qm.channel = channel;
+        qm.param = 8;
+        qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
+        qm.msgLength = 1;
+        this.state.send(qm);
+      });
+
+      
+
       // -- radius rings --
       for (var i=0; i<3; i++) {
         var outlineName = 'polarOutline' + node + '_' + i;
