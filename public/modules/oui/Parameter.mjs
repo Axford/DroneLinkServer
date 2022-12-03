@@ -277,7 +277,6 @@ export default class Parameter {
 
 		// and send
 		var qm = new DLM.DroneLinkMsg();
-		qm.source = 252;
 		qm.node = this.channel.node.id;
 		qm.channel = this.channel.channel;
 		qm.param = this.param;
@@ -309,7 +308,6 @@ export default class Parameter {
 
 		// now send an immediate query for the new value
 		qm = new DLM.DroneLinkMsg();
-		qm.source = 252;
 		qm.node = this.channel.node.id;
 		qm.channel = this.channel.channel;
 		qm.param = this.param;

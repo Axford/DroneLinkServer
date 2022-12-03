@@ -2,7 +2,7 @@ import loadStylesheet from '../../loadStylesheet.js';
 import * as DLM from '../../droneLinkMsg.mjs';
 
 
-//loadStylesheet('./css/modules/interfaces/Polar.css');
+loadStylesheet('./css/modules/oui/interfaces/Polar.css');
 
 function radiansToDegrees(a) {
   return a * 180 / Math.PI;
@@ -46,10 +46,83 @@ export default class Polar {
     this.channel = channel;
     this.state = state;
     this.built = false;
+    this.builtMapElements = false;
+    this.mapMarker = null;
+    this.mapOutlines = {};
 	}
+
+
+  updateMapElements() {
+
+    var nodeRef = this.channel.node;
+    var node = nodeRef.id;
+    var channel = this.channel.channel;
+
+    // fetch key param info
+    var target = this.state.getParamValues(node, channel, 8, [0,0]);
+    var radius = this.state.getParamValues(node, channel, 13, [0,0,0]);
+
+    if (target[0] ==0 || radius[0] == 0) return;
+
+    if (!this.builtMapElements) {
+      // build map elements
+
+      // -- target marker --
+      var el = document.createElement('div');
+      el.className = 'polarMarker';
+
+      this.mapMarker = new mapboxgl.Marker(el)
+          .setLngLat(target)
+          .setDraggable(true)
+          .addTo(nodeRef.map);
+
+      // -- radius rings --
+      for (var i=0; i<3; i++) {
+        var outlineName = 'polarOutline' + node + '_' + i;
+        this.mapOutlines['ring'+i] = nodeRef.createGeoJSONCircle(target, radius[i]);
+        nodeRef.map.addSource(outlineName, { type: 'geojson', data: this.mapOutlines['ring'+i] });
+
+        var paintStyle = {
+          'line-color': (i==2) ? 'red' : '#f5f',
+          'line-opacity': (i==2) ? 0.5 : 0.6,
+          'line-width': (i==2) ? 1 : 3
+        }
+        if (i > 0) paintStyle['line-dasharray'] = [4,4];
+
+        nodeRef.map.addLayer({
+  				'id': outlineName,
+  				'type': 'line',
+  				'source': outlineName,
+          'layout': {},
+  				'paint': paintStyle
+  			});
+      }
+
+      this.builtMapElements = true;
+    } else {
+      // update map elements
+
+      this.mapMarker.setLngLat(target);
+
+      var el = this.mapMarker.getElement();
+      el.classList.remove('updating');
+
+      // -- outline rings --
+      for (var i=0; i<3; i++) {
+        var outlineName = 'polarOutline' + node + '_' + i;
+        this.mapOutlines['ring'+i] = nodeRef.createGeoJSONCircle(target, radius[i]);
+        var src = nodeRef.map.getSource(outlineName);
+        if (src) src.setData(this.mapOutlines['ring'+i]);
+      }
+      
+    }
+  }
+
 
   update() {
     if (!this.built) return;
+
+    this.updateMapElements();
 
     var node = this.channel.node.id;
     var channel = this.channel.channel;
@@ -57,7 +130,6 @@ export default class Polar {
     // redraw canvas
     var polar = this.state.getParamValues(node, channel, 11, [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]);
     var samples = this.state.getParamValues(node, channel, 12, [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]);
-
 
     var c = this.canvas[0];
     var ctx = c.getContext("2d");
@@ -136,13 +208,8 @@ export default class Polar {
 
 
   onParamValue(data) {
-    this.update();
-
-    // location
-    if (data.param == 8 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
-      // pass onto node for mapping
-      this.channel.node.updateMapParam('polar', 3, data.values, this.channel.channel, 8);
-    }
+    console.log('polar param update');
+    setTimeout(()=>{ this.update(); }, 500);
   }
 
 

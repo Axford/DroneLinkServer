@@ -287,8 +287,6 @@ export default class NodeUI {
         this.updateLast(value);
       } else if (paramName == 'wind') {
         this.updateWind(value);
-      } else if (paramName == 'polar') {
-        this.updatePolar();
       }
 
       this.panels.NodeSettings.update();
@@ -753,66 +751,6 @@ export default class NodeUI {
   }
 
 
-  updatePolar() {
-    var polarParam = this.mapParams['polar'];
-    /*
-    polarParam.priority = priority;
-    polarParam.value = value;
-    polarParam.channel = channel;
-    polarParam.param = param;
-    */
-
-    if (polarParam.value.length <2 || polarParam.value[0] == 0) return;
-  
-    if (!this.gotPolar) {
-      console.log('Adding polar');
-      this.gotPolar = true;
-
-      // -- last marker --
-      var el = document.createElement('div');
-      el.className = 'polarMarker';
-
-      this.polarMarker = new mapboxgl.Marker(el)
-          .setLngLat(polarParam.value)
-          .addTo(this.map);
-
-      // -- last outline --
-      /*
-      var outlineName = 'lastOutline' + this.id;
-      this.lastOutline = this.createGeoJSONCircle(this.last, this.last[2]);
-      this.map.addSource(outlineName, { type: 'geojson', data: this.lastOutline });
-      this.map.addLayer({
-        'id': outlineName,
-        'type': 'line',
-        'source': outlineName,
-        'layout': {},
-        'paint': {
-          'line-color': 'red',
-          'line-opacity': 0.5,
-          'line-width': 2
-        }
-      });
-      */
-
-
-
-    } else {
-      // -- polar marker --
-      this.polarMarker.setLngLat(polarParam.value);
-
-      var el = this.polarMarker.getElement();
-      el.classList.remove('updating');
-
-      // -- polar outlines --
-      /*
-      var outlineName = 'polarOutline' + this.id;
-      this.polarOutline = this.createGeoJSONCircle(this.last, this.last[2]);
-      var src = this.map.getSource(outlineName);
-      if (src) src.setData(this.lastOutline);
-      */
-    }
-    
-  }
 
 
   //Destination point given distance and bearing from start point
