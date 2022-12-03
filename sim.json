@@ -3,8 +3,9 @@
     {
       "name":"paddle",
       "type":"TankSteerBoat",
+      "enabled":true,
       "interval":100,
-      "node":2,
+      "node":59,
       "module":50,
       "location":[-1.744395173553, 51.542274496181, 0],
       "heading":[30],

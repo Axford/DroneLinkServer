@@ -27,11 +27,18 @@ export default class SimManager {
     // process nodes
     this.config.nodes.forEach((nodeConfig)=>{
       console.log(('[SimManager.load] node: '+ nodeConfig.name + ' ('+nodeConfig.node+')').blue );
-      if (nodeConfig.type == 'TankSteerBoat') {
-        // create a new instance of TankSteerBoat
-        var node = new SimTankSteerBoat(nodeConfig, this);
-        this.nodes.push(node);
+      if (nodeConfig.enabled) {
+        if (nodeConfig.type == 'TankSteerBoat') {
+          // create a new instance of TankSteerBoat
+          var node = new SimTankSteerBoat(nodeConfig, this);
+          this.nodes.push(node);
+        } else {
+          console.erorr('Unknown type');
+        }
+      } else {
+        console.log('Node disabled!');
       }
+      
     });
 
     console.log(('[SimManager.load] loaded '+this.nodes.length + ' nodes').blue );
