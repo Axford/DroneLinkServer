@@ -29,7 +29,7 @@ export default class Neopixel {
     var h = this.ui.height();
 
     // fetch params
-    var scene = this.state.getParamValues(node, channel, 8, [0]);
+    var scene = this.state.getParamValues(node, channel, 8, [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]);
 
 
     // render pixels
