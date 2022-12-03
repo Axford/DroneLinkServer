@@ -128,7 +128,7 @@ export default class Nav {
     // heading
 		if (data.param == 8 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
 			// pass onto node for mapping
-			this.channel.node.updateMapParam('heading', 2, data.values, this.channel.channel, 8);
+			//this.channel.node.updateMapParam('heading', 2, data.values, this.channel.channel, 8);
 		}
 
     // target

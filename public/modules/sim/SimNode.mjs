@@ -70,7 +70,7 @@ export default class SimNode {
     if (msg.node == this.node &&
         msg.channel == this.module) {
       // its for us
-      console.log(('[hLM] ' + msg.asString()).green);
+      //console.log(('[hLM] ' + msg.asString()).green);
 
       // standard responses
       if (msg.msgType == DLM.DRONE_LINK_MSG_TYPE_QUERY) {
@@ -118,13 +118,13 @@ export default class SimNode {
     // iterate over each sub and see if it matches msg
     this.subs.forEach((sub)=>{
       if (sub.sameAddress(msg) && msg.msgType == sub.msgType) {
-        console.log(('  updating sub: ' + msg.asString()).green);
+        //console.log(('  updating sub: ' + msg.asString()).green);
         // matches, so overwrite values and trigger update
         var newValues = msg.valueArray();
         sub.values.fill(0,0,newValues.length);
         for (var i=0; i<newValues.length; i++)
           sub.values[i] = newValues[i];
-        console.log('  new values: ', sub.values);
+        //console.log('  new values: ', sub.values);
       }
     });
 

@@ -197,6 +197,19 @@ export default class Sailor {
 
 
   onParamValue(data) {
+
+    // heading
+		if (data.param == 10 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
+			// pass onto node for mapping
+		  this.channel.node.updateMapParam('heading', 2, data.values, this.channel.channel, 10);
+		}
+
+    // heading
+		if (data.param == 12 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
+			// pass onto node for mapping
+		  this.channel.node.updateMapParam('wind', 2, data.values, this.channel.channel, 12);
+		}
+
     this.update();
   }
 

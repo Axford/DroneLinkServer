@@ -10,6 +10,7 @@ import colors from 'colors';
 
 // node sim types
 import SimTankSteerBoat from './SimTankSteerBoat.mjs';
+import SimSailBoat from './SimSailBoat.mjs';
 
 
 export default class SimManager {
@@ -19,6 +20,23 @@ export default class SimManager {
     this.socket = socket;
   }
 
+
+  diagnosticString() {
+    var s='';
+
+    for (var i=0; i<this.nodes.length; i++) {
+      var node = this.nodes[i];
+
+      s += node.node + ': ' + node.name + '\n';
+      s += ' v: ' + node.physics.v.x.toFixed(1) + ', ' + node.physics.v.y.toFixed(1) + '\n';
+      s += ' angV: ' + node.physics.angV.toFixed(1) + '\n';
+
+      s += '\n';
+    
+    }
+  
+    return s;
+  }
 
   load(path) {
     console.log('[SimManager.load]'.blue );
@@ -32,8 +50,12 @@ export default class SimManager {
           // create a new instance of TankSteerBoat
           var node = new SimTankSteerBoat(nodeConfig, this);
           this.nodes.push(node);
+        } else if (nodeConfig.type == 'SailBoat') {
+          // create a new instance of SailBoat
+          var node = new SimSailBoat(nodeConfig, this);
+          this.nodes.push(node);
         } else {
-          console.erorr('Unknown type');
+          console.error('Unknown type');
         }
       } else {
         console.log('Node disabled!');
@@ -49,14 +71,14 @@ export default class SimManager {
     // ignore stuff that originated from us
     if (msg.source == 253) return;
     
-    console.log(('[SimMgr.hLM] ' + msg.asString()).grey);
+    //console.log(('[SimMgr.hLM] ' + msg.asString()).grey);
     this.nodes.forEach((node)=>{
       node.handleLinkMessage(msg);
     });
   }
 
   send(msg) {
-    console.log( ('[SimMgr.send] '+ msg.asString()).yellow );
+    //console.log( ('[SimMgr.send] '+ msg.asString()).yellow );
     this.socket.emit('sendMsg', msg.encodeUnframed());
   }
 
