@@ -30,7 +30,13 @@ export default class SimManager {
       s += node.node + ': ' + node.name + '\n';
       s += ' v: ' + node.physics.v.x.toFixed(1) + ', ' + node.physics.v.y.toFixed(1) + '\n';
       s += ' angV: ' + node.physics.angV.toFixed(1) + '\n';
+      s += ' heading: ' + node.heading.toFixed(1) + '\n';
+      s += ' angToWind: ' + node.angToWind.toFixed(1) + '\n';
+      s += ' polarIndex: ' + node.polarIndex + '\n';
+      s += ' sailForce: ' + node.sailForce.toFixed(2) + '\n';
+      s += ' rudderForce: ' + node.rudderForce.toFixed(2) + '\n';
 
+        
       s += '\n';
     
     }
