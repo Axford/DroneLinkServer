@@ -12,6 +12,30 @@ function degreesToRadians(a) {
   return a * Math.PI / 180;
 }
 
+function drawPill(ctx, label, x, y, w, color) {
+  ctx.fillStyle = color;
+	// draw pill
+	var r = 8;
+	var x1 = x - w/2 + r;
+	var x2 = x + w/2 - r;
+
+	ctx.beginPath();
+	ctx.arc(x1, y+r, r, 0, 2 * Math.PI);
+	ctx.fill();
+
+	ctx.beginPath();
+	ctx.fillRect(x1,y, w - 2*r, 2*r);
+
+	ctx.beginPath();
+	ctx.arc(x2, y + r, r, 0, 2 * Math.PI);
+	ctx.fill();
+
+	// draw label
+  ctx.textAlign = 'center';
+  ctx.font = '12px sans-serif';
+	ctx.fillStyle = '#fff';
+  ctx.fillText(label, x, y+12);
+}
 
 function drawLabelledHand(ctx, ang, label, r1, r2, color) {
   var angR = (ang - 90) * Math.PI / 180;
@@ -158,6 +182,9 @@ export default class Polar {
     // redraw canvas
     var polar = this.state.getParamValues(node, channel, 11, [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]);
     var samples = this.state.getParamValues(node, channel, 12, [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]);
+    var adjHeading = this.state.getParamValues(node, channel, 14, [0])[0];
+    var wind = this.state.getParamValues(node, channel, 34, [0])[0];
+    var mode = this.state.getParamValues(node, channel, 9, [0])[0];
 
     var c = this.canvas[0];
     var ctx = c.getContext("2d");
@@ -166,6 +193,7 @@ export default class Polar {
     var w = this.ui.width();
     ctx.canvas.width = w;
     var cx = w/2;
+    var h = 200;
 
     ctx.fillStyle = '#343a40';
     ctx.fillRect(0,0,w,200);
@@ -232,6 +260,20 @@ export default class Polar {
     }
     ctx.stroke();
 
+    // adjHeading
+    drawLabelledHand(ctx, adjHeading - wind, '', 30, 100, '#ff5')
+
+    // draw controlMode
+    var controlModeStr = 'Passive';
+    var controlModeClr = '#555';
+    if (mode == 2) {
+      controlModeStr = 'Reset';
+      controlModeClr = '#a55';
+    } else if (mode == 1) {
+      controlModeStr = 'Active';
+      controlModeClr = '#5a5';
+    }
+    drawPill(ctx, controlModeStr, w-40, h-20, 70, controlModeClr);
   }
 
 

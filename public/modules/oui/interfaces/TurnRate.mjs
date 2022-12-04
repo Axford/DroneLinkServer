@@ -70,7 +70,7 @@ export default class TurnRate {
 		var w = this.ui.width();
 		ctx.canvas.width = w;
 		var cx = w/2;
-		var h = this.ui.height();
+		var h = 200;
 
 		// background
 		ctx.fillStyle = '#343a40';
@@ -170,10 +170,35 @@ export default class TurnRate {
     drawPill(ctx, controlModeStr, w-40, h-20, 70, controlModeClr);
   }
 
-	build() {
-		this.built = true;
+  build() {
+	this.built = true;
 
-		this.ui = $('<div class="TurnRate text-center"></div>');
+	this.ui = $('<div class="TurnRate text-center"></div>');
+
+	var normalButton = $('<button class="btn btn-sm btn-success mr-2 mb-2">Normal</button>');
+    normalButton.on('click', ()=>{
+      var qm = new DLM.DroneLinkMsg();
+			qm.node = this.channel.node.id;
+			qm.channel = this.channel.channel;
+			qm.param = 19;
+			qm.setUint8([ 0 ]);
+			this.state.send(qm);
+    });
+    this.ui.append(normalButton);
+
+
+    var gybeButton = $('<button class="btn btn-sm btn-danger mr-2 mb-2">Gybe</button>');
+    gybeButton.on('click', ()=>{
+      var qm = new DLM.DroneLinkMsg();
+			qm.node = this.channel.node.id;
+			qm.channel = this.channel.channel;
+			qm.param = 19;
+			qm.setUint8([ 2 ]);
+			this.state.send(qm);
+    });
+    this.ui.append(gybeButton);
+
+
     this.canvas = $('<canvas height=200 />');
     this.canvas.on('click', (e)=>{
 			var offsetX = $( e.target ).offset().left;

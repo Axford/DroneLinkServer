@@ -114,7 +114,7 @@ export default class SimSailBoat extends SimNode {
     this.physics.m = 2;
     this.calcCylindricalInertia(0.04, 0.01);
     this.physics.friction = 0.00001;
-    this.physics.angFriction = 0.05;
+    this.physics.angFriction = 0.07;
 
     this.heading = 0;
     this.angToWind = 0;
