@@ -243,8 +243,32 @@ export default class Polar {
 
 	build() {
     this.ui = $('<div class="Polar text-center"></div>');
-    this.canvas = $('<canvas height=200 />');
 
+    var passiveButton = $('<button class="btn btn-sm btn-primary mr-2 mb-2">Passive</button>');
+    passiveButton.on('click', ()=>{
+      var qm = new DLM.DroneLinkMsg();
+			qm.node = this.channel.node.id;
+			qm.channel = this.channel.channel;
+			qm.param = 9;
+			qm.setUint8([ 0 ]);
+			this.state.send(qm);
+    });
+    this.ui.append(passiveButton);
+
+
+    var activeButton = $('<button class="btn btn-sm btn-success mr-2 mb-2">Active</button>');
+    activeButton.on('click', ()=>{
+      var qm = new DLM.DroneLinkMsg();
+			qm.node = this.channel.node.id;
+			qm.channel = this.channel.channel;
+			qm.param = 9;
+			qm.setUint8([ 1 ]);
+			this.state.send(qm);
+    });
+    this.ui.append(activeButton);
+
+
+    this.canvas = $('<canvas height=200 />');
     this.ui.append(this.canvas);
     this.channel.interfaceTab.append(this.ui);
 

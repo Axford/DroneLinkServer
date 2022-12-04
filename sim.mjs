@@ -142,6 +142,18 @@ screen.key(['p'], function(ch, key) {
   pauseLog = !pauseLog;
 });
 
+screen.key(['l'], function(ch, key) {
+  logBox.show();
+  diagnosticsBox.hide();
+  screen.render();
+});
+
+screen.key(['d'], function(ch, key) {
+  logBox.hide();
+  diagnosticsBox.show();
+  screen.render();
+});
+
 screen.render();
 
 
@@ -187,14 +199,23 @@ mgr.load('./sim.json');
 
 // create update tick
 setInterval(()=>{
-  if (_socketReady) mgr.update();
+  try {
+    if (_socketReady) mgr.update();
+  } catch(e) {
+    clog((e.message).red);
+  }
 }, 50);
 
 
 // -----------------------------------------------------------
 
 setInterval(()=>{
-  diagnosticsBox.content = mgr.diagnosticString();
+  try {
+    diagnosticsBox.content = mgr.diagnosticString();
+  } catch(e) {
+    diagnosticsBox.content = 'ERROR: '+ e.message;
+  }
+  
 
   diagnosticsBox.screen.render();
 }, 1000);

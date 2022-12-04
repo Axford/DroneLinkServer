@@ -7,47 +7,47 @@ loadStylesheet('./css/modules/oui/panels/Visualisation.css');
 
 
 function radiansToDegrees(a) {
-    return a * 180 / Math.PI;
-  }
-  
-  function degreesToRadians(a) {
-    return a * Math.PI / 180;
-  }
+  return a * 180 / Math.PI;
+}
 
-  function fmod(a,b) { return Number((a - (Math.floor(a / b) * b)).toPrecision(8)); };
-  
+function degreesToRadians(a) {
+  return a * Math.PI / 180;
+}
 
-  function shortestSignedDistanceBetweenCircularValues(origin, target){
-    var signedDiff = 0.0;
-    var raw_diff = origin > target ? origin - target : target - origin;
-    var mod_diff = fmod(raw_diff, 360); //equates rollover values. E.g 0 == 360 degrees in circle
-  
-    if(mod_diff > (360/2) ){
-      //There is a shorter path in opposite direction
-      signedDiff = (360 - mod_diff);
-      if(target>origin) signedDiff = signedDiff * -1;
-    } else {
-      signedDiff = mod_diff;
-      if(origin>target) signedDiff = signedDiff * -1;
-    }
-  
-    return signedDiff;
-  }
+function fmod(a,b) { return Number((a - (Math.floor(a / b) * b)).toPrecision(8)); };
 
 
-  function calculateDistanceBetweenCoordinates(lon1, lat1, lon2, lat2) {
-    const R = 6371e3; // metres
-    var lat1r = lat1 * Math.PI/180; // φ, λ in radians
-    var lat2r = lat2 * Math.PI/180;
-    var lon1r = lon1 * Math.PI/180; // φ, λ in radians
-    var lon2r = lon2 * Math.PI/180;
-  
-    var x = (lon2r-lon1r) * Math.cos((lat1r+lat2r)/2);
-    var y = (lat2r-lat1r);
-    var d = Math.sqrt(x*x + y*y) * R;
-  
-    return d;
+function shortestSignedDistanceBetweenCircularValues(origin, target){
+  var signedDiff = 0.0;
+  var raw_diff = origin > target ? origin - target : target - origin;
+  var mod_diff = fmod(raw_diff, 360); //equates rollover values. E.g 0 == 360 degrees in circle
+
+  if(mod_diff > (360/2) ){
+    //There is a shorter path in opposite direction
+    signedDiff = (360 - mod_diff);
+    if(target>origin) signedDiff = signedDiff * -1;
+  } else {
+    signedDiff = mod_diff;
+    if(origin>target) signedDiff = signedDiff * -1;
   }
+
+  return signedDiff;
+}
+
+
+function calculateDistanceBetweenCoordinates(lon1, lat1, lon2, lat2) {
+  const R = 6371e3; // metres
+  var lat1r = lat1 * Math.PI/180; // φ, λ in radians
+  var lat2r = lat2 * Math.PI/180;
+  var lon1r = lon1 * Math.PI/180; // φ, λ in radians
+  var lon2r = lon2 * Math.PI/180;
+
+  var x = (lon2r-lon1r) * Math.cos((lat1r+lat2r)/2);
+  var y = (lat2r-lat1r);
+  var d = Math.sqrt(x*x + y*y) * R;
+
+  return d;
+}
   
   function drawLabelledHand(ctx, ang, label, r1, r2, color) {
     var angR = (ang - 90) * Math.PI / 180;

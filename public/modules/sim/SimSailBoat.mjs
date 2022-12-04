@@ -9,6 +9,54 @@ import Vector from '../Vector.mjs';
 import https from 'https';
 import { threadId } from 'worker_threads';
 
+
+
+
+function radiansToDegrees(a) {
+  return a * 180 / Math.PI;
+}
+
+function degreesToRadians(a) {
+  return a * Math.PI / 180;
+}
+
+function fmod(a,b) { return Number((a - (Math.floor(a / b) * b)).toPrecision(8)); };
+
+
+function shortestSignedDistanceBetweenCircularValues(origin, target){
+  var signedDiff = 0.0;
+  var raw_diff = origin > target ? origin - target : target - origin;
+  var mod_diff = fmod(raw_diff, 360); //equates rollover values. E.g 0 == 360 degrees in circle
+
+  if(mod_diff > (360/2) ){
+    //There is a shorter path in opposite direction
+    signedDiff = (360 - mod_diff);
+    if(target>origin) signedDiff = signedDiff * -1;
+  } else {
+    signedDiff = mod_diff;
+    if(origin>target) signedDiff = signedDiff * -1;
+  }
+
+  return signedDiff;
+}
+
+
+function calculateDistanceBetweenCoordinates(lon1, lat1, lon2, lat2) {
+  const R = 6371e3; // metres
+  var lat1r = lat1 * Math.PI/180; // φ, λ in radians
+  var lat2r = lat2 * Math.PI/180;
+  var lon1r = lon1 * Math.PI/180; // φ, λ in radians
+  var lon2r = lon2 * Math.PI/180;
+
+  var x = (lon2r-lon1r) * Math.cos((lat1r+lat2r)/2);
+  var y = (lat2r-lat1r);
+  var d = Math.sqrt(x*x + y*y) * R;
+
+  return d;
+}
+
+
+
 export default class SimSailBoat extends SimNode {
   constructor(config, mgr) {
     super(config, mgr);
@@ -63,9 +111,16 @@ export default class SimSailBoat extends SimNode {
       new Vector(0.0, -0.5)
     ];
 
-    this.physics.m = 1;
+    this.physics.m = 2;
     this.calcCylindricalInertia(0.04, 0.01);
-    this.physics.angFriction = 0.1;
+    this.physics.friction = 0.00001;
+    this.physics.angFriction = 0.05;
+
+    this.heading = 0;
+    this.angToWind = 0;
+    this.polarIndex = 0;
+    this.sailForce = 0;
+    this.rudderForce = 0;
   }
 
   handleLinkMessage(msg) {
@@ -93,16 +148,28 @@ export default class SimSailBoat extends SimNode {
       //this.pubs['wind.direction'].values[0]
       //this.pubs['wind.direction'].values[0] += (Math.random()-0.5) * dt;
 
-      var sailForce = 0.5;
+      // calc sail force based on polar
+      // calc angle of heading relative to wind and thereby index into polar
 
+      this.heading = -this.physics.aDeg;
+      this.angToWind = Math.abs(shortestSignedDistanceBetweenCircularValues(this.config.wind, this.heading));
+      this.polarIndex = Math.floor(this.angToWind / 11.25);
 
-      var rudderForce = - this.physics.v.y * 0.01 * this.rudderSub.values[0];
+      if (this.olarIndex < 0) this.polarIndex = 0;
+      if (this.polarIndex > 15) this.polarIndex = 15;
+
+      this.polarVal = this.config.polar[this.polarIndex] / 255.0;
+
+      this.sailForce = 0.7 * this.polarVal + 0;
+
+      // calc rudder force based on forward velocity (y)
+      this.rudderForce = - this.physics.v.y * 0.07 * this.rudderSub.values[0];
 
 
       // calculate impulses
       var impulses = [
-        new Vector(0, sailForce),
-        new Vector(rudderForce,0)
+        new Vector(0, this.sailForce),
+        new Vector(this.rudderForce,0)
       ];
 
       // apply impulses
@@ -113,8 +180,8 @@ export default class SimSailBoat extends SimNode {
       var windVector = new Vector(0,0);
       // NOTE: physics angles are inverted vs compass bearings
       // make sure wind vector is in node coord frame - i.e. rotate by current heading
-      windVector.fromAngle( -(this.pubs['wind.direction'].values[0] + 90) * Math.PI/180 - this.physics.a , 0.2);
-      this.applyImpulse(windVector, new Vector(0,0));
+      windVector.fromAngle( -(this.pubs['wind.direction'].values[0] + 90) * Math.PI/180 - this.physics.a , 0.1);
+      this.applyImpulse(windVector, new Vector(0,0.005));
 
       this.updatePhysics(dt);
 
@@ -123,7 +190,7 @@ export default class SimSailBoat extends SimNode {
       this.pubs['gps.location'].values  = this.calcNewCoordinatesFromTranslation(this.pubs['gps.location'].values , this.physics.dp);
 
       // invert heading
-      this.pubs['compass.heading'].values[0] = -this.physics.aDeg;
+      this.pubs['compass.heading'].values[0] = this.heading;
 
       //console.log('new loc: ', this.pubs['gps.location'].values);
 
