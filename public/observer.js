@@ -356,13 +356,13 @@ function init() {
     networkGraph.visible = false;
     analyser.visible = false;
 
-    $('#viewMapButton').removeClass('btn-secondary');
-    $('#viewNetworkButton').removeClass('btn-primary');
-    $('#viewAnalysisButton').removeClass('btn-primary');
+    $('#viewMapButton').removeClass('inactive');
+    $('#viewNetworkButton').removeClass('active');
+    $('#viewAnalysisButton').removeClass('active');
 
-    $('#viewMapButton').addClass('btn-primary');
-    $('#viewNetworkButton').addClass('btn-secondary');
-    $('#viewAnalysisButton').addClass('btn-secondary');
+    $('#viewMapButton').addClass('active');
+    $('#viewNetworkButton').addClass('inactive');
+    $('#viewAnalysisButton').addClass('inactive');
 
     map.resize();
   });
@@ -384,13 +384,13 @@ function init() {
     networkGraph.visible = true;
     analyser.visible = false;
 
-    $('#viewMapButton').removeClass('btn-primary');
-    $('#viewNetworkButton').removeClass('btn-secondary');
-    $('#viewAnalysisButton').removeClass('btn-primary');
+    $('#viewMapButton').removeClass('active');
+    $('#viewNetworkButton').removeClass('inactive');
+    $('#viewAnalysisButton').removeClass('active');
 
-    $('#viewMapButton').addClass('btn-secondary');
-    $('#viewNetworkButton').addClass('btn-primary');
-    $('#viewAnalysisButton').addClass('btn-secondary');
+    $('#viewMapButton').addClass('inactive');
+    $('#viewNetworkButton').addClass('active');
+    $('#viewAnalysisButton').addClass('inactive');
 
     networkGraph.resize();
   });
@@ -402,13 +402,13 @@ function init() {
     networkGraph.visible = false;
     analyser.visible = true;
 
-    $('#viewMapButton').removeClass('btn-primary');
-    $('#viewNetworkButton').removeClass('btn-primary');
-    $('#viewAnalysisButton').removeClass('btn-secondary');
+    $('#viewMapButton').removeClass('active');
+    $('#viewNetworkButton').removeClass('active');
+    $('#viewAnalysisButton').removeClass('inactive');
 
-    $('#viewMapButton').addClass('btn-secondary');
-    $('#viewNetworkButton').addClass('btn-secondary');
-    $('#viewAnalysisButton').addClass('btn-primary');
+    $('#viewMapButton').addClass('inactive');
+    $('#viewNetworkButton').addClass('inactive');
+    $('#viewAnalysisButton').addClass('active');
   });
 
   analyser = new AnalysisManager($('#analysisOutput'), state);

@@ -165,6 +165,40 @@ html, body {margin: 0; height: 100%; overflow: hidden}
   height:100%;
 }
 
+.viewContainer {
+  top:10px;
+  left: 140px;
+  display:inline-block;
+  position:absolute;
+}
+
+.viewContainer .nav-tabs {
+  border:none;
+}
+
+.viewContainer .nav-link {
+  margin-right: 4px;
+  height:30px;
+  font-size: 1rem;
+  padding-top:8px;
+  width:70px;
+  text-align: center;
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+}
+
+.viewContainer .nav-link.active {
+  background-color: #0069d9;
+  color: white;
+  border-color: #0069d9;
+}
+
+.viewContainer .nav-link.inactive {
+  border-color: #555;
+  color: #aaa;
+  border-bottom:none;
+}
+
 .toolbar {
   background:#242a30;
   color:white;
