@@ -90,6 +90,18 @@ export default class Waypoint {
     });
     this.ui.append(nextButton);
 
+    var gotoButton = $('<button class="btn btn-sm btn-primary mr-2 mb-2">Goto</button>');
+    gotoButton.on('click', ()=>{
+      var target =  this.state.getParamValues(this.channel.node.id, this.channel.channel, 11, [0,0,0]);
+      // fly map to this location
+      if (target[0] != 0) {
+        this.channel.node.map.flyTo({
+          center: target
+        });
+      }
+    });
+    this.ui.append(gotoButton);
+
 
     var reloadButton = $('<button class="btn btn-sm btn-danger mr-2 mb-2 float-right">Reload</button>');
     reloadButton.on('click', ()=>{

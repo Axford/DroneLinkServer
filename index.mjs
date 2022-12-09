@@ -489,7 +489,7 @@ var msgQueue = new DroneLinkMsgQueue();
 
 // create interfaces (they will self-register with the dlm)
 var udpi = new UDPInterface(dlm, 1, clog);
-var seriali = new SerialInterface(dlm, 2, clog, config[env].telemetryPort);
+//var seriali = new SerialInterface(dlm, 2, clog, config[env].telemetryPort);
 
 
 // -----------------------------------------------------------
