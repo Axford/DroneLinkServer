@@ -1053,6 +1053,7 @@ export default class Configuration extends Panel {
 
     this.aceEditor = ace.edit(this.cuiEditor[0], {
         mode: "ace/mode/dcode",
+        //mode: "ace/mode/ini",
         theme:'ace/theme/dracula',
         selectionStyle: "text"
     });
@@ -1061,46 +1062,7 @@ export default class Configuration extends Panel {
       this.analyseFile();
     });
     this.aceEditor.session.selection.on('changeCursor', (e)=>{
-
-      var cursor = this.aceEditor.selection.getCursor();
-      // get line for cursor
-      var line = this.aceEditor.session.getLine(cursor.row);
-      //console.log('line:', line);
-      if (line.includes('.goto')) {
-        //console.log('goto!');
-        const regexp = /\s*([_]\w+)?\.\w+\s+(-?(0|[1-9]\d*)(\.\d+)?)\s+(-?(0|[1-9]\d*)(\.\d+)?)\s+(-?(0|[1-9]\d*)(\.\d+)?)/;
-        const match = line.match(regexp);
-        if (match) {
-          //console.log('coord:',match[1],match[4],match[7]);
-
-          /*
-          // move map center to coord
-          var lon =  parseFloat(match[1]);
-          var lat = parseFloat(match[4]);
-          if (lon && lat) this.node.map.setCenter([ lon, lat])
-          */
-          // find matching marker
-          for (var i=0; i<this.node.scriptMarkers.length; i++) {
-            if (this.node.scriptMarkers[i].lineNumber == cursor.row) {
-              // found it
-              this.node.scriptMarkers[i].getElement().classList.add('active');
-
-              // set outline
-              var outlineData = this.node.createGeoJSONCircle([this.node.scriptMarkers[i]._lngLat.lng, this.node.scriptMarkers[i]._lngLat.lat], this.node.scriptMarkers[i].targetRadius);
-              var src = this.node.map.getSource('scriptOutline' + this.id);
-              if (src) src.setData(outlineData);
-
-              // see if visible
-              if (!this.node.map.getBounds().contains(this.node.scriptMarkers[i].getLngLat())) {
-                this.node.map.flyTo({center:this.node.scriptMarkers[i].getLngLat()});
-              }
-            } else {
-              this.node.scriptMarkers[i].getElement().classList.remove('active');
-            }
-          }
-        }
-
-      }
+      this.highlightMarker();
     });
     //const syntax = new DCodeSyntax();
     //console.log(this.aceEditor.session);
@@ -1287,7 +1249,111 @@ export default class Configuration extends Panel {
   }
 
 
+
   analyseFile() {
+    // check filename for which type of file to analyse
+    var path = this.cuiEditorTitle.val();
+    var ext = path.slice(-3,).toLowerCase();
+    if (ext == 'csv') {
+      this.analyseCSVFile();
+    } else if (ext=='txt') {
+      this.analyseDCodeFile();
+    }
+  }
+
+
+  analyseCSVFile() {
+    // analyse contents of file loaded into editor
+    // e.g. extract navigation markers
+    var sess = this.aceEditor.session;
+
+    var numLines = sess.getLength();
+    var numMarkers = 0;
+    for (var i=1; i<=numLines; i++) {
+      var line = sess.getLine(i);
+
+      // analyse line
+      if (i>0) {
+        var parts = line.split(',');
+        
+        if (parts.length>=3) {
+          var lon = parseFloat(parts[0].trim());
+          var lat = parseFloat(parts[1].trim());
+          var radius = parseFloat(parts[2].trim());
+
+          // create or update marker
+          // -- target marker --
+          var el = document.createElement('div');
+          el.className = 'scriptMarker';
+
+          //console.log(numMarkers, this.node.scriptMarkers.length, this.node.scriptMarkers);
+
+
+          var marker;
+          if (numMarkers < this.node.scriptMarkers.length) {
+            marker = this.node.scriptMarkers[numMarkers];
+          } else {
+            marker = new mapboxgl.Marker(el)
+                .setLngLat([lon,lat])
+                .setDraggable(true)
+                .addTo(this.node.map);
+
+            marker.on('dragend', (e)=>{
+              const lngLat = e.target.getLngLat();
+
+              var newCmd = lngLat.lng.toFixed(12) + ', ' +lngLat.lat.toFixed(12)+ ', '+e.target.targetRadius;
+              sess.replace({
+                  start: {row: e.target.lineNumber, column: 0},
+                  end: {row: e.target.lineNumber, column: Number.MAX_VALUE}
+              }, newCmd);
+
+              this.aceEditor.selection.moveCursorTo(e.target.lineNumber, newCmd.length, false);
+              this.aceEditor.selection.clearSelection();
+
+            })
+
+            this.node.scriptMarkers.push(marker);
+          }
+
+          if (lon && lat) {
+            marker.setLngLat([lon,lat]);
+            marker.lineNumber = i;
+            marker.targetRadius = radius;
+          } else {
+            console.error('invalid coords:', lon, lat);
+          }
+
+
+          numMarkers++;
+        }
+      }
+    }
+
+    // delete redundant markers
+    while (numMarkers < this.node.scriptMarkers.length) {
+      this.node.scriptMarkers[this.node.scriptMarkers.length-1].remove();
+      this.node.scriptMarkers.pop();
+    }
+
+    if (this.node.scriptMarkers.length == 0) {
+      // clear script target outline
+      // set outline
+      var outlineData = {
+        "type": "Feature",
+        "geometry": {
+            "type": "Point",
+            "coordinates":  [  ]
+        }
+      }
+      var src = this.node.map.getSource('scriptOutline' + this.id);
+      if (src) src.setData(outlineData);
+    }
+
+    //console.log('done',numMarkers, this.node.scriptMarkers.length, this.node.scriptMarkers);
+  }
+
+
+  analyseDCodeFile() {
     // analyse contents of file loaded into editor
     // e.g. extract navigation markers
     var sess = this.aceEditor.session;
@@ -1395,15 +1461,120 @@ export default class Configuration extends Panel {
     // ignore if editor not visible
     if (!this.cuiEditorBlock.is(":visible")) return;
 
-    //var cursor = this.aceEditor.selection.getCursor();
     var cursor = this.aceEditor.getCursorPosition();
     var radius = 5;
     if (this.node.scriptMarkers.length > 0) {
       radius = this.node.scriptMarkers[this.node.scriptMarkers.length-1].targetRadius;
     }
-    var newCmd = '_Nav.goto '+coord.lng.toFixed(12)+' '+coord.lat.toFixed(12) + ' ' + radius.toFixed(1) + '\n';
+
+    var path = this.cuiEditorTitle.val();
+    var ext = path.slice(-3,).toLowerCase();
+    var newCmd = '';
+    if (ext == 'csv') {
+      newCmd = coord.lng.toFixed(12)+', '+coord.lat.toFixed(12) + ', ' + radius.toFixed(1) + '\n';
+    } else if (ext=='txt') {
+      newCmd = '_Nav.goto '+coord.lng.toFixed(12)+' '+coord.lat.toFixed(12) + ' ' + radius.toFixed(1) + '\n';
+    }
+
+     
     //console.log('inserting:', newCmd, cursor.row);
     this.aceEditor.session.insert(cursor, newCmd);
+  }
+
+
+  highlightMarker() {
+    var path = this.cuiEditorTitle.val();
+    var ext = path.slice(-3,).toLowerCase();
+    if (ext == 'csv') {
+      this.highlightCSVMarker();
+    } else if (ext=='txt') {
+      this.highlightDCodeMarker();
+    }
+  }
+
+
+  highlightCSVMarker() {
+    var cursor = this.aceEditor.selection.getCursor();
+    // get line for cursor
+    var line = this.aceEditor.session.getLine(cursor.row);
+    //console.log('line:', line);
+    if (cursor.row > 0) {
+      var parts = line.split(',');
+      if (parts.length >=3 ) {
+        //console.log('coord:',match[1],match[4],match[7]);
+
+        /*
+        // move map center to coord
+        var lon =  parseFloat(match[1]);
+        var lat = parseFloat(match[4]);
+        if (lon && lat) this.node.map.setCenter([ lon, lat])
+        */
+        // find matching marker
+        for (var i=0; i<this.node.scriptMarkers.length; i++) {
+          if (this.node.scriptMarkers[i].lineNumber == cursor.row) {
+            // found it
+            this.node.scriptMarkers[i].getElement().classList.add('active');
+
+            // set outline
+            var outlineData = this.node.createGeoJSONCircle([this.node.scriptMarkers[i]._lngLat.lng, this.node.scriptMarkers[i]._lngLat.lat], this.node.scriptMarkers[i].targetRadius);
+            var src = this.node.map.getSource('scriptOutline' + this.id);
+            if (src) src.setData(outlineData);
+
+            // see if visible
+            if (!this.node.map.getBounds().contains(this.node.scriptMarkers[i].getLngLat())) {
+              this.node.map.flyTo({center:this.node.scriptMarkers[i].getLngLat()});
+            }
+          } else {
+            this.node.scriptMarkers[i].getElement().classList.remove('active');
+          }
+        }
+      }
+
+    }
+  }
+
+
+  highlightDCodeMarker() {
+
+    var cursor = this.aceEditor.selection.getCursor();
+    // get line for cursor
+    var line = this.aceEditor.session.getLine(cursor.row);
+    //console.log('line:', line);
+    if (line.includes('.goto')) {
+      //console.log('goto!');
+      const regexp = /\s*([_]\w+)?\.\w+\s+(-?(0|[1-9]\d*)(\.\d+)?)\s+(-?(0|[1-9]\d*)(\.\d+)?)\s+(-?(0|[1-9]\d*)(\.\d+)?)/;
+      const match = line.match(regexp);
+      if (match) {
+        //console.log('coord:',match[1],match[4],match[7]);
+
+        /*
+        // move map center to coord
+        var lon =  parseFloat(match[1]);
+        var lat = parseFloat(match[4]);
+        if (lon && lat) this.node.map.setCenter([ lon, lat])
+        */
+        // find matching marker
+        for (var i=0; i<this.node.scriptMarkers.length; i++) {
+          if (this.node.scriptMarkers[i].lineNumber == cursor.row) {
+            // found it
+            this.node.scriptMarkers[i].getElement().classList.add('active');
+
+            // set outline
+            var outlineData = this.node.createGeoJSONCircle([this.node.scriptMarkers[i]._lngLat.lng, this.node.scriptMarkers[i]._lngLat.lat], this.node.scriptMarkers[i].targetRadius);
+            var src = this.node.map.getSource('scriptOutline' + this.id);
+            if (src) src.setData(outlineData);
+
+            // see if visible
+            if (!this.node.map.getBounds().contains(this.node.scriptMarkers[i].getLngLat())) {
+              this.node.map.flyTo({center:this.node.scriptMarkers[i].getLngLat()});
+            }
+          } else {
+            this.node.scriptMarkers[i].getElement().classList.remove('active');
+          }
+        }
+      }
+
+    }
   }
 
 }
