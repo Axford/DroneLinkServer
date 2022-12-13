@@ -1294,6 +1294,7 @@ export default class Configuration extends Panel {
 
           //console.log(numMarkers, this.node.scriptMarkers.length, this.node.scriptMarkers);
 
+          if (isNaN(lon) || isNaN(lat)) continue;
 
           var marker;
           if (numMarkers < this.node.scriptMarkers.length) {
