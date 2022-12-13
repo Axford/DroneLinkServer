@@ -910,6 +910,22 @@ export default class Configuration extends Panel {
     this.title = 'Configuration';
     this.icon = 'fas fa-folder-open';
 
+    // -- marker trail --
+    this.node.markerTrailName = 'markerTrail' + this.node.id;
+    this.node.markerTrail = { "type": "LineString", "coordinates": [  ] };
+    this.node.map.addSource(this.node.markerTrailName, { type: 'geojson', lineMetrics: true, data: this.node.markerTrail });
+    this.node.map.addLayer({
+      'id': this.node.markerTrailName,
+      'type': 'line',
+      'source': this.node.markerTrailName,
+      'paint': {
+        'line-color': '#88f',
+        'line-opacity': 0.8,
+        'line-width': 2,
+        'line-dasharray': [2,2]
+      }
+    });
+
     this.build();
 
     this.root = new DroneFSEntry(this, this.node.state.socket, this.node.id, null, '/', true, this.cuiFilesOnNodeFiles);
@@ -1273,6 +1289,8 @@ export default class Configuration extends Panel {
     // e.g. extract navigation markers
     var sess = this.aceEditor.session;
 
+    this.node.markerTrail.coordinates = [];
+
     var numLines = sess.getLength();
     var numMarkers = 0;
     for (var i=1; i<=numLines; i++) {
@@ -1343,6 +1361,8 @@ export default class Configuration extends Panel {
 
             markerLabel.setLngLat([lon,lat]);
             markerLabel.getElement().innerHTML = i;
+
+            this.node.markerTrail.coordinates.push([lon,lat]);
           } else {
             console.error('invalid coords:', lon, lat);
           }
@@ -1378,6 +1398,9 @@ export default class Configuration extends Panel {
       var src = this.node.map.getSource('scriptOutline' + this.id);
       if (src) src.setData(outlineData);
     }
+
+    var src = this.node.map.getSource(this.node.markerTrailName);
+    if (src) src.setData(this.node.markerTrail);
   }
 
 
