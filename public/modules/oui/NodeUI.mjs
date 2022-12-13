@@ -31,6 +31,7 @@ export default class NodeUI {
     this.ipAddress = '';
     this.selectedNodeFilename = '';
     this.scriptMarkers = [];
+    this.scriptMarkerLabels = [];
     this.focused = false;
     this.heading= 0;
 

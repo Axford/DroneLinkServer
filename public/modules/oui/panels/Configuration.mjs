@@ -1296,9 +1296,10 @@ export default class Configuration extends Panel {
 
           if (isNaN(lon) || isNaN(lat)) continue;
 
-          var marker;
+          var marker, markerLabel;
           if (numMarkers < this.node.scriptMarkers.length) {
             marker = this.node.scriptMarkers[numMarkers];
+            markerLabel = this.node.scriptMarkerLabels[numMarkers];
           } else {
             marker = new mapboxgl.Marker(el)
                 .setLngLat([lon,lat])
@@ -1317,15 +1318,31 @@ export default class Configuration extends Panel {
               this.aceEditor.selection.moveCursorTo(e.target.lineNumber, newCmd.length, false);
               this.aceEditor.selection.clearSelection();
 
-            })
+            });
 
             this.node.scriptMarkers.push(marker);
+
+            // label
+            // -- marker label --
+            var labelEl = document.createElement('div');
+            labelEl.className = 'markerLabel';
+            labelEl.innerHTML = i;
+            markerLabel = new mapboxgl.Marker({
+              element:labelEl,
+              anchor:'left'
+            })
+                  .setLngLat([lon,lat])
+                  .addTo(this.node.map);
+            this.node.scriptMarkerLabels.push(markerLabel);
           }
 
           if (lon && lat) {
             marker.setLngLat([lon,lat]);
             marker.lineNumber = i;
             marker.targetRadius = radius;
+
+            markerLabel.setLngLat([lon,lat]);
+            markerLabel.getElement().innerHTML = i;
           } else {
             console.error('invalid coords:', lon, lat);
           }
@@ -1342,6 +1359,12 @@ export default class Configuration extends Panel {
       this.node.scriptMarkers.pop();
     }
 
+    // delete redundant labels
+    while (numMarkers < this.node.scriptMarkerLabels.length) {
+      this.node.scriptMarkerLabels[this.node.scriptMarkerLabels.length-1].remove();
+      this.node.scriptMarkerLabels.pop();
+    }
+
     if (this.node.scriptMarkers.length == 0) {
       // clear script target outline
       // set outline
@@ -1355,8 +1378,6 @@ export default class Configuration extends Panel {
       var src = this.node.map.getSource('scriptOutline' + this.id);
       if (src) src.setData(outlineData);
     }
-
-    //console.log('done',numMarkers, this.node.scriptMarkers.length, this.node.scriptMarkers);
   }
 
 
