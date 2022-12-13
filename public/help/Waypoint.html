@@ -5,26 +5,26 @@
 <div><a href="index.html">&lt; Help Index</a></div>
 
 <h1>Waypoint</h1>
-<p>Base class: <i></i></p>
+<p>Base class: <i>Drone</i></p>
 <p>Load and manage a series of waypoints from a CSV file</p>
 
 <h2>Usage Guide</h2>
-pub
-mode 0 = normal, 1 = reload waypoints
-current waypoint number u8
-number of waypoints u8
-target - current loaded waypoint
+<p>Load and manage stepping through a series of waypoints, defined in /waypoint.csv.</p>
 
-sub
-location
-
-xxx
+<p>Example:</p>
+<pre>
+lon,lat,radius
+-1.744739150337,51.541523406305,10.0
+-1.744404186599,51.542305699213,15.0
+-1.746584868898,51.542284441432,10.0
+-1.746516508951,51.541510651418,10.0
+</pre>
 
 <h2>Example Configuration</h2>
-<pre>Waypoint.new x
-  name "Waypoint"
-  
-.done</pre>
+<pre>[Waypoint=4]
+  name=Waypoint
+  $location=@>50.9
+  publish =mode, waypoint, waypoints, target, location</pre>
 
 <h2>Subs (inputs)</h2>
 <table>
@@ -81,7 +81,7 @@ xxx
     <td>target</td>
     <td>f</td>
     <td>3</td>
-    <td>Target location of current waypoint</td>
+    <td>Target location of current waypoint, feed to Nav.target</td>
   </tr>
 </table>
 

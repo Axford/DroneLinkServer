@@ -5,18 +5,15 @@
 <div><a href="index.html">&lt; Help Index</a></div>
 
 <h1>UDPTelemetry</h1>
-<p>Base class: <i></i></p>
+<p>Base class: <i>Drone</i></p>
 <p>Manages DroneLink telemetry using UDP broadcast over WiFi</p>
 
 
 <h2>Example Configuration</h2>
-<pre>UDPTelemetry.new 2
-  name "UDPT"
-  status 1 // enable
-  port 8007
-  broadcast 255 255 255 255
-  .sub [@>0.0]
-.done</pre>
+<pre>[UDPTelemetry=2]
+  name=UDPT
+  port =8007
+  broadcast =255, 255, 255, 255</pre>
 
 <h2>Subs (inputs)</h2>
 <table>
@@ -38,6 +35,20 @@
     <th>Type</th>
     <th>#</th>
     <th>Description</th>
+  </tr>
+  <tr>
+    <td>8</td>
+    <td>port</td>
+    <td>u32</td>
+    <td>1</td>
+    <td>UDP port to broadcast to, default 8007</td>
+  </tr>
+  <tr>
+    <td>9</td>
+    <td>broadcast</td>
+    <td>u8</td>
+    <td>4</td>
+    <td>IP address to broadcast to, default: 255,255,255,255</td>
   </tr>
   <tr>
     <td>10</td>

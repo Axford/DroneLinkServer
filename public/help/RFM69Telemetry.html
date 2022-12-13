@@ -5,16 +5,14 @@
 <div><a href="index.html">&lt; Help Index</a></div>
 
 <h1>RFM69Telemetry</h1>
-<p>Base class: <i></i></p>
+<p>Base class: <i>Drone</i></p>
 <p>Manages DroneLink telemetry using an RFM69HW radio module</p>
 
 
 <h2>Example Configuration</h2>
-<pre>RFM69Telemetry.new 3
-  name "RFM69"
-  status 1  // enable
-  .publish "RSSI"
-.done</pre>
+<pre>[RFM69Telemetry=3]
+  name= RFM69
+  publish= RSSI,packets,speed,power</pre>
 
 <h2>Subs (inputs)</h2>
 <table>

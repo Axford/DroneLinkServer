@@ -5,7 +5,7 @@
 <div><a href="index.html">&lt; Help Index</a></div>
 
 <h1>Wind</h1>
-<p>Base class: <i>I2CBaseModule</i></p>
+<p>Base class: <i>I2CBase</i></p>
 <p>Manages a Wind speed and direction sensor.</p>
 
 <h2>Usage Guide</h2>
@@ -13,15 +13,13 @@
 - Wind speed from cup anemometor on an digital input with internal pullup
 
 <h2>Example Configuration</h2>
-<pre>Wind.new 14
-   bus 4
-   interval 100
-   $heading [@>8.11]
-   centre 0
-
-   .publish "wind" // .14
-   .publish "centre"
-.done</pre>
+<pre>[Wind= 14]
+  name= "Wind"
+  interval= 100
+  bus= 4
+  $heading= @>8.11
+  centre= -10
+  publish= heading, direction, centre, wind</pre>
 
 <h2>Subs (inputs)</h2>
 <table>

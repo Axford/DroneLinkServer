@@ -12,28 +12,14 @@
 Target waypoints are defined in terms of Lon Lat and target Radius in meters.
 
 <h2>Example Configuration</h2>
-<pre>Nav.new 9
-  name "Nav"
-  status 1
-  interval 50
-  $location [@>7.8]
-  target -1.7458734889 51.541622044 5
-  crosswind 0.2
-  correction 20
-  wind 0
-  .publish "target"
-  .publish "location"
-  .publish "heading"
-  .publish "distance"
-  .publish "mode"
-  .publish "last"
-  .publish "home"
-  .publish "crosstrack"
-  .publish "correction"
-  .publish "wind"
-  .publish "crosswind"
-  .publish "adjHeading"
-.done</pre>
+<pre>[Nav= 9]
+  name= "Nav"
+  interval= 50
+  crosswind = 0.2
+  correction = 20
+  $location= @>7.8
+  target= -1.82, 51.56, 100
+  publish = target, location, heading, distance, mode, last, home, crosstrack</pre>
 
 <h2>Subs (inputs)</h2>
 <table>
@@ -45,6 +31,30 @@ Target waypoints are defined in terms of Lon Lat and target Radius in meters.
     <th>#</th>
     <th>Description</th>
   </tr>
+  <tr>
+    <td>10</td>
+    <td>11</td>
+    <td>location</td>
+    <td>f</td>
+    <td>3</td>
+    <td>Current location from GPS.location</td>
+  </tr>
+  <tr>
+    <td>12</td>
+    <td>13</td>
+    <td>target</td>
+    <td>f</td>
+    <td>3</td>
+    <td>Target location, typically from Waypoint.target</td>
+  </tr>
+  <tr>
+    <td>21</td>
+    <td>22</td>
+    <td>wind</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Current wind direction to allow for crosswind compensation</td>
+  </tr>
 </table>
 
 <h2>Pubs (outputs / config)</h2>
@@ -55,6 +65,69 @@ Target waypoints are defined in terms of Lon Lat and target Radius in meters.
     <th>Type</th>
     <th>#</th>
     <th>Description</th>
+  </tr>
+  <tr>
+    <td>8</td>
+    <td>heading</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Target heading to reach target, feed to Sailor.target or TurnRate.target</td>
+  </tr>
+  <tr>
+    <td>9</td>
+    <td>distance</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Distance to target in meters</td>
+  </tr>
+  <tr>
+    <td>14</td>
+    <td>mode</td>
+    <td>u8</td>
+    <td>1</td>
+    <td>0=idle, 1=goto, 2=follow, 3=absolute course, 4=relative course, 5=backaway, 6=orbit</td>
+  </tr>
+  <tr>
+    <td>15</td>
+    <td>last</td>
+    <td>f</td>
+    <td>3</td>
+    <td>Location when we last received a new target, used to plan track</td>
+  </tr>
+  <tr>
+    <td>16</td>
+    <td>home</td>
+    <td>f</td>
+    <td>3</td>
+    <td>First valid location received since boot, used as home location</td>
+  </tr>
+  <tr>
+    <td>17</td>
+    <td>crosstrack</td>
+    <td>f</td>
+    <td>1</td>
+    <td>crosstrack ratio indicating distance from ideal track</td>
+  </tr>
+  <tr>
+    <td>18</td>
+    <td>correction</td>
+    <td>f</td>
+    <td>1</td>
+    <td>How much to adjust heading to stay on ideal track</td>
+  </tr>
+  <tr>
+    <td>19</td>
+    <td>crosswind</td>
+    <td>f</td>
+    <td>1</td>
+    <td>How much crosswind effect to account for - larger values cause heading to turn into the wind</td>
+  </tr>
+  <tr>
+    <td>20</td>
+    <td>adjHeading</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Heading adjusted for crosswind, feed to Sailor.target or TurnRate.target</td>
   </tr>
 </table>
 

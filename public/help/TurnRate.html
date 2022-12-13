@@ -5,7 +5,7 @@
 <div><a href="index.html">&lt; Help Index</a></div>
 
 <h1>TurnRate</h1>
-<p>Base class: <i></i></p>
+<p>Base class: <i>Drone</i></p>
 <p>Generate a turnRate command based on target vs current heading using a PID controller</p>
 
 <h2>Usage Guide</h2>
@@ -29,17 +29,15 @@
 </ul>
 
 <h2>Example Configuration</h2>
-<pre>TurnRate.new 8
-  name "TurnRate"
-  PID (f) 0.005 0.0 0.0001
-  interval 50
-  $target [@>22.14]
-  $heading [@>50.8]
-  .publish "target"
-  .publish "heading"
-  .publish "PID"
-  .publish "turnRate"
-.done</pre>
+<pre>[TurnRate=8]
+  name=TurnRate
+  PID=0.005, 0.0, 0.0001
+  interval=50
+  threshold=30
+  timeout=25
+  $target=@>Polar.adjHeading
+  $heading=@>50.8
+  publish=target, heading, PID, turnRate, mode</pre>
 
 <h2>Subs (inputs)</h2>
 <table>
@@ -102,7 +100,7 @@
   </tr>
   <tr>
     <td>18</td>
-    <td>tiumeout</td>
+    <td>timeout</td>
     <td>f</td>
     <td>1</td>
     <td>Timeout duration in seconds after which to initiate the gybe (default 10s)</td>

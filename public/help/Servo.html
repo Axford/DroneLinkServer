@@ -10,20 +10,16 @@
 
 
 <h2>Example Configuration</h2>
-<pre>Servo.new 13
-  position 0
-  pins OUT0_1
-  status 1
-  name "Rudder"
-  map 30 70 110 150
-  centre 8
-  $position [@>11.16]
-  interval 100
-  .publish "map"
-  .publish "centre"
-  .publish "position"
-  .publish "output"
-.done</pre>
+<pre>[Servo= 13]
+  position= 0
+  pins= 4
+  status= 1
+  name= "Rudder"
+  map= 50, 80, 100, 130
+  centre= 8
+  $position= @>11.16 
+  interval= 100
+  publish= map, centre, position, output</pre>
 
 <h2>Subs (inputs)</h2>
 <table>
@@ -34,46 +30,6 @@
     <th>Type</th>
     <th>#</th>
     <th>Description</th>
-  </tr>
-  <tr>
-    <td></td>
-    <td></td>
-    <td></td>
-    <td>Servo</td>
-    <td></td>
-    <td>Manages a PWM servo channel</td>
-  </tr>
-  <tr>
-    <td></td>
-    <td></td>
-    <td></td>
-    <td>Servo</td>
-    <td></td>
-    <td>Manages a PWM servo channel</td>
-  </tr>
-  <tr>
-    <td></td>
-    <td></td>
-    <td></td>
-    <td>Servo</td>
-    <td></td>
-    <td>Manages a PWM servo channel</td>
-  </tr>
-  <tr>
-    <td></td>
-    <td></td>
-    <td></td>
-    <td>Servo</td>
-    <td></td>
-    <td>Manages a PWM servo channel</td>
-  </tr>
-  <tr>
-    <td></td>
-    <td></td>
-    <td></td>
-    <td>Servo</td>
-    <td></td>
-    <td>Manages a PWM servo channel</td>
   </tr>
   <tr>
     <td>8</td>
@@ -93,6 +49,41 @@
     <th>Type</th>
     <th>#</th>
     <th>Description</th>
+  </tr>
+  <tr>
+    <td>10</td>
+    <td>pins</td>
+    <td>u8</td>
+    <td>1</td>
+    <td>Servo output pin, see <a href="pins.html">Pin Mappings</a></td>
+  </tr>
+  <tr>
+    <td>11</td>
+    <td>limits</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Movement rate limit in degrees/second</td>
+  </tr>
+  <tr>
+    <td>12</td>
+    <td>map</td>
+    <td>f</td>
+    <td>4</td>
+    <td>Bezier curve control points to map input (-1..1) to output (0..180)</td>
+  </tr>
+  <tr>
+    <td>13</td>
+    <td>centre</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Centre adjustment, applied after map</td>
+  </tr>
+  <tr>
+    <td>14</td>
+    <td>output</td>
+    <td>f</td>
+    <td>1</td>
+    <td>The raw angle sent to the Servo PWM controller (0..180)</td>
   </tr>
 </table>
 

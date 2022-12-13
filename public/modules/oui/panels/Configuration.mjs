@@ -1551,7 +1551,7 @@ export default class Configuration extends Panel {
 
       // also check inherited properties
       if (m.hasOwnProperty('inherits')) {
-        return this.checkValidParam(m.inherits[0], pName);
+        return this.checkValidPubOrSub(m.inherits[0], pName);
       }
     }
     return false;

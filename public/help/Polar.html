@@ -30,30 +30,19 @@ relative wind direction.  This may need a separate calibration process.</p>
 </ul>
 
 <h2>Example Configuration</h2>
-<pre>Polar.new 22
-  name "Polar"
-  interval 1000
-  $location [@>50.9]
-  $wind [@>50.10]
-  windSpeed 1
-  $heading [@>12.16]
-  target -1.7454870 51.5418469
-  threshold -1 100
-  radius 10 20 50
-  mode 1
-  .publish "location"
-  .publish "SOG"
-  .publish "wind"
-  .publish "windSpeed"
-  .publish "heading"
-  .publish "adjHeading"
-  .publish "mode"
-  .publish "target"
-  .publish "threshold"
-  .publish "radius"
-  .publish "samples"
-  .publish "polar"
-.done</pre>
+<pre>[Polar=13]
+  name="Polar"
+  interval=1000
+  $location=@>50.9
+  $wind=@>50.10
+  windSpeed =1
+  $heading=@>Sailor.course
+  target =-1.7454870, 51.5418469
+  threshold =-1, 100
+  radius =10, 20, 50
+  mode= 1
+  publish =l ocation, SOG, wind, windSpeed, heading, polar
+  publish = adjHeading, mode, target, threshold, radius, samples</pre>
 
 <h2>Subs (inputs)</h2>
 <table>
@@ -64,22 +53,6 @@ relative wind direction.  This may need a separate calibration process.</p>
     <th>Type</th>
     <th>#</th>
     <th>Description</th>
-  </tr>
-  <tr>
-    <td></td>
-    <td></td>
-    <td></td>
-    <td>Polar</td>
-    <td></td>
-    <td>Sail polar calibration module</td>
-  </tr>
-  <tr>
-    <td></td>
-    <td></td>
-    <td></td>
-    <td>Polar</td>
-    <td></td>
-    <td>Sail polar calibration module</td>
   </tr>
   <tr>
     <td>20</td>
@@ -106,20 +79,20 @@ relative wind direction.  This may need a separate calibration process.</p>
     <td>Wind angle</td>
   </tr>
   <tr>
-    <td></td>
-    <td></td>
-    <td></td>
-    <td>Polar</td>
-    <td></td>
-    <td>Sail polar calibration module</td>
+    <td>36</td>
+    <td>37</td>
+    <td>windSpeed</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Wind speed</td>
   </tr>
   <tr>
-    <td></td>
-    <td></td>
-    <td></td>
-    <td>Polar</td>
-    <td></td>
-    <td>Sail polar calibration module</td>
+    <td>38</td>
+    <td>39</td>
+    <td>heading</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Target heading from Sailor</td>
   </tr>
 </table>
 
@@ -166,6 +139,20 @@ relative wind direction.  This may need a separate calibration process.</p>
     <td>u8</td>
     <td>16</td>
     <td>Number of samples per polar bin</td>
+  </tr>
+  <tr>
+    <td>13</td>
+    <td>radius</td>
+    <td>f</td>
+    <td>3</td>
+    <td>Inner, mid and outer target radii</td>
+  </tr>
+  <tr>
+    <td>14</td>
+    <td>adjHeading</td>
+    <td>f</td>
+    <td>2</td>
+    <td>Adjusted heading - either passthrough of <b>Heading</b> or generated heading depending on mode</td>
   </tr>
 </table>
 
