@@ -1,0 +1,109 @@
+<link rel="stylesheet" href="../css/help.css">
+
+<div class="helpContent">
+
+<div><a href="index.html">&lt; Help Index</a></div>
+
+<h1>INA219</h1>
+<p>Base class: <i>Drone</i></p>
+<p>Manages an INA219 I2C power monitoring module</p>
+
+
+<h2>Example Configuration</h2>
+<pre>[INA219= 4]
+  name= "Power"
+  bus= 1
+  addr= 64
+  interval= 1000
+  cells= 2
+  threshold= 6.4
+  status= 1
+  publish =current, power, loadV, alarm, shuntV, busV, cellV</pre>
+
+<h2>Subs (inputs)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Addr Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+</table>
+
+<h2>Pubs (outputs / config)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>10</td>
+    <td>shuntV</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Voltage across shunt</td>
+  </tr>
+  <tr>
+    <td>11</td>
+    <td>busV</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Bus voltage</td>
+  </tr>
+  <tr>
+    <td>12</td>
+    <td>current</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Current (Amps)</td>
+  </tr>
+  <tr>
+    <td>13</td>
+    <td>power</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Power (Watts)</td>
+  </tr>
+  <tr>
+    <td>14</td>
+    <td>loadV</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Load voltage</td>
+  </tr>
+  <tr>
+    <td>15</td>
+    <td>cellV</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Cell voltage (loadV / cells)</td>
+  </tr>
+  <tr>
+    <td>16</td>
+    <td>alarm</td>
+    <td>u8</td>
+    <td>1</td>
+    <td>Set to 1 when alarm triggered, 0 otherwise</td>
+  </tr>
+  <tr>
+    <td>17</td>
+    <td>cells</td>
+    <td>u8</td>
+    <td>1</td>
+    <td>Number of cells (e.g. for a liPo pack)</td>
+  </tr>
+  <tr>
+    <td>18</td>
+    <td>threshold</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Threshold voltage below which alarm is triggered (loadV < threshold)</td>
+  </tr>
+</table>
+
+</div>

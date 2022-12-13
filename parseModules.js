@@ -5,7 +5,7 @@ Update a json map of all available modules by scanning the DroneLink modules dir
 */
 const modulesPath = '../DroneNode/src/droneModules/';
 const baseDroneModulePath = '../DroneNode/src/DroneModule.h';
-const outputFile = 'moduleInfo.json';
+const outputFile = 'public/moduleInfo.json';
 const fs = require('fs');
 
 var moduleInfo = {};  // the parsed map of module info

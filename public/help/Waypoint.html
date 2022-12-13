@@ -1,0 +1,88 @@
+<link rel="stylesheet" href="../css/help.css">
+
+<div class="helpContent">
+
+<div><a href="index.html">&lt; Help Index</a></div>
+
+<h1>Waypoint</h1>
+<p>Base class: <i></i></p>
+<p>Load and manage a series of waypoints from a CSV file</p>
+
+<h2>Usage Guide</h2>
+pub
+mode 0 = normal, 1 = reload waypoints
+current waypoint number u8
+number of waypoints u8
+target - current loaded waypoint
+
+sub
+location
+
+xxx
+
+<h2>Example Configuration</h2>
+<pre>Waypoint.new x
+  name "Waypoint"
+  
+.done</pre>
+
+<h2>Subs (inputs)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Addr Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>12</td>
+    <td>13</td>
+    <td>location</td>
+    <td>f</td>
+    <td>3</td>
+    <td>Location from GPS</td>
+  </tr>
+</table>
+
+<h2>Pubs (outputs / config)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>8</td>
+    <td>mode</td>
+    <td>u8</td>
+    <td>1</td>
+    <td>Mode 0=normal, 1=Reload waypoint.csv</td>
+  </tr>
+  <tr>
+    <td>9</td>
+    <td>waypoints</td>
+    <td>u8</td>
+    <td>1</td>
+    <td>How many waypoints are loaded</td>
+  </tr>
+  <tr>
+    <td>10</td>
+    <td>waypoint</td>
+    <td>u8</td>
+    <td>1</td>
+    <td>Current waypoint number</td>
+  </tr>
+  <tr>
+    <td>11</td>
+    <td>target</td>
+    <td>f</td>
+    <td>3</td>
+    <td>Target location of current waypoint</td>
+  </tr>
+</table>
+
+</div>

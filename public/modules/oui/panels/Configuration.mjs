@@ -7,6 +7,8 @@ import { getFirestore,  collection, doc, setDoc, addDoc, getDocs, deleteDoc, que
 import { DRONE_MESH_MSG_TYPE_LINK_CHECK_REQUEST } from '../../DroneMeshMsg.mjs';
 //import { bgBlue } from 'colors/index.js';
 
+import moduleInfo from "/moduleInfo.json" assert { type: "json" };
+
 
 loadStylesheet('./css/modules/oui/panels/Configuration.css');
 
@@ -1065,6 +1067,7 @@ export default class Configuration extends Panel {
     this.aceEditor.session.selection.on('changeCursor', (e)=>{
       this.highlightMarker();
     });
+
     //const syntax = new DCodeSyntax();
     //console.log(this.aceEditor.session);
     //this.aceEditor.session.setMode(syntax.mode);
@@ -1503,7 +1506,7 @@ export default class Configuration extends Panel {
           }
         } else {
           // skip whitespace, add anything else to buffer
-          if (c != ' ' || 
+          if (c != ' ' && 
               c != '\t') {
             buf += c;
           }
@@ -1573,6 +1576,16 @@ export default class Configuration extends Panel {
               });
             } else {
               moduleName = nv.name;
+
+              // see if its a valid module name
+              if (!moduleInfo.hasOwnProperty(moduleName)) {
+                annotations.push({
+                    row: i,
+                    column: 0,
+                    text: "Unknown module type",
+                    type: "error"
+                });
+              }
 
             }
 
