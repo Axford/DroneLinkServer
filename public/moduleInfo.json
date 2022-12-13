@@ -1499,7 +1499,13 @@
                 "name": "speed2",
                 "description": "polar plot of estimated speeds by heading - 180-360"
             },
-            "21;u8;3;flags;[0] = onStarboardTack;  [1] = tackLocked;  [2] = lastCrossTrackPositive",
+            {
+                "address": 21,
+                "type": "u8",
+                "numValues": 3,
+                "name": "flags",
+                "description": "[0] = onStarboardTack,  [1] = tackLocked,  [2] = lastCrossTrackPositive"
+            },
             {
                 "address": 22,
                 "type": "u8",
