@@ -5,6 +5,7 @@ import * as DMFS from '../../DroneMeshFS.mjs';
 
 import { getFirestore,  collection, doc, setDoc, addDoc, getDocs, deleteDoc, query, onSnapshot, where } from "https://www.gstatic.com/firebasejs/9.14.0/firebase-firestore.js";
 import { DRONE_MESH_MSG_TYPE_LINK_CHECK_REQUEST } from '../../DroneMeshMsg.mjs';
+//import { bgBlue } from 'colors/index.js';
 
 
 loadStylesheet('./css/modules/oui/panels/Configuration.css');
@@ -1258,6 +1259,8 @@ export default class Configuration extends Panel {
       this.analyseCSVFile();
     } else if (ext=='txt') {
       this.analyseDCodeFile();
+    } else if (ext=='ini') {
+      this.analyseINIFile();
     }
   }
 
@@ -1453,6 +1456,163 @@ export default class Configuration extends Panel {
     //console.log('done',numMarkers, this.node.scriptMarkers.length, this.node.scriptMarkers);
   }
 
+
+  parseININameValue(line) {
+    var res = {
+      name: '',
+      value:'',
+      error:''
+    };
+
+    var inString = false,
+        inValue = false,
+        buf = '';
+
+    for (var i=0; i<line.length; i++) {
+      var c = line[i];
+      if (inString) {
+        if (c == '"') {
+          // end of string
+          inString = false;
+        } else {
+          buf += c;
+        }
+      } else {
+        if (c == '"') {
+          // check this is the first character we've seen
+          if (buf.length >0) {
+            res.error = 'text encountered before quotation marks';
+            break;
+          } else {
+            inString =true;
+          }
+        } else if (c == '=') {
+          if (!inValue) {
+            // store name
+            if (buf.length > 0) {
+              res.name = buf;
+              buf = '';
+            } else {
+              res.error = 'Undefined parameter name';
+              break;
+            }
+            inValue = true;
+          } else {
+            res.error = 'unexpected equals character';
+            break;
+          }
+        } else {
+          // skip whitespace, add anything else to buffer
+          if (c != ' ' || 
+              c != '\t') {
+            buf += c;
+          }
+        }
+      }
+    }
+
+    // store value
+    if (inValue) {
+      if (buf.length > 0) {
+        res.value = buf;
+      } else {
+        res.error = 'Undefined parameter value'
+      }
+    } else {
+      res.error = 'Undefined parameter value'
+    }
+
+    return res;
+  }
+
+
+  analyseINIFile() {
+    // analyse contents of config file... check for syntax errors, etc
+    var sess = this.aceEditor.session;
+
+    // clear any existing annotations
+    sess.clearAnnotations();
+
+    // setup syntax parser
+    var nodeId = 0,
+        moduleName = '';
+
+    var annotations = [];
+
+    var numLines = sess.getLength();
+    var numMarkers = 0;
+    for (var i=0; i<numLines; i++) {
+      var line = sess.getLine(i).trim();
+
+      if (line.length > 0) {
+        if (line[0] == ';') {
+          // comment, so skip
+        } else if (line[0] == '[') {
+          // new section 
+          // check ends with a ] 
+          if (line[line.length-1] == ']') {
+            // check we've had a valid node id
+            if (nodeId == 0) {
+              annotations.push({
+                  row: 0,
+                  column: 0,
+                  text: "node ID not defined before first module, e.g. node=1",
+                  type: "error"
+              });
+            }
+
+            // parse
+            var nv = this.parseININameValue(line.slice(1,line.length-1));
+
+            if (nv.error != '') {
+              annotations.push({
+                  row: i,
+                  column: 0,
+                  text: nv.error,
+                  type: "error"
+              });
+            } else {
+              moduleName = nv.name;
+
+            }
+
+          } else {
+            // error, no closing bracket
+            annotations.push({
+                row: i,
+                column: 0,
+                text: "No closing ] bracket",
+                type: "error"
+            });
+          }
+        } else {
+          // should be a regular name = value, possibly quoted
+          var nv = this.parseININameValue(line);
+
+          if (nv.error != '') {
+            annotations.push({
+                row: i,
+                column: 0,
+                text: nv.error,
+                type: "error"
+            });
+          } else {
+            if (moduleName == '') {
+              //console.log('parsed param: '+ nv.name + '=' + nv.value);
+              // is this the nodeId?
+              if (nv.name == 'node') {
+                nodeId = parseInt(nv.value);
+              }
+            }
+          }
+        }
+      }
+      
+    }
+
+    sess.setAnnotations(annotations);
+  }
+  
 
   insertGoto(coord) {
     // ignore if not on configuration tab
