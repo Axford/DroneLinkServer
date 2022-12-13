@@ -6,6 +6,44 @@
         "description": [
             "Base class for Drone modules"
         ],
+        "pub": [
+            {
+                "address": 1,
+                "type": "u8",
+                "numValues": 1,
+                "name": "status",
+                "description": "0=disabled, 1=enabled, write a value of 2 or above to trigger reset"
+            },
+            {
+                "address": 2,
+                "type": "c",
+                "numValues": 16,
+                "name": "name",
+                "description": "Module name"
+            },
+            "3;u8;1;1=error, 0=no error",
+            {
+                "address": 4,
+                "type": "u32",
+                "numValues": 1,
+                "name": "resetCount",
+                "description": "Module reset count, e.g. for I2C errors"
+            },
+            {
+                "address": 5,
+                "type": "c",
+                "numValues": 16,
+                "name": "type",
+                "description": "Module type name (class name)"
+            },
+            {
+                "address": 6,
+                "type": "u32",
+                "numValues": 1,
+                "name": "interval",
+                "description": "Number of milliseconds between updates"
+            }
+        ],
         "filename": [
             "../DroneNode/src/DroneModule.h"
         ]

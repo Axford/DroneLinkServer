@@ -1529,6 +1529,69 @@ export default class Configuration extends Panel {
   }
 
 
+  checkValidPubOrSub(moduleName, pName) {
+    if (moduleInfo.hasOwnProperty(moduleName)) {
+      var m = moduleInfo[moduleName];
+
+      if (m.hasOwnProperty('pub')) {
+        // check pubs
+        for (var i=0; i<m.pub.length; i++) {
+          var p = m.pub[i];
+          if (p.name == pName) return true;
+        }
+      }
+
+      if (m.hasOwnProperty('sub')) {
+        // check subs
+        for (var i=0; i<m.sub.length; i++) {
+          var p = m.sub[i];
+          if (p.name == pName) return true;
+        }
+      }
+
+      // also check inherited properties
+      if (m.hasOwnProperty('inherits')) {
+        return this.checkValidParam(m.inherits[0], pName);
+      }
+    }
+    return false;
+  }
+
+  checkValidParam(moduleName, pName, pValue) {
+    var res = {
+      error: ''
+    };
+
+    if (moduleInfo.hasOwnProperty(moduleName)) {
+      // valid module
+      if (pName == 'publish') {
+        // check if pValue is a valid list of parameters (pub or sub)
+        var parts = pValue.split(',');
+
+        // check each part to see if it's valid
+        for (var i=0; i<parts.length; i++) {
+          if (!this.checkValidPubOrSub(moduleName, parts[i])) { 
+            res.error += parts[i] + ' is an unknown param for this module type; '
+          }
+        }
+
+      } else {
+        // check pName is a valid pub or sub
+        if (pName[0] == '$') pName = pName.slice(1);
+        if (!this.checkValidPubOrSub(moduleName, pName)) { 
+          res.error = 'Uknown param for this module type'
+        }
+
+      }
+
+    } else {
+      res.error = 'Uknown module type';
+    }
+
+    return res;
+  }
+
+
   analyseINIFile() {
     // analyse contents of config file... check for syntax errors, etc
     var sess = this.aceEditor.session;
@@ -1615,6 +1678,18 @@ export default class Configuration extends Panel {
               // is this the nodeId?
               if (nv.name == 'node') {
                 nodeId = parseInt(nv.value);
+              }
+            } else {
+              // see if its a valid param name
+              var pv = this.checkValidParam(moduleName, nv.name, nv.value);
+
+              if (pv.error != '') {
+                annotations.push({
+                    row: i,
+                    column: 0,
+                    text: pv.error,
+                    type: "error"
+                });
               }
             }
           }
