@@ -558,10 +558,10 @@
             },
             {
                 "address": 17,
-                "type": "c",
+                "type": "u8",
                 "numValues": 1,
-                "name": "macro",
-                "description": "Set to the path to a macro file (.txt file) to run the associated macro.  Note - the macro must be loaded first (e.g. via config.txt)."
+                "name": "save",
+                "description": "Set to 1 to save the live config"
             },
             {
                 "address": 18,
@@ -581,7 +581,7 @@
                 "address": 20,
                 "type": "u32",
                 "numValues": 1,
-                "name": "cpu",
+                "name": "CPU",
                 "description": "CPU freq in MHz, valid values 240, 160, 80"
             }
         ],
@@ -1979,6 +1979,13 @@
                 "numValues": 3,
                 "name": "target",
                 "description": "Target location of current waypoint, feed to Nav.target"
+            },
+            {
+                "address": 12,
+                "type": "u8",
+                "numValues": 1,
+                "name": "loop",
+                "description": "0=stop at end of file, 1=loop"
             }
         ],
         "filename": [

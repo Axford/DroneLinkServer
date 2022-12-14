@@ -78,7 +78,7 @@ export default class Management {
     this.ui.append(this.ipAddress);
 
 
-		this.config = $('<button class="btn btn-sm btn-primary mb-2 ml-1 mr-1">Config</button>');
+		this.config = $('<button class="btn btn-sm btn-primary mb-2 ml-1 mr-1">Web Mgmt</button>');
 		this.config.on('click', ()=>{
 			// get node IP address
 			var ipAddress = this.state.getParamValues(node, channel, 12, [0,0,0,0]);
@@ -87,6 +87,18 @@ export default class Management {
 			window.open('http://' + ipString);
 		});
 		this.ui.append(this.config);
+
+		this.saveConfigBut = $('<button class="btn btn-sm btn-primary mb-2 mr-3">Save Config</button>');
+		this.saveConfigBut.on('click', ()=>{
+			var qm = new DLM.DroneLinkMsg();
+			qm.source = this.state.localAddress;
+			qm.node = this.channel.node.id;
+			qm.channel = 1;
+			qm.param = 17;
+			qm.setUint8([ 1 ]);
+			this.state.send(qm);
+		});
+		this.ui.append(this.saveConfigBut);
 
 		this.reset = $('<button class="btn btn-sm btn-danger mb-2 mr-3">Reset</button>');
 		this.reset.on('click', ()=>{
