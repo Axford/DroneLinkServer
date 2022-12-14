@@ -63,6 +63,8 @@ export default class TurnRate {
 
 		var mode =  this.state.getParamValues(node, channel, 19, [0])[0];
 
+		var turnRateThreshold = this.state.getParamValues(node, channel, 17, [20])[0]
+
 		var c = this.canvas[0];
 		var ctx = c.getContext("2d");
 
@@ -89,6 +91,15 @@ export default class TurnRate {
 		ctx.lineTo(cx, h/2-40);
     ctx.fill();
 */
+
+		// target threshold
+		var ang1 = (target -turnRateThreshold - 90) * Math.PI / 180;
+		var ang2 = (target +turnRateThreshold - 90) * Math.PI / 180;
+		ctx.fillStyle = '#660';
+		ctx.beginPath();
+		ctx.arc(cx,100, 90, ang1, ang2, false);
+		ctx.arc(cx,100, 30, ang2, ang1, true);
+		ctx.fill();
 
 		// turn rate arc
 		ctx.beginPath();
