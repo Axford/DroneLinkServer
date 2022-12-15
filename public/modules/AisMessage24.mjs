@@ -5,8 +5,13 @@ import DecodingError from './AisDecodingError.mjs';
 class AisMessage24 extends AisMessage {
 
   // eslint-disable-next-line max-statements
-  constructor(messageType, channel, bitField) {
-    super(messageType, channel, bitField);
+  constructor(messageType, channel) {
+    super(messageType, channel);
+  }
+
+  parseFromBitField(bitField) {
+    super.parseFromBitField(bitField);
+
     this.partNum = bitField.getInt(38, 2);
 
     if (this.partNum === 0) {

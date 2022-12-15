@@ -3,7 +3,11 @@ import DecodingError from './AisDecodingError.mjs';
 export default class AisSentence {
 
   // eslint-disable-next-line max-statements
-  constructor(message) {
+  constructor() {
+
+  }
+  
+  parse(message) {
     this.message = message;
 
     const startIndex = this.message.indexOf('!');
@@ -35,6 +39,19 @@ export default class AisSentence {
     this.checkChecksum();
   }
 
+  toSentence() {
+    this.message = '!' + 
+                   this.talkerId +
+                   this.type + ',' +
+                   this.numParts + ',' + 
+                   this.partNumber + ',' +
+                   this.partId + ',' +
+                   this.channel + ',' +
+                   this.payload + ',' +
+                   this.fillBits + '*';
+    this.message += this.calcChecksum();
+  }
+
   isMultiPart() {
     return this.numParts > 1;
   }
@@ -43,7 +60,7 @@ export default class AisSentence {
     return this.numParts === this.partNumber;
   }
 
-  checkChecksum() {
+  calcChecksum() {
     const checksumString = this.message
       .split('*')[0]
       .substr(1, this.message.length);
@@ -60,7 +77,11 @@ export default class AisSentence {
       checksumHex = `0${checksumHex}`;
     }
 
-    if (checksumHex !== this.checksum) {
+    return checksumHex;
+  }
+
+  checkChecksum() {
+    if (this.calcChecksum() !== this.checksum) {
       throw new DecodingError('Invalid checksum', this.message);
     }
   }

@@ -4,6 +4,33 @@ const sixBitAsciiChars =
 export default class AisBitField {
 
   constructor(payload) {
+    this.payload = '';
+    this.binaryPayload = '';
+  }
+
+  setNumberOfBits(numBits) {
+    this.binaryPayload = new Array(numBits).fill('0');
+  }
+
+  convertBinaryToText() {
+    // first binary to text string
+    this.binaryPayload = this.binaryPayload.join('');
+
+    // now convert the binary string into ASCII encoding
+    // read in 6 char chunks...  
+    this.payload = '';
+    for (var i=0; i<this.binaryPayload.length; i+=6) {
+      var s = this.binaryPayload.substr(i,6);
+      var v = parseInt(s, 2);
+      v += 48;
+      if (v>87) v+= 8;
+      var c = String.fromCharCode(v);
+      this.payload += c;
+      //console.log(i, s, v, c);
+    }
+  }
+
+  setTextPayload(payload) {
     this.payload = payload;
     this.binaryPayload = '';
 
@@ -24,6 +51,19 @@ export default class AisBitField {
     return parseInt(binary, 2);
   }
 
+  setInt(startIndex, length, i) {
+    i = Math.round(i,0);
+    var bs = i.toString(2);
+    // pad to correct length
+    while (bs.length < length) {
+      bs = '0' + bs;
+    }
+    // write into binaryPayload
+    for (var i=0; i<length; i++) {
+      this.binaryPayload[startIndex+i] = bs[i];
+    }
+  }
+
   getSignedInt(startIndex, length) {
     let int = this.getInt(startIndex, length);
 
@@ -37,8 +77,32 @@ export default class AisBitField {
     return int;
   }
 
+  setSignedInt(startIndex, length, i) {
+    i = Math.round(i,0);
+    // if negative, calc twos complement
+    var isNeg = i<0;
+    if (isNeg) i += 1 << length;
+    
+    var bs = i.toString(2);
+    // remove negative sign
+    if (isNeg) bs = bs.slice(1);
+    // pad to correct length
+    while (bs.length < length) {
+      bs = (isNeg ? '1' : '0') + bs;
+    }
+    //console.log(bs);
+    // write into binaryPayload
+    for (var i=0; i<length; i++) {
+      this.binaryPayload[startIndex+i] = bs[i];
+    }
+  }
+
   getBoolean(startIndex, length) {
     return Boolean(this.getInt(startIndex, length));
+  }
+
+  setBoolean(startIndex, length, v) {
+    this.setInt(startIndex, length, v ? 1 : 0);
   }
 
   getString(startIndex, length) {

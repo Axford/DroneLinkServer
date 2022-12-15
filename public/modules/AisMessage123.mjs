@@ -5,8 +5,14 @@ import AisBitField from './AisBitField.mjs';
 import format from './AisFormat.mjs';
 
 class AisMessage123 extends AisMessage {
-  constructor(messageType, channel, bitField) {
-    super(messageType, channel, bitField);
+  constructor(messageType, channel) {
+    super(messageType, channel);
+
+  }
+
+  parseFromBitField(bitField) {
+    super.parseFromBitField(bitField);
+
     this.navStatus = bitField.getInt(38, 4);
     this.rateOfTurn = format.rateOfTurn(bitField.getSignedInt(42, 8));
     this.speedOverGround = format.speedOverGround(bitField.getInt(50, 10));

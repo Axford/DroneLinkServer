@@ -21,7 +21,8 @@ export default class AisDecoder {
 
   parse(message) {
     try {
-      const sentence = new AisSentence(message);
+      const sentence = new AisSentence();
+      sentence.parse(message);
 
       if (sentence.isMultiPart()) {
         this.handleMultiPartSentence(sentence);
@@ -56,7 +57,8 @@ export default class AisDecoder {
   }
 
   decodePayload(payload, channel, sentences) {
-    const bitField = new AisBitField(payload);
+    const bitField = new AisBitField();
+    bitField.setTextPayload(payload);
     const messageType = bitField.getInt(0, 6);
 
     //console.log(bitField, messageType);
@@ -67,7 +69,7 @@ export default class AisDecoder {
       case 1:
       case 2:
       case 3:
-        decodedMessage = new AisMessage123(messageType, channel, bitField);
+        decodedMessage = new AisMessage123(messageType, channel);
         break;
       case 4:
         //decodedMessage = new AisMessage4(messageType, channel, bitField);
@@ -79,16 +81,16 @@ export default class AisDecoder {
         //decodedMessage = new AisMessage8(messageType, channel, bitField);
         break;
       case 18:
-        decodedMessage = new AisMessage18(messageType, channel, bitField);
+        decodedMessage = new AisMessage18(messageType, channel);
         break;
       case 24:
-        decodedMessage = new AisMessage24(messageType, channel, bitField);
+        decodedMessage = new AisMessage24(messageType, channel);
         break;
     }
     
-
     if (decodedMessage) {
-      decodedMessage.sentences = sentences.map(sentence => sentence.message);
+      decodedMessage.parseFromBitField(bitField);
+      decodedMessage.sentences = sentences.map(sentence => sentence);
       
       if (this.onDecode) this.onDecode(decodedMessage);
     } else {

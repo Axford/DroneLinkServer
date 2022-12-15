@@ -2,12 +2,25 @@ import AisBitField from './AisBitField.mjs';
 
 class AisMessage {
 
-  constructor(messageType, channel, bitField) {
+  constructor(messageType, channel) {
     this.type = messageType;
     this.channel = channel;
+    this.repeat = 0;
+    this.mmsi = 0;
+    this.sentences = [];
+    this.bitField = null;
+  }
+
+  parseFromBitField(bitField) {
+    this.bitField = bitField;
     this.repeat = bitField.getInt(6, 2);
     this.mmsi = bitField.getInt(8, 30);
-    this.sentences = [];
+  }
+
+  populateBitField(bitField) {
+    // bit length must have already been set by caller
+    bitField.setInt(6,2, this.repeat);
+    bitField.setInt(8,30, this.mmsi);
   }
 
   isAuxiliaryCraft(mmsi) {

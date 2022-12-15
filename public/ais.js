@@ -4,6 +4,8 @@ import loadStylesheet from './modules/loadStylesheet.js';
 loadStylesheet('./css/observer.css');
 
 import AisDecoder from './modules/AisDecoder.mjs';
+import AisBitField from './modules/AisBitField.mjs';
+import AisSentence from './modules/AisSentence.mjs';
 
 var map;
 
@@ -11,8 +13,45 @@ mapboxgl.accessToken = 'pk.eyJ1IjoiYXhmb3JkIiwiYSI6ImNqMWMwYXI5MDAwNG8zMm5uanFye
 
 var decoder = new AisDecoder();
 
+var firstDM = null;
+
 decoder.onDecode = (dm)=>{
-  console.log(dm);
+  //console.log(dm);
+
+  if (!firstDM) {
+    firstDM = dm;
+    map.flyTo({
+      center: [dm.lon, dm.lat]
+    });
+
+    var s1 = dm.sentences[0];
+    console.log(dm, s1);
+    //console.log(dm.bitField.binaryPayload.substr(57, 28));
+    //console.log(dm.bitField.binaryPayload.substr(85, 27));
+
+    // re-encode the parsed message into a NMEA sentence
+    var bitField = new AisBitField();
+    dm.populateBitField(bitField); 
+    bitField.convertBinaryToText();
+
+    // package into a sentence
+    var s2 = new AisSentence();
+    s2.channel = s1.channel;
+    s2.fillBits = s1.fillBits;
+    s2.numParts = 1;
+    s2.partId = 0;
+    s2.partNumber = 1;
+    s2.payload = bitField.payload;
+    s2.talkerId = 'AI';
+    s2.type = 'VDM';
+
+    s2.toSentence();
+
+    console.log(s2);
+
+    //console.log(bitField);
+  }
+  
 
   if (dm.type == 18) {
     // add marker to map
@@ -89,15 +128,18 @@ function parseAISData(data) {
 function init() {
 
   // load last position from local storage
-  var lngLat;
-  var zoom;
+  var lngLat = {
+    lng: -2.7609316666666666,
+    lat: 51.48929
+  };
+  var zoom = 17.5;
   try {
-    var lngLat = JSON.parse(localStorage.location);
-    var zoom = JSON.parse(localStorage.zoom);
+    //var lngLat = JSON.parse(localStorage.location);
+    //var zoom = JSON.parse(localStorage.zoom);
   } catch (e) {
     lngLat = {
-      lng: -1.804,
-      lat: 51.575
+      lng: -2.7609316666666666,
+      lat: 51.48929
     }
     zoom = 17.5;
   }
