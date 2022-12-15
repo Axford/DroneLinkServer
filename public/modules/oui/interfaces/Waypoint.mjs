@@ -12,6 +12,35 @@ export default class Waypoint {
 	}
 
 
+  drawPill(label, x, y, w, color) {
+    var c = this.canvas[0];
+		var ctx = c.getContext("2d");
+
+    ctx.fillStyle = color;
+    // draw pill
+    var r = 8;
+    var x1 = x - w/2 + r;
+    var x2 = x + w/2 - r;
+  
+    ctx.beginPath();
+    ctx.arc(x1, y+r, r, 0, 2 * Math.PI);
+    ctx.fill();
+  
+    ctx.beginPath();
+    ctx.fillRect(x1,y, w - 2*r, 2*r);
+  
+    ctx.beginPath();
+    ctx.arc(x2, y + r, r, 0, 2 * Math.PI);
+    ctx.fill();
+  
+    // draw label
+    ctx.textAlign = 'center';
+    ctx.font = '12px sans-serif';
+    ctx.fillStyle = '#fff';
+    ctx.fillText(label, x, y+12);
+  }
+
+
   drawValue(x,y,label,v) {
     var c = this.canvas[0];
 		var ctx = c.getContext("2d");
@@ -55,6 +84,7 @@ export default class Waypoint {
 		var mode =  this.state.getParamValues(node, channel, 8, [0])[0];
     var waypoint =  this.state.getParamValues(node, channel, 10, [0])[0];
     var waypoints =  this.state.getParamValues(node, channel, 9, [0])[0];
+    var loopMode = this.state.getParamValues(node, channel, 14, [0])[0];
 
 		var c = this.canvas[0];
 		var ctx = c.getContext("2d");
@@ -70,6 +100,8 @@ export default class Waypoint {
 		ctx.fillRect(0,0,w,200);
 
     this.drawValue(5,0,'Waypoint', (waypoint+1) + ' of ' + waypoints);
+
+    this.drawPill(loopMode == 1 ? 'Loop' : 'Once', w-40, h-20, 70, loopMode == 1 ? '#55f' : '#555');
   }
 
   build() {

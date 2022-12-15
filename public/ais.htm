@@ -1,0 +1,45 @@
+<html>
+<head>
+  <title>DroneLink</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js" integrity="sha384-LtrjvnR4Twt/qOuYxE721u19sVFLVSA4hf/rRt6PrZTmiPltdZcI7q7PXQBYTKyf" crossorigin="anonymous"></script>
+  <script src="https://kit.fontawesome.com/787f366228.js" crossorigin="anonymous"></script>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.5.1/mapbox-gl.css" rel="stylesheet">
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.5.1/mapbox-gl.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.13/ace.js" integrity="sha512-OMjy8oWtPbx9rJmoprdaQdS2rRovgTetHjiBf7RL7LvRSouoMLks5aIcgqHb6vGEAduuPdBTDCoztxLR+nv45g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+
+<body scroll="no">
+  <div class="logo">DroneLink</div>
+
+  <div class="container-fluid">
+
+    <div class="row mainRow">
+
+      <main id="main" role="main" class="col-md-12">
+
+        <div id="leftPanel">
+
+          <div id="mapPanel">
+            <div id="map"></div>
+            <div class="mapCoords"></div>
+          </div>
+
+        </div>
+        <div id="rightPanel">
+            <div id="panelDrag"></div>
+            <div id="nodeManager"></div>
+        </div>
+
+
+
+      </main>
+    </div>
+  </div>
+
+  <script type="module" src="ais.js"></script>
+</body>
+</html>
