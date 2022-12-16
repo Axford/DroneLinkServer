@@ -47,12 +47,16 @@ try {
 import io from '../libs/socketio/socket.io.esm.min.mjs';
 var socket = io();
 
+
 import * as DLM from './modules/droneLinkMsg.mjs';
 import DroneLinkState from './modules/DroneLinkState.mjs';
 var state = new DroneLinkState(socket, db);
 
 import NodeUI from './modules/oui/NodeUI.mjs';
 import { controllers, initGamepads } from './modules/gamepads.js';
+
+import AisTracker from './modules/oui/AisTracker.mjs';
+var tracker = new AisTracker();
 
 // object of nodes, keyed on id, with associated UI objects
 // populated based on events from state object
@@ -91,6 +95,10 @@ socket.on('localAddress', (id)=>{
   // set local address on state
   state.localAddress = id;
   if (networkGraph) networkGraph.localAddress = id;
+});
+
+socket.on('AIS', (msg)=>{
+  tracker.handleAIS(msg);
 });
 
 
@@ -532,6 +540,8 @@ function init() {
   });
 
   map.on('style.load', () => {
+
+    tracker.map = map;
 
     map.setPaintProperty(
       'satellite',

@@ -187,15 +187,26 @@ socket.on('connect',function() {
 });
 
 socket.on('DLM.msg',function(msgBuffer) {
-  var msg = new DLM.DroneLinkMsg(msgBuffer);
-  mgr.handleLinkMessage(msg);
+  try {
+    var msg = new DLM.DroneLinkMsg(msgBuffer);
+    mgr.handleLinkMessage(msg);
+  } catch(err) {
+    clog(err.message.red);
+  }
 });
 
 
 // -------------------- setup SimManager ---------------------------------------
 
+
 var mgr = new SimManager(socket);
-mgr.load('./sim.json');
+mgr.onError = (err) => { clog(err.red); };
+mgr.onLog = (err) => { clog(err); };
+try {
+  mgr.load('./sim.json');
+} catch(e) {
+  clog((e.message).red);
+}
 
 // create update tick
 setInterval(()=>{

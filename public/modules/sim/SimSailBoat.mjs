@@ -123,6 +123,19 @@ export default class SimSailBoat extends SimNode {
     this.rudderForce = 0;
   }
 
+  getDiagnosticString() {
+    var s = this.node + ': ' + this.name + '\n';
+    s += ' v: ' + this.physics.v.x.toFixed(1) + ', ' + this.physics.v.y.toFixed(1) + '\n';
+    s += ' angV: ' + this.physics.angV.toFixed(1) + '\n';
+    s += ' heading: ' + this.heading.toFixed(1) + '\n';
+    s += ' angToWind: ' + this.angToWind.toFixed(1) + '\n';
+    s += ' polarIndex: ' + this.polarIndex + '\n';
+    s += ' sailForce: ' + this.sailForce.toFixed(2) + '\n';
+    s += ' rudderForce: ' + this.rudderForce.toFixed(2) + '\n';
+
+    return s;
+  }
+
   handleLinkMessage(msg) {
     super.handleLinkMessage(msg);
 

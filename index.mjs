@@ -635,6 +635,13 @@ io.on('connection', (socket) => {
     dlm.sendDroneLinkMessage(msg);
   });
 
+  // AIS
+  socket.on('AIS', (msg)=>{
+    clog('AIS: '+msg);
+    // re-transmit to clients
+    io.emit('AIS', msg);
+  });
+
   // query for existing routes
   socket.on('getRoutes', (msg)=>{
     // ask dlm to emit all existing routes

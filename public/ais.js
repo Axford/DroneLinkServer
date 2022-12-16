@@ -29,6 +29,7 @@ decoder.onDecode = (dm)=>{
     //console.log(dm.bitField.binaryPayload.substr(57, 28));
     //console.log(dm.bitField.binaryPayload.substr(85, 27));
 
+    
     // re-encode the parsed message into a NMEA sentence
     var bitField = new AisBitField();
     dm.populateBitField(bitField); 
@@ -48,6 +49,7 @@ decoder.onDecode = (dm)=>{
     s2.toSentence();
 
     console.log(s2);
+    
 
     //console.log(bitField);
   }
@@ -134,8 +136,8 @@ function init() {
   };
   var zoom = 17.5;
   try {
-    //var lngLat = JSON.parse(localStorage.location);
-    //var zoom = JSON.parse(localStorage.zoom);
+    var lngLat = JSON.parse(localStorage.location);
+    var zoom = JSON.parse(localStorage.zoom);
   } catch (e) {
     lngLat = {
       lng: -2.7609316666666666,
@@ -207,7 +209,7 @@ function init() {
     fetch('/ais.txt')     
       .then(x => x.text())
       .then(data => parseAISData(data));
-
+      
   });
 
 }

@@ -4,6 +4,7 @@
       "name":"paddle",
       "type":"TankSteerBoat",
       "enabled":false,
+      "discovery":true,
       "interval":100,
       "node":59,
       "module":50,
@@ -16,7 +17,8 @@
     {
       "name":"dreamer",
       "type":"SailBoat",
-      "enabled":true,
+      "enabled":false,
+      "discovery":true,
       "interval":500,
       "node":2,
       "module":50,
@@ -26,6 +28,16 @@
       "rudder": "2>8.16",
       "wind": [300],
       "polar":[20,40,120,200, 255,255,255,250, 240,230,220,210, 200,180,160,140]
+    },
+    {
+      "name":"virtual1",
+      "type":"AISBoat",
+      "enabled":true,
+      "discovery":false,
+      "interval":500,
+      "location":[-1.745554, 51.540959, 0],
+      "heading":[30],
+      "targetRegion":[-1.745554, 51.540959, 50]
     }
   ]
 }

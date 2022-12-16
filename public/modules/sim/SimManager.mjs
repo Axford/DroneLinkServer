@@ -11,6 +11,7 @@ import colors from 'colors';
 // node sim types
 import SimTankSteerBoat from './SimTankSteerBoat.mjs';
 import SimSailBoat from './SimSailBoat.mjs';
+import SimAISBoat from './SimAISBoat.mjs';
 
 
 export default class SimManager {
@@ -18,6 +19,8 @@ export default class SimManager {
     this.nodes = [];
     this.config = {};
     this.socket = socket;
+    this.onError = null;
+    this.onLog = null;
   }
 
 
@@ -27,49 +30,48 @@ export default class SimManager {
     for (var i=0; i<this.nodes.length; i++) {
       var node = this.nodes[i];
 
-      s += node.node + ': ' + node.name + '\n';
-      s += ' v: ' + node.physics.v.x.toFixed(1) + ', ' + node.physics.v.y.toFixed(1) + '\n';
-      s += ' angV: ' + node.physics.angV.toFixed(1) + '\n';
-      s += ' heading: ' + node.heading.toFixed(1) + '\n';
-      s += ' angToWind: ' + node.angToWind.toFixed(1) + '\n';
-      s += ' polarIndex: ' + node.polarIndex + '\n';
-      s += ' sailForce: ' + node.sailForce.toFixed(2) + '\n';
-      s += ' rudderForce: ' + node.rudderForce.toFixed(2) + '\n';
+      s += node.getDiagnosticString();
 
-        
       s += '\n';
-    
     }
   
     return s;
   }
 
   load(path) {
-    console.log('[SimManager.load]'.blue );
+    this.onLog('[SimManager.load]' );
     this.config = JSON.parse( fs.readFileSync(path) );
 
     // process nodes
     this.config.nodes.forEach((nodeConfig)=>{
-      console.log(('[SimManager.load] node: '+ nodeConfig.name + ' ('+nodeConfig.node+')').blue );
+      this.onLog(('[SimManager.load] node: '+ nodeConfig.name + ' ('+nodeConfig.node+')') );
       if (nodeConfig.enabled) {
         if (nodeConfig.type == 'TankSteerBoat') {
           // create a new instance of TankSteerBoat
           var node = new SimTankSteerBoat(nodeConfig, this);
           this.nodes.push(node);
+
         } else if (nodeConfig.type == 'SailBoat') {
           // create a new instance of SailBoat
+          this.onLog('SailBoat');
           var node = new SimSailBoat(nodeConfig, this);
           this.nodes.push(node);
+
+        } else if (nodeConfig.type == 'AISBoat') {
+          this.onLog('AISBoat');
+          var node = new SimAISBoat(nodeConfig, this);
+          this.nodes.push(node);
+          
         } else {
-          console.error('Unknown type');
+          this.onError('Unknown type');
         }
       } else {
-        console.log('Node disabled!');
+        this.onLog('Node disabled!');
       }
       
     });
 
-    console.log(('[SimManager.load] loaded '+this.nodes.length + ' nodes').blue );
+    this.onLog(('[SimManager.load] loaded '+this.nodes.length + ' nodes').blue );
   }
 
 
@@ -88,10 +90,19 @@ export default class SimManager {
     this.socket.emit('sendMsg', msg.encodeUnframed());
   }
 
+  sendAIS(msg) {
+    this.socket.emit('AIS', msg);
+  }
+
   update() {
     // call update on all nodes
     this.nodes.forEach((node)=>{
-      node.update();
+      try {
+        node.update();
+      } catch (e) {
+        this.onError(('[SimManager.update] error: ' + e.message).red );
+      }
+      
     });
   }
 }

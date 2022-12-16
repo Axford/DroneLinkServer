@@ -11,10 +11,11 @@ const R_EARTH = 6378 * 1000;
 export default class SimNode {
   constructor(config, mgr) {
     this.config = config;
+    this.discovery = config.discovery;
     this.moduleType = 'SimNode';
     this.name = config.name;
-    this.node = config.node; // node id
-    this.module = config.module; // module id
+    this.node = config.node ? config.node : 0; // node id
+    this.module = config.module ? config.module : 0; // module id
     this.mgr = mgr;
     this.interval = config.interval / 1000;
     this.lastDiscovery = 0;
@@ -36,6 +37,10 @@ export default class SimNode {
       friction: 0.0001,
       angFriction: 0.01
     }
+  }
+
+  getDiagnosticString() {
+    return this.name;
   }
 
   calcCylindricalInertia(len, radius) {
@@ -171,7 +176,7 @@ export default class SimNode {
     var loopTime = (new Date()).getTime();
 
     // do discovery
-    if (loopTime > this.lastDiscovery + 1000) {
+    if (this.discovery && loopTime > this.lastDiscovery + 1000) {
       //console.log('disco');
 
       // send status
