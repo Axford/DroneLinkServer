@@ -1,5 +1,6 @@
 import AisDecoder from "../AisDecoder.mjs";
 import loadStylesheet from '../loadStylesheet.js';
+import {calculateDestinationFromDistanceAndBearing, calculateDistanceBetweenCoordinates, shortestSignedDistanceBetweenCircularValues, calculateInitialBearingBetweenCoordinates} from '../navMath.mjs';
 
 
 loadStylesheet('./css/modules/oui/AisTracker.css');
@@ -22,40 +23,37 @@ export default class AisTracker {
         }
       };
     }
-
-    calculateDestinationFromDistanceAndBearing(start, d, bearing) {
-      var p = [0,0];
-      var R = 6371e3; // metres
-      var lat1r = start[1] * Math.PI/180; // φ, λ in radians
-      var lon1r = start[0] * Math.PI/180;
-      var br = bearing * Math.PI/180;
-  
-      var a = Math.sin(lat1r)*Math.cos(d/R) + Math.cos(lat1r)*Math.sin(d/R)*Math.cos(br);
-      p[1] = Math.asin( a );
-      p[0] = lon1r + Math.atan2(
-        Math.sin(br)*Math.sin(d/R)*Math.cos(lat1r),
-        Math.cos(d/R) - Math.sin(lat1r)*a
-      );
-      // convert to degrees
-      p[0] = p[0] * 180/Math.PI;
-      p[1] = p[1] * 180/Math.PI;
-      // normalise lon
-      p[0] = ((p[0] + 540) % 360) - 180;
-      return p;
-    }
   
 
     updateVessel(v, msg) {
       // update position and heading
-      v.marker.setLngLat([msg.lon, msg.lat]);
+      var location = [msg.lon, msg.lat];
+      v.marker.setLngLat(location);
 
+      v.markerLabel.setLngLat(location);
+      v.markerLabel.getElement().innerHTML = msg.speedOverGround.toFixed(1) + ' kn';
 
-      v.headingIndicator.coordinates[0] = [msg.lon, msg.lat];
-      var targetCoords = this.calculateDestinationFromDistanceAndBearing([msg.lon, msg.lat], 10, msg.courseOverGround);
+      v.headingIndicator.coordinates[0] = location;
+      var len = msg.speedOverGround * 60 / 1.94384;  // convert back to meters in 1 min
+      var targetCoords = calculateDestinationFromDistanceAndBearing(location, len, msg.courseOverGround);
       v.headingIndicator.coordinates[1] = targetCoords;
 
       var src = this.map.getSource(v.headingName);
       if (src) src.setData(v.headingIndicator);
+
+    
+      // check distance between nodes, update if moved a sig distance
+      var d = calculateDistanceBetweenCoordinates(location, v.snailTrail.coordinates[v.snailTrail.coordinates.length-1]);
+      var dThreshold = 2;  // calculate based on disance between waypoints
+      if (d > dThreshold) {
+        v.snailTrail.coordinates.push(location);
+        if (v.snailTrail.coordinates.length > 200) {
+          v.snailTrail.coordinates.shift();
+        }
+        var src = this.map.getSource(v.snailTrailName);
+        if (src) src.setData(v.snailTrail);
+      }
+      
   
     }
 
@@ -75,9 +73,21 @@ export default class AisTracker {
             .addTo(this.map);
 
 
+        // -- marker label --
+        var el2 = document.createElement('div');
+        el2.className = 'trackerMarkerLabel';
+        el2.innerHTML = '-';
+        var markerLabel = new mapboxgl.Marker({
+          element:el2,
+          anchor:'left'
+        })
+              .setLngLat([lon, lat])
+              .addTo(this.map);
+
+
         // heading indicator
         var traceName = 'tracker.heading' + mmsi;
-        var targetCoords = this.calculateDestinationFromDistanceAndBearing([lon, lat], 1, 0);
+        var targetCoords = calculateDestinationFromDistanceAndBearing([lon, lat], 1, 0);
   
         var headingIndicator = { "type": "LineString", "coordinates": [ [lon, lat], targetCoords ] };
         this.map.addSource(traceName, { type: 'geojson', data: headingIndicator });
@@ -92,11 +102,38 @@ export default class AisTracker {
           }
         });
 
+        // -- snailTrail --
+        var snailTrailName = 'tracker.snail' + mmsi;
+        var snailTrail = { "type": "LineString", "coordinates": [ [lon, lat] ] };
+        this.map.addSource(snailTrailName, { type: 'geojson', lineMetrics: true, data: snailTrail });
+        this.map.addLayer({
+          'id': snailTrailName,
+          'type': 'line',
+          'source': snailTrailName,
+          'paint': {
+            'line-color': 'red',
+            'line-opacity': 0.5,
+            'line-width': 2,
+            'line-gradient': [
+              'interpolate',
+              ['linear'],
+              ['line-progress'],
+              0,
+              'rgba(255,0,0,0.2)',
+              1,
+              'rgba(255,0,0,1)'
+            ]
+          }
+        });   
+
         this.vessels[mmsi] = {
           mmsi: mmsi,
           marker: marker,
           headingName: traceName,
-          headingIndicator: headingIndicator
+          headingIndicator: headingIndicator,
+          markerLabel: markerLabel,
+          snailTrailName: snailTrailName,
+          snailTrail: snailTrail
         };
       }
       return this.vessels[mmsi];

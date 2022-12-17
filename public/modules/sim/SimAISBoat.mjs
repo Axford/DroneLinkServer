@@ -13,6 +13,8 @@ import AisBitField from '../AisBitField.mjs';
 
 import dgram from 'dgram';
 
+import {calculateDistanceBetweenCoordinates, shortestSignedDistanceBetweenCircularValues, calculateInitialBearingBetweenCoordinates} from '../navMath.mjs';
+
 export default class SimAISBoat extends SimNode {
   constructor(config, mgr) {
     super(config, mgr);
@@ -21,6 +23,10 @@ export default class SimAISBoat extends SimNode {
     this.heading = 0;
     this.location = config.location;
     this.lastTransmission = 0;
+    this.speedOverGround = 0;
+    this.waypoint = 0;
+    this.waypoints = config.waypoints;
+    this.speedIError = 0;
 
     this.socketReady = false;
 
@@ -37,19 +43,22 @@ export default class SimAISBoat extends SimNode {
     ];
 
     this.physics.m = 1;
-    this.calcCylindricalInertia(0.6, 0.06);
+    this.calcCylindricalInertia(0.3, 0.06);
   }
 
 
   getDiagnosticString() {
     var s = this.name + '\n';
-    s += ' v: ' + this.physics.v.x.toFixed(1) + ', ' + this.physics.v.y.toFixed(1) + '\n';
-    s += ' angV: ' + this.physics.angV.toFixed(1) + '\n';
+    s += ' v: ' + this.physics.v.x.toFixed(4) + ', ' + this.physics.v.y.toFixed(4) + '\n';
+    s += ' angV: ' + this.physics.angV.toFixed(4) + '\n';
     s += ' heading: ' + this.heading.toFixed(1) + '\n';
+    s += ' thrust: ' + this.thrust.toFixed(1) + '\n';
+    s += ' SOG: ' + (this.speedOverGround * 1.94384).toFixed(1) + ' ks\n';
+    s += ' Waypoint: ' + this.waypoint +' / ' + this.waypoints.length + ' : ' + (this.distanceToWaypoint/1000).toFixed(2) + ' km\n';
     //s += ' angToWind: ' + node.angToWind.toFixed(1) + '\n';
     //s += ' polarIndex: ' + node.polarIndex + '\n';
     //s += ' sailForce: ' + node.sailForce.toFixed(2) + '\n';
-    //s += ' rudderForce: ' + node.rudderForce.toFixed(2) + '\n';
+    s += ' rudderForce: ' + this.rudderForce.toFixed(2) + '\n';
 
     return s;
   }
@@ -80,7 +89,8 @@ export default class SimAISBoat extends SimNode {
     msg.courseOverGround = h;
     msg.heading = h;
     msg.mmsi = 235000000;
-    msg.speedOverGround = 0;
+    // convert to knots
+    msg.speedOverGround = this.speedOverGround * 1.94384;
 
     // convert to a bitField
     var bitField = new AisBitField();
@@ -117,11 +127,41 @@ export default class SimAISBoat extends SimNode {
     var dt = (loopTime - this.lastLoop) / 1000;
     if (dt > 2*this.interval) dt = 2*this.interval;
     if (dt > this.interval) {
-   
-      this.thrust = 1;
 
-      // TODO
-      this.rudderForce = 0.01;
+      // get waypoint target
+      var target = this.waypoints[this.waypoint];
+
+      // calculate heading to next waypoint
+      var targetHeading = calculateInitialBearingBetweenCoordinates(this.location[0], this.location[1], target[0], target[1]);
+
+      // calculate distance to next waypoint
+      this.distanceToWaypoint = calculateDistanceBetweenCoordinates(this.location, target);
+
+      // calculate heading error
+      var herr = shortestSignedDistanceBetweenCircularValues(this.heading, targetHeading);
+
+      // PID control of rudder
+      this.rudderForce = -herr * 0.0002 * this.speedOverGround;
+
+      // check angV isn't too high
+      if (Math.abs(this.physics.angV) > 0.01) this.rudderForce = 0;
+
+      // set target speed
+      var targetSpeed = this.config.targetSpeed;
+
+      // reduce target speed if heading error is too high
+      if (Math.abs(herr) >5) {
+        targetSpeed = 1;
+      }
+
+      // calc motor thrust
+      var speedErr = targetSpeed - (this.speedOverGround * 1.94384);
+      this.speedIError += speedErr*dt;
+      this.thrust = speedErr * 2 + this.speedIError * 0.1;
+      if (this.thrust < 0) this.thrust = 0;
+      if (this.thrust > 2) this.thrust = 2;
+
+      
 
       var impulses = [
         new Vector(0, this.thrust),
@@ -135,8 +175,12 @@ export default class SimAISBoat extends SimNode {
       this.updatePhysics(dt);
 
       // update and publish
+      var oldLocation = this.location;
       this.location = this.calcNewCoordinatesFromTranslation(this.location , this.physics.dp); 
-      this.heading = -this.physics.aDeg;  
+      this.heading = -this.physics.aDeg;
+      
+      var speed = calculateDistanceBetweenCoordinates(oldLocation, this.location) / dt;
+      this.speedOverGround = ((this.speedOverGround * 9) + speed) / 10;
 
       if (loopTime > this.lastTransmission + 1000) {
         this.transmitAIS();
@@ -144,6 +188,12 @@ export default class SimAISBoat extends SimNode {
       }
 
       //this.publishParams();
+
+      // update waypoint number for next cycle
+      if (this.distanceToWaypoint < target[2]) {
+        this.waypoint++;
+        if (this.waypoint >= this.waypoints.length) this.waypoint = 0;
+      }
 
       this.lastLoop = loopTime;
     }

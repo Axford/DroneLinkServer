@@ -17,7 +17,7 @@
     {
       "name":"dreamer",
       "type":"SailBoat",
-      "enabled":false,
+      "enabled":true,
       "discovery":true,
       "interval":500,
       "node":2,
@@ -35,9 +35,13 @@
       "enabled":true,
       "discovery":false,
       "interval":500,
-      "location":[-1.745554, 51.540959, 0],
+      "targetSpeed": 4,
+      "location":[-1.746841, 51.539198, 0],
       "heading":[30],
-      "targetRegion":[-1.745554, 51.540959, 50]
+      "waypoints": [
+        [-1.744195, 51.542475, 10],
+        [-1.746695, 51.539134, 10]
+      ]
     }
   ]
 }

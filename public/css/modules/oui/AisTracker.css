@@ -15,3 +15,14 @@
   overflow:visible;
   white-space:nowrap;
 }
+
+
+.trackerMarkerLabel {
+  text-align:left;
+  font-size:14px;
+  font-weight:normal;
+  margin-left:12px;
+  color:white;
+  overflow:visible;
+  white-space:nowrap;
+}
