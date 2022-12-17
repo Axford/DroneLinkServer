@@ -14,6 +14,8 @@ import GraphPanel from './panels/Graph.mjs';
 import NodeSettingsPanel from './panels/NodeSettings.mjs';
 import VisualisationPanel from './panels/Visualisation.mjs';
 
+import {calculateDestinationFromDistanceAndBearing} from '../navMath.mjs';
+
 loadStylesheet('./css/modules/oui/NodeUI.css');
 
 
@@ -34,6 +36,9 @@ export default class NodeUI {
     this.scriptMarkerLabels = [];
     this.focused = false;
     this.heading= 0;
+    this.speedOverGround = 0;
+    this.lastLocationTime = 0; 
+    this.lastLocation = [0,0]; // to estimate speed over ground 
 
     // used to track mappable params like location or heading
     this.mapParams = {};
@@ -447,6 +452,25 @@ export default class NodeUI {
           .setLngLat(this.location)
           .addTo(this.map);
 
+
+    // heading indicator
+    this.headingIndicatorName = 'headingIndicator' + this.id;
+    var targetCoords = calculateDestinationFromDistanceAndBearing(this.location, 1, 0);
+
+    this.headingIndicator = { "type": "LineString", "coordinates": [ this.location, targetCoords ] };
+    this.map.addSource(this.headingIndicatorName, { type: 'geojson', data: this.headingIndicator });
+    this.map.addLayer({
+      'id': this.headingIndicatorName,
+      'type': 'line',
+      'source': this.headingIndicatorName,
+      'paint': {
+        'line-color': 'green',
+        'line-opacity': 1,
+        'line-width': 3
+      }
+    });
+
+
     // -- snailTrail --
     var trailName = 'snailTrail' + this.id;
     this.snailTrail = { "type": "LineString", "coordinates": [ this.location ] };
@@ -492,6 +516,8 @@ export default class NodeUI {
   }
 
   updateLocation(newLoc) {
+    var loopTime = (new Date()).getTime();
+
     //console.log(newLoc);
     this.location = newLoc;
     // update snailTrail
@@ -508,6 +534,22 @@ export default class NodeUI {
         if (src) src.setData(this.snailTrail);
       }
     }
+
+    // update speed estimate
+    if (this.lastLocation[0] != 0 && this.lastLocationTime > 0) {
+      var d1 = this.distanceBetweenCoordinates(this.location, this.lastLocation);
+      var dt = (loopTime - this.lastLocationTime) / 1000;
+      if (dt > 1) {
+        var speed = d1 / dt;
+        this.speedOverGround = (this.speedOverGround * 9 + speed) / 10;
+  
+        // update label
+        this.markerLabel.getElement().innerHTML = this.name + '<br/>' + (this.speedOverGround * 1.94384).toFixed(1) + 'kn';
+      }
+    }
+
+    this.lastLocation = newLoc;
+    this.lastLocationTime = loopTime;
 
     // update target
     if (this.targetTrace) {
@@ -536,8 +578,18 @@ export default class NodeUI {
   updateHeading(heading) {
     //console.log(heading);
     if (this.gotLocation) {
+      this.heading = heading;
       this.mapElArrow.className = 'fas fa-arrow-up';
       this.marker.setRotation(heading);
+
+      // heading
+      this.headingIndicator.coordinates[0] = this.location;
+      var len = this.speedOverGround * 60 / 1.94384;  // convert back to meters in 1 min
+      var targetCoords = calculateDestinationFromDistanceAndBearing(this.location, len, this.heading);
+      this.headingIndicator.coordinates[1] = targetCoords;
+
+      var src = this.map.getSource(this.headingIndicatorName);
+      if (src) src.setData(this.headingIndicator);
     }
   }
 

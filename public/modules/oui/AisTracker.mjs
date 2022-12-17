@@ -1,6 +1,8 @@
 import AisDecoder from "../AisDecoder.mjs";
 import loadStylesheet from '../loadStylesheet.js';
-import {calculateDestinationFromDistanceAndBearing, calculateDistanceBetweenCoordinates, shortestSignedDistanceBetweenCircularValues, calculateInitialBearingBetweenCoordinates} from '../navMath.mjs';
+import {calcCrossTrackDistance, calculateDestinationFromDistanceAndBearing, 
+        calculateDistanceBetweenCoordinates, shortestSignedDistanceBetweenCircularValues, 
+        calculateInitialBearingBetweenCoordinates, intersection} from '../navMath.mjs';
 
 
 loadStylesheet('./css/modules/oui/AisTracker.css');
@@ -12,11 +14,14 @@ export default class AisTracker {
       this.vessels = {}; // indexed on mmsi
       this.decoder = new AisDecoder();
 
+      this.node = null;  // which node has focus, and therefore to use for collision tracking
+      //this.collisionBuilt = false;
+
       this.decoder.onDecode = (msg)=>{
         if (msg.type == 18) {
-          console.log(msg);
+          //console.log(msg);
           var v = this.getVessel(msg.mmsi, msg.lon, msg.lat);
-          console.log(v);
+          //console.log(v);
           if (v) {
             this.updateVessel(v, msg);
           }
@@ -25,14 +30,17 @@ export default class AisTracker {
     }
   
 
+    focus(node) {
+      this.node = node;
+    }
+
+
     updateVessel(v, msg) {
-      // update position and heading
       var location = [msg.lon, msg.lat];
-      v.marker.setLngLat(location);
 
-      v.markerLabel.setLngLat(location);
-      v.markerLabel.getElement().innerHTML = msg.speedOverGround.toFixed(1) + ' kn';
+      var labelStr = msg.speedOverGround.toFixed(1) + ' kn';
 
+      // heading
       v.headingIndicator.coordinates[0] = location;
       var len = msg.speedOverGround * 60 / 1.94384;  // convert back to meters in 1 min
       var targetCoords = calculateDestinationFromDistanceAndBearing(location, len, msg.courseOverGround);
@@ -40,6 +48,66 @@ export default class AisTracker {
 
       var src = this.map.getSource(v.headingName);
       if (src) src.setData(v.headingIndicator);
+
+      // ext heading
+      v.extHeadingIndicator.coordinates[0] = location;
+      var len = msg.speedOverGround * 10 * 60 / 1.94384;  // convert back to meters in 10 min
+      var extTargetCoords = calculateDestinationFromDistanceAndBearing(location, len, msg.courseOverGround);
+      v.extHeadingIndicator.coordinates[1] = extTargetCoords;
+
+      var src = this.map.getSource(v.extTraceName);
+      if (src) src.setData(v.extHeadingIndicator);
+
+
+      // update collision info
+      if (this.node && this.node.location[0] != 0) {
+        // distance to node
+        var cd = calculateDistanceBetweenCoordinates(location, this.node.location);
+        labelStr += '<br/>CD: '+ cd.toFixed(0) + 'm';
+
+        // crosstrack distance of node to vessel's course
+        var crosstrack = calcCrossTrackDistance(location, extTargetCoords, this.node.location);
+        labelStr += '<br/>Ct: ' + crosstrack.toFixed(1) + 'm';
+
+        // calculate point of potential intersection
+        var ip = intersection(location, msg.courseOverGround, this.node.location, this.node.heading);
+        if (ip) {
+          console.log(ip);
+          v.intersectionMarker.setLngLat(ip);
+
+          // calc distance to intersection point
+          var id1 = calculateDistanceBetweenCoordinates(location, ip);
+
+          if (id1 > 10000) {
+            // more than 10km can be ignored
+            labelStr += '<br/>I: &gt;10km';
+          } else {
+            // estimate time to intersection
+            var speed1 = msg.speedOverGround / 1.94384;
+            var timeToIntersection1 = id1 / speed1;
+
+            // estimate time to intersection for the node
+            var id2 = calculateDistanceBetweenCoordinates(this.node.location, ip);
+            var speed2 = this.node.speedOverGround / 1.94384;
+            var timeToIntersection2 = id2 / speed2;
+
+
+            labelStr += '<br/>I1: ' + id1.toFixed(0) + 'm, ' + timeToIntersection1.toFixed(0) + 's';
+            labelStr += '<br/>I2: ' + id2.toFixed(0) + 'm, ' + timeToIntersection2.toFixed(0) + 's';
+          }
+
+          
+        } else {
+          v.intersectionMarker.setLngLat([0,0]);
+          labelStr += '<br/>I: n/a';
+        }
+      }
+
+      // update position and heading
+      v.marker.setLngLat(location);
+
+      v.markerLabel.setLngLat(location);
+      v.markerLabel.getElement().innerHTML = labelStr;
 
     
       // check distance between nodes, update if moved a sig distance
@@ -70,6 +138,16 @@ export default class AisTracker {
 
         var marker = new mapboxgl.Marker(el)
             .setLngLat([lon, lat])
+            .addTo(this.map);
+
+
+        // create intersection marker
+        var el2 = document.createElement('div');
+        el2.className = 'intersectionMarker';
+        el2.style.backgroundColor = 'rgba(255,0,0,1)';
+
+        var intersectionMarker = new mapboxgl.Marker(el2)
+            .setLngLat([0,0])
             .addTo(this.map);
 
 
@@ -126,14 +204,35 @@ export default class AisTracker {
           }
         });   
 
+        // extended heading - for collision detection
+        var extTraceName = 'tracker.extHeading' + mmsi;
+        var extTargetCoords = calculateDestinationFromDistanceAndBearing([lon, lat], 1, 0);
+  
+        var extHeadingIndicator = { "type": "LineString", "coordinates": [ [lon, lat], extTargetCoords ] };
+        this.map.addSource(extTraceName, { type: 'geojson', lineMetrics: true, data: extHeadingIndicator });
+        this.map.addLayer({
+          'id': extTraceName,
+          'type': 'line',
+          'source': extTraceName,
+          'paint': {
+            'line-color': 'red',
+            'line-opacity': 0.5,
+            'line-width': 2,
+            'line-dasharray': [2,2]
+          }
+        });
+
         this.vessels[mmsi] = {
           mmsi: mmsi,
           marker: marker,
+          intersectionMarker: intersectionMarker,
           headingName: traceName,
           headingIndicator: headingIndicator,
           markerLabel: markerLabel,
           snailTrailName: snailTrailName,
-          snailTrail: snailTrail
+          snailTrail: snailTrail,
+          extTraceName: extTraceName,
+          extHeadingIndicator: extHeadingIndicator
         };
       }
       return this.vessels[mmsi];

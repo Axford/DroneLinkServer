@@ -622,6 +622,9 @@ function init() {
         // update network graph
         networkGraph.focus(n.id);
 
+        // update AIS tracker
+        tracker.focus(n);
+
         // ensure mgmt panel is open
         openPanel();
       }
