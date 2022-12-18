@@ -35,7 +35,7 @@
       "enabled":true,
       "discovery":false,
       "interval":500,
-      "targetSpeed": 4,
+      "targetSpeed": 9,
       "location":[-1.746841, 51.539198, 0],
       "heading":[30],
       "waypoints": [

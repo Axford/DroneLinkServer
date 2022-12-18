@@ -113,7 +113,7 @@ export default class SimAISBoat extends SimNode {
     this.mgr.onLog(s2.message);
 
     if (this.socketReady) {
-      this.socket.send(s2.message, 8008, '255.255.255.255');
+      this.socket.send(s2.message, 8008, '192.168.0.72');
     }
 
     this.mgr.sendAIS(s2.message);

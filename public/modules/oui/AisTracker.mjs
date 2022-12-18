@@ -2,7 +2,8 @@ import AisDecoder from "../AisDecoder.mjs";
 import loadStylesheet from '../loadStylesheet.js';
 import {calcCrossTrackDistance, calculateDestinationFromDistanceAndBearing, 
         calculateDistanceBetweenCoordinates, shortestSignedDistanceBetweenCircularValues, 
-        calculateInitialBearingBetweenCoordinates, intersection} from '../navMath.mjs';
+        calculateInitialBearingBetweenCoordinates, intersection,
+      calcCrossTrackInfo} from '../navMath.mjs';
 
 
 loadStylesheet('./css/modules/oui/AisTracker.css');
@@ -59,17 +60,53 @@ export default class AisTracker {
       if (src) src.setData(v.extHeadingIndicator);
 
 
+      // hull outline indicator 
+      v.hullIndicator.coordinates = [
+        calculateDestinationFromDistanceAndBearing(location, 50, msg.courseOverGround),
+        calculateDestinationFromDistanceAndBearing(location, 35, msg.courseOverGround+15),
+        calculateDestinationFromDistanceAndBearing(location, 35, msg.courseOverGround+180-15),
+        calculateDestinationFromDistanceAndBearing(location, 50, msg.courseOverGround+180),
+        calculateDestinationFromDistanceAndBearing(location, 35, msg.courseOverGround+180+15),
+        calculateDestinationFromDistanceAndBearing(location, 35, msg.courseOverGround-15),
+        calculateDestinationFromDistanceAndBearing(location, 50, msg.courseOverGround)
+      ];
+      var src = this.map.getSource(v.hullName);
+      if (src) src.setData(v.hullIndicator);
+
       // update collision info
       if (this.node && this.node.location[0] != 0) {
         // distance to node
         var cd = calculateDistanceBetweenCoordinates(location, this.node.location);
-        labelStr += '<br/>CD: '+ cd.toFixed(0) + 'm';
+        labelStr += '<br/>D: '+ cd.toFixed(0) + 'm';
 
-        // crosstrack distance of node to vessel's course
-        var crosstrack = calcCrossTrackDistance(location, extTargetCoords, this.node.location);
-        labelStr += '<br/>Ct: ' + crosstrack.toFixed(1) + 'm';
+        // check to see if node is behind vessel
+        // calc angle between vessel heading vector and vector from vessel to node, if subtended angle is >90 then node is behind vessel
+        var vesselToNode = calculateInitialBearingBetweenCoordinates(location[0], location[1], this.node.location[0], this.node.location[1]);
+        //labelStr += '<br/>VtN: ' + vesselToNode.toFixed(0) + 'deg';
+
+        var vesselToNodeToHeading = Math.abs(shortestSignedDistanceBetweenCircularValues(msg.courseOverGround, vesselToNode));
+        //labelStr += '<br/>VtNtH: ' + vesselToNodeToHeading.toFixed(0) + 'deg';
+
+        if (vesselToNodeToHeading < 90) {
+          // crosstrack distance of node to vessel's course
+          var ci = calcCrossTrackInfo(location, extTargetCoords, this.node.location);
+
+          // negative crosstracks are to starboard, positive to port of vessel course
+          labelStr += '<br/>Ct: ' + ci.crossTrack.toFixed(1) + 'm';
+          labelStr += '<br/>At: ' + ci.alongTrack.toFixed(1) + 'm';
+
+          // update intersection marker to crosstrack point
+          var ip = calculateDestinationFromDistanceAndBearing(location, ci.alongTrack, msg.courseOverGround);
+          v.intersectionMarker.setLngLat(ip);
+        } else {
+          labelStr += '<br/>behind';
+          v.intersectionMarker.setLngLat([0,0]);
+        }
+
+        
 
         // calculate point of potential intersection
+        /*
         var ip = intersection(location, msg.courseOverGround, this.node.location, this.node.heading);
         if (ip) {
           console.log(ip);
@@ -101,6 +138,7 @@ export default class AisTracker {
           v.intersectionMarker.setLngLat([0,0]);
           labelStr += '<br/>I: n/a';
         }
+        */
       }
 
       // update position and heading
@@ -112,7 +150,7 @@ export default class AisTracker {
     
       // check distance between nodes, update if moved a sig distance
       var d = calculateDistanceBetweenCoordinates(location, v.snailTrail.coordinates[v.snailTrail.coordinates.length-1]);
-      var dThreshold = 2;  // calculate based on disance between waypoints
+      var dThreshold = 5;  // calculate based on disance between waypoints
       if (d > dThreshold) {
         v.snailTrail.coordinates.push(location);
         if (v.snailTrail.coordinates.length > 200) {
@@ -180,6 +218,22 @@ export default class AisTracker {
           }
         });
 
+        // hull outline indicator
+        var hullName = 'tracker.hull' + mmsi;
+
+        var hullIndicator = { "type": "LineString", "coordinates": [ [lon, lat], [lon, lat], [lon, lat], [lon, lat] ] };
+        this.map.addSource(hullName, { type: 'geojson', data: hullIndicator });
+        this.map.addLayer({
+          'id': hullName,
+          'type': 'line',
+          'source': hullName,
+          'paint': {
+            'line-color': 'red',
+            'line-opacity': 1,
+            'line-width': 3
+          }
+        });
+
         // -- snailTrail --
         var snailTrailName = 'tracker.snail' + mmsi;
         var snailTrail = { "type": "LineString", "coordinates": [ [lon, lat] ] };
@@ -228,6 +282,8 @@ export default class AisTracker {
           intersectionMarker: intersectionMarker,
           headingName: traceName,
           headingIndicator: headingIndicator,
+          hullName: hullName,
+          hullIndicator: hullIndicator,
           markerLabel: markerLabel,
           snailTrailName: snailTrailName,
           snailTrail: snailTrail,

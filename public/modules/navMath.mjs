@@ -87,7 +87,7 @@ export function calcCrossTrackDistance(p1, p2, p3) {
   // calculate cross-track distance of p3 from line between p1 and p2
   // in meters
 
-  if (location[0] == 0 || p1[0] == 0 || p2[0] == 0) return 0;
+  if (p3[0] == 0 || p1[0] == 0 || p2[0] == 0) return 0;
 
   // local shortcuts
   var lon1 = p1[0];
@@ -114,6 +114,48 @@ export function calcCrossTrackDistance(p1, p2, p3) {
 
   return d;
 }
+
+
+export function calcCrossTrackInfo(p1, p2, p3) {
+  // calculate cross-track distance of p3 from line between p1 and p2
+  // in meters
+
+  if (p3[0] == 0 || p1[0] == 0 || p2[0] == 0) return 0;
+
+  // local shortcuts
+  var lon1 = p1[0];
+  var lat1 = p1[1];
+  var lon2 = p2[0];
+  var lat2 = p2[1];
+  var lon3 = p3[0];
+  var lat3 = p3[1];
+
+  var y = Math.sin(lon3 - lon1) * Math.cos(lat3);
+  var x = Math.cos(lat1) * Math.sin(lat3) - Math.sin(lat1) * Math.cos(lat3) * Math.cos(lat3 - lat1);
+  var bearing13 = radiansToDegrees(Math.atan2(y, x));
+  bearing13 = fmod((bearing13 + 360), 360);
+
+  var y2 = Math.sin(lon2 - lon1) * Math.cos(lat2);
+  var x2 = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(lat2 - lat1);
+  var bearing12 = radiansToDegrees(Math.atan2(y2, x2));
+  bearing12 = fmod((bearing12 + 360), 360);
+
+  // get distance from last to current location
+  var distanceACbyE = calculateDistanceBetweenCoordinates(p1, p3) / RADIUS_OF_EARTH;
+
+  // cross track distance
+  var dxt = -(Math.asin(Math.sin(distanceACbyE)*Math.sin(degreesToRadians(bearing13)-degreesToRadians(bearing12))) * RADIUS_OF_EARTH);
+
+  // along track distance
+  var along = Math.acos(Math.cos(distanceACbyE)/Math.cos(dxt/RADIUS_OF_EARTH)) * RADIUS_OF_EARTH;
+
+  return {
+    crossTrack: dxt,
+    alongTrack: along
+  }
+}
+
+
 
 
 

@@ -88,6 +88,12 @@ export default class SimSailBoat extends SimNode {
       values: 0.5
     };
 
+    this.pubs['gps.speedOverGround'] = {
+      param: 12,
+      msgType: DLM.DRONE_LINK_MSG_TYPE_FLOAT,
+      values: [0]
+    };
+
     // subs
     this.sheetSub = new DLM.DroneLinkMsg();
     this.sheetSub.setAddress(config.sheet);
@@ -204,6 +210,9 @@ export default class SimSailBoat extends SimNode {
 
       // invert heading
       this.pubs['compass.heading'].values[0] = this.heading;
+
+      // update speed over ground
+      this.pubs['gps.speedOverGround'].values[0] = this.physics.v.y * 1.94384;  // convert to knots
 
       //console.log('new loc: ', this.pubs['gps.location'].values);
 
