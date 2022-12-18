@@ -10,6 +10,7 @@ import https from 'https';
 import AisMessage18 from '../AisMessage18.mjs';
 import AisSentence from '../AisSentence.mjs';
 import AisBitField from '../AisBitField.mjs';
+import { degreesToRadians } from '../navMath.mjs';
 
 import dgram from 'dgram';
 
@@ -20,13 +21,15 @@ export default class SimAISBoat extends SimNode {
     super(config, mgr);
     this.moduleType = 'AISBoat';
     this.lastLoop = 0;
-    this.heading = 0;
+    this.heading = config.heading[0];
     this.location = config.location;
     this.lastTransmission = 0;
     this.speedOverGround = 0;
     this.waypoint = 0;
     this.waypoints = config.waypoints;
     this.speedIError = 0;
+    this.mmsi = config.mmsi;
+    this.transmissionDelay = 1000;
 
     this.socketReady = false;
 
@@ -42,6 +45,7 @@ export default class SimAISBoat extends SimNode {
       new Vector(0.0, -0.5)
     ];
 
+    this.physics.a = degreesToRadians(this.heading);
     this.physics.m = 1;
     this.calcCylindricalInertia(0.3, 0.06);
   }
@@ -88,7 +92,7 @@ export default class SimAISBoat extends SimNode {
     if (h<0) h+=360;
     msg.courseOverGround = h;
     msg.heading = h;
-    msg.mmsi = 235000000;
+    msg.mmsi = this.mmsi;
     // convert to knots
     msg.speedOverGround = this.speedOverGround * 1.94384;
 
@@ -182,9 +186,10 @@ export default class SimAISBoat extends SimNode {
       var speed = calculateDistanceBetweenCoordinates(oldLocation, this.location) / dt;
       this.speedOverGround = ((this.speedOverGround * 9) + speed) / 10;
 
-      if (loopTime > this.lastTransmission + 1000) {
+      if (loopTime > this.lastTransmission + this.transmissionDelay) {
         this.transmitAIS();
         this.lastTransmission = loopTime;
+        this.transmissionDelay = 1000 + Math.random()*10000;
       }
 
       //this.publishParams();
