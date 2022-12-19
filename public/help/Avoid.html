@@ -1,0 +1,114 @@
+<link rel="stylesheet" href="../css/help.css">
+
+<div class="helpContent">
+
+<div><a href="index.html">&lt; Help Index</a></div>
+
+<h1>Avoid</h1>
+<p>Base class: <i>Drone</i></p>
+<p>Sail polar calibration module</p>
+
+<h2>Usage Guide</h2>
+
+
+<h2>Example Configuration</h2>
+<pre>[Avoid=13]</pre>
+
+<h2>Subs (inputs)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Addr Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>20</td>
+    <td>21</td>
+    <td>location</td>
+    <td>f</td>
+    <td>2</td>
+    <td>Current location from GPS</td>
+  </tr>
+  <tr>
+    <td>32</td>
+    <td>33</td>
+    <td>SOG</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Speed over ground from GPS</td>
+  </tr>
+  <tr>
+    <td>38</td>
+    <td>39</td>
+    <td>heading</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Current heading from Compass</td>
+  </tr>
+  <tr>
+    <td>34</td>
+    <td>35</td>
+    <td>course</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Course from Nav</td>
+  </tr>
+</table>
+
+<h2>Pubs (outputs / config)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>8</td>
+    <td>adjHeading</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Adjusted heading - either passthrough of <b>Heading</b> or generated to avoid obstacle</td>
+  </tr>
+  <tr>
+    <td>9</td>
+    <td>target</td>
+    <td>f</td>
+    <td>4</td>
+    <td>Target Lon, Lat, COG and SOG</td>
+  </tr>
+  <tr>
+    <td>10</td>
+    <td>threshold</td>
+    <td>f</td>
+    <td>2</td>
+    <td>Thresholds, 0=range beyond which vessels will be ignored, 1=radius within which to treat as a collision</td>
+  </tr>
+  <tr>
+    <td>11</td>
+    <td>vessel</td>
+    <td>u32</td>
+    <td>4</td>
+    <td>Number of vessels, 0=total, 1=in range, 2=colliding, 3=mmsi of most urgent potential collision</td>
+  </tr>
+  <tr>
+    <td>12</td>
+    <td>packets</td>
+    <td>u32</td>
+    <td>2</td>
+    <td>0=Number of NMEA packets recevied, 1=Number of successfully parsed AIS messages</td>
+  </tr>
+  <tr>
+    <td>13</td>
+    <td>ETC</td>
+    <td>f</td>
+    <td>1</td>
+    <td>estimated time to collision</td>
+  </tr>
+</table>
+
+</div>

@@ -5,7 +5,7 @@
 <div><a href="index.html">&lt; Help Index</a></div>
 
 <h1>SpeedControl</h1>
-<p>Base class: <i></i></p>
+<p>Base class: <i>Drone</i></p>
 <p>Convert a distance value (meters) into a speed control value (0..1)</p>
 
 <h2>Usage Guide</h2>
@@ -25,6 +25,14 @@
     <th>#</th>
     <th>Description</th>
   </tr>
+  <tr>
+    <td>10</td>
+    <td>11</td>
+    <td>distance</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Distance to target, typically Nav.distance</td>
+  </tr>
 </table>
 
 <h2>Pubs (outputs / config)</h2>
@@ -35,6 +43,27 @@
     <th>Type</th>
     <th>#</th>
     <th>Description</th>
+  </tr>
+  <tr>
+    <td>12</td>
+    <td>limits</td>
+    <td>f</td>
+    <td>2</td>
+    <td>Min and max output speed range</td>
+  </tr>
+  <tr>
+    <td>13</td>
+    <td>threshold</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Distance in meters within which to throttle down to min limit</td>
+  </tr>
+  <tr>
+    <td>14</td>
+    <td>speed</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Output speed</td>
   </tr>
 </table>
 

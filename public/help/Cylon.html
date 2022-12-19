@@ -1,0 +1,66 @@
+<link rel="stylesheet" href="../css/help.css">
+
+<div class="helpContent">
+
+<div><a href="index.html">&lt; Help Index</a></div>
+
+<h1>Cylon</h1>
+<p>Base class: <i>Drone</i></p>
+<p>Manage a strip of NEOPixels (WS2812B) - originally created for the Kit speedboat</p>
+
+
+
+<h2>Subs (inputs)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Addr Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>8</td>
+    <td>9</td>
+    <td>left</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Left motor speed</td>
+  </tr>
+  <tr>
+    <td>10</td>
+    <td>11</td>
+    <td>right</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Right motor speed</td>
+  </tr>
+</table>
+
+<h2>Pubs (outputs / config)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>12</td>
+    <td>pins</td>
+    <td>u8</td>
+    <td>1</td>
+    <td>Which output pin is connected to the pixel strip</td>
+  </tr>
+  <tr>
+    <td>13</td>
+    <td>numPixels</td>
+    <td>u8</td>
+    <td>1</td>
+    <td>How many pixels in the strip</td>
+  </tr>
+</table>
+
+</div>
