@@ -39,7 +39,8 @@ export default class AisTracker {
     updateVessel(v, msg) {
       var location = [msg.lon, msg.lat];
 
-      var labelStr = msg.speedOverGround.toFixed(1) + ' kn';
+      var labelStr = msg.mmsi + '<br/>';
+      labelStr += msg.speedOverGround.toFixed(1) + ' kn';
 
       // heading
       v.headingIndicator.coordinates[0] = location;

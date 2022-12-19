@@ -32,7 +32,7 @@
     {
       "name":"virtual1",
       "type":"AISBoat",
-      "mmsi":250000001,
+      "mmsi":235000010,
       "enabled":true,
       "discovery":false,
       "interval":500,
@@ -47,7 +47,7 @@
     {
       "name":"virtual2",
       "type":"AISBoat",
-      "mmsi":250000002,
+      "mmsi":235000020,
       "enabled":true,
       "discovery":false,
       "interval":500,

@@ -34,9 +34,10 @@ export default class SimAISBoat extends SimNode {
     this.socketReady = false;
 
     this.socket = dgram.createSocket('udp4');
-    this.socket.bind('8500');
+    this.socket.bind(8500 + mgr.nodes.length);
     this.socket.on('listening', ()=>{
       this.socketReady = true;
+
     });
 
     // contact vectors for the sail and rudder
