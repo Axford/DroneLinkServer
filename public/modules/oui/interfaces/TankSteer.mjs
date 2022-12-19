@@ -10,6 +10,12 @@ export default class TankSteer {
 	}
 
 	onParamValue(data) {
+    // heading
+		if (data.param == 22 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
+			// pass onto node for mapping
+		  this.channel.node.updateMapParam('heading', 2, data.values, this.channel.channel, 22);
+		}
+
     this.update();
   }
 
@@ -162,6 +168,7 @@ export default class TankSteer {
 
       console.log('tankSteer update: ',speed, turnRate);
 
+      /*
 			var qm = new DLM.DroneLinkMsg();
 			qm.node = this.channel.node.id;
 			qm.channel = this.channel.channel;
@@ -175,7 +182,7 @@ export default class TankSteer {
 			qm.param = 10;
 			qm.setFloat([ turnRate ]);
 			this.state.send(qm);
-
+      */
 		});
 
 		this.ui.append(this.canvas);
