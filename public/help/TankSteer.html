@@ -6,28 +6,13 @@
 
 <h1>TankSteer</h1>
 <p>Base class: <i>Drone</i></p>
-<p>Generate left and right motor speeds from speed and turnRate inputs</p>
+<p>Generate left and right motor speeds from target course, current heading and distance to target</p>
 
 <h2>Usage Guide</h2>
-Tank steering:
-   * Sub to target heading
-   * Sub to current heading
-   * Sub to distance
-   * Generate left and right motor speed values
+
 
 <h2>Example Configuration</h2>
-<pre>TankSteer.new 10
-  name "TankSteer"
-  interval 50
-  trim 0
-  $speed [@>9.14]
-  $turnRate [@>8.16]
-  .publish "left"
-  .publish "right"
-  .publish "turnRate"
-  .publish "speed"
-  .publish "trim"
-.done</pre>
+<pre></pre>
 
 <h2>Subs (inputs)</h2>
 <table>
@@ -40,28 +25,28 @@ Tank steering:
     <th>Description</th>
   </tr>
   <tr>
-    <td>10</td>
-    <td>11</td>
-    <td>turnRate</td>
+    <td>20</td>
+    <td>21</td>
+    <td>target</td>
     <td>f</td>
     <td>1</td>
-    <td>Rate of turn in range -1..1 where positive values are clockwise</td>
+    <td>Target heading (e.g. from Nav module)</td>
   </tr>
   <tr>
-    <td>12</td>
-    <td>13</td>
-    <td>speed</td>
+    <td>22</td>
+    <td>23</td>
+    <td>heading</td>
     <td>f</td>
     <td>1</td>
-    <td>Desired speed in range -1 to 1</td>
+    <td>Current heading (e.g. from Compass)</td>
   </tr>
   <tr>
-    <td>14</td>
-    <td>15</td>
-    <td>trim</td>
+    <td>24</td>
+    <td>25</td>
+    <td>distance</td>
     <td>f</td>
     <td>1</td>
-    <td>Applied to turnRate value</td>
+    <td>Distance to target, typically Nav.distance</td>
   </tr>
 </table>
 
@@ -94,6 +79,34 @@ Tank steering:
     <td>u8</td>
     <td>1</td>
     <td>1=Automated (responds to speed and turnRate subs) or 0=Manual (ignores subs, but speed and turnRate values can be directly written to)</td>
+  </tr>
+  <tr>
+    <td>14</td>
+    <td>trim</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Applied to turnRate value to correct left/right imbalance in motor power</td>
+  </tr>
+  <tr>
+    <td>12</td>
+    <td>PID</td>
+    <td>f</td>
+    <td>3</td>
+    <td>PID settings for turnRate control</td>
+  </tr>
+  <tr>
+    <td>12</td>
+    <td>limits</td>
+    <td>f</td>
+    <td>2</td>
+    <td>Min and max output speed range</td>
+  </tr>
+  <tr>
+    <td>13</td>
+    <td>threshold</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Distance in meters within which to throttle down to min limit</td>
   </tr>
 </table>
 

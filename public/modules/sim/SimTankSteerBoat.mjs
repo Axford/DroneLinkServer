@@ -36,7 +36,7 @@ export default class SimTankSteerBoat extends SimNode {
     this.pubs['wind.speed'] = {
       param: 11,
       msgType: DLM.DRONE_LINK_MSG_TYPE_FLOAT,
-      values: 0.5
+      values: 0
     };
 
     // subs
@@ -66,7 +66,7 @@ export default class SimTankSteerBoat extends SimNode {
     this.calcCylindricalInertia(0.6, 0.06);
 
     // sample wind
-    this.getWind();
+    //this.getWind();
   }
 
 

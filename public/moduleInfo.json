@@ -1915,13 +1915,13 @@
             "Drone"
         ],
         "description": [
-            "Generate left and right motor speeds from speed and turnRate inputs"
+            "Generate left and right motor speeds from target course, current heading and distance to target"
         ],
         "guide": [
-            "Tank steering:\n   * Sub to target heading\n   * Sub to current heading\n   * Sub to distance\n   * Generate left and right motor speed values"
+            ""
         ],
         "config": [
-            "TankSteer.new 10\n  name \"TankSteer\"\n  interval 50\n  trim 0\n  $speed [@>9.14]\n  $turnRate [@>8.16]\n  .publish \"left\"\n  .publish \"right\"\n  .publish \"turnRate\"\n  .publish \"speed\"\n  .publish \"trim\"\n.done"
+            ""
         ],
         "pub": [
             {
@@ -1944,32 +1944,60 @@
                 "numValues": 1,
                 "name": "mode",
                 "description": "1=Automated (responds to speed and turnRate subs) or 0=Manual (ignores subs, but speed and turnRate values can be directly written to)"
+            },
+            {
+                "address": 14,
+                "type": "f",
+                "numValues": 1,
+                "name": "trim",
+                "description": "Applied to turnRate value to correct left/right imbalance in motor power"
+            },
+            {
+                "address": 12,
+                "type": "f",
+                "numValues": 3,
+                "name": "PID",
+                "description": "PID settings for turnRate control"
+            },
+            {
+                "address": 12,
+                "type": "f",
+                "numValues": 2,
+                "name": "limits",
+                "description": "Min and max output speed range"
+            },
+            {
+                "address": 13,
+                "type": "f",
+                "numValues": 1,
+                "name": "threshold",
+                "description": "Distance in meters within which to throttle down to min limit"
             }
         ],
         "sub": [
             {
-                "address": 10,
-                "addrAddress": 11,
+                "address": 20,
+                "addrAddress": 21,
                 "type": "f",
                 "numValues": 1,
-                "name": "turnRate",
-                "description": "Rate of turn in range -1..1 where positive values are clockwise"
+                "name": "target",
+                "description": "Target heading (e.g. from Nav module)"
             },
             {
-                "address": 12,
-                "addrAddress": 13,
+                "address": 22,
+                "addrAddress": 23,
                 "type": "f",
                 "numValues": 1,
-                "name": "speed",
-                "description": "Desired speed in range -1 to 1"
+                "name": "heading",
+                "description": "Current heading (e.g. from Compass)"
             },
             {
-                "address": 14,
-                "addrAddress": 15,
+                "address": 24,
+                "addrAddress": 25,
                 "type": "f",
                 "numValues": 1,
-                "name": "trim",
-                "description": "Applied to turnRate value"
+                "name": "distance",
+                "description": "Distance to target, typically Nav.distance"
             }
         ],
         "filename": [
