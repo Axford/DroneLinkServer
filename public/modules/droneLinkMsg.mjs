@@ -257,10 +257,14 @@ export class DroneLinkMsg {
     return buffer;
   }
 
+  getLogEncodingSize() {
+    return this.msgLength + 5 + 4 + 1;
+  }
+
   encodeForLog() {
     // prefixes a total size and timestamp
     // return Uint8Array
-    var packetSize = this.msgLength + 5 + 4 + 1;
+    var packetSize = this.getLogEncodingSize();
     var buffer = new Uint8Array(packetSize);
     buffer[0] = packetSize;
 
