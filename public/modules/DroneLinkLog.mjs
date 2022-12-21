@@ -45,6 +45,7 @@ export default class DroneLinkLog {
 
         if (me.playbackIndex >= me.log.length) {
           me.playback = false;
+          this.trigger('EOF', null);
           this.trigger('status', null);
         }
       }
@@ -155,6 +156,7 @@ export default class DroneLinkLog {
   rewind() {
     this.playbackIndex = 0;
     this.playbackTime = 0;
+    this.playbackStart = Date.now() - this.playbackTime;
 
     this.trigger('playbackInfo',{
       packets:0,
@@ -279,6 +281,10 @@ export default class DroneLinkLog {
       // jump to next packet
       i += size;
     }
+
+    this.playbackIndex = 0;
+    this.playbackTime = 0;
+    this.playbackStart = Date.now() - this.playbackTime;
 
     this.trigger('status', null);
   }

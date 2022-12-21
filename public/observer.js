@@ -76,6 +76,8 @@ import DroneLinkLog from './modules/DroneLinkLog.mjs';
 var logger = new DroneLinkLog(state);
 var stateLog = new DroneLinkLog(state);
 
+var resumeLogPlayback = false;
+
 import NetManager from './modules/oui/NetManager.mjs';
 var networkGraph;
 
@@ -285,6 +287,8 @@ async function loadLog(filePath) {
     .then((buffer)=>{
       // pass to logger to load and playback
       logger.loadFromBuffer(buffer);
+
+      if (resumeLogPlayback) logger.play();
     })
     .catch((error) => {
       // Uh-oh, an error occurred!
@@ -515,6 +519,7 @@ function init() {
     if (liveMode) {
       // switch to playback mode
       liveMode = false;
+      resumeLogPlayback = false;
       logger.stopRecording();
       $('#logPlaybackButton').html('Playback');
       state.liveMode = false;
@@ -524,6 +529,7 @@ function init() {
     } else {
       // switch to liveMode
       liveMode = true;
+      resumeLogPlayback = false;
       logger.pause();
       logger.rewind();
       $('#logPlaybackButton').html('Live');
@@ -573,7 +579,7 @@ function init() {
       $('#logStatus').html(info.packets + ' / '+ ('0000'+minutes).slice(-2) + ':' + ('0000'+seconds).slice(-2) +' ');
     }
   });
-
+0
   logger.on('playbackInfo', (info)=>{
     var t = (info.duration/1000);
     var minutes = Math.floor(t/60);
@@ -583,6 +589,20 @@ function init() {
     $('#logPlaybackStatus').css('background-position', '-'+px+'px 0px');
 
     $('#logPlaybackStatus').html(info.packets + ' / '+ ('0000'+minutes).slice(-2) + ':' + ('0000'+seconds).slice(-2) +' ');
+  });
+
+  logger.on('EOF', ()=>{
+    // load next log file...
+    resumeLogPlayback = true;
+    // current index
+    var index = $('#logSelect').prop('selectedIndex');
+    // number of options
+    var numOptions = $('#logSelect option').length;
+    index++;
+    if (index < numOptions) {
+      $('#logSelect option')[index].selected = true;
+      $('#logSelect').change();
+    }
   });
 
   // load last position from local storage
