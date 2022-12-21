@@ -175,8 +175,15 @@ export default class TankSteer {
 			var qm = new DLM.DroneLinkMsg();
 			qm.node = this.channel.node.id;
 			qm.channel = this.channel.channel;
-			qm.param = 16;
+			qm.param = 10;
 			qm.setUint8([ newMode ]);
+			this.state.send(qm);
+
+      var qm = new DLM.DroneLinkMsg();
+			qm.node = this.channel.node.id;
+			qm.channel = this.channel.channel;
+			qm.param = 10;
+      qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
 			this.state.send(qm);
     });
 
