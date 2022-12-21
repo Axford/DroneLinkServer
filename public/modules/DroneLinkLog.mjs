@@ -173,7 +173,9 @@ export default class DroneLinkLog {
     //me.state[msg.node].channels[msg.channel].params.hasOwnProperty(msg.param)
 
     for (const [nkey, node] of Object.entries(this.state.state)) {
-      this.logStateForNode(nkey, node);
+      // don't store state info for nodes that aren't live!
+      if (node.interface != 'firebase')
+        this.logStateForNode(nkey, node);
     }
   }
 

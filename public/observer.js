@@ -526,6 +526,9 @@ function init() {
       $('.logRecordControls').hide();
       $('.logPlaybackControls').show();
 
+      // load logs
+      loadLogs();
+
     } else {
       // switch to liveMode
       liveMode = true;
@@ -570,7 +573,7 @@ function init() {
 
   logger.on('info', (info)=>{
     // if reached 5min, then trigger save
-    if (info.duration >= 5000 && logger.recording) {
+    if (info.duration >= 5*60000 && logger.recording) {
       saveLog();
     } else {
       var t = (info.duration/1000);
@@ -727,9 +730,6 @@ function init() {
 
     state.goLive();
   });
-
-  // load logs
-  loadLogs();
 
   // init gamepads
   initGamepads(()=>{
