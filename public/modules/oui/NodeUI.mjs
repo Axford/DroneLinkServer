@@ -39,6 +39,7 @@ export default class NodeUI {
     this.speedOverGround = 0;
     this.lastLocationTime = 0; 
     this.lastLocation = [0,0]; // to estimate speed over ground 
+    this.priorityCounts= [0,0,0,0];
 
     // used to track mappable params like location or heading
     this.mapParams = {};
@@ -121,6 +122,10 @@ export default class NodeUI {
     // add node name (title) to right panel
     this.uiTitle = $('<div class="nodeTitle">'+ this.id +'</div>');
     this.pui.append(this.uiTitle);
+
+    // add network priority pie widget
+    this.uiPriorityPie = $('<canvas width=20 height=20 class="priorityPie"></canvas>');
+    this.pui.append(this.uiPriorityPie);
 
     // add rebuild button to right panel
     this.uiRebuildBut = $('<button class="btn btn-sm btn-dark mb-2 mr-3 rebuildModules">Rebuild</button>');
@@ -217,6 +222,9 @@ export default class NodeUI {
         }
       }
 
+      // update priority counts
+      this.priorityCounts[data.priority]++;
+
       // update lastHeard
       var now = (new Date()).getTime();
       this.lastHeard = now;
@@ -252,7 +260,57 @@ export default class NodeUI {
         this.uiWidgets.show();
       }
 
+      // also update network Priority Pie 
+      this.updatePriorityPie();
+ 
+
     }, 1000)
+  }
+
+
+  updatePriorityPie() {
+    // calc segment sizes
+    var totalPackets = 0;
+    for (var i=0; i<4; i++) {
+      totalPackets += this.priorityCounts[i];
+    }
+
+    if (totalPackets == 0) return;
+
+    const segmentColors = [
+      '#f55',
+      '#fa5',
+      '#5f5',
+      '#fff'
+    ];
+
+    var c = this.uiPriorityPie[0];
+    var ctx = c.getContext("2d");
+
+    var w = ctx.canvas.width;
+    var h = ctx.canvas.height;
+    var cx = w/2, cy = h/2, r=10;
+
+    // calc and draw segments
+    var ang = 0;
+    for (var i=0; i<4; i++) {
+      var segmentRatio = this.priorityCounts[i] / totalPackets;
+
+      var segmentAng = segmentRatio * 2 * Math.PI;
+
+      ctx.fillStyle = segmentColors[i];
+      ctx.strokeStyle = '#000';
+      ctx.beginPath();
+      ctx.moveTo(cx,cy);
+      ctx.arc(cx,cy,r,ang, ang+segmentAng);
+      ctx.lineTo(cx,cy);
+      ctx.fill();
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+
+      ang += segmentAng;
+    }
+    //this.uiPriorityPie.html(this.priorityCounts[0]);
   }
 
 

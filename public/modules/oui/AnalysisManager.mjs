@@ -30,7 +30,8 @@ export default class AnalysisManager {
           ui:ele,
           contents:contents,
           maxPackets:0,
-          channels: {}
+          channels: {},
+          priorityCounts: [0,0,0,0]
         };
         this.ui.append(ele);
       }
@@ -92,6 +93,7 @@ export default class AnalysisManager {
 
             channel.params[data.param] = {
               param:data.param,
+              priority: priority,
               name: '',
               ui:ele,
               title:title,
@@ -109,6 +111,8 @@ export default class AnalysisManager {
           this.maxPackets = Math.max(this.maxPackets, param.packets);
           param.ui.data('packets', param.packets);
 
+          node.priorityCounts[data.priority]++;
+          
           node.maxPackets = Math.max(node.maxPackets, param.packets);
           node.ui.data('packets', node.maxPackets);
 

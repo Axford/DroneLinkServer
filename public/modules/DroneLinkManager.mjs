@@ -412,12 +412,15 @@ export default class DroneLinkManager {
       msg.srcNode = this.node;
       msg.nextNode = next;
       msg.destNode = dest;
-      msg.seq = 0;
-      msg.setPriorityAndType(DMM.DRONE_MESH_MSG_PRIORITY_HIGH, DMM.DRONE_MESH_MSG_TYPE_SUBSCRIPTION_REQUEST);
+      msg.seq = this.gSeq;
+      msg.setPriorityAndType(DMM.DRONE_MESH_MSG_PRIORITY_CRITICAL, DMM.DRONE_MESH_MSG_TYPE_SUBSCRIPTION_REQUEST);
 
       // populate payload = channel, param
       msg.uint8_tPayload[0] = channel;
       msg.uint8_tPayload[1] = param;
+
+      this.gSeq++;
+      if (this.gSeq > 255) this.gSeq = 0;
 
       return true;
     }
@@ -439,12 +442,15 @@ export default class DroneLinkManager {
       msg.srcNode = this.node;
       msg.nextNode = nextHop;
       msg.destNode = target;
-      msg.seq = 0;
+      msg.seq = this.gSeq;
       msg.setPriorityAndType(DMM.DRONE_MESH_MSG_PRIORITY_HIGH, DMM.DRONE_MESH_MSG_TYPE_ROUTEENTRY_REQUEST);
       msg.metric = 0;
 
       // populate payload
       msg.uint8_tPayload[0] = subject;
+
+      this.gSeq++;
+      if (this.gSeq > 255) this.gSeq = 0;
 
       return true;
     }
