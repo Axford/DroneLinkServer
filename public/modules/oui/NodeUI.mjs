@@ -122,6 +122,23 @@ export default class NodeUI {
     this.uiTitle = $('<div class="nodeTitle">'+ this.id +'</div>');
     this.pui.append(this.uiTitle);
 
+    // add rebuild button to right panel
+    this.uiRebuildBut = $('<button class="btn btn-sm btn-dark mb-2 mr-3 rebuildModules">Rebuild</button>');
+		this.uiRebuildBut.on('click', ()=>{
+			// remove UI for modules, params, etc
+      me.panels.Management.clear();
+      
+      // clear state info... and also remove from firestore
+      me.state.rebuildNode(me.id);
+
+      // remove any bindings to map params
+      me.mapParams = {};
+
+      // remove histogram data
+
+		});
+    this.pui.append(this.uiRebuildBut);
+
     // container for tabs
     this.puiNav = $('<div class="panelNav"></div>');
     this.pui.append(this.puiNav);

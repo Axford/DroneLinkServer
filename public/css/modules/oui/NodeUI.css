@@ -30,10 +30,16 @@
 .NodeUI .nodeTitle {
   font-size: 16px;
   font-weight:bold;
-  margin-top:-8px;
+  margin-top:-2px;
   margin-bottom:2px;
   color:#def;
   position:relative;
+}
+
+.NodeUI button.rebuildModules {
+  position:absolute;
+  top: 2px;
+  right: 0;
 }
 
 .NodeUI .panelNav {

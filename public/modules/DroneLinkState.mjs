@@ -8,7 +8,7 @@
 import * as DLM from './droneLinkMsg.mjs';
 import DroneLinkMsgQueue from './DroneLinkMsgQueue.mjs';
 
-import { getFirestore,  collection, doc, setDoc, query, onSnapshot, where } from "https://www.gstatic.com/firebasejs/9.14.0/firebase-firestore.js";
+import { getFirestore,  collection, doc, setDoc, query, onSnapshot, where, deleteField, updateDoc } from "https://www.gstatic.com/firebasejs/9.14.0/firebase-firestore.js";
 
 
 
@@ -483,6 +483,26 @@ export default class DroneLinkState {
 
   importFromJSON(json) {
     // TODO
+  }
+
+  async rebuildNode(id) {
+    // remove all channel state info
+    this.state[id].channels = {};
+
+
+    // erase state info from firestore
+    try {
+      const docRef = doc(this.db, 'nodes', id.toString());
+   
+      // remove channel info
+      await updateDoc(docRef, {
+          channels: deleteField()
+      });
+
+      console.log("Firebase, node channel info deleted: " + id);
+    } catch (e) {
+      console.error("Firebase, Error deleting node channel info: ", e);
+    }
   }
 
 

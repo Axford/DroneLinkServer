@@ -47,6 +47,10 @@ export default class Management extends Panel {
 
   }
 
+  clear() {
+    this.ui.panel.empty();
+  }
+
   update() {
     if (!this.visible) return;
 
