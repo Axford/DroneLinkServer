@@ -187,7 +187,8 @@ class DroneFSEntry {
 
 
   handleFileResponse(fr) {
-
+    console.log('fs.file.response: path: ', fr.path);
+    
     // separate path from name
     var fp = 0;
     for (var i=fr.path.length-1; i>=0; i--) {
@@ -221,6 +222,8 @@ class DroneFSEntry {
       if (this.isDir) {
 
         var createChild = false;
+
+        console.log('fs.file.response: ',path, this.path);
 
         // is this about one of our immediate children?
         if (path == this.path) {
