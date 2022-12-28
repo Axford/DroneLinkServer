@@ -41,6 +41,8 @@ export default class Servo extends ModuleInterface {
 
 
 	onParamValue(data) {
+    if (!this.built) return;
+
     if (data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
       if (data.param == 12) {
         // calc control points
@@ -58,7 +60,7 @@ export default class Servo extends ModuleInterface {
       }
     }
 
-    this.update();
+    this.updateNeeded = true;
   }
 
 

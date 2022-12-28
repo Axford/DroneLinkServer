@@ -9,10 +9,6 @@ export default class Waypoint extends ModuleInterface {
 	}
 
 
-	onParamValue(data) {
-    this.update();
-  }
-
   update() {
 		if (!super.update()) return;
 

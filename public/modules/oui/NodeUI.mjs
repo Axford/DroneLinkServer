@@ -160,6 +160,7 @@ export default class NodeUI {
 
     // panels
     this.panels = {};
+    this.activePanel = 'Management';
 
     this.panels.Management = new ManagementPanel(this, this.puiTabs, this.puiPanels);
 
@@ -427,6 +428,8 @@ export default class NodeUI {
         panel.hide();
       }
     }
+
+    this.activePanel = tabName;
   }
 
 
@@ -439,9 +442,7 @@ export default class NodeUI {
     this.pui.show();
 
     // update panels
-    for (const [panelName, panel] of Object.entries(this.panels)) {
-      panel.update();
-    }
+    setTimeout( ()=>{ this.showPanel(this.activePanel); }, 500 );
 
     if (this.mapParams.location &&
         this.mapParams.location.value[0] != 0) {
@@ -458,6 +459,11 @@ export default class NodeUI {
     this.focused = false;
     //this.mui.css('display','none');
     if (this.onBlur) this.onBlur(this);
+
+    // hide all panels
+    for (const [panelName, panel] of Object.entries(this.panels)) {
+      panel.hide();
+    }
   }
 
 

@@ -12,6 +12,8 @@ export default class RFM69 extends ModuleInterface {
 
 
 	onParamValue(data) {
+    if (!this.built) return;
+
     if (data.param == 8 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
 			var d = data.values[0];
       this.RSSI.push(d);
@@ -37,7 +39,7 @@ export default class RFM69 extends ModuleInterface {
 			this.powerSelect.val(p);
 		}
 
-    this.update();
+    this.updateNeeded = true;
   }
 
   update() {

@@ -11,6 +11,7 @@ export default class LSM9DS1 extends ModuleInterface {
 	}
 
 	onParamValue(data) {
+    if (!this.built) return;
 
 		// heading
 		if (data.param == 11 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
@@ -28,7 +29,7 @@ export default class LSM9DS1 extends ModuleInterface {
       if (this.rawVectors.length > 200) this.rawVectors.shift();
 		}
 
-    this.update();
+    this.updateNeeded = true;
   }
 
   update() {

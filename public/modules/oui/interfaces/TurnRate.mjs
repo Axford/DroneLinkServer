@@ -9,13 +9,15 @@ export default class TurnRate extends ModuleInterface {
 	}
 
 	onParamValue(data) {
+		if (!this.built) return;
+
 		// heading
 		if (data.param == 12 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
 			// pass onto node for mapping
 			this.channel.node.updateMapParam('heading', 1, data.values, this.channel, 12);
 		}
 
-    this.update();
+    this.updateNeeded = true;
   }
 
   update() {

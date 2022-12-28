@@ -10,6 +10,7 @@ export default class INA219 extends ModuleInterface {
 	}
 
 	onParamValue(data) {
+		if (!this.built) return;
 
 		if (data.param == 15 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
       // cellV
@@ -28,7 +29,7 @@ export default class INA219 extends ModuleInterface {
       this.widgetText.html(d.toFixed(1) + 'v');
     }
 
-    this.update();
+    this.updateNeeded = true;
   }
 
   update() {

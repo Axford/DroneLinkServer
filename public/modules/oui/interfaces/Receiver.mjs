@@ -8,10 +8,6 @@ export default class Receiver extends ModuleInterface {
     super(channel, state);
 	}
 
-	onParamValue(data) {
-    this.update();
-  }
-
   update() {
 		if (!super.update()) return;
 

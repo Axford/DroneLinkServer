@@ -11,6 +11,7 @@ export default class NMEA extends ModuleInterface {
 	}
 
 	onParamValue(data) {
+    if (!this.built) return;
 
 		// location
 		if (data.param == 8 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
@@ -44,7 +45,7 @@ export default class NMEA extends ModuleInterface {
       this.widgetText.html(d.toFixed(0));
     }
 
-    this.update();
+    this.updateNeeded = true;
   }
 
   update() {

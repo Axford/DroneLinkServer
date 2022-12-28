@@ -44,6 +44,7 @@ export default class Channel {
     this.interface = null;
     this.params = {};
     this.uiState = 'parameters';
+    this.visible = false;
 
     this.ui = $('<div class="Channel"/>');
     this.ui.data('channel', data.channel);
@@ -238,7 +239,7 @@ export default class Channel {
 
       // and render / show the new interface
       if (this.interface) {
-        this.interface.build();
+        // this.interface.build();  // build on demand! 
         this.expand();
 
         this.changeUIState('interface');
@@ -324,7 +325,8 @@ export default class Channel {
       this.interfaceTab.show();
       this.parametersTab.hide();
       if (this.interface && (typeof this.interface.show === 'function')) {
-        this.interface.show();
+        if (this.visible)
+          this.interface.show();
       }
     } else if (s == 'parameters') {
       this.interfaceButton.show();
@@ -355,10 +357,12 @@ export default class Channel {
   }
 
   show() {
-    changeUIState(this.uiState);
+    this.visible = true;
+    this.changeUIState(this.uiState);
   }
 
   hide() {
+    this.visible = false;
     if (this.interface) {
       this.interface.hide();
     }

@@ -60,6 +60,8 @@ export default class Management extends ModuleInterface {
 
 
 	onParamValue(data) {
+		if (!this.built) return;
+
     if (data.param == 13 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_UINT32_T) {
 			this.updateNeeded = true;
 		}
@@ -68,6 +70,8 @@ export default class Management extends ModuleInterface {
 			// IP
 			this.updateNeeded = true;
 		}
+
+		this.updateNeeded = true;
   }
 
 

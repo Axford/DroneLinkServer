@@ -11,13 +11,15 @@ export default class TankSteer extends ModuleInterface {
 	}
 
 	onParamValue(data) {
+    if (!this.built) return;
+
     // heading
 		if (data.param == 22 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
 			// pass onto node for mapping
 		  this.channel.node.updateMapParam('heading', 2, data.values, this.channel.channel, 22);
 		}
 
-    this.update();
+    this.updateNeeded = true;
   }
 
   update() {

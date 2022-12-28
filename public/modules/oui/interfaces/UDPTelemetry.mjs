@@ -8,10 +8,6 @@ export default class UDPTelemetry extends ModuleInterface {
     super(channel, state);
 	}
 
-	onParamValue(data) {
-
-    this.update();
-  }
 
   update() {
 		if (!super.update()) return;

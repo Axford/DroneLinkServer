@@ -275,12 +275,6 @@ export default class Polar extends ModuleInterface {
   }
 
 
-  onParamValue(data) {
-    console.log('polar param update');
-    setTimeout(()=>{ this.update(); }, 500);
-  }
-
-
 	build() {
     super.build('Polar');
 

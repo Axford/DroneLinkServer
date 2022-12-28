@@ -11,6 +11,8 @@ export default class Depth extends ModuleInterface {
 	}
 
 	onParamValue(data) {
+    if (!this.built) return;
+
     if (data.param == 14 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
       this.depth.push(data.values[2]);
 
@@ -18,7 +20,7 @@ export default class Depth extends ModuleInterface {
       if (this.depth.length > 100) this.depth.shift();
     }
 
-    this.update();
+    this.updateNeeded = true;
   }
 
   update() {

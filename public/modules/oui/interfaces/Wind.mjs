@@ -34,6 +34,7 @@ export default class Wind extends ModuleInterface {
 	}
 
 	onParamValue(data) {
+    if (!this.built) return;
 
 		// global wind
 		if (data.param == 14 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
@@ -48,7 +49,7 @@ export default class Wind extends ModuleInterface {
       this.receivedLocalWind = true;
 		}
 
-    this.update();
+    this.updateNeeded = true;
   }
 
   update() {

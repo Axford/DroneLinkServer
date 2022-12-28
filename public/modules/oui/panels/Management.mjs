@@ -68,5 +68,19 @@ export default class Management extends Panel {
     this.updateInterfaces();
   }
 
+  show() {
+    super.show();
+    for (const [key, chan] of Object.entries(this.channels)) {
+      chan.show();
+    }
+  }
+
+  hide() {
+    super.hide();
+    for (const [key, chan] of Object.entries(this.channels)) {
+      chan.hide();
+    }
+  }
+
 
 }

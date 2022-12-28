@@ -139,7 +139,7 @@ export default class INA219 {
 
 
 	onParamValue(data) {
-
+    this.updateNeeded = true;
   }
 
 
@@ -169,8 +169,9 @@ export default class INA219 {
 
 
   show() {
+    if (!this.built) this.build();
     this.visible = true;
-    this.updateNeeded = true;
+    this.update();
   }
 
 

@@ -92,6 +92,8 @@ export default class Nav extends ModuleInterface {
 
 
   onParamValue(data) {
+    if (!this.built) return;
+
     // location
 		if (data.param == 10 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
 			// pass onto node for mapping
@@ -135,7 +137,7 @@ export default class Nav extends ModuleInterface {
       this.widgetText.html(dStr);
     }
 
-    this.update();
+    this.updateNeeded = true;
   }
 
 

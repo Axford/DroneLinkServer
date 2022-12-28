@@ -44,10 +44,6 @@ export default class INA3221 extends ModuleInterface {
 
 
 
-	onParamValue(data) {
-    this.update();
-  }
-
   update() {
 		if (!super.update()) return;
 
