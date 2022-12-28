@@ -1,12 +1,11 @@
+import ModuleInterface from './ModuleInterface.mjs';
 import loadStylesheet from '../../loadStylesheet.js';
 import * as DLM from '../../droneLinkMsg.mjs';
 
 
-export default class HMC5883L {
+export default class HMC5883L extends ModuleInterface {
 	constructor(channel, state) {
-    this.channel = channel;
-    this.state = state;
-    this.built = false;
+    super(channel, state);
 
     this.rawVectors = [];  // history of raw vector values
 	}
@@ -33,7 +32,7 @@ export default class HMC5883L {
   }
 
   update() {
-		if (!this.built) return;
+		if (!super.update()) return;
 
     var node = this.channel.node.id;
     var channel = this.channel.channel;
@@ -223,16 +222,11 @@ export default class HMC5883L {
   }
 
 	build() {
-		this.built = true;
-
-		this.ui = $('<div class="HMC5883L text-center"></div>');
+		super.build('HMC5883L');
     this.canvas = $('<canvas height=200 />');
 
 		this.ui.append(this.canvas);
-    this.channel.interfaceTab.append(this.ui);
 
-    this.built = true;
-
-    this.update();
+    super.finishBuild();
   }
 }

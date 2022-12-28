@@ -11,6 +11,7 @@ import INA219 from './interfaces/INA219.mjs';
 import INA3221 from './interfaces/INA3221.mjs';
 import LSM9DS1 from './interfaces/LSM9DS1.mjs';
 import Management from './interfaces/Management.mjs';
+import MPU6050 from './interfaces/MPU6050.mjs';
 import Nav from './interfaces/Nav.mjs';
 import Neopixel from './interfaces/Neopixel.mjs';
 import NMEA from './interfaces/NMEA.mjs';
@@ -42,6 +43,7 @@ export default class Channel {
     this.lastHeard = (new Date()).getTime();
     this.interface = null;
     this.params = {};
+    this.uiState = 'parameters';
 
     this.ui = $('<div class="Channel"/>');
     this.ui.data('channel', data.channel);
@@ -91,22 +93,13 @@ export default class Channel {
     // tab buttons
     this.interfaceButton = $('<button class="btn btn-tiny btn-light float-right mr-1" style="display:none">Interface</button>');
     this.interfaceButton.on('click',()=>{
-      this.interfaceButton.hide();
-      this.parametersButton.show();
-      this.interfaceTab.show();
-      this.parametersTab.hide();
-      if (this.interface) {
-        this.interface.update();
-      }
+      me.changeUIState('interface');
     });
     this.ui.append(this.interfaceButton);
 
     this.parametersButton = $('<button class="btn btn-tiny btn-light float-right mr-1" style="display:none">Parameters</button>');
     this.parametersButton.on('click',()=>{
-      this.interfaceButton.show();
-      this.parametersButton.hide();
-      this.interfaceTab.hide();
-      this.parametersTab.show();
+      me.changeUIState('parameters');
     });
     this.ui.append(this.parametersButton);
 
@@ -147,6 +140,11 @@ export default class Channel {
       this.uiLastHeard.html(age.toFixed(0) + 's');
       if (age > 60) { this.uiLastHeard.addClass('bg-warning'); } else {
         this.uiLastHeard.removeClass('bg-warning');
+      }
+
+      // trigger updateIfNeeded
+      if (this.interface) {
+        this.interface.updateIfNeeded();
       }
     }, 1000);
 
@@ -203,6 +201,8 @@ export default class Channel {
         this.interface = new LSM9DS1(this, state);
       } else if (data.type == 'Management') {
         this.interface = new Management(this, state);
+      } else if (data.type == 'MPU6050') {
+        this.interface = new MPU6050(this, state);
       } else if (data.type == 'Nav') {
         this.interface = new Nav(this, state);
       } else if (data.type == 'Neopixel') {
@@ -241,10 +241,7 @@ export default class Channel {
         this.interface.build();
         this.expand();
 
-        this.interfaceButton.hide();
-        this.parametersButton.show();
-        this.interfaceTab.show();
-        this.parametersTab.hide();
+        this.changeUIState('interface');
       }
     });
 
@@ -317,8 +314,28 @@ export default class Channel {
         }
       }
     });
+  }
 
 
+  changeUIState(s) {
+    if (s == 'interface') {
+      this.interfaceButton.hide();
+      this.parametersButton.show();
+      this.interfaceTab.show();
+      this.parametersTab.hide();
+      if (this.interface && (typeof this.interface.show === 'function')) {
+        this.interface.show();
+      }
+    } else if (s == 'parameters') {
+      this.interfaceButton.show();
+      this.parametersButton.hide();
+      this.interfaceTab.hide();
+      this.parametersTab.show();
+      if (this.interface && (typeof this.interface.hide === 'function')) {
+        this.interface.hide();
+      }
+    }
+    this.uiState = s;
   }
 
   collapse() {
@@ -326,13 +343,24 @@ export default class Channel {
     this.uiTitleContainer.removeClass('open');
     this.uiTitleContainer.addClass('closed');
     this.uiChannelTabs.hide();
+    this.hide();
   }
 
   expand() {
     this.isOpen = true;
     this.uiTitleContainer.addClass('open');
     this.uiTitleContainer.removeClass('closed');
-    this.uiChannelTabs.show();
+    this.uiChannelTabs.show(); 
+    this.changeUIState(this.uiState);
   }
 
+  show() {
+    changeUIState(this.uiState);
+  }
+
+  hide() {
+    if (this.interface) {
+      this.interface.hide();
+    }
+  }
 }

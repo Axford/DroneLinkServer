@@ -1,26 +1,13 @@
+import ModuleInterface from './ModuleInterface.mjs';
 import loadStylesheet from '../../loadStylesheet.js';
 import * as DLM from '../../droneLinkMsg.mjs';
 
 
-export default class SerialTelemetry {
+export default class SerialTelemetry extends ModuleInterface {
 	constructor(channel, state) {
-    this.channel = channel;
-    this.state = state;
-    this.built = false;
+    super(channel, state);
 	}
 
-  drawValue(x,y,label,v) {
-    var c = this.canvas[0];
-		var ctx = c.getContext("2d");
-
-    ctx.fillStyle = '#FFF';
-		ctx.textAlign = 'left';
-    ctx.font = '12px serif';
-    ctx.fillText(label, x, y+15);
-    ctx.fillStyle = '#5f5';
-    ctx.font = '20px bold serif';
-    ctx.fillText(v, x, y+35);
-  }
 
 	onParamValue(data) {
 
@@ -28,7 +15,7 @@ export default class SerialTelemetry {
   }
 
   update() {
-		if (!this.built) return;
+		if (!super.update()) return;
 
     var node = this.channel.node.id;
     var channel = this.channel.channel;
@@ -66,16 +53,10 @@ export default class SerialTelemetry {
   }
 
 	build() {
-		this.built = true;
-
-		this.ui = $('<div class="SerialTelemetry text-center"></div>');
-    this.canvas = $('<canvas height=100 />');
+		super.build('SerialTelemetry')
 
 		this.ui.append(this.canvas);
-    this.channel.interfaceTab.append(this.ui);
-
-    this.built = true;
-
-    this.update();
+    
+    super.finishBuild();
   }
 }

@@ -1,12 +1,12 @@
+import ModuleInterface from './ModuleInterface.mjs';
 import loadStylesheet from '../../loadStylesheet.js';
 import * as DLM from '../../droneLinkMsg.mjs';
 
 
-export default class Servo {
+export default class Servo extends ModuleInterface {
 	constructor(channel, state) {
-    this.channel = channel;
-    this.state = state;
-    this.built = false;
+    super(channel, state);
+    
     this.map = [0,0,0,0];
     this.cp = [ [0,0], [0,0], [0,0], [0,0]];
     this.position = 0;
@@ -212,16 +212,14 @@ export default class Servo {
 
 
   update() {
-		if (!this.built) return;
+		if (!super.update()) return;
 
     this.drawCurve();
   }
 
 
 	build() {
-		this.built = true;
-
-		this.ui = $('<div class="Servo text-center"></div>');
+		super.build('Servo');
     this.canvas = $('<canvas height=200 />');
 
     var me = this;
@@ -316,9 +314,7 @@ export default class Servo {
 		});
 
 		this.ui.append(this.canvas);
-    this.channel.interfaceTab.append(this.ui);
-
-    this.built = true;
+    
 
     // query map
     var qm = new DLM.DroneLinkMsg();
@@ -329,6 +325,6 @@ export default class Servo {
     qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
     this.state.send(qm);
 
-    this.update();
+    super.finishBuild();
   }
 }

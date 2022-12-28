@@ -1,18 +1,14 @@
+import ModuleInterface from './ModuleInterface.mjs';
 import loadStylesheet from '../../loadStylesheet.js';
 import * as DLM from '../../droneLinkMsg.mjs';
 
 
 loadStylesheet('./css/modules/oui/interfaces/Polar.css');
 
-function radiansToDegrees(a) {
-  return a * 180 / Math.PI;
-}
+/*
 
-function degreesToRadians(a) {
-  return a * Math.PI / 180;
-}
 
-function drawPill(ctx, label, x, y, w, color) {
+function drawPill(label, x, y, w, color) {
   ctx.fillStyle = color;
 	// draw pill
 	var r = 8;
@@ -37,7 +33,7 @@ function drawPill(ctx, label, x, y, w, color) {
   ctx.fillText(label, x, y+12);
 }
 
-function drawLabelledHand(ctx, ang, label, r1, r2, color) {
+function drawLabelledHand(ang, label, r1, r2, color) {
   var angR = (ang - 90) * Math.PI / 180;
 
   var cx = ctx.canvas.width / 2;
@@ -56,7 +52,7 @@ function drawLabelledHand(ctx, ang, label, r1, r2, color) {
   ctx.fillText(label, cx + 4 + r2*Math.cos(angR), 100 + r2*Math.sin(angR));
 }
 
-function drawLabel(ctx, v, label, x, y, color) {
+function drawLabel(v, label, x, y, color) {
   ctx.fillStyle = color;
   ctx.textAlign = 'left';
   ctx.font = '12px serif';
@@ -65,11 +61,13 @@ function drawLabel(ctx, v, label, x, y, color) {
   ctx.fillText(v, x, y+35);
 }
 
-export default class Polar {
+*/
+
+
+export default class Polar extends ModuleInterface {
 	constructor(channel, state) {
-    this.channel = channel;
-    this.state = state;
-    this.built = false;
+    super(channel, state);
+
     this.builtMapElements = false;
     this.mapMarker = null;
     this.mapOutlines = {};
@@ -172,7 +170,7 @@ export default class Polar {
 
 
   update() {
-    if (!this.built) return;
+    if (!super.update()) return;
 
     this.updateMapElements();
 
@@ -261,7 +259,7 @@ export default class Polar {
     ctx.stroke();
 
     // adjHeading
-    drawLabelledHand(ctx, adjHeading - wind, '', 30, 100, '#ff5')
+    this.drawLabelledHand(adjHeading - wind, '', 30, 100, '#ff5')
 
     // draw controlMode
     var controlModeStr = 'Passive';
@@ -273,7 +271,7 @@ export default class Polar {
       controlModeStr = 'Active';
       controlModeClr = '#5a5';
     }
-    drawPill(ctx, controlModeStr, w-40, h-20, 70, controlModeClr);
+    this.drawPill(controlModeStr, w-40, h-20, 70, controlModeClr);
   }
 
 
@@ -284,7 +282,7 @@ export default class Polar {
 
 
 	build() {
-    this.ui = $('<div class="Polar text-center"></div>');
+    super.build('Polar');
 
     var passiveButton = $('<button class="btn btn-sm btn-primary mr-2 mb-2">Passive</button>');
     passiveButton.on('click', ()=>{
@@ -312,10 +310,7 @@ export default class Polar {
 
     this.canvas = $('<canvas height=200 />');
     this.ui.append(this.canvas);
-    this.channel.interfaceTab.append(this.ui);
 
-    this.built = true;
-
-    this.update();
+    super.finishBuild();
   }
 }

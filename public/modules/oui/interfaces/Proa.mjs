@@ -1,82 +1,18 @@
+import ModuleInterface from './ModuleInterface.mjs';
 import loadStylesheet from '../../loadStylesheet.js';
 import * as DLM from '../../droneLinkMsg.mjs';
-
+import {degreesToRadians} from '../../navMath.mjs';
 
 //loadStylesheet('./css/modules/interfaces/Proa.css');
 
-function radiansToDegrees(a) {
-  return a * 180 / Math.PI;
-}
 
-function degreesToRadians(a) {
-  return a * Math.PI / 180;
-}
-
-function drawPill(ctx, label, x, y, w, color) {
-  ctx.fillStyle = color;
-	// draw pill
-	var r = 8;
-	var x1 = x - w/2 + r;
-	var x2 = x + w/2 - r;
-
-	ctx.beginPath();
-	ctx.arc(x1, y+r, r, 0, 2 * Math.PI);
-	ctx.fill();
-
-	ctx.beginPath();
-	ctx.fillRect(x1,y, w - 2*r, 2*r);
-
-	ctx.beginPath();
-	ctx.arc(x2, y + r, r, 0, 2 * Math.PI);
-	ctx.fill();
-
-	// draw label
-  ctx.textAlign = 'center';
-  ctx.font = '12px sans-serif';
-	ctx.fillStyle = '#fff';
-  ctx.fillText(label, x, y+12);
-}
-
-
-function drawLabelledHand(ctx, ang, label, r1, r2, color) {
-  var angR = (ang - 90) * Math.PI / 180;
-
-  var cx = ctx.canvas.width / 2;
-  var cy = ctx.canvas.height / 2;
-
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 5;
-  ctx.beginPath();
-  ctx.moveTo(cx + r1*Math.cos(angR), cy + r1*Math.sin(angR));
-  ctx.lineTo(cx + r2*Math.cos(angR), cy + r2*Math.sin(angR) );
-  ctx.stroke();
-
-  ctx.fillStyle = color;
-  ctx.font = '15px Arial';
-  ctx.textAlign = 'left';
-  //ctx.fillText(ang.toFixed(0) + '°', 10, 25);
-  ctx.fillText(label, cx + 4 + r2*Math.cos(angR), cy + r2*Math.sin(angR));
-}
-
-function drawLabel(ctx, v, label, x, y, color) {
-  ctx.fillStyle = color;
-  ctx.textAlign = 'left';
-  ctx.font = '12px serif';
-  ctx.fillText(label, x, y+12);
-  ctx.font = '20px bold serif';
-  ctx.fillText(v, x, y+35);
-}
-
-
-export default class Proa {
+export default class Proa extends ModuleInterface {
 	constructor(channel, state) {
-    this.channel = channel;
-    this.state = state;
-    this.built = false;
+    super(channel, state);
 	}
 
   update() {
-    if (!this.built) return;
+    if (!super.update()) return;
 
     var node = this.channel.node.id;
     var channel = this.channel.channel;
@@ -194,10 +130,10 @@ export default class Proa {
     ctx.stroke();
 
 		// hands
-    drawLabelledHand(ctx, heading, '', rInner,rOuter2, '#5F5');
-    drawLabelledHand(ctx, target, '', rInner, rOuter2, '#FF5');
-    drawLabelledHand(ctx, course, '', rInner-20, rOuter2, '#5FF');
-    drawLabelledHand(ctx, wind, '', 10, rOuter2+20, '#55F');
+    this.drawLabelledHand(heading, '', rInner,rOuter2, '#5F5');
+    this.drawLabelledHand(target, '', rInner, rOuter2, '#FF5');
+    this.drawLabelledHand(course, '', rInner-20, rOuter2, '#5FF');
+    this.drawLabelledHand(wind, '', 10, rOuter2+20, '#55F');
 
     // legend - top right
 		ctx.textAlign = 'right';
@@ -212,16 +148,16 @@ export default class Proa {
     ctx.fillText('Wind', w-5, 54);
 
     // crosstack  -top left
-    drawLabel(ctx, crosstrack.toFixed(1), 'Crosstrack', 5, 0, '#fff');
+    this.drawLabel(crosstrack.toFixed(1), 'Crosstrack', 5, 0, '#fff');
 
     // flags
-    drawLabel(ctx, flags[0] > 0 ? 'Starboard' : 'Port', 'Tack', 5, 50, '#fff');
-    drawLabel(ctx, flags[1] > 0 ? 'Y' : 'N', 'Locked?', 5, 100, '#fff');
-    drawLabel(ctx, flags[2] > 0 ? 'Y' : 'N', 'Last CT+', 5, 150, '#fff');
+    this.drawLabel(flags[0] > 0 ? 'Starboard' : 'Port', 'Tack', 5, 50, '#fff');
+    this.drawLabel(flags[1] > 0 ? 'Y' : 'N', 'Locked?', 5, 100, '#fff');
+    this.drawLabel(flags[2] > 0 ? 'Y' : 'N', 'Last CT+', 5, 150, '#fff');
 
     // debug
-    drawLabel(ctx, debugInfo[1].toFixed(0) , 'Frame Err', 5, 200, '#fff');
-    drawLabel(ctx, debugInfo[2].toFixed(0) , 'CoW Err', 5, 250, '#fff');
+    this.drawLabel(debugInfo[1].toFixed(0) , 'Frame Err', 5, 200, '#fff');
+    this.drawLabel(debugInfo[2].toFixed(0) , 'CoW Err', 5, 250, '#fff');
 
     // draw Proa in inner region
     // -------------------------
@@ -310,7 +246,7 @@ export default class Proa {
     // target frame orientation
     // calc position of pontoons
     // bow
-    drawLabelledHand(ctx, course + frameOffset, '', 10, rInner, '#F00');
+    this.drawLabelledHand(course + frameOffset, '', 10, rInner, '#F00');
 
     // draw controlMode
     var controlModeStr = 'Normal';
@@ -322,7 +258,7 @@ export default class Proa {
       controlModeStr = 'Brake';
       controlModeClr = '#855';
     }
-    drawPill(ctx, controlModeStr, w-40, h-20, 70, controlModeClr);
+    this.drawPill(controlModeStr, w-40, h-20, 70, controlModeClr);
 
 /*
     var h3 = (course + frameOffset) - 90;
@@ -354,7 +290,7 @@ export default class Proa {
 
 
 	build() {
-    this.ui = $('<div class="Proa text-center"></div>');
+    super.build('Proa');
 
     this.passiveModeBut = $('<button class="btn btn-sm btn-secondary">Passive</button>');
     this.passiveModeBut.click((e)=>{
@@ -412,10 +348,7 @@ export default class Proa {
     });
 
     this.ui.append(this.canvas);
-    this.channel.interfaceTab.append(this.ui);
-
-    this.built = true;
-
-    this.update();
+    
+    super.finishBuild();
   }
 }

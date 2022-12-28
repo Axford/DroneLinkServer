@@ -1,38 +1,13 @@
+import ModuleInterface from './ModuleInterface.mjs';
 import loadStylesheet from '../../loadStylesheet.js';
 import * as DLM from '../../droneLinkMsg.mjs';
 
 
-function drawPill(ctx, label, x, y, w, color) {
-  ctx.fillStyle = color;
-	// draw pill
-	var r = 8;
-	var x1 = x - w/2 + r;
-	var x2 = x + w/2 - r;
 
-	ctx.beginPath();
-	ctx.arc(x1, y+r, r, 0, 2 * Math.PI);
-	ctx.fill();
-
-	ctx.beginPath();
-	ctx.fillRect(x1,y, w - 2*r, 2*r);
-
-	ctx.beginPath();
-	ctx.arc(x2, y + r, r, 0, 2 * Math.PI);
-	ctx.fill();
-
-	// draw label
-  ctx.textAlign = 'center';
-  ctx.font = '12px sans-serif';
-	ctx.fillStyle = '#fff';
-  ctx.fillText(label, x, y+12);
-}
-
-
-export default class Wind {
+export default class Wind extends ModuleInterface {
 	constructor(channel, state) {
-    this.channel = channel;
-    this.state = state;
-    this.built = false;
+    super(channel, state);
+
     this.receivedWind = false;
     this.receivedLocalWind = false;
 
@@ -77,7 +52,7 @@ export default class Wind {
   }
 
   update() {
-		if (!this.built) return;
+		if (!super.update()) return;
 
     var node = this.channel.node.id;
     var channel = this.channel.channel;
@@ -166,7 +141,7 @@ export default class Wind {
       ctx.fillText(wind.toFixed(0) + '°', cx, 106);
     }
 
-		drawPill(ctx, 'World', cx, 5, w1*0.8, '#585');
+		this.drawPill('World', cx, 5, w1*0.8, '#585');
 
 
 		// render local compass
@@ -211,20 +186,18 @@ export default class Wind {
       ctx.fillText(localWind.toFixed(0) + '°', cx, 106);
     }
 
-		drawPill(ctx, 'Local', cx, 5, w1*0.8, '#558');
+		this.drawPill('Local', cx, 5, w1*0.8, '#558');
   }
 
-	build() {
-		this.built = true;
 
-		this.ui = $('<div class="HMC5883L text-center"></div>');
+	build() {
+		super.build('Wind');
+
     this.canvas = $('<canvas height=200 />');
 
 		this.ui.append(this.canvas);
-    this.channel.interfaceTab.append(this.ui);
+    
+    super.finishBuild();
 
-    this.built = true;
-
-    this.update();
   }
 }

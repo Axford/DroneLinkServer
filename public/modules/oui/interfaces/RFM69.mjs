@@ -1,28 +1,15 @@
+import ModuleInterface from './ModuleInterface.mjs';
 import loadStylesheet from '../../loadStylesheet.js';
 import * as DLM from '../../droneLinkMsg.mjs';
 
 
-export default class RFM69 {
+export default class RFM69 extends ModuleInterface {
 	constructor(channel, state) {
-    this.channel = channel;
-    this.state = state;
-    this.built = false;
+    super(channel, state);
 
     this.RSSI = [];
 	}
 
-  drawValue(x,y,label,v) {
-    var c = this.canvas[0];
-		var ctx = c.getContext("2d");
-
-    ctx.fillStyle = '#FFF';
-		ctx.textAlign = 'left';
-    ctx.font = '12px serif';
-    ctx.fillText(label, x, y+15);
-    ctx.fillStyle = '#5f5';
-    ctx.font = '20px bold serif';
-    ctx.fillText(v, x, y+35);
-  }
 
 	onParamValue(data) {
     if (data.param == 8 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
@@ -54,7 +41,7 @@ export default class RFM69 {
   }
 
   update() {
-		if (!this.built) return;
+		if (!super.update()) return;
 
     var node = this.channel.node.id;
     var channel = this.channel.channel;
@@ -112,9 +99,7 @@ export default class RFM69 {
   }
 
 	build() {
-		this.built = true;
-
-		this.ui = $('<div class="RFM69 text-center"></div>');
+		super.build('RFM69');
 
 		// power select
 		this.powerSelect = $('<select class="RFMPowerSelect"></select>');
@@ -140,7 +125,6 @@ export default class RFM69 {
     this.canvas = $('<canvas height=100 />');
 
 		this.ui.append(this.canvas);
-    this.channel.interfaceTab.append(this.ui);
 
 		// widget
 		this.widget = $('<div class="widget"><i class="fas fa-broadcast-tower"></i></div>');
@@ -149,8 +133,6 @@ export default class RFM69 {
 		this.widgetText = $('<span>?db</span>');
 		this.widget.append(this.widgetText);
 
-    this.built = true;
-
-    this.update();
+    super.finishBuild();
   }
 }

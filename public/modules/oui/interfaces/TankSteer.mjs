@@ -1,14 +1,13 @@
+import ModuleInterface from './ModuleInterface.mjs';
 import loadStylesheet from '../../loadStylesheet.js';
 import * as DLM from '../../droneLinkMsg.mjs';
 
 import { degreesToRadians, radiansToDegrees } from '../../navMath.mjs';
 
 
-export default class TankSteer {
+export default class TankSteer extends ModuleInterface {
 	constructor(channel, state) {
-    this.channel = channel;
-    this.state = state;
-    this.built = false;
+    super(channel, state);
 	}
 
 	onParamValue(data) {
@@ -22,7 +21,7 @@ export default class TankSteer {
   }
 
   update() {
-		if (!this.built || this.ui.height()<=0) return;
+		if (!super.update() || this.ui.height()<=0) return;
 
     var node = this.channel.node.id;
     var channel = this.channel.channel;
@@ -160,9 +159,7 @@ export default class TankSteer {
   }
 
 	build() {
-		this.built = true;
-
-		this.ui = $('<div class="TankSteer text-center"></div>');
+		super.build('TankSteer');
 
 		this.modeSelect = $('<select class="tankSteerModeSelect"></select>');
     // add mode options
@@ -246,10 +243,7 @@ export default class TankSteer {
 		});
 
 		this.ui.append(this.canvas);
-    this.channel.interfaceTab.append(this.ui);
-
-    this.built = true;
-
-    this.update();
+    
+    super.finishBuild();
   }
 }

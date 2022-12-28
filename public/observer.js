@@ -729,6 +729,9 @@ function init() {
     });
 
     state.goLive();
+
+    // show body
+    document.body.style.visibility = 'visible';
   });
 
   // init gamepads

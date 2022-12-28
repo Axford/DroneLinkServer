@@ -1,28 +1,13 @@
+import ModuleInterface from './ModuleInterface.mjs';
 import loadStylesheet from '../../loadStylesheet.js';
 import * as DLM from '../../droneLinkMsg.mjs';
 
 //loadStylesheet('./css/modules/interfaces/INA219.css');
 
-export default class INA219 {
+export default class INA219 extends ModuleInterface {
 	constructor(channel, state) {
-    this.channel = channel;
-    this.state = state;
-    this.built = false;
+    super(channel, state);
 	}
-
-	drawMeter(ctx, v, label, x1,y1,w,h) {
-    ctx.strokeStyle = '#343a40';
-    ctx.strokeRect(x1, y1, x1+w, y1+h);
-
-    ctx.fillStyle = '#ccc';
-    ctx.font = '20px serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(label, x1+w/2, y1+h/2 - 15);
-
-    ctx.fillStyle = '#8F8';
-    ctx.font = '35px serif';
-    ctx.fillText(v, x1+w/2, y1+h/2 + 20);
-  }
 
 	onParamValue(data) {
 
@@ -47,7 +32,7 @@ export default class INA219 {
   }
 
   update() {
-		if (!this.built) return;
+		if (!super.update()) return;
 
     var node = this.channel.node.id;
     var channel = this.channel.channel;
@@ -74,26 +59,24 @@ export default class INA219 {
 		var mw = w/4;
 
 		if (ina.cellV)
-			this.drawMeter(ctx, ina.cellV.toFixed(1), 'Cell V', 0, 0, mw,100);
+			this.drawMeter(ina.cellV.toFixed(1), 'Cell V', 0, 0, mw,100);
 
 		if (ina.loadV)
-			this.drawMeter(ctx, ina.loadV.toFixed(1), 'V', mw, 0, mw,100);
+			this.drawMeter(ina.loadV.toFixed(1), 'V', mw, 0, mw,100);
 
 		if (ina.current)
-	    this.drawMeter(ctx, ina.current.toFixed(1), 'A', 2*mw, 0, mw,100);
+	    this.drawMeter(ina.current.toFixed(1), 'A', 2*mw, 0, mw,100);
 
 		if (ina.power)
-	    this.drawMeter(ctx, ina.power.toFixed(1), 'W', 3*mw, 0, mw,100);
+	    this.drawMeter(ina.power.toFixed(1), 'W', 3*mw, 0, mw,100);
   }
 
 	build() {
-		this.built = true;
+		super.build('INA219');
 
-		this.ui = $('<div class="INA219 text-center"></div>');
     this.canvas = $('<canvas height=100 />');
 
 		this.ui.append(this.canvas);
-    this.channel.interfaceTab.append(this.ui);
 
 		// widget
 		this.widget = $('<div class="widget"><i class="fas fa-car-battery"></i></div>');
@@ -102,8 +85,7 @@ export default class INA219 {
 		this.widgetText = $('<span>?v</span>');
 		this.widget.append(this.widgetText);
 
-    this.built = true;
 
-    this.update();
+    super.finishBuild();
   }
 }

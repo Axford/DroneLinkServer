@@ -1,12 +1,11 @@
+import ModuleInterface from './ModuleInterface.mjs';
 import loadStylesheet from '../../loadStylesheet.js';
 import * as DLM from '../../droneLinkMsg.mjs';
 
 
-export default class Receiver {
+export default class Receiver extends ModuleInterface {
 	constructor(channel, state) {
-    this.channel = channel;
-    this.state = state;
-    this.built = false;
+    super(channel, state);
 	}
 
 	onParamValue(data) {
@@ -14,7 +13,7 @@ export default class Receiver {
   }
 
   update() {
-		if (!this.built) return;
+		if (!super.update()) return;
 
     var node = this.channel.node.id;
     var channel = this.channel.channel;
@@ -82,16 +81,11 @@ export default class Receiver {
   }
 
 	build() {
-		this.built = true;
-
-		this.ui = $('<div class="Receiver text-center"></div>');
+		super.build('receiver');
     this.canvas = $('<canvas height=200 />');
 
 		this.ui.append(this.canvas);
-    this.channel.interfaceTab.append(this.ui);
-
-    this.built = true;
-
-    this.update();
+    
+		super.finishBuild();
   }
 }

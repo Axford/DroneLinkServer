@@ -1,38 +1,11 @@
+import ModuleInterface from './ModuleInterface.mjs';
 import loadStylesheet from '../../loadStylesheet.js';
 import * as DLM from '../../droneLinkMsg.mjs';
 
 
-function drawPill(ctx, label, x, y, w, color) {
-  ctx.fillStyle = color;
-	// draw pill
-	var r = 8;
-	var x1 = x - w/2 + r;
-	var x2 = x + w/2 - r;
-
-	ctx.beginPath();
-	ctx.arc(x1, y+r, r, 0, 2 * Math.PI);
-	ctx.fill();
-
-	ctx.beginPath();
-	ctx.fillRect(x1,y, w - 2*r, 2*r);
-
-	ctx.beginPath();
-	ctx.arc(x2, y + r, r, 0, 2 * Math.PI);
-	ctx.fill();
-
-	// draw label
-  ctx.textAlign = 'center';
-  ctx.font = '12px sans-serif';
-	ctx.fillStyle = '#fff';
-  ctx.fillText(label, x, y+12);
-}
-
-
-export default class TurnRate {
+export default class TurnRate extends ModuleInterface {
 	constructor(channel, state) {
-    this.channel = channel;
-    this.state = state;
-    this.built = false;
+    super(channel, state);
 	}
 
 	onParamValue(data) {
@@ -46,7 +19,7 @@ export default class TurnRate {
   }
 
   update() {
-		if (!this.built) return;
+		if (!super.update()) return;
 
     var node = this.channel.node.id;
     var channel = this.channel.channel;
@@ -178,13 +151,11 @@ export default class TurnRate {
       controlModeStr = 'Gybe?';
       controlModeClr = '#885';
     }
-    drawPill(ctx, controlModeStr, w-40, h-20, 70, controlModeClr);
+    this.drawPill(controlModeStr, w-40, h-20, 70, controlModeClr);
   }
 
   build() {
-	this.built = true;
-
-	this.ui = $('<div class="TurnRate text-center"></div>');
+		super.build('TurnRate');
 
 	var normalButton = $('<button class="btn btn-sm btn-success mr-2 mb-2">Normal</button>');
     normalButton.on('click', ()=>{
@@ -242,10 +213,7 @@ export default class TurnRate {
 		});
 
 		this.ui.append(this.canvas);
-    this.channel.interfaceTab.append(this.ui);
-
-    this.built = true;
-
-    this.update();
+    
+		super.finishBuild();
   }
 }

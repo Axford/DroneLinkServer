@@ -1,3 +1,4 @@
+import ModuleInterface from './ModuleInterface.mjs';
 import loadStylesheet from '../../loadStylesheet.js';
 import * as DLM from '../../droneLinkMsg.mjs';
 
@@ -10,11 +11,9 @@ import * as DLM from '../../droneLinkMsg.mjs';
 const batteryCapacityCurve = [3.27, 3.69, 3.73, 3.77, 3.8, 3.84, 3.87, 3.95, 4.02, 4.11, 4.2];
 
 
-export default class INA3221 {
+export default class INA3221 extends ModuleInterface {
 	constructor(channel, state) {
-    this.channel = channel;
-    this.state = state;
-    this.built = false;
+    super(channel, state);
 	}
 
   estimateCellCapacity(v) {
@@ -43,31 +42,14 @@ export default class INA3221 {
     return cap;
   }
 
-  drawLabel(ctx, label, x1,y1,w,h) {
-    ctx.strokeStyle = '#343a40';
-    ctx.strokeRect(x1, y1, x1+w, y1+h);
 
-    ctx.fillStyle = '#ccc';
-    ctx.font = '14px serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(label, x1+w/2, y1+h);
-  }
-
-	drawMeter(ctx, v, x1,y1,w,h, clr = '#8F8', s=true) {
-    ctx.strokeStyle = '#343a40';
-    ctx.strokeRect(x1, y1, x1+w, y1+h);
-
-    ctx.fillStyle = clr;
-    ctx.font = s ? '35px serif' : '16px serif';
-    ctx.fillText(v, x1+w/2, y1+h);
-  }
 
 	onParamValue(data) {
     this.update();
   }
 
   update() {
-		if (!this.built) return;
+		if (!super.update()) return;
 
     var node = this.channel.node.id;
     var channel = this.channel.channel;
@@ -103,43 +85,39 @@ export default class INA3221 {
     var h1 = h - 20;
     var hm = h1/3;
 
-    this.drawLabel(ctx, 'Cell V', 0, 0, mw, 20);
-    this.drawLabel(ctx, 'V', mw, 0, mw, 20);
-    this.drawLabel(ctx, 'A', 2*mw, 0, mw, 20);
-    this.drawLabel(ctx, 'W', 3*mw, 0, mw, 20);
+    this.drawLabel( 'Cell V', 0, 0, mw, 20);
+    this.drawLabel( 'V', mw, 0, mw, 20);
+    this.drawLabel( 'A', 2*mw, 0, mw, 20);
+    this.drawLabel( 'W', 3*mw, 0, mw, 20);
 
     for (var i=0; i<3; i++) {
       var y1 = hm * i;
       var clr = ina.capacity[i]<20 ? '#f55' : '#8f8';
       // 'Cell V'
-      this.drawMeter(ctx, ina.cellV[i].toFixed(2), 0, y1, mw,hm, clr);
+      this.drawMeterValue(ina.cellV[i].toFixed(2), 0, y1, mw,hm, clr);
 
       // capacity
-      this.drawMeter(ctx, ina.capacity[i].toFixed(0) + '%', 0, y1+20, mw,hm, clr, false);
+      this.drawMeterValue(ina.capacity[i].toFixed(0) + '%', 0, y1+20, mw,hm, clr, 16);
 
       // V
-  		this.drawMeter(ctx, ina.loadV[i].toFixed(2), w, y1, mw,hm);
+  		this.drawMeterValue(ina.loadV[i].toFixed(2), w, y1, mw,hm);
 
       // A
-  		this.drawMeter(ctx, ina.current[i].toFixed(2), 2*mw, y1, mw,hm);
+  		this.drawMeterValue(ina.current[i].toFixed(2), 2*mw, y1, mw,hm);
 
       // W
-  		this.drawMeter(ctx, ina.power[i].toFixed(2), 3*mw, y1, mw,hm);
+  		this.drawMeterValue(ina.power[i].toFixed(2), 3*mw, y1, mw,hm);
     }
 
   }
 
 	build() {
-		this.built = true;
+		super.build('INA3221');
 
-		this.ui = $('<div class="INA3221 text-center"></div>');
     this.canvas = $('<canvas height=200 />');
 
 		this.ui.append(this.canvas);
-    this.channel.interfaceTab.append(this.ui);
 
-    this.built = true;
-
-    this.update();
+    super.finishBuild();
   }
 }

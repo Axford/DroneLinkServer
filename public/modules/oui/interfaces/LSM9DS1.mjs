@@ -1,12 +1,11 @@
+import ModuleInterface from './ModuleInterface.mjs';
 import loadStylesheet from '../../loadStylesheet.js';
 import * as DLM from '../../droneLinkMsg.mjs';
 
 
-export default class LSM9DS1 {
+export default class LSM9DS1 extends ModuleInterface {
 	constructor(channel, state) {
-    this.channel = channel;
-    this.state = state;
-    this.built = false;
+    super(channel, state);
 
     this.rawVectors = [];  // history of raw vector values
 	}
@@ -33,7 +32,7 @@ export default class LSM9DS1 {
   }
 
   update() {
-		if (!this.built) return;
+		if (!super.update()) return;
 
     var node = this.channel.node.id;
     var channel = this.channel.channel;
@@ -201,16 +200,11 @@ export default class LSM9DS1 {
   }
 
 	build() {
-		this.built = true;
-
-		this.ui = $('<div class="LSM9DS1 text-center"></div>');
+		super.build('LSM9DS1');
     this.canvas = $('<canvas height=200 />');
 
 		this.ui.append(this.canvas);
-    this.channel.interfaceTab.append(this.ui);
-
-    this.built = true;
-
-    this.update();
+    
+    super.finishBuild();
   }
 }

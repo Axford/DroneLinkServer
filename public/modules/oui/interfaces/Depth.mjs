@@ -1,12 +1,11 @@
+import ModuleInterface from './ModuleInterface.mjs';
 import loadStylesheet from '../../loadStylesheet.js';
 import * as DLM from '../../droneLinkMsg.mjs';
 
 
-export default class Depth {
+export default class Depth extends ModuleInterface {
 	constructor(channel, state) {
-    this.channel = channel;
-    this.state = state;
-    this.built = false;
+    super(channel, state);
 
     this.depth = [];
 	}
@@ -23,7 +22,7 @@ export default class Depth {
   }
 
   update() {
-		if (!this.built) return;
+		if (!super.update()) return;
 
     var node = this.channel.node.id;
     var channel = this.channel.channel;
@@ -69,16 +68,12 @@ export default class Depth {
   }
 
 	build() {
-		this.built = true;
+    super.build('Depth');
 
-		this.ui = $('<div class="Depth text-center"></div>');
     this.canvas = $('<canvas height=100 />');
 
 		this.ui.append(this.canvas);
-    this.channel.interfaceTab.append(this.ui);
 
-    this.built = true;
-
-    this.update();
+    super.finishBuild();
   }
 }

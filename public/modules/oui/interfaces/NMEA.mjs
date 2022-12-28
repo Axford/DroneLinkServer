@@ -1,12 +1,11 @@
+import ModuleInterface from './ModuleInterface.mjs';
 import loadStylesheet from '../../loadStylesheet.js';
 import * as DLM from '../../droneLinkMsg.mjs';
 
 
-export default class NMEA {
+export default class NMEA extends ModuleInterface {
 	constructor(channel, state) {
-    this.channel = channel;
-    this.state = state;
-    this.built = false;
+    super(channel, state);
 
     this.rawVectors = [];  // history of raw correction vector values
 	}
@@ -48,21 +47,8 @@ export default class NMEA {
     this.update();
   }
 
-  drawValue(x,y,label,v) {
-    var c = this.canvas[0];
-		var ctx = c.getContext("2d");
-
-    ctx.fillStyle = '#FFF';
-		ctx.textAlign = 'left';
-    ctx.font = '12px serif';
-    ctx.fillText(label, x, y+15);
-    ctx.font = '20px bold serif';
-		ctx.fillStyle = '#5f5';
-    ctx.fillText(v, x, y+35);
-  }
-
   update() {
-		if (!this.built) return;
+		if (!super.update()) return;
 
     var node = this.channel.node.id;
     var channel = this.channel.channel;
@@ -155,13 +141,11 @@ export default class NMEA {
   }
 
 	build() {
-		this.built = true;
+		super.build('NMEA');
 
-		this.ui = $('<div class="NMEA text-center"></div>');
     this.canvas = $('<canvas height=160 />');
 
 		this.ui.append(this.canvas);
-    this.channel.interfaceTab.append(this.ui);
 
 		// widget
 		this.widget = $('<div class="widget"><i class="fas fa-satellite-dish"></i></div>');
@@ -170,8 +154,6 @@ export default class NMEA {
 		this.widgetText = $('<span>?</span>');
 		this.widget.append(this.widgetText);
 
-    this.built = true;
-
-    this.update();
+    super.finishBuild();
   }
 }
