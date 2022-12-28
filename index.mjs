@@ -605,6 +605,20 @@ app.get('/nodeFiles', (req, res) => {
 
 app.use(express.static('public'));
 
+app.get('/files/:file', function(req, res) {
+  // Note: should use a stream here, instead of fs.readFile
+  fs.readFile('./static/' + req.params.file, function(err, data) {
+    if(err) {
+      res.send("Oops! Couldn't find that file.");
+    } else {
+      // set the content type based on the file
+      res.contentType(req.params.file);
+      res.send(data);
+    }   
+    res.end();
+  }); 
+});
+
 httpServer.listen(webPort, () => {
   clog(`Web UI available at http://localhost:${webPort}`)
 })

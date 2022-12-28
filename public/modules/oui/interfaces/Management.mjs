@@ -31,7 +31,7 @@ export default class Management extends ModuleInterface {
 		var ipAddress = this.state.getParamValues(node, channel, 12, [0,0,0,0]);
 		if (ipAddress[0] != 0) {
 			var ipString = ipAddress.join('.');
-			this.drawMeterValue(ipString, w/2, 15, w/2, 40, '#5f5', 24);
+			this.drawMeterValue(ipString, w/2, 25, w/2, 30, '#5f5', 24);
 		}
 
 		var uptime = this.state.getParamValues(node, channel, 13, [0])[0];
@@ -55,7 +55,7 @@ export default class Management extends ModuleInterface {
 		s += String(seconds).padStart(2, '0');
 
 		this.drawLabel( 'Uptime', 0, 0, w/2, 20);
-		this.drawMeterValue(uptime, 'Uptime', 0, 15, w/2, 40);
+		this.drawMeterValue(s, 0, 25, w/2, 30);
 	}
 
 

@@ -239,10 +239,9 @@ export default class Channel {
 
       // and render / show the new interface
       if (this.interface) {
-        // this.interface.build();  // build on demand! 
+        this.uiState = 'interface';
         this.expand();
 
-        this.changeUIState('interface');
       }
     });
 
