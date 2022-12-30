@@ -4,10 +4,44 @@ import * as DLM from '../../droneLinkMsg.mjs';
 
 //loadStylesheet('./css/modules/interfaces/INA219.css');
 
+// capacity curve... approximate
+// ref: https://blog.ampow.com/lipo-voltage-chart/
+// voltages for capacities from 0 to 100
+//                                0     10    20    30    40   50    60    70    80    90    100
+const batteryCapacityCurve = [3.27, 3.69, 3.73, 3.77, 3.8, 3.84, 3.87, 3.95, 4.02, 4.11, 4.2];
+
+
+
 export default class INA219 extends ModuleInterface {
 	constructor(channel, state) {
     super(channel, state);
 	}
+
+	estimateCellCapacity(v) {
+    // find nearest reading in capacity curve
+    var cap = 0;
+
+    // check voltage is above minimum
+    if (v < batteryCapacityCurve[0]) return 0;
+
+    // find which region of the battery curve we're in
+    for (var i=0; i < 11; i++) {
+      if (v >= batteryCapacityCurve[i]) {
+        cap = i;
+      }
+    }
+
+    // lerp between battery levels to calc final percentage
+    if (cap < 10) {
+      // calc fractional compenent
+      var f = ( v - batteryCapacityCurve[cap]) / (batteryCapacityCurve[cap+1] - batteryCapacityCurve[cap]);
+      cap = cap*10 + f*10;
+    } else {
+      cap = 100;
+    }
+    
+    return cap;
+  }
 
 	onParamValue(data) {
 		if (!this.built) return;
@@ -45,6 +79,7 @@ export default class INA219 extends ModuleInterface {
 			cellV: this.state.getParamValues(node, channel, 15, [0])[0],
 			alarm: this.state.getParamValues(node, channel, 16, [0])[0]
     }
+		ina.capacity = this.estimateCellCapacity(ina.cellV);
 
     // redraw canvas
 		var c = this.canvas[0];
@@ -59,8 +94,13 @@ export default class INA219 extends ModuleInterface {
 
 		var mw = w/4;
 
-		if (ina.cellV)
+		if (ina.cellV) {
 			this.drawMeter(ina.cellV.toFixed(1), 'Cell V', 0, 0, mw,100);
+
+			// capacity
+			var clr = ina.capacity<20 ? '#f55' : '#8f8';
+      this.drawMeterValue(ina.capacity.toFixed(0) + '%', 0, 80, mw, 20, clr, 16);
+		}
 
 		if (ina.loadV)
 			this.drawMeter(ina.loadV.toFixed(1), 'V', mw, 0, mw,100);
