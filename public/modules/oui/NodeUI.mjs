@@ -31,6 +31,8 @@ export default class NodeUI {
     this.id=  id;
     this.name = '';
     this.ipAddress = '';
+    this.firmwareVersion = '';
+    this.latestFirmwareVersion = '';
     this.selectedNodeFilename = '';
     this.scriptMarkers = [];
     this.scriptMarkerLabels = [];
@@ -324,6 +326,13 @@ export default class NodeUI {
     for (const [panelName, panel] of Object.entries(this.panels)) {
       panel.resize();
     }
+  }
+
+  setLatestFirmwareVersion(v) {
+    this.latestFirmwareVersion = v;
+
+    // if we already know our own firmware version, then compare?
+    
   }
 
 

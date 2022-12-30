@@ -24,16 +24,14 @@ export default class Management extends ModuleInterface {
 		ctx.canvas.width = w;
     var h = this.ui.height();
 
+		var mw = w/3;
+
 		ctx.fillStyle = '#343a40';
 		ctx.fillRect(0,0,w,200);
-
-		this.drawLabel( 'IP', w/2, 0, w/2, 20);
-		var ipAddress = this.state.getParamValues(node, channel, 12, [0,0,0,0]);
-		if (ipAddress[0] != 0) {
-			var ipString = ipAddress.join('.');
-			this.drawMeterValue(ipString, w/2, 25, w/2, 30, '#5f5', 24);
-		}
-
+		
+		/*
+		Uptime
+		*/
 		var uptime = this.state.getParamValues(node, channel, 13, [0])[0];
 
 		var s = '';
@@ -54,13 +52,42 @@ export default class Management extends ModuleInterface {
 		s += String(minutes).padStart(2, '0') + ':';
 		s += String(seconds).padStart(2, '0');
 
-		this.drawLabel( 'Uptime', 0, 0, w/2, 20);
-		this.drawMeterValue(s, 0, 25, w/2, 30);
+		this.drawLabel( 'Uptime', 0, 0, mw, 20);
+		this.drawMeterValue(s, 0, 25, mw, 30);
+
+		/*
+		Firmware version
+		*/
+
+		if (this.channel.node.firmwareVersion != '' && this.channel.node.latestFirmwareVersion != '') {
+
+			var diffVersions = this.channel.node.firmwareVersion != this.channel.node.latestFirmwareVersion;
+
+			ctx.fillStyle = diffVersions ? '#f55' : '#343a40';
+			ctx.fillRect(mw,30,mw,40);
+
+			this.drawLabel( 'Firmware', mw, 0, mw, 20);
+			var s = this.channel.node.firmwareVersion + (diffVersions ? ' ✘' : ' ✔')
+			this.drawMeterValue(s, mw, 25, mw, 30, diffVersions ? '#fff' : '#5f5', 24);
+		}
+
+		/*
+		IP address
+		*/
+
+		this.drawLabel( 'IP', 2*mw, 0, mw, 20);
+		var ipAddress = this.state.getParamValues(node, channel, 12, [0,0,0,0]);
+		if (ipAddress[0] != 0) {
+			var ipString = ipAddress.join('.');
+			this.drawMeterValue(ipString, 2*mw, 25, mw, 30, '#5f5', 24);
+		}
+
+		
 	}
 
 
 	onParamValue(data) {
-		if (!this.built) return;
+		//if (!this.built) return;
 
     if (data.param == 13 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_UINT32_T) {
 			this.updateNeeded = true;
@@ -71,7 +98,13 @@ export default class Management extends ModuleInterface {
 			this.updateNeeded = true;
 		}
 
-		this.updateNeeded = true;
+		// firmware version?
+		if (data.param == 9 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_CHAR) {
+			this.channel.node.firmwareVersion = data.values[0];
+			this.updateNeeded = true;
+		}
+
+		//this.updateNeeded = true;
   }
 
 

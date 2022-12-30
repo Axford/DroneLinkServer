@@ -132,7 +132,7 @@ export default class SerialInterface extends NetworkInterface {
         } else {
           this.decodeState = 2;
           this.receivedSize++;
-          this.clog('Payload size: ' + this.msgLen);
+          //this.clog('Payload size: ' + this.msgLen);
         }
         break;
 
@@ -149,7 +149,7 @@ export default class SerialInterface extends NetworkInterface {
           var newMsg = new DMM.DroneMeshMsg(this.msgBuffer.slice(1, this.receivedSize));
 
           if (newMsg.isValid) {
-            this.clog(('Recv Msg: ' + newMsg.toString()).yellow);
+            //this.clog(('Recv Msg: ' + newMsg.toString()).yellow);
 
             // pass onto DLM for processing
             this.dlm.receivePacket(this, newMsg, 1, this.id);
@@ -190,6 +190,8 @@ export default class SerialInterface extends NetworkInterface {
 
     // write to serial port
     this.openSerialPort.write(txBuffer);
+
+    this.openSerialPort.flush();
 
     this.packetsSent++;
 

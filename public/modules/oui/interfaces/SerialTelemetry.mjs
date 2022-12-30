@@ -48,8 +48,9 @@ export default class SerialTelemetry extends ModuleInterface {
   }
 
 	build() {
-		super.build('SerialTelemetry')
+		super.build('SerialTelemetry');
 
+    this.canvas = $('<canvas height=100 />');
 		this.ui.append(this.canvas);
     
     super.finishBuild();

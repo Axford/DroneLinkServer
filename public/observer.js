@@ -57,6 +57,8 @@ import * as DLM from './modules/droneLinkMsg.mjs';
 import DroneLinkState from './modules/DroneLinkState.mjs';
 var state = new DroneLinkState(socket, db);
 
+var firmwareVersion = '', latestFirmwareVersion = '';
+
 import NodeUI from './modules/oui/NodeUI.mjs';
 import { controllers, initGamepads } from './modules/gamepads.js';
 
@@ -82,6 +84,7 @@ import NetManager from './modules/oui/NetManager.mjs';
 var networkGraph;
 
 import AnalysisManager from './modules/oui/AnalysisManager.mjs';
+import Neopixel from './modules/oui/interfaces/Neopixel.mjs';
 var analyser;
 
 var liveMode = true;
@@ -391,9 +394,37 @@ function addLogMarker(lon,lat, r,g,b) {
 }
 
 
+function fetchFirmwareVersion() {
+  fetch('/firmware/firmware.ver')
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`HTTP error: ${response.status}`);
+      }
+      return response.text();
+    })
+    .then((text) => {
+      console.log('Firmware version: ' + text);
+      firmwareVersion = text;
+
+      // inform Nodes of latest firmware version
+      for (const [key, n] of Object.entries(nodes)) {
+        n.setLatestFirmwareVersion(text);
+      }
+    })
+    .catch((error) => console.error(`Could not fetch firmware.ver: ${error}`));
+
+  // recheck every minute
+  setTimeout(fetchFirmwareVersion, 60000);
+}
+
+
 function init() {
   // install showHelp on window object
   window.showHelp = showHelp;
+
+  // fetch latest firmware version from server, and repeat on a regular basis
+  fetchFirmwareVersion();
+
 
   // configure DroneLink logo to open help
   $('.logo').on('click', ()=>{
@@ -701,6 +732,7 @@ function init() {
 
       // create new node entry
       var node = new NodeUI(id, state, map);
+      node.setLatestFirmwareVersion(latestFirmwareVersion);
       nodes[id] = node;
       numNodes++;
 

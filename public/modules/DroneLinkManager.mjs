@@ -83,10 +83,10 @@ export default class DroneLinkManager {
     this.rewindRate = 0;
 
     this.logOptions = {
-      Hello:false,
+      Hello:true,
       DroneLinkMsg: false,
       RouteEntry: false,
-      Transmit: true,
+      Transmit: false,
       Subscription: false,
       Router: false,
       Traceroute: false,
@@ -1070,6 +1070,9 @@ export default class DroneLinkManager {
 
 
   receiveHello(netInterface, msg, metric) {
+
+    // ignore anything that is about us!
+    if (msg.srcNode == this.node) return;
 
     var loopTime = Date.now();
 
