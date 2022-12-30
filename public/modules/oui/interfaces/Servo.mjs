@@ -7,7 +7,7 @@ export default class Servo extends ModuleInterface {
 	constructor(channel, state) {
     super(channel, state);
     
-    this.map = [0,0,0,0];
+    this.map = [0,0,1,1];
     this.cp = [ [0,0], [0,0], [0,0], [0,0]];
     this.position = 0;
     this.centre = 0;
@@ -26,8 +26,6 @@ export default class Servo extends ModuleInterface {
     // keep width updated
     var w = this.ui.width();
     var iw = w - 2*g;
-    ctx.canvas.width = w;
-    var cx = w/2;
     var h = this.ui.height();
     var ih = h - 2*g;
 
@@ -44,14 +42,7 @@ export default class Servo extends ModuleInterface {
     if (!this.built) return;
 
     if (data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
-      if (data.param == 12) {
-        // calc control points
-        this.gotCP = true;
-        var node = this.channel.node.id;
-        var channel = this.channel.channel;
-        this.map = data.values.slice();
-        this.calcControlPoints();
-      } else if (data.param == 8) {
+      if (data.param == 8) {
         this.position = data.values[0];
       } else if (data.param == 13) {
         this.centre = data.values[0];
@@ -71,8 +62,6 @@ export default class Servo extends ModuleInterface {
     var node = this.channel.node.id;
     var channel = this.channel.channel;
 
-    this.calcControlPoints();
-
     // gutter
     var g = 30;
 
@@ -83,6 +72,11 @@ export default class Servo extends ModuleInterface {
     var cx = w/2;
     var h = this.ui.height();
     var ih = h - 2*g;
+
+    this.map = this.state.getParamValues(node, channel, 12, [0,0,0,0]);
+    this.gotCP = this.map[0] > 0 || this.map[1] > 0 || this.map[2] > 0 || this.map[3] > 0;
+
+    this.calcControlPoints();
 
     ctx.fillStyle = '#343a40';
 		ctx.fillRect(0,0,w,200);

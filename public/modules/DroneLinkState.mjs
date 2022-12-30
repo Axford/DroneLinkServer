@@ -71,7 +71,7 @@ export default class DroneLinkState {
           } 
 
           // do we sync the visScript?
-          console.log('checking visScript', nodeId);
+          //console.log('checking visScript', nodeId);
           if (me.state.hasOwnProperty(nodeId) &&
               !me.state[nodeId].visScriptLoaded) {
             
@@ -81,7 +81,7 @@ export default class DroneLinkState {
 
               // extract visualisation if present
               if (docData.visualisation > '' && me.state[nodeId].visualisation == '') {
-                console.log('updating visScript', docData.visualisation);
+                //console.log('updating visScript', docData.visualisation);
                 //console.log('updating vis:',nodeState.visualisation );
                 me.state[nodeId].visualisation = docData.visualisation;
 

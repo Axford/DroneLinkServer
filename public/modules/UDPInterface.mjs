@@ -31,6 +31,8 @@ export default class UDPInterface extends NetworkInterface {
 
       var newMsg = new DMM.DroneMeshMsg(msg);
 
+      this.bytesReceived += msg.length;
+
       if (newMsg.isValid) {
         //this.clog('got valid packet...');
         var metric = 15; // can't read RSSI, so set to a crap value to avoid nodes using us as a router

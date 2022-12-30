@@ -489,7 +489,7 @@ var msgQueue = new DroneLinkMsgQueue();
 
 // create interfaces (they will self-register with the dlm)
 var udpi = new UDPInterface(dlm, 1, clog);
-//var seriali = new SerialInterface(dlm, 2, clog, config[env].telemetryPort);
+var seriali = new SerialInterface(dlm, 2, clog, config[env].telemetryPort);
 
 
 // -----------------------------------------------------------
@@ -500,7 +500,12 @@ setInterval(()=>{
   s += '{bold}Interfaces{/bold}\n';
   for (var i=0; i<dlm.interfaces.length; i++) {
     var ni = dlm.interfaces[i];
-    s+= ' '+ni.typeName.yellow + ': Sent: '+ni.packetsSent+', Received: '+ni.packetsReceived+', Rejected: '+ni.packetsRejected+'\n';
+    s+= ' '+ni.typeName.yellow + ': Sent: '+ni.packetsSent+', Received: '+ni.packetsReceived+', Rejected: '+ni.packetsRejected;
+    s+= ', ';
+    s+= ni.state ? 'Up' : 'Down';
+    s += ', ' + ni.errorMsg;
+    s += ', ' + ni.bytesReceived + ' bytes';
+    s += '\n';
   }
 
   s+= '\n';

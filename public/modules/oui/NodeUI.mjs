@@ -219,7 +219,7 @@ export default class NodeUI {
           // show config node files panel
           //this.panels.Configuration.cuiFilesOnNode.show();
         } else {
-          console.error('undefined ipaddress:', data);
+          //console.warning('undefined ipaddress:', data);
         }
       }
 

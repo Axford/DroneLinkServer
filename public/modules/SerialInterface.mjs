@@ -20,7 +20,7 @@ export default class SerialInterface extends NetworkInterface {
     this.msgBuffer = new Uint8Array(DMM.DRONE_MESH_MSG_MAX_PACKET_SIZE+2);
     this.receivedSize = 0;
     this.msgLen = 0;
-    this.state = 0;
+    this.decodeState = 0;
 
     if ((!portName || (portName == ""))) {
       this.clog('ERROR undefined Serial Telemetry portName: '+portName);
@@ -52,22 +52,29 @@ export default class SerialInterface extends NetworkInterface {
       // Open errors will be emitted as an error event
       port.on('error', function(err) {
         me.clog('Serial Error: '+ err.message);
+        me.errorMsg = err.message;
 
         me.openSerialPort = null;
-
+        me.state = false;
+        
         // wait a while, then try to open port again
         setTimeout(()=>{
           me.attemptToOpenSerial();
         }, 10000);
       });
 
-      port.on('readable', function () {
+      port.on('open', () =>{
         me.openSerialPort = port;
+        me.state = true;
+        me.clog('Serial port open');
+      })
 
-        //me.clog('Serial recv: ' + port.read());
+      port.on('data', function (data) {
+        
+       // me.clog('Serial recv: ' + data);
 
         try {
-          me.decodeBuffer(port.read());
+          me.decodeBuffer(data);
         } catch(err) {
           me.clog('decode error: '+ err)
         }
@@ -75,6 +82,7 @@ export default class SerialInterface extends NetworkInterface {
       });
     } catch(err) {
       this.clog('ERROR in opening serial port: ' + err);
+      me.errorMsg = err.message;
     }
   }
 
@@ -83,6 +91,7 @@ export default class SerialInterface extends NetworkInterface {
     //this.clog('Recv:' + buffer);
     for (var i=0; i<buffer.length; i++) {
       this.decodeByte(buffer[i]);
+      this.bytesReceived++;
     }
   }
 
@@ -98,29 +107,30 @@ export default class SerialInterface extends NetworkInterface {
       this.msgBuffer[this.receivedSize] = b;
     } else {
       this.clog('Buffer exceeded');
-      this.state = 0;
+      this.decodeState = 0;
       this.receivedSize = 0;
     }
 
-
-    switch(this.state) {
+    switch(this.decodeState) {
       case 0: // waiting for start
-        if (b == 0xFE) {
-          this.state = 1;
+        if (b == 254) {
+          this.decodeState = 1;
           this.receivedSize = 1;
           this.msgLen = 0;
-          this.clog('Found start');
+          //this.clog('Found start');
+        } else {
+          this.receivedSize = 0;
         }
         break;
 
       case 1: // found start, waiting to confirm payload length
         this.msgLen = this.getDroneMeshMsgTotalSize(b);
         if (this.msgLen < 8 || this.msgLen > DMM.DRONE_MESH_MSG_MAX_PACKET_SIZE) {
-          this.state = 0;
+          this.decodeState = 0;
           this.packetsRejected++;
-          this.clog('Invalid payload size');
+          //this.clog('Invalid payload size');
         } else {
-          this.state = 2;
+          this.decodeState = 2;
           this.receivedSize++;
           this.clog('Payload size: ' + this.msgLen);
         }
@@ -133,7 +143,7 @@ export default class SerialInterface extends NetworkInterface {
           for (var i=0; i<this.receivedSize; i++) {
             s += this.msgBuffer[i].toString(16) + ' ';
           }
-          this.clog('Recv raw: ' + s);
+          //this.clog('Recv raw: ' + s);
 
           // decode
           var newMsg = new DMM.DroneMeshMsg(this.msgBuffer.slice(1, this.receivedSize));
@@ -149,7 +159,7 @@ export default class SerialInterface extends NetworkInterface {
             this.clog('CRC fail');
           }
 
-          this.state = 0;
+          this.decodeState = 0;
           this.receivedSize = 0;
         }
         this.receivedSize++;
@@ -163,7 +173,7 @@ export default class SerialInterface extends NetworkInterface {
 
     if (!this.openSerialPort) return false;
 
-    this.clog(('Send by Serial: ' + msg.toString()).yellow);
+    //this.clog(('Send by Serial: ' + msg.toString()).yellow);
 
 
     // calc txSize - add start byte
