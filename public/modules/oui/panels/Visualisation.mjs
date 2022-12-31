@@ -276,6 +276,7 @@ export default class Visualisation extends Panel {
     this.chunks = [];
 
     
+    
     this.uiVisRecordBut = $('<button class="btn btn-sm btn-secondary mr-1 mb-2">Record</button>');
     this.uiVisRecordBut.on('click',()=>{
       console.log('Vis Vid: Starting...')
@@ -289,7 +290,7 @@ export default class Visualisation extends Panel {
       me.recorder.stop(); 
     });
     this.ui.panel.append(this.uiVisStopRecordingBut);
-    
+
     this.ui.panel.dblclick(()=>{
         this.aceEditor.session.setValue(this.visScript,-1);
         this.cuiEditorBlock.show();
@@ -307,13 +308,13 @@ export default class Visualisation extends Panel {
     this.ui.canvas = $('<canvas height=400 />');
     this.ui.panel.append(this.ui.canvas);
 
-    // create hidden video element
-    this.ui.vid = $('<video id="vid" controls ></video>');
+    // create video element
+    this.ui.vid = $('<video id="vid" controls autoplay loop muted playsinline ></video>');
     this.ui.panel.append(this.ui.vid);
 
     // init the MediaRecorder
-    this.recorder = new MediaRecorder(this.ui.canvas[0].captureStream(1), {
-      mimeType: "video/webm; codecs=h264"
+    this.recorder = new MediaRecorder(this.ui.canvas[0].captureStream(25), {
+      mimeType: "video/webm; codecs=vp9"
     });
     this.recorder.ondataavailable = (evt) => {
       console.log('Vis Vid: storing chunk');
@@ -325,6 +326,7 @@ export default class Visualisation extends Panel {
     this.recorder.onstop = ()=>{
       console.log('Vis Vid: stopped, ' + this.chunks.length + ' chunks');
       this.ui.vid[0].src = URL.createObjectURL(new Blob(this.chunks, {type: "video/webm" }));
+
       // also set it on a link for easy downloading
       //this.uiVisDownloadRecordingLink.attr('href', this.ui.vid[0].src);
       //this.uiVisDownloadRecordingLink.trigger("click");
@@ -425,7 +427,8 @@ export default class Visualisation extends Panel {
     var cx = w/2;
     var cy = h/2;
 
-    ctx.fillStyle = '#040a20';
+    //ctx.fillStyle = '#040a20';
+    ctx.fillStyle = 'rgba(0,0,0.1,0)';
     ctx.fillRect(0,0,w,h);
 
     var state = this.node.state;
