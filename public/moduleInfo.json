@@ -146,6 +146,63 @@
             "../DroneNode/src/droneModules/AvoidModule.h"
         ]
     },
+    "CMPS12": {
+        "type": [
+            "CMPS12"
+        ],
+        "inherits": [
+            "I2CBase"
+        ],
+        "description": [
+            "Manages a CMPS12 I2C Compass"
+        ],
+        "config": [
+            "[CMPS12= 8]\n  name= \"Compass\"\n  interval= 100\n  bus= 3\n  status= 1\n  trim= 0\n  location= -1.8, 52, 100\n  $location= @>7.8\n  publish = heading, trim"
+        ],
+        "pub": [
+            {
+                "address": 10,
+                "type": "f",
+                "numValues": 1,
+                "name": "heading",
+                "description": "Heading adjusted for magnetic declination"
+            },
+            {
+                "address": 11,
+                "type": "f",
+                "numValues": 1,
+                "name": "declination",
+                "description": "Current declination value"
+            },
+            {
+                "address": 12,
+                "type": "f",
+                "numValues": 1,
+                "name": "trim",
+                "description": "Manual calibration value to adjust heading to match hull (e.g. for a misaligned physical mount)"
+            },
+            {
+                "address": 13,
+                "type": "f",
+                "numValues": 2,
+                "name": "vector",
+                "description": "Pitch and roll vector"
+            }
+        ],
+        "sub": [
+            {
+                "address": 20,
+                "addrAddress": 21,
+                "type": "f",
+                "numValues": 2,
+                "name": "location",
+                "description": "Current location from GPS"
+            }
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/CMPS12Module.h"
+        ]
+    },
     "Cylon": {
         "type": [
             "Cylon"

@@ -273,14 +273,23 @@ export default class Visualisation extends Panel {
 
     var me = this;
 
-    /*
-    this.cuiEditorShowBut = $('<button class="btn btn-sm btn-secondary mr-1 mb-2">Edit Script</button>');
-    this.cuiEditorShowBut.on('click',()=>{
-        this.aceEditor.session.setValue(this.visScript,-1);
-        this.cuiEditorBlock.show();
+    this.chunks = [];
+
+    
+    this.uiVisRecordBut = $('<button class="btn btn-sm btn-secondary mr-1 mb-2">Record</button>');
+    this.uiVisRecordBut.on('click',()=>{
+      console.log('Vis Vid: Starting...')
+      me.chunks = [];
+      me.recorder.start(); 
     });
-    this.ui.panel.append(this.cuiEditorShowBut);
-    */
+    this.ui.panel.append(this.uiVisRecordBut);
+
+    this.uiVisStopRecordingBut = $('<button class="btn btn-sm btn-secondary mr-1 mb-2">Stop</button>');
+    this.uiVisStopRecordingBut.on('click',()=>{
+      me.recorder.stop(); 
+    });
+    this.ui.panel.append(this.uiVisStopRecordingBut);
+    
     this.ui.panel.dblclick(()=>{
         this.aceEditor.session.setValue(this.visScript,-1);
         this.cuiEditorBlock.show();
@@ -297,6 +306,30 @@ export default class Visualisation extends Panel {
     // canvas for vis
     this.ui.canvas = $('<canvas height=400 />');
     this.ui.panel.append(this.ui.canvas);
+
+    // create hidden video element
+    this.ui.vid = $('<video id="vid" controls ></video>');
+    this.ui.panel.append(this.ui.vid);
+
+    // init the MediaRecorder
+    this.recorder = new MediaRecorder(this.ui.canvas[0].captureStream(1), {
+      mimeType: "video/webm; codecs=h264"
+    });
+    this.recorder.ondataavailable = (evt) => {
+      console.log('Vis Vid: storing chunk');
+      // store our final video's chunks
+      if (evt.data.size > 0) {
+        me.chunks.push(evt.data);
+      }
+    }
+    this.recorder.onstop = ()=>{
+      console.log('Vis Vid: stopped, ' + this.chunks.length + ' chunks');
+      this.ui.vid[0].src = URL.createObjectURL(new Blob(this.chunks, {type: "video/webm" }));
+      // also set it on a link for easy downloading
+      //this.uiVisDownloadRecordingLink.attr('href', this.ui.vid[0].src);
+      //this.uiVisDownloadRecordingLink.trigger("click");
+    };
+    
 
     // script editor block
     this.cuiEditorBlock = $('<div class="visualisationEditorBlock" ></div>');

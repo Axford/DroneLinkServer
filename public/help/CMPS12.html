@@ -1,0 +1,82 @@
+<link rel="stylesheet" href="../css/help.css">
+
+<div class="helpContent">
+
+<div><a href="index.html">&lt; Help Index</a></div>
+
+<h1>CMPS12</h1>
+<p>Base class: <i>I2CBase</i></p>
+<p>Manages a CMPS12 I2C Compass</p>
+
+
+<h2>Example Configuration</h2>
+<pre>[CMPS12= 8]
+  name= "Compass"
+  interval= 100
+  bus= 3
+  status= 1
+  trim= 0
+  location= -1.8, 52, 100
+  $location= @>7.8
+  publish = heading, trim</pre>
+
+<h2>Subs (inputs)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Addr Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>20</td>
+    <td>21</td>
+    <td>location</td>
+    <td>f</td>
+    <td>2</td>
+    <td>Current location from GPS</td>
+  </tr>
+</table>
+
+<h2>Pubs (outputs / config)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>10</td>
+    <td>heading</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Heading adjusted for magnetic declination</td>
+  </tr>
+  <tr>
+    <td>11</td>
+    <td>declination</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Current declination value</td>
+  </tr>
+  <tr>
+    <td>12</td>
+    <td>trim</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Manual calibration value to adjust heading to match hull (e.g. for a misaligned physical mount)</td>
+  </tr>
+  <tr>
+    <td>13</td>
+    <td>vector</td>
+    <td>f</td>
+    <td>2</td>
+    <td>Pitch and roll vector</td>
+  </tr>
+</table>
+
+</div>

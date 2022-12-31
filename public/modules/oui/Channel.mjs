@@ -5,6 +5,7 @@ import * as DLM from '../droneLinkMsg.mjs';
 import Parameter from './Parameter.mjs';
 
 // interfaces
+import CMPS12 from './interfaces/CMPS12.mjs';
 import Depth from './interfaces/Depth.mjs';
 import HMC5883L from './interfaces/HMC5883L.mjs';
 import INA219 from './interfaces/INA219.mjs';
@@ -190,7 +191,9 @@ export default class Channel {
       //console.log(data);
 
       // instance an interface if available
-      if (data.type == 'Depth') {
+      if (data.type == 'CMPS12') {
+        this.interface = new CMPS12(this, state);
+      } else if (data.type == 'Depth') {
         this.interface = new Depth(this, state);
       } else if (data.type == 'HMC5883L' || data.type == 'QMC5883L') {
         this.interface = new HMC5883L(this, state);
