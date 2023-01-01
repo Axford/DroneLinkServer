@@ -39,7 +39,7 @@ export default class CMPS12 extends ModuleInterface {
     var heading = this.state.getParamValues(node, channel, 10, [0])[0];
     var h2 = (heading - 90) * Math.PI / 180;
 
-    var rawVector = this.state.getParamValues(node, channel, 13, [0]);
+    var rawVector = this.state.getParamValues(node, channel, 13, [0,0]);
 		var trim = this.state.getParamValues(node, channel, 12, [0]);
 
 
@@ -82,6 +82,21 @@ export default class CMPS12 extends ModuleInterface {
     ctx.font = '20px bold serif';
 		ctx.textAlign = 'center';
     ctx.fillText(heading.toFixed(0) + '°', cx, 106);
+
+
+    // render artificial horizons
+    // -------------------------------------------------------------------------
+    w1 = w/2;
+		cx = w/2 + w1/2;
+
+		ctx.fillStyle = '#343a40';
+		ctx.fillRect(w/2,0,w1,h);
+
+    this.drawLabel( 'Pitch', w/2, 0, w1, 20);
+    this.drawMeterValue(rawVector[0].toFixed(0), w/2, 25, w1, 30, '#5f5', 24);
+
+    this.drawLabel( 'Roll', w/2, h/2, w1, 20);
+    this.drawMeterValue(rawVector[1].toFixed(0), w/2, h/2+25, w1, 30, '#5f5', 24);
   }
 
 	build() {
