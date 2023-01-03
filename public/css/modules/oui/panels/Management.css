@@ -12,7 +12,12 @@
 
 
 .ManagementPanel {
+  /*
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   grid-gap: 8px;
+  */
+  column-count:1;  /*  column count over-ridden by javascript */
+  column-gap: 10px;
+  min-width:300px;
 }

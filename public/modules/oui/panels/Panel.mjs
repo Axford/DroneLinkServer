@@ -4,6 +4,7 @@ export default class Panel {
     this.tabs = tabs;
     this.panels = panels;
     this.visible = false;
+    this.built = false;
 
     this.tabName = '';
     this.title = '';
@@ -18,6 +19,8 @@ export default class Panel {
     // create panel container
     this.ui.panel = $('<div class="'+this.tabName+'Panel" style="display:none;"/>');
     this.panels.append(this.ui.panel);
+
+    this.built = true;
   }
 
   show() {

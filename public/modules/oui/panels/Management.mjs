@@ -43,12 +43,26 @@ export default class Management extends Panel {
 
       // re-append sorted children
       this.ui.panel.append(children);
+
+      this.updateColumns();
     });
 
   }
 
   clear() {
     this.ui.panel.empty();
+  }
+
+  updateColumns() {
+    var w = this.ui.panel.width();
+
+    if ( w > 0) {
+      // update column count
+      var cols = Math.floor(w / 300);
+      this.ui.panel.css('column-count', cols);
+      return true;
+    } 
+    return false;
   }
 
   update() {
@@ -65,11 +79,16 @@ export default class Management extends Panel {
   }
 
   resize() {
-    this.updateInterfaces();
+    if (!this.built || !this.visible) return;
+
+    if (this.updateColumns()) {
+      this.updateInterfaces();
+    }
   }
 
   show() {
     super.show();
+    this.updateColumns();
     for (const [key, chan] of Object.entries(this.channels)) {
       chan.show();
     }
