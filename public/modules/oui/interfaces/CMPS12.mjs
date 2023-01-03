@@ -140,6 +140,7 @@ export default class CMPS12 extends ModuleInterface {
 		ctx.fillRect(w/2,0,w1,h);
 
     // pitch
+    // positive pitch is up, negative is down
     var cx1 = w1 + w1/4;
     var r1 = w/8-5;
 
@@ -151,7 +152,7 @@ export default class CMPS12 extends ModuleInterface {
       }
 
       for (var i=0; i<this.numBins; i++) {
-        var a1 = 2 * Math.PI * i / this.numBins; // - Math.PI/2;
+        var a1 = -2 * Math.PI * i / this.numBins; // - Math.PI/2;
         var a2 = a1 + 2 * Math.PI / this.numBins;
         var r = 20 + (r1-20) * this.pitchHistoBins[i] / maxBin;
 
@@ -164,12 +165,13 @@ export default class CMPS12 extends ModuleInterface {
       }
     }
 
-    var pitchAng = degreesToRadians(rawVector[0]); 
+    var pitchAng = degreesToRadians(-rawVector[0]); 
     this.drawCompassIndicator(cx1, cy, r1, 20, pitchAng, rawVector[0].toFixed(0));
 
     this.drawPill('Pitch', cx1, 15, 50, '#555');
 
     // roll
+    // positive roll is to the right, negative to the left
 
     cx1 = w1 + 3*w1/4
 
