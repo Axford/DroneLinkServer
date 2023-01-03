@@ -22,6 +22,8 @@ export default class Receiver extends ModuleInterface {
 			outputVals[i] =  this.state.getParamValues(node, channel, 11+i, [0])[0];
 		}
 
+		var rawVals = this.state.getParamValues(node, channel, 20, [0,0,0,0,0,0]);
+
 		var switchVal = this.state.getParamValues(node, channel, 29, [0])[0];
 
 
@@ -37,6 +39,16 @@ export default class Receiver extends ModuleInterface {
 
 		ctx.fillStyle = '#343a40';
 		ctx.fillRect(0,0,w,h);
+
+		// raw values
+		ctx.fillStyle='#fff';
+		var rawTxt= '';
+		for (var i=0; i<6; i++) {
+			if (i>0) rawTxt += ', ';
+			rawTxt += (rawVals[i]*10).toFixed(0);
+		}
+		ctx.fillText(rawTxt, 5, 12);
+
 
 		// mode display
 		var modeH = 30;
