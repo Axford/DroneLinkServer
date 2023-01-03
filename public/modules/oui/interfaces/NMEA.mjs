@@ -131,8 +131,8 @@ export default class NMEA extends ModuleInterface {
     this.drawValue(5,40,'Satellites', satellites.toFixed(0));
 
 		// speed (left)
-    this.drawValue(w/4,40,'Speed (m/s)', speed.toFixed(1));
-		this.drawValue(w/4,80,'Speed (knots)', (speed * 1.94384).toFixed(1));
+    this.drawValue(w/4,40,'Speed (m/s)', (speed / 1.94384).toFixed(1));
+		this.drawValue(w/4,80,'Speed (knots)', (speed).toFixed(1));
 
     // correction (left)
     this.drawValue(5,80,'HDOP', HDOP);
