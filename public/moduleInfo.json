@@ -2273,10 +2273,10 @@
             "Estimate Wind Direction from Wing Compass and Tail position"
         ],
         "guide": [
-            ""
+            "<p>Subscribe the Sailor module to the Wind output parameter, instead of a regular wind vane, to use the Wing as an estimator of the Wind angle.</p>"
         ],
         "config": [
-            ""
+            "[ WindFromWing = 12 ]\n  name = WindFromWing\n  AOA = 15\n  $wing = @>Sailor.wing\n  $heading = 64>10.22\n  publish = wing, heading, AOA, wind"
         ],
         "sub": [
             {
@@ -2284,8 +2284,8 @@
                 "addrAddress": 11,
                 "type": "f",
                 "numValues": 1,
-                "name": "target",
-                "description": "Target heading (e.g. from Nav module)"
+                "name": "wing",
+                "description": "Wing tail command angle from Sailor.wing"
             },
             {
                 "address": 12,
@@ -2293,24 +2293,23 @@
                 "type": "f",
                 "numValues": 1,
                 "name": "heading",
-                "description": "Current heading (e.g. from Compass)"
-            },
-            {
-                "address": 14,
-                "addrAddress": 15,
-                "type": "f",
-                "numValues": 3,
-                "name": "PID",
-                "description": "PID values (start with: 0.005 0.0 0.0001)"
+                "description": "Current heading of the Wing from the Wing's Compass.heading"
             }
         ],
         "pub": [
             {
-                "address": 16,
+                "address": 14,
                 "type": "f",
                 "numValues": 1,
-                "name": "turnRate",
-                "description": "turnRate output in range -1..1, where 1 is clockwise"
+                "name": "AOA",
+                "description": "AOA obtained from a Wing value of 1... i.e. multiple Wing command by AOA value to get actual AOA"
+            },
+            {
+                "address": 15,
+                "type": "f",
+                "numValues": 1,
+                "name": "wind",
+                "description": "Estimated Wind angle (world coordinates)"
             }
         ],
         "filename": [

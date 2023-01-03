@@ -9,10 +9,15 @@
 <p>Estimate Wind Direction from Wing Compass and Tail position</p>
 
 <h2>Usage Guide</h2>
-
+<p>Subscribe the Sailor module to the Wind output parameter, instead of a regular wind vane, to use the Wing as an estimator of the Wind angle.</p>
 
 <h2>Example Configuration</h2>
-<pre></pre>
+<pre>[ WindFromWing = 12 ]
+  name = WindFromWing
+  AOA = 15
+  $wing = @>Sailor.wing
+  $heading = 64>10.22
+  publish = wing, heading, AOA, wind</pre>
 
 <h2>Subs (inputs)</h2>
 <table>
@@ -27,10 +32,10 @@
   <tr>
     <td>10</td>
     <td>11</td>
-    <td>target</td>
+    <td>wing</td>
     <td>f</td>
     <td>1</td>
-    <td>Target heading (e.g. from Nav module)</td>
+    <td>Wing tail command angle from Sailor.wing</td>
   </tr>
   <tr>
     <td>12</td>
@@ -38,15 +43,7 @@
     <td>heading</td>
     <td>f</td>
     <td>1</td>
-    <td>Current heading (e.g. from Compass)</td>
-  </tr>
-  <tr>
-    <td>14</td>
-    <td>15</td>
-    <td>PID</td>
-    <td>f</td>
-    <td>3</td>
-    <td>PID values (start with: 0.005 0.0 0.0001)</td>
+    <td>Current heading of the Wing from the Wing's Compass.heading</td>
   </tr>
 </table>
 
@@ -60,11 +57,18 @@
     <th>Description</th>
   </tr>
   <tr>
-    <td>16</td>
-    <td>turnRate</td>
+    <td>14</td>
+    <td>AOA</td>
     <td>f</td>
     <td>1</td>
-    <td>turnRate output in range -1..1, where 1 is clockwise</td>
+    <td>AOA obtained from a Wing value of 1... i.e. multiple Wing command by AOA value to get actual AOA</td>
+  </tr>
+  <tr>
+    <td>15</td>
+    <td>wind</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Estimated Wind angle (world coordinates)</td>
   </tr>
 </table>
 

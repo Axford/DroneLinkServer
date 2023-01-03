@@ -28,6 +28,7 @@ import TurnRate from './interfaces/TurnRate.mjs';
 import UDPTelemetry from './interfaces/UDPTelemetry.mjs';
 import Waypoint from './interfaces/Waypoint.mjs';
 import Wind from './interfaces/Wind.mjs';
+import WindFromWing from './interfaces/WindFromWing.mjs';
 
 
 loadStylesheet('./css/modules/oui/Channel.css');
@@ -237,6 +238,8 @@ export default class Channel {
         this.interface = new Waypoint(this, state);
       } else if (data.type == 'Wind') {
         this.interface = new Wind(this, state);
+      } else if (data.type == 'WindFromWing') {
+        this.interface = new WindFromWing(this, state);
       }
 
 
