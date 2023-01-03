@@ -11,6 +11,7 @@
 <h2>Usage Guide</h2>
 - Wind direction using I2C AS5600 sensor
 - Wind speed from cup anemometor on an digital input with internal pullup
+- Optional moving average with adjustable sample depth, 1 per interval
 
 <h2>Example Configuration</h2>
 <pre>[Wind= 14]
@@ -19,6 +20,7 @@
   bus= 4
   $heading= @>8.11
   centre= -10
+  samples=10
   publish= heading, direction, centre, wind</pre>
 
 <h2>Subs (inputs)</h2>
@@ -91,6 +93,20 @@
     <td>u8</td>
     <td>1</td>
     <td>Operation mode 0=standard, 1=inverted (upside down, e.g. for water direction sensor), 2=anemometer</td>
+  </tr>
+  <tr>
+    <td>18</td>
+    <td>samples</td>
+    <td>u8</td>
+    <td>1</td>
+    <td>Sample depth for moving average, 1 per interval (default 1, max 60)</td>
+  </tr>
+  <tr>
+    <td>19</td>
+    <td>stats</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Average variance relative to the moving average</td>
   </tr>
 </table>
 

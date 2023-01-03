@@ -1,0 +1,71 @@
+<link rel="stylesheet" href="../css/help.css">
+
+<div class="helpContent">
+
+<div><a href="index.html">&lt; Help Index</a></div>
+
+<h1>WindFromWing</h1>
+<p>Base class: <i>Drone</i></p>
+<p>Estimate Wind Direction from Wing Compass and Tail position</p>
+
+<h2>Usage Guide</h2>
+
+
+<h2>Example Configuration</h2>
+<pre></pre>
+
+<h2>Subs (inputs)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Addr Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>10</td>
+    <td>11</td>
+    <td>target</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Target heading (e.g. from Nav module)</td>
+  </tr>
+  <tr>
+    <td>12</td>
+    <td>13</td>
+    <td>heading</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Current heading (e.g. from Compass)</td>
+  </tr>
+  <tr>
+    <td>14</td>
+    <td>15</td>
+    <td>PID</td>
+    <td>f</td>
+    <td>3</td>
+    <td>PID values (start with: 0.005 0.0 0.0001)</td>
+  </tr>
+</table>
+
+<h2>Pubs (outputs / config)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>16</td>
+    <td>turnRate</td>
+    <td>f</td>
+    <td>1</td>
+    <td>turnRate output in range -1..1, where 1 is clockwise</td>
+  </tr>
+</table>
+
+</div>
