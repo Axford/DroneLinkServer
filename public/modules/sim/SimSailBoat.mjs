@@ -192,7 +192,7 @@ export default class SimSailBoat extends SimNode {
 
       this.polarVal = this.config.polar[this.polarIndex] / 255.0;
 
-      this.sailForce = 0.7 * this.polarVal + 0;
+      this.sailForce = 1.4 * this.polarVal + 0;
 
       // calc rudder force based on forward velocity (y)
       this.rudderForce = - this.physics.v.y * 0.07 * this.rudderSub.values[0];
