@@ -13,6 +13,7 @@ export default class GraphManager {
 
     this.needsRedraw = true;
     this.frame = 0;
+    this.visible = false;
 
     this.blocks = [];
 
@@ -100,10 +101,22 @@ export default class GraphManager {
     this.update();
   }
 
-  update() {
-    this.updatePositions();
-    this.draw();
 
+  show() {
+    this.visible = true;
+  }
+
+  hide() {
+    this.visible = false;
+  }
+
+
+  update() {
+    if (this.visible) {
+      this.updatePositions();
+      this.draw();
+    }
+    
     window.requestAnimationFrame(this.update.bind(this));
   }
 

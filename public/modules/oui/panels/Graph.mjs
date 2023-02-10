@@ -43,5 +43,15 @@ export default class Graph extends Panel {
     this.graphManager.resize();
   }
 
+  show() {
+    super.show();
+    this.graphManager.show();
+  }
+
+  hide() {
+    super.hide();
+    this.graphManager.hide();
+  }
+
 
 }

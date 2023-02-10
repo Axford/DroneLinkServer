@@ -38,9 +38,13 @@ export default class Sailor extends ModuleInterface {
     var speed2 = this.state.getParamValues(node, channel, 20, [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
 
     var sheet = this.state.getParamValues(node, channel, 17, [0])[0];
-    var flags = this.state.getParamValues(node, channel, 21, [0,0,0]);
+    var flags = this.state.getParamValues(node, channel, 21, [0,0,0,0,0]);
+
+    var wind2 = flags[3] * 360 / 255;
 
     var wing = this.state.getParamValues(node, channel, 22, [0])[0];
+
+    var rudder = this.state.getParamValues(node, channel, 24, [0])[0];
 
     var c = this.canvas[0];
     var ctx = c.getContext("2d");
@@ -60,7 +64,7 @@ export default class Sailor extends ModuleInterface {
     ctx.moveTo(cx,100);
     var r = 0;
     for (var i =0; i<32; i++) {
-      var ang = wind + (180/32) + (i*(180/16)) - 90;
+      var ang = wind2 + (180/32) + (i*(180/16)) - 90;
       ang = ang * Math.PI / 180;
       if ( i<16) {
         r = 30 + 50 * polar[i] /255;
@@ -78,7 +82,7 @@ export default class Sailor extends ModuleInterface {
     ctx.moveTo(cx,100);
     var r = 0;
     for (var i =0; i<32; i++) {
-      var ang = wind + (180/32) + (i*(180/16)) - 90;
+      var ang = wind2 + (180/32) + (i*(180/16)) - 90;
       ang = ang * Math.PI / 180;
       if ( i<16) {
         r = 30 + 50 * speed1[i] /255;
@@ -93,6 +97,14 @@ export default class Sailor extends ModuleInterface {
     ctx.beginPath();
     ctx.arc(cx, 100, 30, 0, 2 * Math.PI);
     ctx.fill();
+
+    // rudder turn rate arc
+		ctx.beginPath();
+		ctx.arc(cx, 100, 80, h2, h2 + rudder, rudder < 0);
+		ctx.lineTo(cx + 65*Math.cos(h2+1.1*rudder), 100 + 65*Math.sin(h2+1.1*rudder));
+		ctx.arc(cx, 100, 50, h2 + rudder, h2, rudder > 0);
+		ctx.fillStyle = flags[2] == 2 ? '#c55' : '#0a0';
+		ctx.fill();
 
     ctx.strokeStyle = '#fff';
     ctx.lineWidth = 1;
@@ -116,7 +128,8 @@ export default class Sailor extends ModuleInterface {
     this.drawLabelledHand(heading, '', 30,90, '#5F5');
     this.drawLabelledHand(target, '', 30, 90, '#FF5');
     this.drawLabelledHand(course, '', 30, 90, '#5FF');
-    this.drawLabelledHand(wind, '', 60, 110, '#55F');
+    this.drawLabelledHand(wind2, '', 60, 110, '#55F');
+    this.drawLabelledHand(wind, '', 50, 140, '#88F');
 
     // draw estimated wing orientation
     if (wing != 0) {
@@ -150,12 +163,21 @@ export default class Sailor extends ModuleInterface {
     ctx.fillText('Sheet', cx, 92);
 
     // crosstack  -top left
-    this.drawLabel(crosstrack.toFixed(1), 'Crosstrack', 5, 0, '#fff');
+    //this.drawLabel(crosstrack.toFixed(1), 'Crosstrack', 5, 0, '#fff');
+    this.drawValue(5, 0, 'crosstrack', crosstrack.toFixed(1));
 
     // flags
-    this.drawLabel(flags[0] > 0 ? 'Starboard' : 'Port', 'Tack', 5, 50, '#fff');
-    this.drawLabel(flags[1] > 0 ? 'Y' : 'N', 'Locked?', 5, 100, '#fff');
-    this.drawLabel(flags[2] > 0 ? 'Y' : 'N', 'Last CT+', 5, 150, '#fff');
+    var stateStrings = ['Planning', 'Set', 'Underway'];
+    this.drawValue(5, 50, 'State', stateStrings[flags[0]]);
+
+    var tackStrings = ['Undefined', 'Starboard', 'Port'];
+    this.drawValue(5, 100, 'Tack', tackStrings[flags[1]]);
+
+    var gybeStrings = ['Normal', 'Possible Gybe', 'Gybing'];
+    this.drawValue(5, 150, 'Helm', gybeStrings[flags[2]]);
+
+    var crossWindStrings = ['No', 'Yes'];
+    //this.drawValue(w-100, 150, 'Cross Wind?', crossWindStrings[flags[4]]);
 
   }
 
