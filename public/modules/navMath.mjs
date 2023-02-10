@@ -18,6 +18,7 @@ export function calculateDistanceBetweenCoordinates( p1, p2) {
   return d;
 }
 
+
 export function calculateDestinationFromDistanceAndBearing(start, d, bearing) {
   var p = [0,0];
   var R = RADIUS_OF_EARTH; // metres

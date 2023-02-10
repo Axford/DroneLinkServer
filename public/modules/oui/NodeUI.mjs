@@ -14,7 +14,7 @@ import GraphPanel from './panels/Graph.mjs';
 import NodeSettingsPanel from './panels/NodeSettings.mjs';
 import VisualisationPanel from './panels/Visualisation.mjs';
 
-import {calculateDestinationFromDistanceAndBearing} from '../navMath.mjs';
+import {calculateDestinationFromDistanceAndBearing, calculateInitialBearingBetweenCoordinates} from '../navMath.mjs';
 
 loadStylesheet('./css/modules/oui/NodeUI.css');
 
@@ -870,6 +870,50 @@ export default class NodeUI {
   				}
   			});
 
+        // -- starboard corridor --
+        var traceName = 'starboardTrace' + this.id;
+
+        // target needs to be transformed by translating on a vector given by target radius rotated by 90 CW
+        var course = calculateInitialBearingBetweenCoordinates( this.last[0], this.last[1],  this.target[0], this.target[1]);
+
+        var offsetTarget = calculateDestinationFromDistanceAndBearing(this.target, this.target[2], course+90);
+        var offsetLast = calculateDestinationFromDistanceAndBearing(this.last, this.target[2], course+90);
+
+        this.starboardTrace = { "type": "LineString", "coordinates": [ offsetLast, offsetTarget ] };
+        this.map.addSource(traceName, { type: 'geojson', data: this.starboardTrace });
+  			this.map.addLayer({
+  				'id': traceName,
+  				'type': 'line',
+  				'source': traceName,
+  				'paint': {
+  					'line-color': 'yellow',
+  					'line-opacity': 0.5,
+  					'line-width': 2,
+            'line-dasharray': [2,2]
+  				}
+  			});
+
+        // -- port corridor --
+        var traceName = 'portTrace' + this.id;
+
+        // target needs to be transformed by translating on a vector given by target radius rotated by 90 CW
+        offsetTarget = calculateDestinationFromDistanceAndBearing(this.target, this.target[2], course-90);
+        offsetLast = calculateDestinationFromDistanceAndBearing(this.last, this.target[2], course-90);
+
+        this.portTrace = { "type": "LineString", "coordinates": [ offsetLast, offsetTarget ] };
+        this.map.addSource(traceName, { type: 'geojson', data: this.portTrace });
+  			this.map.addLayer({
+  				'id': traceName,
+  				'type': 'line',
+  				'source': traceName,
+  				'paint': {
+  					'line-color': 'yellow',
+  					'line-opacity': 0.3,
+  					'line-width': 2,
+            'line-dasharray': [4,4]
+  				}
+  			});
+
 
       } else {
         // -- last marker --
@@ -889,6 +933,26 @@ export default class NodeUI {
         var traceName = 'lastTrace' + this.id;
         var src = this.map.getSource(traceName);
         if (src) src.setData(this.lastTrace);
+
+        // -- starboard corridor --
+        var course = calculateInitialBearingBetweenCoordinates( this.last[0], this.last[1],  this.target[0], this.target[1]);
+
+        var traceName = 'starboardTrace' + this.id;
+        var src = this.map.getSource(traceName);
+        if (src) {
+          this.starboardTrace.coordinates[1] = calculateDestinationFromDistanceAndBearing(this.target, this.target[2], course+90);
+          this.starboardTrace.coordinates[0] = calculateDestinationFromDistanceAndBearing(this.last, this.target[2], course+90);
+          src.setData(this.starboardTrace);
+        }
+
+        // -- port corridor --
+        var traceName = 'portTrace' + this.id;
+        var src = this.map.getSource(traceName);
+        if (src) {
+          this.portTrace.coordinates[1] = calculateDestinationFromDistanceAndBearing(this.target, this.target[2], course-90);
+          this.portTrace.coordinates[0] = calculateDestinationFromDistanceAndBearing(this.last, this.target[2], course-90);
+          src.setData(this.portTrace);
+        }
       }
     }
   }
@@ -896,33 +960,7 @@ export default class NodeUI {
 
 
 
-  //Destination point given distance and bearing from start point
-  /*
-  const φ2 = Math.asin( Math.sin(φ1)*Math.cos(d/R) +
-                        Math.cos(φ1)*Math.sin(d/R)*Math.cos(brng) );
-  const λ2 = λ1 + Math.atan2(Math.sin(brng)*Math.sin(d/R)*Math.cos(φ1),
-                             Math.cos(d/R)-Math.sin(φ1)*Math.sin(φ2));
-  */
-  calculateDestinationFromDistanceAndBearing(start, d, bearing) {
-    var p = [0,0];
-    var R = 6371e3; // metres
-    var lat1r = start[1] * Math.PI/180; // φ, λ in radians
-    var lon1r = start[0] * Math.PI/180;
-    var br = bearing * Math.PI/180;
-
-    var a = Math.sin(lat1r)*Math.cos(d/R) + Math.cos(lat1r)*Math.sin(d/R)*Math.cos(br);
-    p[1] = Math.asin( a );
-    p[0] = lon1r + Math.atan2(
-      Math.sin(br)*Math.sin(d/R)*Math.cos(lat1r),
-      Math.cos(d/R) - Math.sin(lat1r)*a
-    );
-    // convert to degrees
-    p[0] = p[0] * 180/Math.PI;
-    p[1] = p[1] * 180/Math.PI;
-    // normalise lon
-    p[0] = ((p[0] + 540) % 360) - 180;
-    return p;
-  }
+  
 
 
   updateWind(wind) {
@@ -933,7 +971,7 @@ export default class NodeUI {
 
     if (this.windIndicator) {
       this.windIndicator.coordinates[0] = this.location;
-      var windCoords = this.calculateDestinationFromDistanceAndBearing(this.location, 10, wind);
+      var windCoords = calculateDestinationFromDistanceAndBearing(this.location, 10, wind);
       this.windIndicator.coordinates[1] = windCoords;
 
       var src = this.map.getSource('windIndicator' + this.id);
@@ -942,7 +980,7 @@ export default class NodeUI {
     } else {
       // init windIndicator
       var traceName = 'windIndicator' + this.id;
-      var windCoords = this.calculateDestinationFromDistanceAndBearing(this.location, 10, wind);
+      var windCoords = calculateDestinationFromDistanceAndBearing(this.location, 10, wind);
 
       this.windIndicator = { "type": "LineString", "coordinates": [ this.location, windCoords ] };
       this.map.addSource(traceName, { type: 'geojson', data: this.windIndicator });
