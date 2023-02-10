@@ -168,7 +168,7 @@ export default class Sailor extends ModuleInterface {
 
     // flags
     var stateStrings = ['Planning', 'Set', 'Underway'];
-    this.drawValue(5, 50, 'State', stateStrings[flags[0]]);
+    this.drawValue(5, 50, 'Course', stateStrings[flags[0]]);
 
     var tackStrings = ['Undefined', 'Starboard', 'Port'];
     this.drawValue(5, 100, 'Tack', tackStrings[flags[1]]);
