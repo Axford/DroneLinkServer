@@ -724,7 +724,7 @@ function init() {
       // stop resizing
       isResizing = false;
     });
-
+    
 
     // Create new nodes as they are detected
     state.on('node.new', (id)=>{
