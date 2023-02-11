@@ -617,24 +617,26 @@ export default class NodeUI {
       var dThreshold = 1;  // calculate based on disance between waypoints
       if (d > dThreshold) {
         this.snailTrail.coordinates.push(this.location);
-        if (this.snailTrail.coordinates.length > 200) {
+        if (this.snailTrail.coordinates.length > 400) {
           this.snailTrail.coordinates.shift();
         }
 
         // see if point p[n-2] is basically on a straight line from p[n-3] to p[n-1] (this.location)
+        
         if (this.snailTrail.coordinates.length > 2) {
           var pm3 = this.snailTrail.coordinates[this.snailTrail.coordinates.length-3];
           var pm2 = this.snailTrail.coordinates[this.snailTrail.coordinates.length-2];
           var pm1 = this.location;
 
           var b1 = calculateInitialBearingBetweenCoordinates(pm3[0], pm3[1], pm2[0], pm2[1]);
-          var b2 = calculateInitialBearingBetweenCoordinates(pm3[0], pm3[1], pm1[0], pm1[1]);
+          var b2 = calculateInitialBearingBetweenCoordinates(pm2[0], pm2[1], pm1[0], pm1[1]);
 
-          if (Math.abs(b2-b2) < 3) {
+          if (Math.abs(b2-b1) < 3) {
             // remove p[n-2]
             this.snailTrail.coordinates.splice(this.snailTrail.coordinates.length-2, 1);
           }
         }
+        
 
         var src = this.map.getSource('snailTrail' + this.id);
         if (src) src.setData(this.snailTrail);
@@ -903,9 +905,9 @@ export default class NodeUI {
   				'source': traceName,
   				'paint': {
   					'line-color': 'yellow',
-  					'line-opacity': 0.5,
+  					'line-opacity': 0.3,
   					'line-width': 2,
-            'line-dasharray': [2,2]
+            'line-dasharray': [4,4]
   				}
   			});
 

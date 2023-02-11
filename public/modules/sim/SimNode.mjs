@@ -65,6 +65,15 @@ export default class SimNode {
     this.physics.angV *= (1-this.physics.angFriction);
   }
 
+
+  applyWorldVelocity(v) {
+    var dv = v.clone();
+    // rotate v into local coordinate frame
+    dv.rotate(-this.physics.a);
+
+    this.physics.v.add(dv);
+  }
+
   calcNewCoordinatesFromTranslation(coord, dp) {
     var newLatitude  = coord[1]  + (dp.y / R_EARTH) * (180 / Math.PI);
     var newLongitude = coord[0] + (dp.x / R_EARTH) * (180 / Math.PI) / Math.cos(coord[1] * Math.PI/180);

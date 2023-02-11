@@ -3,13 +3,12 @@
 Simulates a genric Sailing boat
 
 */
+import fs from 'fs';
 import SimNode from './SimNode.mjs';
 import * as DLM from '../droneLinkMsg.mjs';
 import Vector from '../Vector.mjs';
 import https from 'https';
 import { threadId } from 'worker_threads';
-
-
 
 
 function radiansToDegrees(a) {
@@ -73,7 +72,16 @@ export default class SimSailBoat extends SimNode {
     this.moduleType = 'SailBoat';
     this.lastLoop = 0;
 
+    this.lastWindUpdate = 0;
+
     this.windDir = config.wind[0];
+    this.drift = {
+      u:0,
+      v:0
+    };
+
+    // load ocean current data
+    this.currentData = JSON.parse( fs.readFileSync('currents.json') );
 
     // pubs
     this.pubs['compass.heading'] = {
@@ -150,6 +158,8 @@ export default class SimSailBoat extends SimNode {
     s += ' polarIndex: ' + this.polarIndex + '\n';
     s += ' sailForce: ' + this.sailForce.toFixed(2) + '\n';
     s += ' rudderForce: ' + this.rudderForce.toFixed(2) + '\n';
+    s += ' windDir: '+ this.config.wind[0].toFixed(0) +', ' + this.windDir.toFixed(0) + '\n';
+    s += ' drift: '+ this.drift.u.toFixed(2) +', ' + this.drift.v.toFixed(2) + '\n';
 
     return s;
   }
@@ -166,8 +176,68 @@ export default class SimSailBoat extends SimNode {
   }
 
 
+  getOceanCurrent() {
+    var location = this.pubs['gps.location'].values;
+
+    // read ocean currents
+    var i = Math.round(location[0]) + 90;
+    var j = Math.round(location[1]);
+
+    var index = i + 91 * j;
+    var cell = {
+      u: 0,
+      v: 0
+    }
+
+    if (index >= 0 && index < this.currentData.length) {
+      cell = this.currentData[index];
+    }
+     
+    return cell;
+  }
+
+
+  updateWind() {
+    var loopTime = (new Date()).getTime();
+
+    if (loopTime > this.lastWindUpdate + 60*10*1000) {
+      this.lastWindUpdate = loopTime;
+
+      var location = this.pubs['gps.location'].values;
+
+      var url = 'https://api.open-meteo.com/v1/forecast?latitude='+location[1]+'&longitude='+location[0]+'&current_weather=true';
+
+      https.get(url,(res) => {
+        let body = "";
+    
+        res.on("data", (chunk) => {
+            body += chunk;
+        });
+    
+        res.on("end", () => {
+            try {
+                let json = JSON.parse(body);
+                
+                this.config.wind[0] = json.current_weather.winddirection;
+
+            } catch (error) {
+                console.error(error.message);
+            };
+        });
+    
+      }).on("error", (error) => {
+          console.error(error.message);
+      });
+      
+
+    }
+  }
+
+
   update() {
     super.update();
+
+    this.updateWind();
 
     var loopTime = (new Date()).getTime();
     var dt = (loopTime - this.lastLoop) / 1000;
@@ -214,6 +284,11 @@ export default class SimSailBoat extends SimNode {
       // make sure wind vector is in node coord frame - i.e. rotate by current heading
       windVector.fromAngle( -(this.windDir + 90) * Math.PI/180 - this.physics.a , 0.1);
       this.applyImpulse(windVector, new Vector(0,0.005));
+
+      // apply ocean current drift
+      this.drift = this.getOceanCurrent();
+      var dv = new Vector(this.drift.u, this.drift.v);
+      this.applyWorldVelocity(dv);
 
       this.updatePhysics(dt);
 

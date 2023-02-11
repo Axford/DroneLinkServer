@@ -9,6 +9,8 @@ import { DRONE_MESH_MSG_TYPE_LINK_CHECK_REQUEST } from '../../DroneMeshMsg.mjs';
 
 import moduleInfo from "/moduleInfo.json" assert { type: "json" };
 
+import {calculateDistanceBetweenCoordinates} from "../../navMath.mjs";
+
 
 loadStylesheet('./css/modules/oui/panels/Configuration.css');
 
@@ -1296,6 +1298,9 @@ export default class Configuration extends Panel {
 
     var numLines = sess.getLength();
     var numMarkers = 0;
+    var cumLength = 0;
+    var lastPoint = [0,0];
+
     for (var i=1; i<=numLines; i++) {
       var line = sess.getLine(i);
 
@@ -1316,6 +1321,14 @@ export default class Configuration extends Panel {
           //console.log(numMarkers, this.node.scriptMarkers.length, this.node.scriptMarkers);
 
           if (isNaN(lon) || isNaN(lat)) continue;
+
+          var p1 = [lon, lat];
+          if (numMarkers > 0) {
+            cumLength += calculateDistanceBetweenCoordinates(lastPoint, p1);
+          }
+          lastPoint = p1; 
+
+          var lenStr = cumLength > 1000 ? (cumLength/1000).toFixed( cumLength > 10000 ? 0 : 1) + 'km' : cumLength.toFixed(0) + 'm';
 
           var marker, markerLabel;
           if (numMarkers < this.node.scriptMarkers.length) {
@@ -1347,7 +1360,7 @@ export default class Configuration extends Panel {
             // -- marker label --
             var labelEl = document.createElement('div');
             labelEl.className = 'markerLabel';
-            labelEl.innerHTML = i;
+            labelEl.innerHTML = i + ', ' + lenStr; 
             markerLabel = new mapboxgl.Marker({
               element:labelEl,
               anchor:'left'
@@ -1363,7 +1376,7 @@ export default class Configuration extends Panel {
             marker.targetRadius = radius;
 
             markerLabel.setLngLat([lon,lat]);
-            markerLabel.getElement().innerHTML = i;
+            markerLabel.getElement().innerHTML = i + ', ' + lenStr; 
 
             this.node.markerTrail.coordinates.push([lon,lat]);
           } else {
