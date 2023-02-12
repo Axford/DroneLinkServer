@@ -147,6 +147,8 @@ export default class SimSailBoat extends SimNode {
     this.polarIndex = 0;
     this.sailForce = 0;
     this.rudderForce = 0;
+
+    this.windSpeed = 1.4;
   }
 
   getDiagnosticString() {
@@ -159,6 +161,7 @@ export default class SimSailBoat extends SimNode {
     s += ' sailForce: ' + this.sailForce.toFixed(2) + '\n';
     s += ' rudderForce: ' + this.rudderForce.toFixed(2) + '\n';
     s += ' windDir: '+ this.config.wind[0].toFixed(0) +', ' + this.windDir.toFixed(0) + '\n';
+    s += ' windSpeed: '+ this.windSpeed.toFixed(1) + '\n';
     s += ' drift: '+ this.drift.u.toFixed(2) +', ' + this.drift.v.toFixed(2) + '\n';
 
     return s;
@@ -219,6 +222,7 @@ export default class SimSailBoat extends SimNode {
                 let json = JSON.parse(body);
                 
                 this.config.wind[0] = json.current_weather.winddirection;
+                this.windSpeed = json.current_weather.windspeed / 10;
 
             } catch (error) {
                 console.error(error.message);
@@ -262,7 +266,7 @@ export default class SimSailBoat extends SimNode {
 
       this.polarVal = this.config.polar[this.polarIndex] / 255.0;
 
-      this.sailForce = 1.4 * this.polarVal + 0;
+      this.sailForce = this.windSpeed * this.polarVal + 0;
 
       // calc rudder force based on forward velocity (y)
       this.rudderForce = - this.physics.v.y * 0.07 * this.rudderSub.values[0];

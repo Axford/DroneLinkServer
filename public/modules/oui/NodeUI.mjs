@@ -681,6 +681,14 @@ export default class NodeUI {
       }
 
     }
+
+    // do we need to tickle target or last updates?
+    if (this.target && this.target[0] != 0 && !this.gotTarget) {
+      this.updateTarget(this.target);
+    }
+    if (this.last && this.last[0] != 0 && !this.gotLast) {
+      this.updateLast(this.last);
+    }
   }
 
   updateHeading(heading) {
@@ -711,18 +719,6 @@ export default class NodeUI {
     target = target.slice(0,3);
     this.target = target;
     console.log('new target');
-
-    // speculative query for last
-    if (!this.last) {
-      var qm = new DLM.DroneLinkMsg();
-      qm.source = 252;
-      qm.node = this.id;
-      qm.channel = this.targetModule;
-      qm.param = 15;
-      qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
-      qm.msgLength = 1;
-      this.state.send(qm);
-    }
 
 
     if (this.gotLocation) {

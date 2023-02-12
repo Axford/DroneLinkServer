@@ -925,7 +925,7 @@ export default class Configuration extends Panel {
       'source': this.node.markerTrailName,
       'paint': {
         'line-color': '#88f',
-        'line-opacity': 0.8,
+        'line-opacity': 0.4,
         'line-width': 2,
         'line-dasharray': [2,2]
       }

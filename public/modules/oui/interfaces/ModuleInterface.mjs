@@ -121,6 +121,16 @@ export default class INA219 {
   }
 
 
+  queryParam(param) {
+    var qm = new DLM.DroneLinkMsg();
+    qm.node = this.channel.node.id;
+    qm.channel = this.channel.channel;
+    qm.param = param;
+    qm.setUint8([ 0 ]);
+    qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
+    this.state.send(qm);
+  }
+
   setAndQueryUint8Param(param, value) {
     var qm = new DLM.DroneLinkMsg();
     qm.node = this.channel.node.id;
@@ -129,12 +139,7 @@ export default class INA219 {
     qm.setUint8([ value ]);
     this.state.send(qm);
 
-    qm = new DLM.DroneLinkMsg();
-    qm.node = this.channel.node.id;
-    qm.channel = this.channel.channel;
-    qm.param = param;
-    qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
-    this.state.send(qm);
+    this.queryParam(param);
   }
 
 

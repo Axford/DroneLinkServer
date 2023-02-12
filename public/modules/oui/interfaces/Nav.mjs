@@ -10,6 +10,10 @@ import * as DLM from '../../droneLinkMsg.mjs';
 export default class Nav extends ModuleInterface {
 	constructor(channel, state) {
     super(channel, state);
+
+    this.locationReceived = false;
+    this.lastReceived = false;
+    this.targetReceived = false;
 	}
 
   update() {
@@ -91,6 +95,34 @@ export default class Nav extends ModuleInterface {
   }
 
 
+  queryMissing() {
+    var node = this.channel.node.id;
+    var channel = this.channel.channel;
+    
+    // query missing params in order
+    if (this.locationReceived) {
+      if (this.targetReceived) {
+        if (!this.lastReceived) {
+          // do we already have a last value in state?
+        var last = this.state.getParamValues(node, channel, 15, [0,0,0]);
+        if (last[0] != 0) {
+          this.channel.node.updateMapParam('last', 2, last, this.channel.channel, 15);
+          this.lastReceived = true;
+        } else 
+          this.queryParam(15);
+        }
+      } else {
+        // do we already have a target value in state?
+        var target = this.state.getParamValues(node, channel, 12, [0,0,0]);
+        if (target[0] != 0) {
+          this.channel.node.updateMapParam('target', 2, target, this.channel.channel, 12);
+          this.targetReceived = true;
+        } else 
+          this.queryParam(12);
+      }
+    }    
+  }
+
   onParamValue(data) {
     if (!this.built) return;
 
@@ -98,6 +130,9 @@ export default class Nav extends ModuleInterface {
 		if (data.param == 10 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
 			// pass onto node for mapping
 			this.channel.node.updateMapParam('location', 2, data.values, this.channel.channel, 10);
+      this.locationReceived = true;
+
+      this.queryMissing();
 		}
 
     // heading
@@ -109,13 +144,17 @@ export default class Nav extends ModuleInterface {
     // target
 		if (data.param == 12 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
 			// pass onto node for mapping
+      console.log('target received');
 			this.channel.node.updateMapParam('target', 2, data.values, this.channel.channel, 12);
+      this.targetReceived = true;
 		}
 
     // last
 		if (data.param == 15 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
 			// pass onto node for mapping
+      console.log('last received');
 			this.channel.node.updateMapParam('last', 2, data.values, this.channel.channel, 15);
+      this.lastReceived = true;
 		}
 
     // mode
@@ -162,6 +201,8 @@ export default class Nav extends ModuleInterface {
 			qm.param = 14;
 			qm.setUint8([ newMode ]);
 			this.state.send(qm);
+
+      this.queryParam(14);
     });
 
     this.ui.append(this.modeSelect);

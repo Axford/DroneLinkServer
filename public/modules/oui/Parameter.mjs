@@ -205,7 +205,7 @@ export default class Parameter {
     this.built = true;
 
     this.namecheckInterval = setInterval(()=>{
-      if (this.title == '?') {
+      if (this.title == '?' && this.state.state[this.channel.node.id].interface != 'firebase') {
         // fire a name query
         //console.log(this.addr + ' name query');
         var qm = new DLM.DroneLinkMsg();
