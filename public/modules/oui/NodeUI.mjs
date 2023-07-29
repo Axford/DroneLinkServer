@@ -370,7 +370,9 @@ export default class NodeUI {
       // trigger updates
       if (paramName == 'location') {
         this.updateLocation(value);
-      } else if (paramName == 'heading') {
+      } else if (paramName == 'location2') {
+        this.updateLocation2(value);
+      }else if (paramName == 'heading') {
         this.updateHeading(value);
       } else if (paramName == 'target') {
         this.updateTarget(value);
@@ -586,6 +588,27 @@ export default class NodeUI {
     });
   }
 
+
+  initNodeLocation2() {
+    console.log('Adding node secondary location');
+
+    // create map objects
+    // -----------------------------------------
+
+    // -- marker --
+    this.mapEl2 = document.createElement('div');
+    this.mapEl2.className = 'marker';
+    this.mapEl2Arrow = document.createElement('i');
+    this.mapEl2Arrow.className = 'fas fa-circle-dot';
+    this.mapEl2.appendChild(this.mapEl2Arrow);
+    this.marker2 = new mapboxgl.Marker(this.mapEl2)
+          .setLngLat(this.location2)
+          .addTo(this.map);
+
+  }
+
+
+
   distanceBetweenCoordinates(c1, c2) {
     var lat1 = c1[1];
     var lon1 = c1[0];
@@ -690,6 +713,24 @@ export default class NodeUI {
       this.updateLast(this.last);
     }
   }
+
+
+  updateLocation2(newLoc) {
+    var loopTime = (new Date()).getTime();
+
+    //console.log(newLoc);
+    this.location2 = newLoc;
+
+    if (!this.gotLocation2) {
+      this.gotLocation2 = true;
+      this.initNodeLocation2();
+    } else {
+      if (this.location2 && this.location2.length >=2) {
+        this.marker2.setLngLat(this.location2);
+      }
+    }
+  }
+
 
   updateHeading(heading) {
     //console.log(heading);

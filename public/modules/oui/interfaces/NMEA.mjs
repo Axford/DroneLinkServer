@@ -19,6 +19,18 @@ export default class NMEA extends ModuleInterface {
 			this.channel.node.updateMapParam('location', 3, data.values, this.channel.channel, 8);
 		}
 
+    // location2
+		if (data.param == 18 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
+			// pass onto node for mapping
+			this.channel.node.updateMapParam('location2', 3, data.values, this.channel.channel, 18);
+		}
+
+    // heading
+		if (data.param == 10 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
+			// pass onto node for mapping
+			this.channel.node.updateMapParam('heading', 1, data.values, this.channel.channel, 10);
+		}
+
 
     if (data.param == 20 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
 

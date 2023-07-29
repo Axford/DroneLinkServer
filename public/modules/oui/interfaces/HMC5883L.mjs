@@ -113,11 +113,7 @@ export default class HMC5883L extends ModuleInterface {
 
 		// update maxVal
 		var maxVal = 1;
-		maxVal = Math.max(maxVal, Math.abs(calibX[0]));
-		maxVal = Math.max(maxVal, Math.abs(calibX[2]));
-		maxVal = Math.max(maxVal, Math.abs(calibY[0]));
-		maxVal = Math.max(maxVal, Math.abs(calibY[2]));
-
+  
     var scaling = 1;
 		if (w2 < h) {
 			scaling = 0.8 * (w2/2) / maxVal;
@@ -143,62 +139,8 @@ export default class HMC5883L extends ModuleInterface {
     }
 
 		//
-		var bcx = cx2 + calibX[1] * scaling;
-		var bcy = h/2 - calibY[1] * scaling;
-
-    // draw limits
-    var bx1 = cx2 + limits[3] * scaling;
-    var bx2 = cx2 + limits[1] * scaling;
-    var by1 = h/2 - limits[0] * scaling;
-    var by2 = h/2 - limits[2] * scaling;
-    // x
-    ctx.strokeStyle = "#f00";
-    ctx.lineWidth = "2";
-    ctx.beginPath();
-    //ctx.rect(bx1,by1,bx2-bx1,by2-by1);
-		ctx.ellipse((bx1+bx2)/2, (by1+by2)/2, (bx2-bx1)/2, (by2-by1)/2, 0, 0, 2 * Math.PI);
-    ctx.stroke();
-
-		// draw bounds
-    bx1 = cx2 + calibX[0] * scaling;
-    bx2 = cx2 + calibX[2] * scaling;
-    by1 = h/2 - calibY[0] * scaling;
-    by2 = h/2 - calibY[2] * scaling;
-    ctx.strokeStyle = "#aaa";
-    ctx.lineWidth = "1";
-    ctx.beginPath();
-    ctx.rect(bx1,by1,bx2-bx1,by2-by1);
-    ctx.stroke();
-
-    // label bottom left
-    ctx.fillStyle = '#fff';
-    ctx.font = '12px Arial';
-    ctx.textAlign = 'left';
-    ctx.fillText(calibX[0].toFixed(1) + ', ' + calibY[0].toFixed(1), bx1, by1);
-
-    // label top right
-    ctx.textAlign = 'right';
-    ctx.fillText(calibX[2].toFixed(1) + ', ' + calibY[2].toFixed(1), bx2, by2);
-
-
-    // draw centre of bounds
-    ctx.strokeStyle = '#aaa';
-    ctx.lineWidth = 1;
-    // x
-    ctx.beginPath();
-    ctx.moveTo(bx1, bcy);
-    ctx.lineTo(bx2, bcy);
-    ctx.stroke();
-    // y
-    ctx.beginPath();
-    ctx.moveTo(bcx, by1);
-    ctx.lineTo(bcx, by2);
-    ctx.stroke();
-
-    // label centre vector
-    ctx.textAlign = 'left';
-    ctx.fillText(calibX[1].toFixed(1) + ', ' + calibY[1].toFixed(1), bcx+2, bcy-2);
-
+		var bcx = cx2; 
+		var bcy = h/2;
 
     // draw latest vector
     if (this.rawVectors.length > 0) {
