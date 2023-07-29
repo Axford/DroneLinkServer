@@ -81,10 +81,63 @@ export default class NMEA extends ModuleInterface {
 		var speed = this.state.getParamValues(node, channel, 11, [0])[0];
 		var HDOP = this.state.getParamValues(node, channel, 12, [0])[0];
     var correction = this.state.getParamValues(node, channel, 20, [0,0,0,0]);
+    var heading = this.state.getParamValues(node, channel, 10, [0])[0];
+    var h2 = (heading - 90) * Math.PI / 180;
+
+
+
+    /*
+
+      Render heading view... i.e. GPS Compass
+
+    */
+      var w1 = w/2;
+      var cx = w1 + w1/2;
+      var cy = h / 2;
+
+      var r1 = h/2 - 30;
+      var r2 = 0.4*r1;
+      
+      ctx.fillStyle = '#343a40';
+      ctx.fillRect(0,0,w,h);
+  
+      // background circles
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r1, 0, 2 * Math.PI);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(cx, cy, r2, 0, 2 * Math.PI);
+      ctx.stroke();
+  
+      // ticks
+      ctx.beginPath();
+      for (var i =0; i<12; i++) {
+        var ang = (i*30) * Math.PI / 180;
+        ctx.moveTo(cx + r1*Math.cos(ang), cy + r1*Math.sin(ang));
+        ctx.lineTo(cx + (r1+10)*Math.cos(ang), cy + (r1+10)*Math.sin(ang) );
+      }
+      ctx.stroke();
+  
+      // heading
+      ctx.strokeStyle = '#5F5';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(cx + r2*Math.cos(h2), cy + r2*Math.sin(h2));
+      ctx.lineTo(cx + (r1+10)*Math.cos(h2), cy + (r1+10)*Math.sin(h2) );
+      ctx.stroke();
+  
+      ctx.fillStyle = '#5F5';
+      ctx.font = '20px bold serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(heading.toFixed(0) + '°', cx, cy+6);
+    
 
 
     // render vector view
     // -------------------------------------------------------------------------
+    /*
     var w2 = w/2;
     var x2 = w2;
     var cx2 = x2 + w2/2;
@@ -135,6 +188,7 @@ export default class NMEA extends ModuleInterface {
       ctx.lineTo(vx, vy);
       ctx.stroke();
     }
+    */
 
     // locatiion
     this.drawValue(5,0,'Location', location[0].toFixed(6) + '   '+location[1].toFixed(6));
@@ -151,6 +205,7 @@ export default class NMEA extends ModuleInterface {
 
     // correction (left)
     this.drawValue(5,120,'Correction (m)', correction[3].toFixed(1));
+    
   }
 
 	build() {
