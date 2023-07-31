@@ -170,6 +170,11 @@ export class DroneLinkMsg {
 	}
 
   setUint32(values) {
+    if (values === undefined) {
+      console.error('Undefined values for setUint32: ', values);
+      return;
+    }
+      
 		this.msgType = DRONE_LINK_MSG_TYPE_UINT32_T;
 		this.msgLength = values.length;
     this.writable = false;
