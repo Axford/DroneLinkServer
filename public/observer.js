@@ -150,6 +150,19 @@ function showHelp(page) {
 }
 
 
+// map coordinates are in lngLat as .lat and .lng
+// screen coordinates relative to map div are in point.x and point.y
+function showContextMenu(e) {
+  $('#contextMenu').show();
+  $('#contextMenu').css({top:e.point.y, left:e.point.x});
+}
+
+
+function hideContextMenu() {
+  $('#contextMenu').hide();
+}
+
+
 async function getNewFileHandle() {
   const options = {
     types: [
@@ -688,6 +701,17 @@ function init() {
 
       // update last location in localstorage
       saveMapLocation(e.lngLat);
+    });
+
+    map.on('contextmenu', (e) => {
+      //console.log(e);
+      // map coordinates are in lngLat as .lat and .lng
+      // screen coordinates relative to map div are in point.x and point.y
+      showContextMenu(e);
+    });
+
+    map.on('click', (e) =>{
+      hideContextMenu();
     });
 
 

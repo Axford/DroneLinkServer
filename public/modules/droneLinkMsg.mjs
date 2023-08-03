@@ -193,6 +193,15 @@ export class DroneLinkMsg {
       vv[i] =values[i];
     }
 	}
+  
+  setAddr(values) {
+		this.msgType = DRONE_LINK_MSG_TYPE_ADDR;
+		this.msgLength = 4;
+    this.writable = false;
+		for (var i=0; i < values.length; i++) {
+      this.uint8_tPayload[i] =values[i];
+    }
+	}
 
 	parseAddress(addr) {
 		var gti = addr.indexOf('>');

@@ -235,8 +235,12 @@ export default class NodeUI {
 
     // update lastHeard UI every second
     setInterval(()=>{
+      var now = (new Date()).getTime();
+
+      var dt = (now - this.lastHeard)/1000;
 
       if (this.state.state[this.id].interface == 'firebase') {
+        
         this.uiLastHeard.innerHTML = '-';
 
         this.ui.classList.add('faded');
@@ -244,9 +248,6 @@ export default class NodeUI {
         $(this.uiLastHeard).hide();
 
       } else {
-        var now = (new Date()).getTime();
-
-        var dt = (now - this.lastHeard)/1000;
         if (dt > 120) {
           this.uiLastHeard.classList.add('danger');
         } else if (dt > 60) {

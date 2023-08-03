@@ -151,6 +151,7 @@ export default class DroneLinkState {
           case DLM.DRONE_LINK_MSG_TYPE_UINT32_T: qm.setUint32(param.values); break;
           case DLM.DRONE_LINK_MSG_TYPE_FLOAT: qm.setFloat(param.values); break;
           case DLM.DRONE_LINK_MSG_TYPE_CHAR: qm.setString(param.values[0]); break;
+          case DLM.DRONE_LINK_MSG_TYPE_ADDR: qm.setAddr(param.values); console.log('ADDR:', qm); break;
         }
 
         qm.writable = param.writable;
@@ -295,15 +296,14 @@ export default class DroneLinkState {
     var newState ={};
     newState[msg.node] = {
       channels: {},
-      lastHeard: now,
       interface: interfaceName,
-      lastHeard:now,
+      lastHeard: interfaceName == 'firebase' ? now - 240*1000: now,
       visualisation:'',
       visScriptLoaded:false
     }
     newState[msg.node].channels[msg.channel] = {
       params: {},
-      lastHeard: now
+      lastHeard: interfaceName == 'firebase' ? now - 240*1000: now,
     }
 
     if (msg.msgType != DLM.DRONE_LINK_MSG_TYPE_QUERY && msg.msgType != DLM.DRONE_LINK_MSG_TYPE_NAMEQUERY) {

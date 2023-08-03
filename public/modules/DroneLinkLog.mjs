@@ -32,7 +32,7 @@ export default class DroneLinkLog {
           //console.log(nextMsg);
 
           // send log message to state
-          me.state.handleLinkMsg( nextMsg );
+          me.state.handleLinkMsg( nextMsg, false, 'log' );
 
           me.trigger('playbackInfo',{
             packets:me.playbackIndex+1,
@@ -137,7 +137,7 @@ export default class DroneLinkLog {
     // one shot playback
     for (var i=0; i<this.log.length; i++) {
       // send log message to state
-      this.state.handleLinkMsg( this.log[i] );
+      this.state.handleLinkMsg( this.log[i], false, 'log' );
     }
     this.playback = false;
   }
