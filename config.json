@@ -7,26 +7,26 @@
   },
   "Damians-MacBook-Pro.local":{
     "id":250,
-    "firmwarePath":"/Users/damianaxford/Documents/GitHub/DroneNode/.pio/build/esp32doit-devkit-v1/firmware.bin",
-    "logFilePath":"/Users/damianaxford/Documents/GitHub/DroneLinkServer/mesh.log",
+    "firmwarePath":"/Users/damianaxford/GitHub/DroneNode/.pio/build/esp32doit-devkit-v1/firmware.bin",
+    "logFilePath":"/Users/damianaxford/GitHub/DroneLinkServer/mesh.log",
     "telemetryPort":"/dev/cu.SLAB_USBtoUART"
   },
   "damians-mbp.home":{
     "id":250,
-    "firmwarePath":"/Users/damianaxford/Documents/GitHub/DroneNode/.pio/build/esp32doit-devkit-v1/firmware.bin",
-    "logFilePath":"/Users/damianaxford/Documents/GitHub/DroneLinkServer/mesh.log",
+    "firmwarePath":"/Users/damianaxford/GitHub/DroneNode/.pio/build/esp32doit-devkit-v1/firmware.bin",
+    "logFilePath":"/Users/damianaxford/GitHub/DroneLinkServer/mesh.log",
     "telemetryPort":"/dev/cu.SLAB_USBtoUART"
   },
   "damians-macbook-pro.home":{
     "id":250,
-    "firmwarePath":"/Users/damianaxford/Documents/GitHub/DroneNode/.pio/build/esp32doit-devkit-v1/firmware.bin",
-    "logFilePath":"/Users/damianaxford/Documents/GitHub/DroneLinkServer/mesh.log",
+    "firmwarePath":"/Users/damianaxford/GitHub/DroneNode/.pio/build/esp32doit-devkit-v1/firmware.bin",
+    "logFilePath":"/Users/damianaxford/GitHub/DroneLinkServer/mesh.log",
     "telemetryPort":"/dev/cu.SLAB_USBtoUART"
   },
   "Damians-MBP.localdomain":{
     "id":250,
-    "firmwarePath":"/Users/damianaxford/Documents/GitHub/DroneNode/.pio/build/esp32doit-devkit-v1/firmware.bin",
-    "logFilePath":"/Users/damianaxford/Documents/GitHub/DroneLinkServer/mesh.log",
+    "firmwarePath":"/Users/damianaxford/GitHub/DroneNode/.pio/build/esp32doit-devkit-v1/firmware.bin",
+    "logFilePath":"/Users/damianaxford/GitHub/DroneLinkServer/mesh.log",
     "telemetryPort":"/dev/cu.SLAB_USBtoUART"
   },
   "Damians-Mac-mini.local":{

@@ -11,6 +11,11 @@
   min-height:25px;
 }
 
+.Channel.disabled {
+  background-color: #800;
+  color:white;
+}
+
 
 .Channel h1 {
   font-size: 1em;

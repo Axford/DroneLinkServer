@@ -293,11 +293,15 @@ export default class Channel {
       // status
       if (data.param == DLM.DRONE_MODULE_PARAM_STATUS && data.msgType == DLM.DRONE_LINK_MSG_TYPE_UINT8_T) {
         if (data.values[0] > 0) {
+          // enabled
           this.ui.addClass('enabled');
+          this.ui.removeClass('disabled');
           this.uiEnable.hide();
           this.uiDisable.show();
         } else {
+          // disabled
           this.ui.removeClass('enabled');
+          this.ui.addClass('disabled');
           this.collapse();
           this.uiEnable.show();
           this.uiDisable.hide();
