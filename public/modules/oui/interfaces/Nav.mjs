@@ -180,6 +180,11 @@ export default class Nav extends ModuleInterface {
   }
 
 
+  contextHandler(data) {
+    console.log('handle me', this, data);
+  }
+
+
 	build() {
     super.build('Nav');
 
@@ -206,6 +211,9 @@ export default class Nav extends ModuleInterface {
     });
 
     this.ui.append(this.modeSelect);
+
+    // register context menu handler
+    this.channel.node.uiManager.registerContextHandler('Set Nav.Target for', this.channel.node.id + ' ▶ ' + this.channel.node.name, this);
 
     this.canvas = $('<canvas height=200 />');
     this.canvas.on('click', (e)=>{

@@ -163,10 +163,23 @@ html, body {margin: 0; height: 100%; overflow: hidden}
 
 #contextMenu {
   display:none;
-  background-color: #ccc;
+  background-color: #aaa;
   position:absolute;
   border-radius:6px;
+  padding-top:6px;
   box-shadow: 2px 4px 6px rgba(0,0,0,0.7);
+}
+
+#contextMenu .context-group {
+  display: block;
+  padding: 0.5rem 1rem;
+  font-weight: bold;
+  background-color: #555;
+  color:white;
+}
+
+#contextMenu .nav-link {
+  color: #005;
 }
 
 .mainRow {

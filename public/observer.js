@@ -59,6 +59,7 @@ var state = new DroneLinkState(socket, db);
 
 var firmwareVersion = '', latestFirmwareVersion = '';
 
+import UIManager from './modules/oui/UIManager.mjs';
 import NodeUI from './modules/oui/NodeUI.mjs';
 import { controllers, initGamepads } from './modules/gamepads.js';
 
@@ -91,6 +92,10 @@ var liveMode = true;
 
 var parsedLog = [];
 var logMarkers = [];
+
+var uiManager = new UIManager();
+
+
 
 function saveMapLocation(lngLat) {
   localStorage.location = JSON.stringify({
@@ -147,19 +152,6 @@ function showHelp(page) {
     // load requested page, append the .html suffix
     $('.helpViewer').attr('src', 'help/' + page + '.html');
   }
-}
-
-
-// map coordinates are in lngLat as .lat and .lng
-// screen coordinates relative to map div are in point.x and point.y
-function showContextMenu(e) {
-  $('#contextMenu').show();
-  $('#contextMenu').css({top:e.point.y, left:e.point.x});
-}
-
-
-function hideContextMenu() {
-  $('#contextMenu').hide();
 }
 
 
@@ -704,14 +696,11 @@ function init() {
     });
 
     map.on('contextmenu', (e) => {
-      //console.log(e);
-      // map coordinates are in lngLat as .lat and .lng
-      // screen coordinates relative to map div are in point.x and point.y
-      showContextMenu(e);
+      uiManager.showContextMenu(e.point, e.lngLat);
     });
 
     map.on('click', (e) =>{
-      hideContextMenu();
+      uiManager.hideContextMenu();
     });
 
 
@@ -755,7 +744,7 @@ function init() {
       console.log('node.new:' + id);
 
       // create new node entry
-      var node = new NodeUI(id, state, map);
+      var node = new NodeUI(id, state, map, uiManager);
       node.setLatestFirmwareVersion(latestFirmwareVersion);
       nodes[id] = node;
       numNodes++;

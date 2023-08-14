@@ -21,10 +21,11 @@ loadStylesheet('./css/modules/oui/NodeUI.css');
 
 export default class NodeUI {
 
-  constructor(id, state, map) {
+  constructor(id, state, map, uiManager) {
     var me = this;
     this.state = state;
     this.map = map;
+    this.uiManager = uiManager;
     this.location=  [0,0];
     this.target=  [0,0,0];
     this.last=  [0,0,0];
