@@ -764,7 +764,7 @@ export default class NodeUI {
     console.log('new target');
 
 
-    if (this.gotLocation) {
+    //if (this.gotLocation) {
       if (!this.gotTarget) {
         console.log('Adding target', target);
         this.gotTarget = true;
@@ -826,7 +826,7 @@ export default class NodeUI {
 
         // -- target trace --
         var traceName = 'targetTrace' + this.id;
-        this.targetTrace = { "type": "LineString", "coordinates": [ this.location, this.target ] };
+        this.targetTrace = { "type": "LineString", "coordinates": [ this.gotLocation ? this.location : this.target, this.target ] };
         this.map.addSource(traceName, { type: 'geojson', data: this.targetTrace });
   			this.map.addLayer({
   				'id': traceName,
@@ -869,7 +869,7 @@ export default class NodeUI {
           if (src) src.setData(this.lastTrace);
         }
       }
-    }
+    //} // end if gotLocation
   }
 
 
