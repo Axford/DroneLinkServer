@@ -23,7 +23,6 @@ export default class Nav extends ModuleInterface {
     var channel = this.channel.channel;
 
     // redraw canvas
-
     var heading = this.state.getParamValues(node, channel, 8, [0])[0];
 
     var adjHeading = this.state.getParamValues(node, channel, 20, [0])[0];
@@ -123,6 +122,7 @@ export default class Nav extends ModuleInterface {
     }    
   }
 
+
   onParamValue(data) {
     if (!this.built) return;
 
@@ -144,7 +144,7 @@ export default class Nav extends ModuleInterface {
     // target
 		if (data.param == 12 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
 			// pass onto node for mapping
-      console.log('target received');
+      //console.log('target received');
 			this.channel.node.updateMapParam('target', 2, data.values, this.channel.channel, 12);
       this.targetReceived = true;
 		}
@@ -152,7 +152,7 @@ export default class Nav extends ModuleInterface {
     // last
 		if (data.param == 15 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
 			// pass onto node for mapping
-      console.log('last received');
+      //console.log('last received');
 			this.channel.node.updateMapParam('last', 2, data.values, this.channel.channel, 15);
       this.lastReceived = true;
 		}
@@ -247,6 +247,32 @@ export default class Nav extends ModuleInterface {
 
 		this.widgetText = $('<span>?m</span>');
 		this.widget.append(this.widgetText);
+
+    // see if we already know key params
+    var node = this.channel.node.id;
+    var channel = this.channel.channel;
+
+    var location = this.state.getParamValues(node, channel, 10, [0,0,0]);
+    if (!this.locationReceived && location[0] != 0) {
+      this.channel.node.updateMapParam('location', 2, location, this.channel.channel, 10);
+      this.locationReceived = true;
+      console.log('Advanced register location');
+    } 
+
+    var target = this.state.getParamValues(node, channel, 12, [0,0,0]);
+    if (!this.targetReceived && target[0] != 0) {
+      this.channel.node.updateMapParam('target', 2, target, this.channel.channel, 12);
+      this.targetReceived = true;
+      console.log('Advanced register target');
+    }
+    
+    var last = this.state.getParamValues(node, channel, 15, [0,0,0]);
+    if (!this.lastReceived && last[0] != 0) {
+      this.channel.node.updateMapParam('last', 2, last, this.channel.channel, 15);
+      this.lastReceived = true;
+      console.log('Advanced register last');
+    } 
+
 
     super.finishBuild();
   }
