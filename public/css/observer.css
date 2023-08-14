@@ -180,6 +180,11 @@ html, body {margin: 0; height: 100%; overflow: hidden}
 
 #contextMenu .nav-link {
   color: #005;
+  cursor:pointer;
+}
+
+#contextMenu a.nav-link:hover {
+  color:black;
 }
 
 .mainRow {
