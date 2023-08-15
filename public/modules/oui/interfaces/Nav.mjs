@@ -214,13 +214,7 @@ export default class Nav extends ModuleInterface {
     this.state.send(qm);
 
     // immediately query target to see if it has changed
-    var qm = new DLM.DroneLinkMsg();
-    qm.node = this.channel.node.id;
-    qm.channel = this.channel.channel;
-    qm.param = 12;
-    qm.setUint8([ 0 ]);
-    qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
-    this.state.send(qm);
+    this.queryParam(12);
   }
 
 
@@ -236,13 +230,7 @@ export default class Nav extends ModuleInterface {
     this.state.send(qm);
 
     // immediately query target addr to see if it has changed
-    var qm = new DLM.DroneLinkMsg();
-    qm.node = this.channel.node.id;
-    qm.channel = this.channel.channel;
-    qm.param = 13;
-    qm.setUint8([ 0 ]);
-    qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
-    this.state.send(qm);
+    this.queryParam(13);
   }
 
 

@@ -121,6 +121,44 @@ export default class INA219 {
   }
 
 
+  drawCompassIndicator(cx, cy, outerR, innerR, v, label, fontSize) {
+    var c = this.canvas[0];
+		var ctx = c.getContext("2d");
+
+    // background circles
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(cx, cy, outerR, 0, 2 * Math.PI);
+    ctx.stroke();
+		ctx.beginPath();
+    ctx.arc(cx, cy, innerR, 0, 2 * Math.PI);
+    ctx.stroke();
+
+		// ticks
+    ctx.beginPath();
+    for (var i =0; i<12; i++) {
+      var ang = (i*30) * Math.PI / 180;
+      ctx.moveTo(cx + outerR*Math.cos(ang), cy + outerR*Math.sin(ang));
+      ctx.lineTo(cx + (outerR+10)*Math.cos(ang), cy + (outerR+10)*Math.sin(ang) );
+    }
+    ctx.stroke();
+
+		// heading
+    ctx.strokeStyle = '#5F5';
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(cx + innerR*Math.cos(v), cy + innerR*Math.sin(v));
+    ctx.lineTo(cx + (outerR+10)*Math.cos(v), cy + (outerR+10)*Math.sin(v) );
+    ctx.stroke();
+
+    ctx.fillStyle = '#5F5';
+    ctx.font = (fontSize ? fontSize : 20) + 'px bold serif';
+		ctx.textAlign = 'center';
+    ctx.fillText(label + '°', cx, cy+6);
+  }
+
+
   queryParam(param) {
     var qm = new DLM.DroneLinkMsg();
     qm.node = this.channel.node.id;

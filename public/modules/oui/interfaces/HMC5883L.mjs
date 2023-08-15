@@ -1,6 +1,7 @@
 import ModuleInterface from './ModuleInterface.mjs';
 import loadStylesheet from '../../loadStylesheet.js';
 import * as DLM from '../../droneLinkMsg.mjs';
+import {degreesToRadians} from '../../navMath.mjs';
 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -46,6 +47,11 @@ export default class HMC5883L extends ModuleInterface {
       if (this.rawVectors2.length > 200) this.rawVectors2.shift();
 		}
 
+    // mode
+    if (data.param == 20 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_UINT8_T) {
+      this.modeSelect.val(data.values[0]);
+    }
+
     this.updateNeeded = true;
   }
 
@@ -65,7 +71,7 @@ export default class HMC5883L extends ModuleInterface {
     var h = 200;
 
     // keep size updated
-    var h1 = Math.max(this.ui.height(), 600) - 200;
+    var h1 = Math.max(ctx.canvas.height, 600) - 200;
     this.renderer.setSize( w, h1 );
     this.camera.updateProjectionMatrix();
     this.camera.aspect = w/h1;
@@ -77,9 +83,13 @@ export default class HMC5883L extends ModuleInterface {
     var rawVector = this.state.getParamValues(node, channel, 10, [0,0,0,0]);
     var calibX = this.state.getParamValues(node, channel, 13, [0,0,0]);
     var calibY = this.state.getParamValues(node, channel, 14, [0,0,0]);
+    var calibZ = this.state.getParamValues(node, channel, 15, [0,0,0]);
 		var limits = this.state.getParamValues(node, channel, 18, [0,0,0,0]);
 		var samples = this.state.getParamValues(node, channel, 19, [0,0,0,0]);
 		var trim = this.state.getParamValues(node, channel, 15, [0]);
+
+    var pitch = this.state.getParamValues(node, channel, 22, [0])[0];
+    var roll = this.state.getParamValues(node, channel, 24, [0])[0];
 
     var rawVector2 = this.state.getParamValues(node, channel, 21, [0,0,0,0]);
 
@@ -158,57 +168,48 @@ export default class HMC5883L extends ModuleInterface {
     // render compass
     // -------------------------------------------------------------------------
     var w1 = w/2;
+    var h1 = 0.6 * h;
 		var cx = w1/2;
+    var cy = h1/2;
+    
+    var r = Math.min(w1, h1) * 0.4;
 
 		ctx.fillStyle = '#343a40';
 		ctx.fillRect(0,0,w1,h);
 
-		// calibration markers (based on samples)
-		for (var i=0; i<4; i++) {
-			var ang = ((trim + 360-i*90) - 90) * Math.PI / 180;
+		this.drawCompassIndicator(cx, cy, r, 25, h2, heading.toFixed(0), 20);
 
-			ctx.strokeStyle = samples[i] > 100 ? '#0a0' : '#555';
-	    ctx.lineWidth = Math.min(samples[i], 100) / 5;
-	    ctx.beginPath();
-	    ctx.arc(cx, 100, 90, ang-0.4, ang+0.4);
-	    ctx.stroke();
-		}
 
-		// background circles
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.arc(cx, 100, 80, 0, 2 * Math.PI);
-    ctx.stroke();
-		ctx.beginPath();
-    ctx.arc(cx, 100, 30, 0, 2 * Math.PI);
-    ctx.stroke();
+    // render artificial horizons
+    // -------------------------------------------------------------------------
+    w1 = w/2;
+		cy = h * 0.8;
 
-		// ticks
-    ctx.beginPath();
-    for (var i =0; i<12; i++) {
-      var ang = (i*30) * Math.PI / 180;
-      ctx.moveTo(cx + 80*Math.cos(ang), 100 + 80*Math.sin(ang));
-      ctx.lineTo(cx + 90*Math.cos(ang), 100 + 90*Math.sin(ang) );
-    }
-    ctx.stroke();
+		//ctx.fillStyle = '#343a40';
+		//ctx.fillRect(w/2,0,w1,h);
 
-		// heading
-    ctx.strokeStyle = '#5F5';
-    ctx.lineWidth = 5;
-    ctx.beginPath();
-    ctx.moveTo(cx + 30*Math.cos(h2), 100 + 30*Math.sin(h2));
-    ctx.lineTo(cx + 90*Math.cos(h2), 100 + 90*Math.sin(h2) );
-    ctx.stroke();
+    // pitch
+    // positive pitch is up, negative is down
+    var cx1 = w1/4;
+    var r1 = w/8-5;
 
-    ctx.fillStyle = '#5F5';
-    ctx.font = '20px bold serif';
-		ctx.textAlign = 'center';
-    ctx.fillText(heading.toFixed(0) + '°', cx, 106);
+    var pitchAng = degreesToRadians(-pitch); 
+    this.drawCompassIndicator(cx1, cy, r1, 20, pitchAng, pitch.toFixed(0), 15);
+
+    this.drawPill('Pitch', cx1, h*0.55, 50, '#000');
+
+    // roll
+    // positive roll is to the right, negative to the left
+
+    cx1 = 3*w1/4
+    var rollAng = degreesToRadians((-roll) - 90);  // zero roll is a vector pointing straight up, positive roll is to port
+    this.drawCompassIndicator(cx1, cy, r1, 20, rollAng, roll.toFixed(0), 15);
+
+    this.drawPill('Roll', cx1, h*0.55, 50, '#000');
 
 
     // 3D
-
+    // -------------------------------------------------------------------------
     // add vector to 3D visualisation
     var sphere;
     if (this.spheres.length < 300) {
@@ -240,6 +241,15 @@ export default class HMC5883L extends ModuleInterface {
     sphere2.position.x = rawVector2[0];
     sphere2.position.y = rawVector2[1];
     sphere2.position.z = rawVector2[2];
+
+    // visualise calibration sphere
+    this.calibSphere.position.x = calibX[1];
+    this.calibSphere.position.y = calibY[1];
+    this.calibSphere.position.z = calibZ[1];
+
+    this.calibSphere.scale.x = (calibX[2] - calibX[0])/2;
+    this.calibSphere.scale.y = (calibY[2] - calibY[0])/2;
+    this.calibSphere.scale.z = (calibZ[2] - calibZ[0])/2;
   }
 
 
@@ -254,6 +264,30 @@ export default class HMC5883L extends ModuleInterface {
 
 	build() {
 		super.build('HMC5883L');
+
+    this.modeSelect = $('<select class="modeSelect"></select>');
+    // add mode options
+    this.modeSelect.append($('<option value="0">Online Calibration</option>'));
+    this.modeSelect.append($('<option value="1">Fixed Calibration</option>'));
+    this.modeSelect.append($('<option value="2">Reset Calibration</option>'));
+    this.modeSelect.append($('<option value="3">Store Calibration</option>'));
+    this.modeSelect.change((e)=>{
+      // get value
+      var newMode = this.modeSelect.val();
+
+      var qm = new DLM.DroneLinkMsg();
+			qm.node = this.channel.node.id;
+			qm.channel = this.channel.channel;
+			qm.param = 20;
+			qm.setUint8([ newMode ]);
+			this.state.send(qm);
+
+      this.queryParam(20);
+    });
+
+    this.ui.append(this.modeSelect);
+
+
     var w = Math.max(this.ui.width(), 200);
     var h = Math.max(this.ui.height(), 600);
 
@@ -291,7 +325,21 @@ export default class HMC5883L extends ModuleInterface {
     this.sphereMaterial = new THREE.MeshBasicMaterial( { color: 0xffff00 } );
 
     this.sphereMaterial2 = new THREE.MeshBasicMaterial( { color: 0xff00ff } );
-    
+
+
+    this.calibSphereGeometry = new THREE.SphereGeometry( 1, 20, 20 );  
+    this.calibSphereMaterial = new THREE.MeshDepthMaterial( { wireframe:true, opacity:0.5 } );
+    this.calibSphere = new THREE.Mesh( this.calibSphereGeometry, this.calibSphereMaterial );
+    this.scene.add( this.calibSphere );
+
+    // see if we already know key params
+    var node = this.channel.node.id;
+    var channel = this.channel.channel;
+
+    // mode
+    var mode = this.state.getParamValues(node, channel, 20, [0])[0];
+    this.modeSelect.val(mode);
+
 
     super.finishBuild();
     this.animate();
