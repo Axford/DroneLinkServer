@@ -12,7 +12,7 @@ export default class INA219 {
 	}
 
 
-  drawValue(x,y,label,v) {
+  drawValue(x,y,label,v, fillColor) {
     var c = this.canvas[0];
 		var ctx = c.getContext("2d");
 
@@ -21,7 +21,7 @@ export default class INA219 {
     ctx.font = '12px serif';
     ctx.fillText(label, x, y+15);
     ctx.font = '20px bold serif';
-		ctx.fillStyle = '#5f5';
+		ctx.fillStyle = fillColor ? fillColor : '#5f5';
     ctx.fillText(v, x, y+35);
   }
 

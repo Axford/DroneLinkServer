@@ -208,6 +208,10 @@ export default class HMC5883L extends ModuleInterface {
     this.drawPill('Roll', cx1, h*0.55, 50, '#000');
 
 
+    // QUALITY
+    this.drawValue(w/2 + 5,5,'Calibration Quality', rawVector[3].toFixed(0), rawVector[3] > 80 ? '#5f5' : '#f55');
+
+
     // 3D
     // -------------------------------------------------------------------------
     // add vector to 3D visualisation
