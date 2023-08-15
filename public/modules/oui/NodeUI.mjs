@@ -19,6 +19,10 @@ import {calculateDestinationFromDistanceAndBearing, calculateInitialBearingBetwe
 loadStylesheet('./css/modules/oui/NodeUI.css');
 
 
+// threshold of lastHeard to be considered active, in seconds
+const ACTIVE_THRESHOLD = 10*60;  // 10 minutes
+
+
 export default class NodeUI {
 
   constructor(id, state, map, uiManager) {
@@ -31,6 +35,7 @@ export default class NodeUI {
     this.last=  [0,0,0];
     this.id=  id;
     this.name = '';
+    this.active = true;  // true if lastHeard < xx minutes
     this.ipAddress = '';
     this.firmwareVersion = '';
     this.latestFirmwareVersion = '';
@@ -43,6 +48,9 @@ export default class NodeUI {
     this.lastLocationTime = 0; 
     this.lastLocation = [0,0]; // to estimate speed over ground 
     this.priorityCounts= [0,0,0,0];
+    this.mapLayerIDs = [];  // list of map layers (IDs), used to manage visibility/opacity
+    this.mapLayerOpacities = {};  // to store original opactities by id
+    this.mapElements = [];  // list of html elements (object references) on the map
 
     // used to track mappable params like location or heading
     this.mapParams = {};
@@ -246,40 +254,90 @@ export default class NodeUI {
 
     // update lastHeard UI every second
     setInterval(()=>{
-      var now = (new Date()).getTime();
-
-      var dt = (now - this.lastHeard)/1000;
-
-      if (this.state.state[this.id].interface == 'firebase' || dt > 10*60) {
-        
-        this.uiLastHeard.innerHTML = '-';
-
-        this.ui.classList.add('faded');
-        this.uiWidgets.hide();
-        $(this.uiLastHeard).hide();
-
-      } else {
-        if (dt > 120) {
-          this.uiLastHeard.classList.add('danger');
-        } else if (dt > 60) {
-          this.uiLastHeard.classList.add('warning');
-          this.uiLastHeard.classList.remove('danger');
-        } else {
-          this.uiLastHeard.classList.remove('danger');
-          this.uiLastHeard.classList.remove('warning');
-        }
-        this.uiLastHeard.innerHTML = dt.toFixed(0)+ 's';
-
-        this.ui.classList.remove('faded');
-        $(this.uiLastHeard).show();
-        this.uiWidgets.show();
-      }
-
-      // also update network Priority Pie 
-      this.updatePriorityPie();
- 
+      this.checkIfActive(); 
 
     }, 1000)
+  }
+
+
+  deactivate() {
+    if (!this.active) return;
+
+    this.active = false;
+
+    this.uiLastHeard.innerHTML = '-';
+
+    this.ui.classList.add('faded');
+    this.uiWidgets.hide();
+    $(this.uiLastHeard).hide();
+
+    // fade out map widgets
+    this.mapLayerIDs.forEach((id)=>{
+      this.mapLayerOpacities[id] = this.map.getPaintProperty(id, 'line-opacity');
+
+      this.map.setPaintProperty(
+        id,
+        'line-opacity',
+        0.2 * this.mapLayerOpacities[id]
+      );
+    });
+
+    this.mapElements.forEach((ele)=>{
+      ele.style.opacity = 0.3;
+    });
+  }
+
+
+  activate() {
+    if (this.active) return;
+
+    this.ui.classList.remove('faded');
+    $(this.uiLastHeard).show();
+    this.uiWidgets.show();
+    this.active = true;
+
+    // bring back map widgets
+    this.mapLayerIDs.forEach((id)=>{
+      this.map.setPaintProperty(
+        id,
+        'line-opacity',
+        this.mapLayerOpacities[id]
+      );
+    });
+
+    this.mapElements.forEach((ele)=>{
+      ele.style.opacity = 1;
+    });
+  }
+
+  checkIfActive() {
+    var now = (new Date()).getTime();
+
+    var dt = (now - this.lastHeard)/1000;
+
+    if ( (this.state.state[this.id].interface == 'firebase')) {
+      this.deactivate();     
+
+    } else if (dt > ACTIVE_THRESHOLD) {
+      this.deactivate();
+
+    } else {
+      if (dt > 120) {
+        this.uiLastHeard.classList.add('danger');
+      } else if (dt > 60) {
+        this.uiLastHeard.classList.add('warning');
+        this.uiLastHeard.classList.remove('danger');
+      } else {
+        this.uiLastHeard.classList.remove('danger');
+        this.uiLastHeard.classList.remove('warning');
+      }
+      this.uiLastHeard.innerHTML = dt.toFixed(0)+ 's';
+
+      this.activate();
+    }
+
+    // also update network Priority Pie 
+    this.updatePriorityPie();
   }
 
 
@@ -627,6 +685,7 @@ export default class NodeUI {
     this.marker = new mapboxgl.Marker(this.mapEl)
           .setLngLat(this.location)
           .addTo(this.map);
+    this.mapElements.push(this.mapEl);
 
     // set context menu handler
     this.mapEl.addEventListener('contextmenu', (e)=>{
@@ -647,7 +706,7 @@ export default class NodeUI {
     })
           .setLngLat(this.location)
           .addTo(this.map);
-
+    this.mapElements.push(this.mapLabel);
 
     // heading indicator
     this.headingIndicatorName = 'headingIndicator' + this.id;
@@ -665,6 +724,7 @@ export default class NodeUI {
         'line-width': 3
       }
     });
+    this.mapLayerIDs.push(this.headingIndicatorName);
 
 
     // -- snailTrail --
@@ -690,6 +750,7 @@ export default class NodeUI {
         ]
       }
     });
+    this.mapLayerIDs.push(trailName);
   }
 
 
@@ -708,7 +769,7 @@ export default class NodeUI {
     this.marker2 = new mapboxgl.Marker(this.mapEl2)
           .setLngLat(this.location2)
           .addTo(this.map);
-
+    this.mapElements.push(this.mapEl2);
   }
 
 
@@ -880,6 +941,7 @@ export default class NodeUI {
             .setDraggable(true)
             .addTo(this.map);
 
+        this.mapElements.push(el);
         this.targetMarker.on('dragend', (e)=>{
           // e.target
           const lngLat = e.target.getLngLat();
@@ -925,6 +987,7 @@ export default class NodeUI {
   					'line-width': 2
   				}
   			});
+        this.mapLayerIDs.push(outlineName);
 
         // -- target trace --
         var traceName = 'targetTrace' + this.id;
@@ -940,6 +1003,7 @@ export default class NodeUI {
   					'line-width': 2
   				}
   			});
+        this.mapLayerIDs.push(traceName);
 
 
       } else {
@@ -998,6 +1062,7 @@ export default class NodeUI {
         // -- last marker --
         var el = document.createElement('div');
         el.className = 'lastMarker';
+        this.mapElements.push(el);
 
         this.lastMarker = new mapboxgl.Marker(el)
             .setLngLat(last)
@@ -1018,6 +1083,7 @@ export default class NodeUI {
   					'line-width': 2
   				}
   			});
+        this.mapLayerIDs.push(outlineName);
 
         // -- last trace --
         var traceName = 'lastTrace' + this.id;
@@ -1033,6 +1099,7 @@ export default class NodeUI {
   					'line-width': 2
   				}
   			});
+        this.mapLayerIDs.push(traceName);
 
         // -- starboard corridor --
         var traceName = 'starboardTrace' + this.id;
@@ -1056,6 +1123,7 @@ export default class NodeUI {
             'line-dasharray': [4,4]
   				}
   			});
+        this.mapLayerIDs.push(traceName);
 
         // -- port corridor --
         var traceName = 'portTrace' + this.id;
@@ -1077,6 +1145,7 @@ export default class NodeUI {
             'line-dasharray': [4,4]
   				}
   			});
+        this.mapLayerIDs.push(traceName);
 
 
       } else {
@@ -1158,6 +1227,7 @@ export default class NodeUI {
           'line-width': 3
         }
       });
+      this.mapLayerIDs.push(traceName);
     }
   }
 
