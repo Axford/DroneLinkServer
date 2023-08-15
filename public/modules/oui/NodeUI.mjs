@@ -250,7 +250,7 @@ export default class NodeUI {
 
       var dt = (now - this.lastHeard)/1000;
 
-      if (this.state.state[this.id].interface == 'firebase') {
+      if (this.state.state[this.id].interface == 'firebase' || dt > 10*60) {
         
         this.uiLastHeard.innerHTML = '-';
 

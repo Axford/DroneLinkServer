@@ -440,6 +440,17 @@ main {
   font-size: 0.8em;
 }
 
+#nodes .nodeOverlay .lastHeard.warning {
+  background-color: #ffc107!important;
+  box-shadow: 1px 1px 3px #000;
+}
+
+#nodes .nodeOverlay .lastHeard.danger {
+  background-color: #dc3545!important;
+  color:white;
+  box-shadow: 1px 1px 3px #000;
+}
+
 .widgets {
   margin-top: 4px;
   display: grid;

@@ -32,22 +32,6 @@ const db = getFirestore(app);
 // Initialize Cloud Storage and get a reference to the service
 const storage = getStorage(app);
 
-/*
-try {
-  const docRef = doc(db, 'nodes', '250');
-  setDoc(docRef, { 
-    id: 250,
-    name: "Server"
-   }, { merge: true });
-
-
-  console.log("Document written");
-} catch (e) {
-  console.error("Error adding document: ", e);
-}
-*/
-
-
 
 import io from '../libs/socketio/socket.io.esm.min.mjs';
 var socket = io();
@@ -204,19 +188,6 @@ async function saveState() {
 
 
 function saveLog() {
-  /*
-  var h = await getNewFileHandle();
-
-  if (h) {
-    // Create a FileSystemWritableFileStream to write to.
-    const writable = await h.createWritable();
-
-    await logger.saveToStream(writable);
-
-    // Close the file and write the contents to disk.
-    await writable.close();
-  }
-  */
 
   if (logger.size() == 0) return;
 
@@ -272,20 +243,6 @@ async function loadLogs() {
       // Uh-oh, an error occurred!
       console.error(error);
     });
-
-
-  /*
-  let fileHandle;
-  [fileHandle] = await window.showOpenFilePicker();
-
-  const file = await fileHandle.getFile();
-
-  var buffer = await file.arrayBuffer();
-
-  logger.loadFromBuffer(buffer);
-
-  alert('Log loaded');
-  */
 }
 
 
@@ -320,70 +277,6 @@ function calculateDistanceBetweenCoordinates( p1, p2) {
   return d;
 }
 
-/*
-function parseLog() {
-  parsedLog = [];
-
-  // clear markers
-  // TODO
-
-  var parseBuffer = Array(3);
-
-  var lastLoc = [0,0];
-
-  // buffer format:  lon lat RSSI
-
-  // step through DroneLinkMsg objects in log
-  for (var i=0; i<logger.log.length; i++) {
-    var msg = logger.log[i];
-
-    // extract required values and store in buffer
-    if (msg.node == 1 && msg.channel == 5 && msg.param == 8) {
-      // store lon and lat
-      parseBuffer[0] = msg.valueArray()[0];
-      parseBuffer[1] = msg.valueArray()[1];
-    }
-
-
-    if (msg.node == 1 && msg.channel == 3 && msg.param == 8) {
-      // store RSSI
-      parseBuffer[2] = msg.valueArray()[0];
-    }
-
-    // add buffer to parsedLog
-    // store on GPS location change
-    if (msg.node == 1 && msg.channel == 5 && msg.param == 8) {
-    //if (msg.node == 10 && msg.channel == 13 && msg.param == 13) {
-
-      // check distance from lastLoc
-      var d = calculateDistanceBetweenCoordinates(parseBuffer, lastLoc);
-
-      if (d > 2) {
-        parsedLog.push(parseBuffer);
-        console.log('Stored: ', parseBuffer);
-
-        var g = (1 - (parseBuffer[2]/100)) * 255;
-        var r=0, b=0;
-
-        if (parseBuffer[2] > 80) {
-          r=g + 30;
-          g=0;
-        } else if(parseBuffer[2] > 70) {
-          r=g;
-        }
-
-        addLogMarker(parseBuffer[0], parseBuffer[1], r, g, b);
-        //addLogMarker(parseBuffer[0], parseBuffer[1], 1 - (parseBuffer[2]/10));
-
-        lastLoc[0] = parseBuffer[0];
-        lastLoc[1] = parseBuffer[1];
-      }
-
-    }
-
-  }
-}
-*/
 
 function addLogMarker(lon,lat, r,g,b) {
   // create or update marker
@@ -533,15 +426,6 @@ function init() {
     analyser.reset();
   });
 
-  // configure state controls
-  /*
-  $('#stateLoadButton').on('click', ()=>{
-    loadState();
-  });
-  $('#stateSaveButton').on('click', ()=>{
-    saveState();
-  });
-  */
 
   // configure logger
   $('#logRecordButton').on('click', ()=>{
