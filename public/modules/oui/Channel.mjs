@@ -334,7 +334,7 @@ export default class Channel {
       this.interfaceTab.show();
       this.parametersTab.hide();
       if (this.interface && (typeof this.interface.show === 'function')) {
-        if (this.visible)
+        //if (this.visible)
           this.interface.show();
       }
     } else if (s == 'parameters') {

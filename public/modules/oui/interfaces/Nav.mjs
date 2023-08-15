@@ -324,6 +324,10 @@ export default class Nav extends ModuleInterface {
     var node = this.channel.node.id;
     var channel = this.channel.channel;
 
+    // mode
+    var mode = this.state.getParamValues(node, channel, 14, [0])[0];
+    this.modeSelect.val(mode);
+
     var location = this.state.getParamValues(node, channel, 10, [0,0,0]);
     if (!this.locationReceived && location[0] != 0) {
       this.channel.node.updateMapParam('location', 2, location, this.channel.channel, 10);

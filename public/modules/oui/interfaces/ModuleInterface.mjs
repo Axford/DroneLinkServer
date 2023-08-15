@@ -155,6 +155,10 @@ export default class INA219 {
   update() {
 		if (!this.built || !this.visible) return false;
 
+    // check to see if ui has been initialised
+
+    if (this.ui.width() < 1) return;
+
     this.updateNeeded = false;
 
     return true;
@@ -170,6 +174,7 @@ export default class INA219 {
 
   finishBuild() {
     this.updateNeeded = true;
+    if (this.visible) this.update();
   }
 
 
