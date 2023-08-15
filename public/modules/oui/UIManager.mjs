@@ -13,10 +13,11 @@ export default class UIManager {
 
   getNodesWithMapParam(mapParam) {
     // return an array of nodes that have the specified mapParam
+    // and are active
     var res = [];
 
     for (const [key, node] of Object.entries(this.nodes)) {
-      if (node.mapParams.hasOwnProperty(mapParam)) {
+      if (node.mapParams.hasOwnProperty(mapParam) && node.active) {
         res.push(node);
       }
     };
@@ -25,7 +26,7 @@ export default class UIManager {
   }
   
 
-  registerContextHandler(groupName, name, widget) {
+  registerContextHandler(node, groupName, name, widget) {
     if (this.contextHandlers[groupName] === undefined) {
       this.contextHandlers[groupName] = {
         ele: null,
@@ -36,7 +37,8 @@ export default class UIManager {
     this.contextHandlers[groupName].items.push({
       name: name,
       widget: widget,
-      ele: null
+      ele: null,
+      node: node
     });
 
     // sort?
@@ -85,6 +87,21 @@ export default class UIManager {
     } else {
       // hide a global menu if already open
       this.hideContextMenu();
+
+      // update visibility of menu items for active/inactive nodes
+      for (const [key, ch] of Object.entries(this.contextHandlers)) {
+        // for each item
+        ch.items.forEach((item)=>{
+          if (item.ele !== null) {
+            if (item.node.active) {
+              item.ele.show();
+            } else {
+              item.ele.hide();
+            }            
+          }
+        });
+  
+      }
 
       console.log('Showing global context menu');
       $('#contextMenu').show();

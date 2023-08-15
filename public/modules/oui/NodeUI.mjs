@@ -440,6 +440,13 @@ export default class NodeUI {
           } else {
             // update name
             ch.items[item.id].ele.html(item.id+' &#9654; '+item.name);
+
+            // check if still active
+            if (item.active) {
+              ch.items[item.id].ele.show();
+            } else {
+              ch.items[item.id].ele.hide();
+            }
           }
         }
       });

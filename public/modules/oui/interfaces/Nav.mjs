@@ -262,7 +262,7 @@ export default class Nav extends ModuleInterface {
     this.ui.append(this.modeSelect);
 
     // register global context menu handler
-    this.channel.node.uiManager.registerContextHandler('Set Nav.Target for', this.channel.node.id + ' ▶ ' + this.channel.node.name, this);
+    this.channel.node.uiManager.registerContextHandler(this.channel.node, 'Set Nav.Target for', this.channel.node.id + ' ▶ ' + this.channel.node.name, this);
 
     // register a private context handler that accepts nodes with a "location" map param
     this.channel.node.registerContextHandler('Follow', 'location', this, 'followContextHandler');
