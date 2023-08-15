@@ -2,10 +2,26 @@
 
 
 export default class UIManager {
-  constructor() {
+  constructor(nodes) {
     var me = this;
 
+    me.nodes = nodes;
     me.contextHandlers = {};
+    me.showingPrivateContextMenuFor = null;
+  }
+
+
+  getNodesWithMapParam(mapParam) {
+    // return an array of nodes that have the specified mapParam
+    var res = [];
+
+    for (const [key, node] of Object.entries(this.nodes)) {
+      if (node.mapParams.hasOwnProperty(mapParam)) {
+        res.push(node);
+      }
+    };
+
+    return res;
   }
   
 
@@ -53,7 +69,7 @@ export default class UIManager {
   }
 
   contextHandler(item) {
-    item.widget.contextHandler(this.lngLat);
+    item.widget.globalContextHandler(this.lngLat);
     this.hideContextMenu();
   }
 
@@ -63,13 +79,40 @@ export default class UIManager {
   showContextMenu(point, lngLat) {
     this.lngLat = lngLat;
 
-    $('#contextMenu').show();
-    $('#contextMenu').css({top:point.y, left:point.x});
+    if (this.showingPrivateContextMenuFor) {
+      // do nothing
+
+    } else {
+      // hide a global menu if already open
+      this.hideContextMenu();
+
+      console.log('Showing global context menu');
+      $('#contextMenu').show();
+      $('#contextMenu').css({top:point.y, left:point.x});
+    } 
+  }
+
+  showingPrivateContextMenu(node) {
+    // hide a global menu if already open
+    this.hideContextMenu();
+
+    // called to inform the UI manager not to show context menus until the private menu is hidden
+    this.showingPrivateContextMenuFor = node;
+  }
+
+
+  hidingPrivateContextMenu() {
+    this.showingPrivateContextMenuFor = null;
   }
 
 
   hideContextMenu() {
-    $('#contextMenu').hide();
+    if (this.showingPrivateContextMenuFor) {
+      this.showingPrivateContextMenuFor.hideContextMenu();
+      this.showingPrivateContextMenuFor = null;
+    } else {
+      $('#contextMenu').hide();
+    }
   }
 
 }

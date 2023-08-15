@@ -93,7 +93,8 @@ var liveMode = true;
 var parsedLog = [];
 var logMarkers = [];
 
-var uiManager = new UIManager();
+// give UI manager a reference to the nodes collection
+var uiManager = new UIManager(nodes);
 
 
 
@@ -696,6 +697,7 @@ function init() {
     });
 
     map.on('contextmenu', (e) => {
+      // show the global context menu
       uiManager.showContextMenu(e.point, e.lngLat);
     });
 

@@ -31,6 +31,8 @@ export default class Nav extends ModuleInterface {
 
     var crosstrack = this.state.getParamValues(node, channel, 17, [0])[0];
 
+    var targetAddr = this.state.getParamValues(node, channel, 13, [0,0,0,0]);
+
 
     var c = this.canvas[0];
     var ctx = c.getContext("2d");
@@ -39,6 +41,7 @@ export default class Nav extends ModuleInterface {
     var w = this.ui.width();
     ctx.canvas.width = w;
     var cx = w/2;
+    var h = this.ui.height();
 
     ctx.fillStyle = '#343a40';
     ctx.fillRect(0,0,w,200);
@@ -82,8 +85,6 @@ export default class Nav extends ModuleInterface {
     ctx.fillStyle = '#55F';
     ctx.fillText('Wind', w-5, 40);
 
-
-
     // crosstrack  -top left
     ctx.fillStyle = '#FFF';
 		ctx.textAlign = 'left';
@@ -91,6 +92,20 @@ export default class Nav extends ModuleInterface {
     ctx.fillText('Crosstrack', 5, 12);
     ctx.font = '20px bold serif';
     ctx.fillText(crosstrack.toFixed(1), 5, 35);
+
+    // follow info... bottom left
+    if (targetAddr[1] != 0 && targetAddr[1] != node) {
+      var obj = this.state.getObjectsForAddress(targetAddr[1], targetAddr[2], targetAddr[3]);
+      
+      var addrString = '';
+      if (obj.node && obj.node.name != undefined) {
+        addrString += obj.node.name;
+      }  else {
+        addrString += targetAddr[1];
+      }
+
+      this.drawValue(5,160,'Following', addrString);
+    }
   }
 
 
@@ -180,8 +195,54 @@ export default class Nav extends ModuleInterface {
   }
 
 
-  contextHandler(data) {
-    console.log('handle me', this, data);
+  globalContextHandler(data) {
+    // this = Nav module
+    // data = { lng, lat  }
+    //console.log('handle me', this, data);
+
+    // use current target radius, or 5 as default
+    var node = this.channel.node.id;
+    var channel = this.channel.channel;
+    var target = this.state.getParamValues(node, channel, 12, [0,0,5]);
+
+    // send new target
+    var qm = new DLM.DroneLinkMsg();
+    qm.node = this.channel.node.id;
+    qm.channel = this.channel.channel;
+    qm.param = 12;  // target
+    qm.setFloat([ data.lng, data.lat, target[2] ]);
+    this.state.send(qm);
+
+    // immediately query target to see if it has changed
+    var qm = new DLM.DroneLinkMsg();
+    qm.node = this.channel.node.id;
+    qm.channel = this.channel.channel;
+    qm.param = 12;
+    qm.setUint8([ 0 ]);
+    qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
+    this.state.send(qm);
+  }
+
+
+  followContextHandler(mapParamName, node) {
+    console.log('following', mapParamName, node);
+
+    // send new target addr
+    var qm = new DLM.DroneLinkMsg();
+    qm.node = this.channel.node.id;
+    qm.channel = this.channel.channel;
+    qm.param = 13;  // target addr
+    qm.setAddr([ this.channel.node.id, node.id, node.mapParams[mapParamName].channel, node.mapParams[mapParamName].param ]);
+    this.state.send(qm);
+
+    // immediately query target addr to see if it has changed
+    var qm = new DLM.DroneLinkMsg();
+    qm.node = this.channel.node.id;
+    qm.channel = this.channel.channel;
+    qm.param = 13;
+    qm.setUint8([ 0 ]);
+    qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
+    this.state.send(qm);
   }
 
 
@@ -212,8 +273,11 @@ export default class Nav extends ModuleInterface {
 
     this.ui.append(this.modeSelect);
 
-    // register context menu handler
+    // register global context menu handler
     this.channel.node.uiManager.registerContextHandler('Set Nav.Target for', this.channel.node.id + ' ▶ ' + this.channel.node.name, this);
+
+    // register a private context handler that accepts nodes with a "location" map param
+    this.channel.node.registerContextHandler('Follow', 'location', this, 'followContextHandler');
 
     this.canvas = $('<canvas height=200 />');
     this.canvas.on('click', (e)=>{

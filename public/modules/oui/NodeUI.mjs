@@ -47,6 +47,8 @@ export default class NodeUI {
     // used to track mappable params like location or heading
     this.mapParams = {};
 
+    // used to register/track context handlers
+    this.contextHandlers = {};
 
     this.lastHeard=  (new Date()).getTime();
 
@@ -177,6 +179,13 @@ export default class NodeUI {
 
    
 
+    // create empty div ready to build context menu
+    this.contextMenuContainer = $('<div class="contextMenu nav flex-column" style="display:none"/>');
+    $('#mapPanel').append(this.contextMenuContainer);
+
+    this.contextMenuTitle = $('<div class="contextMenuTitle">'+this.id+' &#9654; ?</div>');
+    this.contextMenuContainer.append(this.contextMenuTitle);
+
 
     // query ipAddress
     var qm = new DLM.DroneLinkMsg();
@@ -208,6 +217,7 @@ export default class NodeUI {
         if (data.values[0]) {
           this.name = data.values[0];
           this.uiTitle.html(this.id + ' <span style="color:#07e;">&#9654;</span> ' + this.name);
+          this.contextMenuTitle.html(this.id + ' &#9654; ' + this.name);
           if (this.mapLabel) this.mapLabel.innerHTML = this.name;
           this.uiLabel.innerHTML = data.node + ' <span style="color:#888">&#9654;</span> ' + data.values[0];
         } else {
@@ -321,6 +331,88 @@ export default class NodeUI {
 
   updateVisualisation(visScript) {
     this.state.updateVisualisation(this.id, visScript);
+  }
+
+  registerContextHandler(groupName, mapParamName, widget, widgetCallbackName) {
+    console.log('Registering context menu', groupName);
+
+    if (this.contextHandlers[groupName] === undefined) {
+      this.contextHandlers[groupName] = {
+        ele: null,
+        mapParamName:mapParamName,
+        widget: widget,
+        widgetCallbackName: widgetCallbackName,
+        items: {}
+      };
+    }
+
+    // sort?
+    this.rebuildContextMenu();
+  }
+
+
+  rebuildContextMenu() {
+    const me = this;
+    const cm = this.contextMenuContainer;
+
+    for (const [key, ch] of Object.entries(this.contextHandlers)) {
+      if (ch.ele === null) {
+        // create group element
+        ch.ele = $('<div class="context-group">'+key+'</div>');
+        cm.append(ch.ele);
+      }
+
+      // update items... based on nodes with the relevant registerd mapParam
+      var qNodes = this.uiManager.getNodesWithMapParam(ch.mapParamName);
+      
+      qNodes.forEach((item)=>{
+        // see if we need to add entry in items for node, indexed on node id, assuming its not our nodeId
+        if (item.id != this.id) {
+          if (!ch.items.hasOwnProperty(item.id)) {
+            ch.items[item.id] = {
+              ele: $('<a class="nav-link">'+item.id+' &#9654; '+item.name+'</a>'),
+              node:item
+            };
+  
+            ch.items[item.id].ele.on('click', ()=>{ 
+              me.contextHandler(ch, item); 
+            } );
+  
+            cm.append(ch.items[item.id].ele);
+          } else {
+            // update name
+            ch.items[item.id].ele.html(item.id+' &#9654; '+item.name);
+          }
+        }
+      });
+
+    }
+  }
+
+
+  contextHandler(contextGroup, node) {
+    //item.widget.globalContextHandler(this.lngLat);
+
+    contextGroup.widget[contextGroup.widgetCallbackName](contextGroup.mapParamName, node);
+
+    this.hideContextMenu();
+  }
+
+
+  showContextMenu(point) {
+    console.log('Show Node context menu');
+    this.uiManager.showingPrivateContextMenu(this);
+
+    this.rebuildContextMenu();
+
+    this.contextMenuContainer.show();
+    this.contextMenuContainer.css({top:point.y, left:point.x});
+  }
+
+
+  hideContextMenu() {
+    this.contextMenuContainer.hide();
+    this.uiManager.hidingPrivateContextMenu();
   }
 
 
@@ -515,6 +607,7 @@ export default class NodeUI {
 
 
   initNodeLocation() {
+    var me = this;
     console.log('Adding node');
 
     // update node label
@@ -534,6 +627,15 @@ export default class NodeUI {
     this.marker = new mapboxgl.Marker(this.mapEl)
           .setLngLat(this.location)
           .addTo(this.map);
+
+    // set context menu handler
+    this.mapEl.addEventListener('contextmenu', (e)=>{
+      me.showContextMenu({
+        x:e.clientX,
+        y:e.clientY - 41 // to allow for toolbar
+      });
+      e.preventDefault();
+    });
 
     // -- marker label --
     this.mapLabel = document.createElement('div');
@@ -870,6 +972,11 @@ export default class NodeUI {
         }
       }
     //} // end if gotLocation
+
+    // if gotLast then trigger an update just to ensure corridor is drawn correctly
+    if (this.gotLast) {
+      this.updateLast(this.last);
+    }
   }
 
 

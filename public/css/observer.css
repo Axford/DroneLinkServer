@@ -161,16 +161,26 @@ html, body {margin: 0; height: 100%; overflow: hidden}
   z-index:5000;
 }
 
-#contextMenu {
+.contextMenu {
   display:none;
-  background-color: #aaa;
+  background-color: #888;
   position:absolute;
   border-radius:6px;
   padding-top:6px;
+  padding-bottom:6px;
+  min-width: 100px;
   box-shadow: 2px 4px 6px rgba(0,0,0,0.7);
 }
 
-#contextMenu .context-group {
+.contextMenu .contextMenuTitle { 
+  font-weight:bold;
+  background-color:#242a30;
+  color:white;
+  display: block;
+  padding: 0.5rem 1rem;
+}
+
+.contextMenu .context-group {
   display: block;
   padding: 0.5rem 1rem;
   font-weight: bold;
@@ -178,13 +188,15 @@ html, body {margin: 0; height: 100%; overflow: hidden}
   color:white;
 }
 
-#contextMenu .nav-link {
+.contextMenu .nav-link {
   color: #005;
   cursor:pointer;
+  background-color: #aaa;
 }
 
-#contextMenu a.nav-link:hover {
-  color:black;
+.contextMenu a.nav-link:hover {
+  color:#fff;
+  background-color: #0069d9;
 }
 
 .mainRow {
