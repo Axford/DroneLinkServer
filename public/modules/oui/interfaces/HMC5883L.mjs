@@ -246,6 +246,16 @@ export default class HMC5883L extends ModuleInterface {
     sphere2.position.y = rawVector2[1];
     sphere2.position.z = rawVector2[2];
 
+    // visualise raw vector 
+    const positions = this.line.geometry.attributes.position.array;
+    positions[0] = calibX[1];
+    positions[1] = calibY[1];
+    positions[2] = calibZ[1];
+    positions[3] = rawVector2[0];
+    positions[4] = rawVector2[1];
+    positions[5] = rawVector2[2];
+    this.line.geometry.attributes.position.needsUpdate = true;
+
     // visualise calibration sphere
     this.calibSphere.position.x = calibX[1];
     this.calibSphere.position.y = calibY[1];
@@ -320,6 +330,16 @@ export default class HMC5883L extends ModuleInterface {
     const material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
     this.cube = new THREE.Mesh( geometry, material );
     this.scene.add( this.cube );
+
+    const lineMaterial = new THREE.LineBasicMaterial( { color: 0xffffff, linewidth: 3, } );
+
+    this.points = [];
+    this.points.push( new THREE.Vector3( 0, 0, 0 ) );
+    this.points.push( new THREE.Vector3( 1, 1, 10 ) );
+
+    this.lineGeometry = new THREE.BufferGeometry().setFromPoints( this.points );
+    this.line = new THREE.Line( this.lineGeometry, lineMaterial );
+    this.scene.add( this.line );
 
     this.scene.add( new THREE.AxesHelper( 10 ) );
 

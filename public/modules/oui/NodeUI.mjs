@@ -2,6 +2,8 @@
 import loadStylesheet from '../loadStylesheet.js';
 import * as DLM from '../droneLinkMsg.mjs';
 
+import { getFirestore,  collection, doc, setDoc, query, onSnapshot, where, deleteField, updateDoc } from "https://www.gstatic.com/firebasejs/9.14.0/firebase-firestore.js";
+
 // oui
 //import Channel from './Channel.mjs';
 //import GraphManager from './GraphManager.mjs';
@@ -25,11 +27,12 @@ const ACTIVE_THRESHOLD = 10*60;  // 10 minutes
 
 export default class NodeUI {
 
-  constructor(id, state, map, uiManager) {
+  constructor(id, state, map, uiManager, db) {
     var me = this;
     this.state = state;
     this.map = map;
     this.uiManager = uiManager;
+    this.db = db;
     this.location=  [0,0];
     this.target=  [0,0,0];
     this.last=  [0,0,0];
@@ -256,7 +259,20 @@ export default class NodeUI {
     setInterval(()=>{
       this.checkIfActive(); 
 
-    }, 1000)
+    }, 1000);
+
+    // create firestore snapshot and thereby gather an initial state 
+    const q = query(collection(me.db, "nodeSettings"), where("id", "==", this.id ));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === "added" || change.type == "modified") {
+          console.log(change);
+        }
+        if (change.type === "removed") {
+          
+        }
+      });
+    });
   }
 
 
