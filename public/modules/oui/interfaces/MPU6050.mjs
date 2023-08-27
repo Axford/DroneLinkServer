@@ -12,6 +12,19 @@ export default class MPU6050 extends ModuleInterface {
     super(channel, state);
 	}
 
+
+  onParamValue(data) {
+    if (!this.built) return;
+
+    // mode
+    if (data.param == 19 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_UINT8_T) {
+      this.modeSelect.val(data.values[0]);
+    }
+
+    this.updateNeeded = true;
+  }
+
+
   update() {
 		if (!super.update()) return;
 
@@ -28,6 +41,9 @@ export default class MPU6050 extends ModuleInterface {
     this.camera.aspect = w/h;
 
     var pos = this.state.getParamValues(node, channel, 10, [0,0,0]);
+
+    var pitch = this.state.getParamValues(node, channel, 13, [0])[0];
+    var roll = this.state.getParamValues(node, channel, 14, [0])[0];
 
     var rawVector = this.state.getParamValues(node, channel, 15, [0,0,0,0]);
     var calibX = this.state.getParamValues(node, channel, 16, [0,0,0]);
@@ -46,8 +62,10 @@ export default class MPU6050 extends ModuleInterface {
 
     var m = Math.sqrt(pos[0]*pos[0] + pos[1]*pos[1] + pos[2]*pos[2]);
 
-    var s = 'x: ' + pos[0].toFixed(1) + '<br/>';
-    s += 'y: ' + pos[1].toFixed(1) + '<br/>';
+    var s = 'Pitch: ' + pitch.toFixed(1) + '<br/>';
+    s += 'Roll: ' + roll.toFixed(1) + '<br/>';
+    s += 'x: ' + pos[0].toFixed(1) + ', ';
+    s += 'y: ' + pos[1].toFixed(1) + ', ';
     s += 'z: ' + pos[2].toFixed(1) + '<br/>';
     s += 'mag: ' + m.toFixed(1) + '<br/>';
     s += 'X Calib: ' + ((calibX[2]-calibX[0])/2).toFixed(1) + ', ' + calibX[1].toFixed(1) + '<br/>';
