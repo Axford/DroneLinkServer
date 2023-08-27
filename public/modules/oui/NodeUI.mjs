@@ -259,6 +259,8 @@ export default class NodeUI {
     setInterval(()=>{
       this.checkIfActive(); 
 
+      this.checkIfSettingsChanged();
+
     }, 1000);
 
     // create firestore snapshot and thereby gather an initial state 
@@ -266,7 +268,8 @@ export default class NodeUI {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       snapshot.docChanges().forEach((change) => {
         if (change.type === "added" || change.type == "modified") {
-          console.log(change);
+          var docData = change.doc.data();
+          this.panels.Management.updateSettings(docData.management);
         }
         if (change.type === "removed") {
           
@@ -354,6 +357,27 @@ export default class NodeUI {
 
     // also update network Priority Pie 
     this.updatePriorityPie();
+  }
+
+
+  checkIfSettingsChanged() {
+    if (this.panels.Management.settingsChanged) {
+      // update firestore
+      try {
+        var nodeSettings = {
+          id: this.id,
+          management: this.panels.Management.settings
+        };
+        const docRef = doc(this.db, 'nodeSettings', this.id.toString());
+        setDoc(docRef, nodeSettings, { merge: true });
+  
+        console.log("Firebase, nodeSettings updated: " + this.id);
+      } catch (e) {
+        console.error("Firebase, Error updating nodeSettings: ", e);
+      }
+
+      this.panels.Management.settingsChanged = false;
+    }
   }
 
 

@@ -17,6 +17,11 @@ export default class Management extends Panel {
 
     this.channels = {};
 
+    // settings stored in firestorage, e.g. channel minimise/maximise settings
+    this.settings = {};
+
+    this.settingsChanged = false;
+
     this.build();
   }
 
@@ -31,7 +36,7 @@ export default class Management extends Panel {
       //console.log('module.new: ' + data.node + '> ' + data.channel);
 
       // create new channel UI
-      this.channels[data.channel] = new Channel(this.node, this.node.state, data, this.ui.panel);
+      this.channels[data.channel] = new Channel(this, this.node, this.node.state, data, this.ui.panel);
 
       // sort
       var children = this.ui.panel.children();
@@ -45,6 +50,11 @@ export default class Management extends Panel {
       this.ui.panel.append(children);
 
       this.updateColumns();
+
+      // see if we have settings info for this channel
+      if (this.settings.hasOwnProperty(data.channel)) {
+        this.expandChannel(data.channel, this.settings[data.channel].expanded);
+      }
     });
 
   }
@@ -98,6 +108,71 @@ export default class Management extends Panel {
     super.hide();
     for (const [key, chan] of Object.entries(this.channels)) {
       chan.hide();
+    }
+  }
+
+
+  notifyChannelInterfaceCreated(channel) {
+    // check settings for whether to expand or not
+    if (this.settings.hasOwnProperty(channel.channel)) {
+      this.expandChannel(channel.channel, this.settings[channel.channel].expanded);
+    } else {
+      // expand by default
+
+      this.expandChannel(channel.channel, true);
+    }
+  }
+
+
+  notifyChannelExpanded(channel, expanded) {
+    var changed = false;
+    if (this.settings.hasOwnProperty(channel.channel)) {
+      if (this.settings[channel.channel].expanded != expanded) {
+        changed = true;
+      }
+    } else {
+      // create setting
+      changed = true;
+    }
+
+    if (changed) {
+      this.settings[channel.channel] = {
+        expanded: expanded
+      };
+      this.settingsChanged = true;
+    }
+  }
+
+
+  // true to expand, false to contract
+  expandChannel(id, expand) {
+    if (this.channels.hasOwnProperty(id)) {
+      if (expand) {
+        this.channels[id].expand(false);
+      } else  
+      this.channels[id].collapse(false);
+    }
+  }
+
+
+  updateSettings(settings) {
+    //console.log('Update settings:', settings);
+
+    // merge new settings into existing settings
+    for (const [key, obj] of Object.entries(settings)) {
+      // key represents a channel id
+      if (this.settings.hasOwnProperty(key)) {
+        // compare and action
+        if (obj.expanded != this.settings[key].expanded) {
+          // action
+          this.expandChannel(key, obj.expanded);
+        }
+      } else {
+        // add and action
+        this.settings[key] = obj;
+        // action 
+        this.expandChannel(key, obj.expanded);
+      }
     }
   }
 

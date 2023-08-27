@@ -35,8 +35,9 @@ loadStylesheet('./css/modules/oui/Channel.css');
 
 
 export default class Channel {
-  constructor(node, state, data, container) {
+  constructor(parent, node, state, data, container) {
     var me = this;
+    this.parent = parent;
     this.node = node;
     this.state = state;
     this.channel = data.channel;
@@ -121,9 +122,9 @@ export default class Channel {
     this.uiTitleContainer.append(this.uiTitle);
     this.uiTitleContainer.on('click', ()=>{
       if (me.isOpen) {
-        this.collapse();
+        this.collapse(true);
       } else {
-        this.expand();
+        this.expand(true);
       }
     });
     this.ui.append(this.uiTitleContainer);
@@ -245,9 +246,10 @@ export default class Channel {
 
       // and render / show the new interface
       if (this.interface) {
-        this.uiState = 'interface';
-        this.expand();
-
+        //this.uiState = 'interface';
+        this.changeUIState('interface');
+        //this.expand();
+        this.parent.notifyChannelInterfaceCreated(this);
       }
     });
 
@@ -349,20 +351,30 @@ export default class Channel {
     this.uiState = s;
   }
 
-  collapse() {
+  collapse(notify) {
+    if (!this.isOpen) return;
+
     this.isOpen = false;
     this.uiTitleContainer.removeClass('open');
     this.uiTitleContainer.addClass('closed');
     this.uiChannelTabs.hide();
     this.hide();
+
+    // alert parent to store new setting
+    if (notify) this.parent.notifyChannelExpanded(this, false);
   }
 
-  expand() {
+  expand(notify) {
+    if (this.isOpen) return;
+
     this.isOpen = true;
     this.uiTitleContainer.addClass('open');
     this.uiTitleContainer.removeClass('closed');
     this.uiChannelTabs.show(); 
     this.changeUIState(this.uiState);
+
+    // alert parent to store new setting
+    if (notify) this.parent.notifyChannelExpanded(this, true);
   }
 
   show() {
