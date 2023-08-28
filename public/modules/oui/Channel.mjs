@@ -48,6 +48,8 @@ export default class Channel {
     this.params = {};
     this.uiState = 'parameters';
     this.visible = false;
+    this.enabled = false; 
+    this.statusHeard = false;
 
     this.ui = $('<div class="Channel"/>');
     this.ui.data('channel', data.channel);
@@ -295,18 +297,9 @@ export default class Channel {
       // status
       if (data.param == DLM.DRONE_MODULE_PARAM_STATUS && data.msgType == DLM.DRONE_LINK_MSG_TYPE_UINT8_T) {
         if (data.values[0] > 0) {
-          // enabled
-          this.ui.addClass('enabled');
-          this.ui.removeClass('disabled');
-          this.uiEnable.hide();
-          this.uiDisable.show();
+          this.enable(false);
         } else {
-          // disabled
-          this.ui.removeClass('enabled');
-          this.ui.addClass('disabled');
-          this.collapse();
-          this.uiEnable.show();
-          this.uiDisable.hide();
+          this.disable(true);
         }
       }
 
@@ -326,6 +319,44 @@ export default class Channel {
         }
       }
     });
+  }
+
+
+  enable(notify) {
+    if (this.statusHeard && this.enabled) return;
+    this.enabled = true;
+
+    // enabled
+    this.ui.addClass('enabled');
+    this.ui.removeClass('disabled');
+    this.uiEnable.hide();
+    this.uiDisable.show();
+
+    this.statusHeard = true;
+  }
+
+
+  disable(notify) {
+    if (this.statusHeard && !this.enabled) return;
+    this.enabled = false;
+
+    // disabled
+    this.ui.removeClass('enabled');
+    this.ui.addClass('disabled');
+    this.collapse();
+    this.uiEnable.show();
+    this.uiDisable.hide();
+
+    if (this.statusHeard && notify) {
+      $(this.node.ui).notify("Module "+this.node.id + ' > ' + this.channel + ' . ' + this.name+" disabled",  {
+        className: 'warn',
+        autoHide:false,
+        arrowShow:false,
+        position:'right'
+      });
+    }
+
+    this.statusHeard = true;
   }
 
 
