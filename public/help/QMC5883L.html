@@ -46,6 +46,22 @@
     <td>2</td>
     <td>Current location from GPS</td>
   </tr>
+  <tr>
+    <td>22</td>
+    <td>23</td>
+    <td>pitch</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Pitch from IMU (in degrees)</td>
+  </tr>
+  <tr>
+    <td>24</td>
+    <td>25</td>
+    <td>roll</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Roll from IMU (in degrees)</td>
+  </tr>
 </table>
 
 <h2>Pubs (outputs / config)</h2>
@@ -62,7 +78,7 @@
     <td>vector</td>
     <td>f</td>
     <td>4</td>
-    <td>Raw magnetic field vector</td>
+    <td>Magnetic field vector after pitch/roll compensation</td>
   </tr>
   <tr>
     <td>11</td>
@@ -94,24 +110,31 @@
   </tr>
   <tr>
     <td>15</td>
+    <td>calibZ</td>
+    <td>f</td>
+    <td>3</td>
+    <td>Min, center and max magnetic readings for the Z axis</td>
+  </tr>
+  <tr>
+    <td>18</td>
     <td>trim</td>
     <td>f</td>
     <td>1</td>
     <td>Manual calibration value to adjust heading to match hull (e.g. for a misaligned physical mount)</td>
   </tr>
   <tr>
-    <td>18</td>
-    <td>limits</td>
-    <td>f</td>
-    <td>4</td>
-    <td>Averaged limits at the four quadrants, used to refine the calibration onoine</td>
+    <td>20</td>
+    <td>mode</td>
+    <td>u8</td>
+    <td>1</td>
+    <td>Mode: 0=online calibration, 1=fixed calibration, 2=reset calibration</td>
   </tr>
   <tr>
-    <td>19</td>
-    <td>samples</td>
-    <td>u32</td>
+    <td>21</td>
+    <td>raw</td>
+    <td>f</td>
     <td>4</td>
-    <td>Number of calibration samples per quadrant</td>
+    <td>Raw magnetic field vector</td>
   </tr>
 </table>
 

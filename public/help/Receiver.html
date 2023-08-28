@@ -130,13 +130,27 @@ and published as values (<b>value1, value2</b>, etc) in range -1..1 on a regular
   </tr>
   <tr>
     <td>14</td>
-    <td>value3</td>
+    <td>value4</td>
     <td>f</td>
     <td>1</td>
     <td>The output value on channel 4 (in range -1 .. 1)</td>
   </tr>
   <tr>
     <td>15</td>
+    <td>value5</td>
+    <td>f</td>
+    <td>1</td>
+    <td>The output value on channel 5 (in range -1 .. 1)</td>
+  </tr>
+  <tr>
+    <td>16</td>
+    <td>value6</td>
+    <td>f</td>
+    <td>1</td>
+    <td>The output value on channel 6 (in range -1 .. 1)</td>
+  </tr>
+  <tr>
+    <td>19</td>
     <td>limits</td>
     <td>u32</td>
     <td>2</td>
@@ -145,9 +159,9 @@ and published as values (<b>value1, value2</b>, etc) in range -1..1 on a regular
   <tr>
     <td>20</td>
     <td>input</td>
-    <td>u32</td>
-    <td>2</td>
-    <td>Raw PWM timing input values for each channel</td>
+    <td>u8</td>
+    <td>6</td>
+    <td>Raw PWM timing input values for each channel divided by 10 (e.g. 2000us = 200)</td>
   </tr>
   <tr>
     <td>31</td>

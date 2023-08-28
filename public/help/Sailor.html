@@ -131,8 +131,8 @@ config (pubs)
     <td>21</td>
     <td>flags</td>
     <td>u8</td>
-    <td>3</td>
-    <td>[0] = onStarboardTack,  [1] = tackLocked,  [2] = lastCrossTrackPositive</td>
+    <td>5</td>
+    <td>[0] = state, [1] = tack state,  [2] = gybe state, [3] = course wind packed into 0..255</td>
   </tr>
   <tr>
     <td>22</td>
@@ -140,6 +140,41 @@ config (pubs)
     <td>u8</td>
     <td>1</td>
     <td>Wingsail flap position.. 1 = starboard wind, -1 = port wind</td>
+  </tr>
+  <tr>
+    <td>23</td>
+    <td>PID</td>
+    <td>f</td>
+    <td>3</td>
+    <td>PID values for rudder control (start with: 0.005 0.0 0.0)</td>
+  </tr>
+  <tr>
+    <td>24</td>
+    <td>rudder</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Rudder output to feed a servo (-1..1)</td>
+  </tr>
+  <tr>
+    <td>25</td>
+    <td>threshold</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Error threshold to trigger the gybe timer (default 20 degrees)</td>
+  </tr>
+  <tr>
+    <td>26</td>
+    <td>timeout</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Timeout duration in seconds after which to initiate the gybe (default 10s)</td>
+  </tr>
+  <tr>
+    <td>27</td>
+    <td>mode</td>
+    <td>u8</td>
+    <td>1</td>
+    <td>Mode (0=normal, 1=gybe only)</td>
   </tr>
 </table>
 

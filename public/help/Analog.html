@@ -1,0 +1,71 @@
+<link rel="stylesheet" href="../css/help.css">
+
+<div class="helpContent">
+
+<div><a href="index.html">&lt; Help Index</a></div>
+
+<h1>Analog</h1>
+<p>Base class: <i>Drone</i></p>
+<p>Manages a simple Analog sensor connected to an analog input pin</p>
+
+<h2>Usage Guide</h2>
+Reads an analog value on specified pin (range 0..4095) and maps into the range limits[min..max]
+
+<h2>Example Configuration</h2>
+<pre>[Analog = 5]
+  pins = 34
+  limits = 0, 10
+  publish = raw, analog</pre>
+
+<h2>Subs (inputs)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Addr Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+</table>
+
+<h2>Pubs (outputs / config)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>10</td>
+    <td>pins</td>
+    <td>u8</td>
+    <td>1</td>
+    <td>Pin for the analog input</td>
+  </tr>
+  <tr>
+    <td>11</td>
+    <td>raw</td>
+    <td>u32</td>
+    <td>1</td>
+    <td>Raw analog reading (0..4095)</td>
+  </tr>
+  <tr>
+    <td>12</td>
+    <td>limits</td>
+    <td>f</td>
+    <td>2</td>
+    <td>Min and max values to map the raw reading into</td>
+  </tr>
+  <tr>
+    <td>13</td>
+    <td>analog</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Analog value after mapping into min/max range</td>
+  </tr>
+</table>
+
+</div>

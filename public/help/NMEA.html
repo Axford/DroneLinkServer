@@ -50,8 +50,8 @@
     <td>8</td>
     <td>location</td>
     <td>f</td>
-    <td>2</td>
-    <td>Current GPS location</td>
+    <td>3</td>
+    <td>Current GPS location (inc altitude)</td>
   </tr>
   <tr>
     <td>9</td>
@@ -65,7 +65,7 @@
     <td>heading</td>
     <td>f</td>
     <td>1</td>
-    <td>Current heading over ground</td>
+    <td>Current heading over ground (inferred by motion or from dual GPS setup)</td>
   </tr>
   <tr>
     <td>11</td>
@@ -85,8 +85,8 @@
     <td>13</td>
     <td>port</td>
     <td>u8</td>
-    <td>1</td>
-    <td>Which serial port to use (0,1 or 2)</td>
+    <td>2</td>
+    <td>Which serial port to use (0,1 or 2) and optional second port for a dual GPS setup (default 255 for no port)</td>
   </tr>
   <tr>
     <td>14</td>
@@ -115,6 +115,13 @@
     <td>u32</td>
     <td>3</td>
     <td>Number of NMEA packets (sentences) received (valid, invalid, unknown)</td>
+  </tr>
+  <tr>
+    <td>18</td>
+    <td>location</td>
+    <td>f</td>
+    <td>3</td>
+    <td>Current GPS location of secondary GPS module (inc altitude)</td>
   </tr>
 </table>
 

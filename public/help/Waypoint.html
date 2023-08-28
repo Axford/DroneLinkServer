@@ -84,11 +84,25 @@ lon,lat,radius
     <td>Target location of current waypoint, feed to Nav.target</td>
   </tr>
   <tr>
-    <td>12</td>
+    <td>14</td>
     <td>loop</td>
     <td>u8</td>
     <td>1</td>
     <td>0=stop at end of file, 1=loop</td>
+  </tr>
+  <tr>
+    <td>15</td>
+    <td>distance</td>
+    <td>f</td>
+    <td>3</td>
+    <td>[0] distance to next waypoint, [1] distance remaining on total path [2] Cumulative length of waypoint path in meters</td>
+  </tr>
+  <tr>
+    <td>16</td>
+    <td>speed</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Approx speed along waypoint path in meters per second</td>
   </tr>
 </table>
 
