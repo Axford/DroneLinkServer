@@ -12,7 +12,14 @@
 
 
 <h2>Example Configuration</h2>
-<pre>[Avoid=13]</pre>
+<pre>[ Avoid = 14 ]
+  name = Avoid
+  $location = @>50.9
+  $heading = @>50.8
+  $course = @>Nav.adjHeading
+  $SOG = @>50.12
+  publish = adjHeading, target, threshold, vessel, packets
+  publish = location, SOG, heading, course, ETC</pre>
 
 <h2>Subs (inputs)</h2>
 <table>

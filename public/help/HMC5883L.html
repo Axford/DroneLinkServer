@@ -5,22 +5,27 @@
 <div><a href="index.html">&lt; Help Index</a></div>
 
 <h1>HMC5883L</h1>
-<p>Base class: <i>I2CBase</i></p>
+<p>Base class: <i>I2CCompass</i></p>
 <p>Manages a HMC5883L I2C Compass</p>
 
 
 <h2>Example Configuration</h2>
 <pre>[HMC5883L= 8]
   name= "Compass"
-  interval= 100
-  bus= 3
-  status= 1
-  calibX= -0.06, 2.88, 5.82
-  calibY= -6.4, -3.48, -0.56
-  trim= 0
+  interval= 50
+  bus= 0
+  calibX= -6,0,6
+  calibY= -6,0,6
+  calibZ=-6,0,6
+  trim= 180
   location= -1.8, 52, 100
-  $location= @>7.8
-  publish = heading, vector, calibX, calibY</pre>
+  mode=1
+  centre = -3.188, 4.167, -0.1043
+  $location = @>GPS.location
+  $roll = @>MPU6050.roll
+  $pitch = @>MPU6050.pitch
+  publish =heading, vector, calibX, calibY, calibZ
+  publish = trim, mode, roll, pitch, raw</pre>
 
 <h2>Subs (inputs)</h2>
 <table>
@@ -32,14 +37,6 @@
     <th>#</th>
     <th>Description</th>
   </tr>
-  <tr>
-    <td>16</td>
-    <td>17</td>
-    <td>location</td>
-    <td>f</td>
-    <td>2</td>
-    <td>Current location from GPS</td>
-  </tr>
 </table>
 
 <h2>Pubs (outputs / config)</h2>
@@ -50,62 +47,6 @@
     <th>Type</th>
     <th>#</th>
     <th>Description</th>
-  </tr>
-  <tr>
-    <td>10</td>
-    <td>vector</td>
-    <td>f</td>
-    <td>4</td>
-    <td>Raw magnetic field vector</td>
-  </tr>
-  <tr>
-    <td>11</td>
-    <td>heading</td>
-    <td>f</td>
-    <td>1</td>
-    <td>Heading adjusted for magnetic declination</td>
-  </tr>
-  <tr>
-    <td>12</td>
-    <td>declination</td>
-    <td>f</td>
-    <td>1</td>
-    <td>Current declination value</td>
-  </tr>
-  <tr>
-    <td>13</td>
-    <td>calibX</td>
-    <td>f</td>
-    <td>3</td>
-    <td>Min, center and max magnetic readings for the X axis</td>
-  </tr>
-  <tr>
-    <td>14</td>
-    <td>calibY</td>
-    <td>f</td>
-    <td>3</td>
-    <td>Min, center and max magnetic readings for the Y axis</td>
-  </tr>
-  <tr>
-    <td>15</td>
-    <td>trim</td>
-    <td>f</td>
-    <td>1</td>
-    <td>Manual calibration value to adjust heading to match hull (e.g. for a misaligned physical mount)</td>
-  </tr>
-  <tr>
-    <td>18</td>
-    <td>limits</td>
-    <td>f</td>
-    <td>4</td>
-    <td>Averaged limits at the four quadrants, used to refine the calibration onoine</td>
-  </tr>
-  <tr>
-    <td>19</td>
-    <td>samples</td>
-    <td>u32</td>
-    <td>4</td>
-    <td>Number of calibration samples per quadrant</td>
   </tr>
 </table>
 

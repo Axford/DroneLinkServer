@@ -1,0 +1,113 @@
+<link rel="stylesheet" href="../css/help.css">
+
+<div class="helpContent">
+
+<div><a href="index.html">&lt; Help Index</a></div>
+
+<h1>MPU6050</h1>
+<p>Base class: <i>I2CBase</i></p>
+<p>Manages a MPU6050 I2c gyro/accel sensor</p>
+
+
+<h2>Example Configuration</h2>
+<pre>[MPU6050 = 14 ]
+  name = "MPU6050"
+  bus = 4
+  interval = 50
+  publish = accel, pitch, roll
+  publish = raw, calibX, calibY, calibZ, mode</pre>
+
+<h2>Subs (inputs)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Addr Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+</table>
+
+<h2>Pubs (outputs / config)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>10</td>
+    <td>accel</td>
+    <td>f</td>
+    <td>3</td>
+    <td>Acceleration vector in G</td>
+  </tr>
+  <tr>
+    <td>11</td>
+    <td>gyro</td>
+    <td>f</td>
+    <td>3</td>
+    <td>Gyro acceleration vector</td>
+  </tr>
+  <tr>
+    <td>12</td>
+    <td>temperature</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Temperature in degrees C</td>
+  </tr>
+  <tr>
+    <td>13</td>
+    <td>pitch</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Pitch angle in degrees, negative values are pitch down</td>
+  </tr>
+  <tr>
+    <td>14</td>
+    <td>rol</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Roll angle in degrees, negative values are roll right</td>
+  </tr>
+  <tr>
+    <td>15</td>
+    <td>raw</td>
+    <td>f</td>
+    <td>4</td>
+    <td>Raw acceleration vector, 4th value is std dev of rolling window</td>
+  </tr>
+  <tr>
+    <td>16</td>
+    <td>calibX</td>
+    <td>f</td>
+    <td>3</td>
+    <td>Min, center and max magnetic readings for the X axis</td>
+  </tr>
+  <tr>
+    <td>17</td>
+    <td>calibY</td>
+    <td>f</td>
+    <td>3</td>
+    <td>Min, center and max magnetic readings for the Y axis</td>
+  </tr>
+  <tr>
+    <td>18</td>
+    <td>calibZ</td>
+    <td>f</td>
+    <td>3</td>
+    <td>Min, center and max magnetic readings for the Z axis</td>
+  </tr>
+  <tr>
+    <td>19</td>
+    <td>mode</td>
+    <td>u8</td>
+    <td>1</td>
+    <td>Mode: 0=online calibration, 1=fixed calibration, 2=reset calibration, 3=store calibration</td>
+  </tr>
+</table>
+
+</div>

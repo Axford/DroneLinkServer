@@ -5,28 +5,27 @@
 <div><a href="index.html">&lt; Help Index</a></div>
 
 <h1>QMC5883L</h1>
-<p>Base class: <i>I2CBase</i></p>
+<p>Base class: <i>I2CCompass</i></p>
 <p>Manages a QMC5883L I2C Compass</p>
 
 
 <h2>Example Configuration</h2>
-<pre>QMC5883L.new 6
-  name "Compass"
-  interval 200
-  bus 0
-  status 1
-  calibX -3.5 0 2.3
-  calibY -3.6 0 1.7
-  // default location
-  location -1.8 52 100
-  //$location [@>GPS.location]
-  $location [@>5.8]
-  .publish "heading"
-  .publish "vector"
-  .publish "calibX"
-  .publish "calibY"
-  .publish "samples"
-.done</pre>
+<pre>[QMC5883L= 5]
+  name= "Compass"
+  interval= 50
+  bus= 0
+  calibX= -6,0,6
+  calibY= -6,0,6
+  calibZ=-6,0,6
+  trim= 180
+  location= -1.8, 52, 100
+  mode=1
+  centre = -3.188, 4.167, -0.1043
+  $location = @>GPS.location
+  $roll = @>MPU6050.roll
+  $pitch = @>MPU6050.pitch
+  publish =heading, vector, calibX, calibY, calibZ
+  publish = trim, mode, roll, pitch, raw</pre>
 
 <h2>Subs (inputs)</h2>
 <table>
@@ -38,30 +37,6 @@
     <th>#</th>
     <th>Description</th>
   </tr>
-  <tr>
-    <td>16</td>
-    <td>17</td>
-    <td>location</td>
-    <td>f</td>
-    <td>2</td>
-    <td>Current location from GPS</td>
-  </tr>
-  <tr>
-    <td>22</td>
-    <td>23</td>
-    <td>pitch</td>
-    <td>f</td>
-    <td>1</td>
-    <td>Pitch from IMU (in degrees)</td>
-  </tr>
-  <tr>
-    <td>24</td>
-    <td>25</td>
-    <td>roll</td>
-    <td>f</td>
-    <td>1</td>
-    <td>Roll from IMU (in degrees)</td>
-  </tr>
 </table>
 
 <h2>Pubs (outputs / config)</h2>
@@ -72,69 +47,6 @@
     <th>Type</th>
     <th>#</th>
     <th>Description</th>
-  </tr>
-  <tr>
-    <td>10</td>
-    <td>vector</td>
-    <td>f</td>
-    <td>4</td>
-    <td>Magnetic field vector after pitch/roll compensation</td>
-  </tr>
-  <tr>
-    <td>11</td>
-    <td>heading</td>
-    <td>f</td>
-    <td>1</td>
-    <td>Heading adjusted for magnetic declination</td>
-  </tr>
-  <tr>
-    <td>12</td>
-    <td>declination</td>
-    <td>f</td>
-    <td>1</td>
-    <td>Current declination value</td>
-  </tr>
-  <tr>
-    <td>13</td>
-    <td>calibX</td>
-    <td>f</td>
-    <td>3</td>
-    <td>Min, center and max magnetic readings for the X axis</td>
-  </tr>
-  <tr>
-    <td>14</td>
-    <td>calibY</td>
-    <td>f</td>
-    <td>3</td>
-    <td>Min, center and max magnetic readings for the Y axis</td>
-  </tr>
-  <tr>
-    <td>15</td>
-    <td>calibZ</td>
-    <td>f</td>
-    <td>3</td>
-    <td>Min, center and max magnetic readings for the Z axis</td>
-  </tr>
-  <tr>
-    <td>18</td>
-    <td>trim</td>
-    <td>f</td>
-    <td>1</td>
-    <td>Manual calibration value to adjust heading to match hull (e.g. for a misaligned physical mount)</td>
-  </tr>
-  <tr>
-    <td>20</td>
-    <td>mode</td>
-    <td>u8</td>
-    <td>1</td>
-    <td>Mode: 0=online calibration, 1=fixed calibration, 2=reset calibration</td>
-  </tr>
-  <tr>
-    <td>21</td>
-    <td>raw</td>
-    <td>f</td>
-    <td>4</td>
-    <td>Raw magnetic field vector</td>
   </tr>
 </table>
 

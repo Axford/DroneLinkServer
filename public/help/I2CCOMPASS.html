@@ -4,22 +4,27 @@
 
 <div><a href="index.html">&lt; Help Index</a></div>
 
-<h1>LSM9DS1</h1>
-<p>Base class: <i>I2CBaseModule</i></p>
-<p>Manages a LSM9DS1 I2C Compass</p>
+<h1>I2CCOMPASS</h1>
+<p>Base class: <i>I2CBase</i></p>
+<p>Manages a generic I2C Compass, to be implemented in a concrete class e.g. I2CCOMPASS</p>
 
 
 <h2>Example Configuration</h2>
-<pre>[LSM9DS1 = 6]
-  name= "Compass"
-  interval= 200
-  bus= 0
-  status= 1
-  calibX= -3.5, 0, 2.3
-  calibY= -3.6, 0, 1.7
+<pre>[I2CCOMPASS = 6]
+  name="Compass"
+  interval= 50
+  calibX= -6,0,6
+  calibY= -6,0,6
+  calibZ=-6,0,6
+  trim= 180
   location= -1.8, 52, 100
+  mode=1
+  centre = -3.188, 4.167, -0.1043
   $location = @>GPS.location
-  publish = heading, vector, calibX, calibY</pre>
+  $roll = @>MPU6050.roll
+  $pitch = @>MPU6050.pitch
+  publish =heading, vector, calibX, calibY, calibZ
+  publish = trim, mode, roll, pitch, raw</pre>
 
 <h2>Subs (inputs)</h2>
 <table>
@@ -39,6 +44,22 @@
     <td>2</td>
     <td>Current location from GPS</td>
   </tr>
+  <tr>
+    <td>22</td>
+    <td>23</td>
+    <td>pitch</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Pitch from IMU (in degrees)</td>
+  </tr>
+  <tr>
+    <td>24</td>
+    <td>25</td>
+    <td>roll</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Roll from IMU (in degrees)</td>
+  </tr>
 </table>
 
 <h2>Pubs (outputs / config)</h2>
@@ -55,7 +76,7 @@
     <td>vector</td>
     <td>f</td>
     <td>4</td>
-    <td>Raw magnetic field vector</td>
+    <td>Magnetic field vector after pitch/roll compensation</td>
   </tr>
   <tr>
     <td>11</td>
@@ -87,17 +108,31 @@
   </tr>
   <tr>
     <td>15</td>
+    <td>calibZ</td>
+    <td>f</td>
+    <td>3</td>
+    <td>Min, center and max magnetic readings for the Z axis</td>
+  </tr>
+  <tr>
+    <td>18</td>
     <td>trim</td>
     <td>f</td>
     <td>1</td>
     <td>Manual calibration value to adjust heading to match hull (e.g. for a misaligned physical mount)</td>
   </tr>
   <tr>
-    <td>18</td>
-    <td>limits</td>
+    <td>20</td>
+    <td>mode</td>
+    <td>u8</td>
+    <td>1</td>
+    <td>Mode: 0=online calibration, 1=fixed calibration, 2=reset calibration, 3=store calibration</td>
+  </tr>
+  <tr>
+    <td>21</td>
+    <td>raw</td>
     <td>f</td>
     <td>4</td>
-    <td>Averaged limits at the four quadrants, used to refine the calibration onoine</td>
+    <td>Raw magnetic field vector</td>
   </tr>
 </table>
 
