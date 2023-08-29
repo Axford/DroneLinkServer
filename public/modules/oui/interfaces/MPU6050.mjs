@@ -130,12 +130,18 @@ export default class MPU6050 extends ModuleInterface {
 
     console.log('THREE', w, h);
     this.scene = new THREE.Scene();
+    this.scene.background = new THREE.Color( 0x343a40 );
     this.camera = new THREE.PerspectiveCamera( 75, w / h, 0.1, 1000 );
     this.camera.up = new THREE.Vector3(0, 0, 1);
 
     this.renderer = new THREE.WebGLRenderer();
     this.renderer.setSize( w, h );
     this.ui.append( this.renderer.domElement );
+
+    this.camera.position.x = 7;
+    this.camera.position.y = -15;
+    this.camera.position.z = 10;
+    this.camera.lookAt(new THREE.Vector3(0, 0, 2));
 
     const controls = new OrbitControls( this.camera, this.renderer.domElement );
     controls.minDistance = 10;
@@ -158,8 +164,6 @@ export default class MPU6050 extends ModuleInterface {
     this.scene.add( this.line );
 
     this.scene.add( new THREE.AxesHelper( 10 ) );
-
-    this.camera.position.z = 12;
 
     this.sphereGeometry = new THREE.SphereGeometry( 0.2, 6, 6 );
     this.sphereMaterial = new THREE.MeshBasicMaterial( { color: 0xffff00 } );

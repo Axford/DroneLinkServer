@@ -215,6 +215,7 @@ export default class HMC5883L extends ModuleInterface {
     // 3D
     // -------------------------------------------------------------------------
     // add vector to 3D visualisation
+    /*
     var sphere;
     if (this.spheres.length < 300) {
       sphere = new THREE.Mesh( this.sphereGeometry, this.sphereMaterial );
@@ -229,6 +230,7 @@ export default class HMC5883L extends ModuleInterface {
     sphere.position.x = rawVector[0];
     sphere.position.y = rawVector[1];
     sphere.position.z = rawVector[2];
+    */
 
     // add super raw vector to 3D visualisation
     var sphere2;
@@ -314,12 +316,18 @@ export default class HMC5883L extends ModuleInterface {
 
     console.log('THREE', w, h1);
     this.scene = new THREE.Scene();
+    this.scene.background = new THREE.Color( 0x343a40 );
     this.camera = new THREE.PerspectiveCamera( 75, w / h1, 0.1, 1000 );
     this.camera.up = new THREE.Vector3(0, 0, 1);
 
     this.renderer = new THREE.WebGLRenderer();
     this.renderer.setSize( w, h1 );
     this.ui.append( this.renderer.domElement );
+
+    this.camera.position.x = 10;
+    this.camera.position.y = -20;
+    this.camera.position.z = 15;
+    this.camera.lookAt(new THREE.Vector3(0, 0, 4));
 
     const controls = new OrbitControls( this.camera, this.renderer.domElement );
     controls.minDistance = 5;
@@ -342,8 +350,6 @@ export default class HMC5883L extends ModuleInterface {
     this.scene.add( this.line );
 
     this.scene.add( new THREE.AxesHelper( 10 ) );
-
-    this.camera.position.z = 12;
 
     this.sphereGeometry = new THREE.SphereGeometry( 0.2, 6, 6 );
     this.sphereMaterial = new THREE.MeshBasicMaterial( { color: 0xffff00 } );
