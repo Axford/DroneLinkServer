@@ -791,6 +791,13 @@
                 "numValues": 3,
                 "name": "threshold",
                 "description": "Threshold voltage below which alarm is triggered (loadV < threshold) per channel"
+            },
+            {
+                "address": 19,
+                "type": "f",
+                "numValues": 3,
+                "name": "shunt",
+                "description": "Shunt resistor values for each channel in mOhm (default 100 mOhm)"
             }
         ],
         "filename": [
