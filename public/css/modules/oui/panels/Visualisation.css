@@ -1,6 +1,7 @@
 
 .VisualisationPanel {
-    background-image: url("/images/water.png")
+    /* background-image: url("/images/water.png")*/
+    background-color:black;
 }
 
 

@@ -97,6 +97,17 @@ export default class MPU6050 extends ModuleInterface {
   };
 
 
+  hide() {
+    super.hide();
+    this.renderer.forceContextLoss();
+  }
+
+  show() {
+    super.show();
+    this.renderer.forceContextRestore();
+  }
+
+
 	build() {
     super.build('MPU6050');
 
