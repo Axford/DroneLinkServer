@@ -35,7 +35,7 @@ loadStylesheet('./css/modules/oui/Channel.css');
 
 
 export default class Channel {
-  constructor(parent, node, state, data, container) {
+  constructor(parent, node, state, data, container, sortOrder) {
     var me = this;
     this.parent = parent;
     this.node = node;
@@ -51,8 +51,12 @@ export default class Channel {
     this.enabled = false; 
     this.statusHeard = false;
 
-    this.ui = $('<div class="Channel"/>');
+    sortOrder = sortOrder ? sortOrder : this.channel;
+
+    var domId = this.node.id + '>' + this.channel;
+    this.ui = $('<div class="Channel" id="'+domId+'"/>');
     this.ui.data('channel', data.channel);
+    this.ui.data('sortOrder', sortOrder);
     container.append(this.ui);
 
     // status buttons

@@ -28,9 +28,25 @@ export default class Management extends Panel {
 
   build() {
     super.build();
+    var me = this;
 
     // set UI to be sortable
     this.ui.panel.sortable();
+    this.ui.panel.on('sortstop', ()=>{
+      var orderData = me.ui.panel.sortable('toArray');
+      //console.log(orderData);  // array of channel dom id's 
+
+      orderData.forEach((ele, index)=>{
+        var channelId = parseInt(ele.substr(ele.indexOf('>')+1));
+        me.channels[channelId].ui.data('sortOrder', index);
+        if (!me.settings.hasOwnProperty(channelId)) {
+          me.settings[channelId] = {};  
+        }
+        me.settings[channelId].sortOrder = index;
+      });
+
+      this.settingsChanged = true;
+    })
 
     // subscribe to module.new events
     this.node.state.on('module.new', (data)=>{
@@ -38,19 +54,14 @@ export default class Management extends Panel {
 
       //console.log('module.new: ' + data.node + '> ' + data.channel);
 
+      // attempt to retrieve sort order
+      var sortOrder = this.settings[data.channel] ? this.settings[data.channel].sortOrder : null;
+
       // create new channel UI
-      this.channels[data.channel] = new Channel(this, this.node, this.node.state, data, this.ui.panel);
+      this.channels[data.channel] = new Channel(this, this.node, this.node.state, data, this.ui.panel, sortOrder);
 
       // sort
-      var children = this.ui.panel.children();
-      var sortList = Array.prototype.sort.bind(children);
-
-      sortList((a,b)=>{
-        return $(a).data('channel') - $(b).data('channel');
-      });
-
-      // re-append sorted children
-      this.ui.panel.append(children);
+      this.sortChannels();
 
       this.updateColumns();
 
@@ -60,6 +71,19 @@ export default class Management extends Panel {
       }
     });
 
+  }
+
+
+  sortChannels() {
+    var children = this.ui.panel.children();
+    var sortList = Array.prototype.sort.bind(children);
+
+    sortList((a,b)=>{
+      return $(a).data('sortOrder') - $(b).data('sortOrder');
+    });
+
+    // re-append sorted children
+    this.ui.panel.append(children);
   }
 
   clear() {
@@ -159,7 +183,6 @@ export default class Management extends Panel {
 
 
   updateSettings(settings) {
-    //console.log('Update settings:', settings);
 
     // merge new settings into existing settings
     for (const [key, obj] of Object.entries(settings)) {
@@ -170,13 +193,24 @@ export default class Management extends Panel {
           // action
           this.expandChannel(key, obj.expanded);
         }
+        if (obj.sortOrder != this.settings[key].sortOrder) {
+          this.settings[key].sortOrder = obj.sortOrder;
+          this.channels[key].ui.data('sortOrder') = obj.sortOrder;
+        }
       } else {
         // add and action
         this.settings[key] = obj;
         // action 
         this.expandChannel(key, obj.expanded);
+
+        if (this.channels.hasOwnProperty(key)) {
+          this.channels[key].ui.data('sortOrder', obj.sortOrder);
+        }
       }
     }
+
+    // in case sort has changed
+    this.sortChannels();
   }
 
 
