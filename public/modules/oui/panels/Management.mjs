@@ -31,7 +31,10 @@ export default class Management extends Panel {
     var me = this;
 
     // set UI to be sortable
-    this.ui.panel.sortable();
+    this.ui.panel.sortable({
+      containment: 'parent',
+      cancel:'a,button,canvas'
+    });
     this.ui.panel.on('sortstop', ()=>{
       var orderData = me.ui.panel.sortable('toArray');
       //console.log(orderData);  // array of channel dom id's 
