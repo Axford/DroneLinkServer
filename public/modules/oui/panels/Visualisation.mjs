@@ -230,6 +230,8 @@ export default class Visualisation extends Panel {
 
     this.visScript = '';
 
+    this.usingWebcam = false;
+
     this.build();
   }
 
@@ -276,7 +278,7 @@ export default class Visualisation extends Panel {
     this.chunks = [];
 
     
-    
+    /*
     this.uiVisRecordBut = $('<button class="btn btn-sm btn-secondary mr-1 mb-2">Record</button>');
     this.uiVisRecordBut.on('click',()=>{
       console.log('Vis Vid: Starting...')
@@ -290,6 +292,46 @@ export default class Visualisation extends Panel {
       me.recorder.stop(); 
     });
     this.ui.panel.append(this.uiVisStopRecordingBut);
+    */
+
+
+    this.uiVisRecordBut = $('<button class="btn btn-sm btn-secondary mr-1 mb-2">Start Webcam</button>');
+    this.uiVisRecordBut.on('click',()=>{
+      console.log('Webcam: Starting...')
+      
+      if (navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ video: true })
+          .then(function (stream) {
+            console.log('Webcam: assigning stream');
+            me.ui.vid[0].srcObject = stream;
+            me.usingWebcam = true;
+          })
+          .catch(function (error) {
+            console.log("Webcam: error:", error);
+          });
+      }
+    });
+    this.ui.panel.append(this.uiVisRecordBut);
+
+    this.uiVisStopRecordingBut = $('<button class="btn btn-sm btn-secondary mr-1 mb-2">Stop Webcam</button>');
+    this.uiVisStopRecordingBut.on('click',()=>{
+      var stream = me.ui.vid[0].srcObject;
+      if (stream) {
+        var tracks = stream.getTracks();
+
+        for (var i = 0; i < tracks.length; i++) {
+          var track = tracks[i];
+          track.stop();
+        }
+
+        me.ui.vid[0].srcObject = null;
+
+        me.usingWebcam = false;
+      }
+    });
+    this.ui.panel.append(this.uiVisStopRecordingBut);
+
+
 
     this.ui.panel.dblclick(()=>{
         this.aceEditor.session.setValue(this.visScript,-1);
@@ -305,9 +347,16 @@ export default class Visualisation extends Panel {
     this.ui.panel.append(this.ui.error);
 
     // canvas for vis
-    this.ui.canvas = $('<canvas height=400 />');
+    this.ui.canvas = $('<canvas height=400 style="position:absolute; z-index:100" />');
     this.ui.panel.append(this.ui.canvas);
 
+    // create video element for webcam stream
+    this.ui.vid = $('<video id="vid" autoplay=true style="width:100%"></video>');
+    this.ui.panel.append(this.ui.vid);
+
+    
+
+    /*
     // create video element
     this.ui.vid = $('<video id="vid" controls autoplay loop muted playsinline ></video>');
     this.ui.panel.append(this.ui.vid);
@@ -331,7 +380,7 @@ export default class Visualisation extends Panel {
       //this.uiVisDownloadRecordingLink.attr('href', this.ui.vid[0].src);
       //this.uiVisDownloadRecordingLink.trigger("click");
     };
-    
+    */
 
     // script editor block
     this.cuiEditorBlock = $('<div class="visualisationEditorBlock" ></div>');
@@ -422,13 +471,22 @@ export default class Visualisation extends Panel {
     // keep width updated
     var w = this.ui.panel.width();
     ctx.canvas.width = w;
-    var h = document.documentElement.clientHeight - 140;
+    var h;
+    if (me.usingWebcam) {
+      h = me.ui.vid.height();
+    } else {
+      h = document.documentElement.clientHeight - 140;
+    }
     ctx.canvas.height = h;
     var cx = w/2;
     var cy = h/2;
 
     //ctx.fillStyle = '#040a20';
-    ctx.fillStyle = 'rgba(0,0,0.1,0)';
+    if (me.usingWebcam) {
+      ctx.fillStyle = 'rgba(0,0,0.1,0)';
+    } else {
+      ctx.fillStyle = '#000';
+    }
     ctx.fillRect(0,0,w,h);
 
     var state = this.node.state;
