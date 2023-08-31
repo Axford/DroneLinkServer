@@ -1,6 +1,6 @@
 import loadStylesheet from '../../loadStylesheet.js';
 import * as DLM from '../../droneLinkMsg.mjs';
-
+import { degreesToRadians } from '../../navMath.mjs';
 
 export default class INA219 {
 	constructor(channel, state) {
@@ -156,6 +156,66 @@ export default class INA219 {
     ctx.font = (fontSize ? fontSize : 20) + 'px bold serif';
 		ctx.textAlign = 'center';
     ctx.fillText(label + '°', cx, cy+6);
+  }
+
+
+  drawArtificialHorizon(pitch, roll, x, y, w, h) {
+    var c = this.canvas[0];
+		var ctx = c.getContext("2d");
+
+    // draw horizon
+    // calculate centre point based on pitch
+    var cx = x + w/2;
+    var cy = y + h/2;
+
+    // positive pitches are up
+    var y1 = cy + h * Math.sin(degreesToRadians(pitch));
+   
+    // calculate roll offset, at radius w
+    // positive roll is to the left
+    var yOffset = w * Math.sin(degreesToRadians(roll));
+    
+    ctx.fillStyle = '#558';
+    ctx.beginPath();
+    ctx.moveTo(cx-w, y1-yOffset);
+    ctx.lineTo(cx+w, y1+yOffset);
+    ctx.lineTo(x+w,y+h);
+    ctx.lineTo(x,y+h);
+    ctx.lineTo(cx-w, y1-yOffset);
+    ctx.fill();
+
+    // draw pitch lines
+    // centre line
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    var x1 = x + w * 0.25;
+    var x2 = x + w * 0.4;
+    ctx.moveTo(x1,cy);
+    ctx.lineTo(x2,cy);
+    x1 = x + w * 0.6;
+    x2 = x + w * 0.75;
+    ctx.moveTo(x1,cy);
+    ctx.lineTo(x2,cy);
+
+    // +-10 degree lines
+    x1 = x + w * 0.25;
+    x2 = x + w * 0.75;
+    for (var i=1; i < 3; i++) {
+      var y2 = h * Math.sin(degreesToRadians(i * 10));
+      ctx.moveTo(x1,cy + y2);
+      ctx.lineTo(x2,cy + y2);
+
+      ctx.moveTo(x1,cy - y2);
+      ctx.lineTo(x2,cy - y2);
+
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.textAlign = 'left';
+      ctx.font = '12px serif';
+      ctx.fillText(i*10, x2+4, cy+y2+4);
+      ctx.fillText(i*10, x2+4, cy-y2+4);
+    }
+    ctx.stroke();
   }
 
 
