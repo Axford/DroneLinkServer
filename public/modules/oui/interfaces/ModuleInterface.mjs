@@ -51,6 +51,27 @@ export default class INA219 {
     ctx.fillText(v, x1+w/2, y1+h);
   }
 
+  drawMeterValueScaled(v, x1,y1,w,h, clr = '#8F8', padding=5) {
+    var c = this.canvas[0];
+		var ctx = c.getContext("2d");
+
+    ctx.strokeStyle = '#343a40';
+    ctx.strokeRect(x1, y1, x1+w, y1+h);
+
+    var fs = 20;
+    ctx.fillStyle = clr;
+    ctx.textAlign = 'center';
+    ctx.font = fs + 'px serif';
+    var tm = ctx.measureText(v);
+    // also calculate based on height and take the smallest
+    var fs2 = fs * h / tm.fontBoundingBoxAscent;
+    fs = fs * (w - 2*padding) / tm.width;
+    fs = Math.min(fs, fs2);
+    
+    ctx.font = fs + 'px serif';
+    ctx.fillText(v, x1+w/2, y1+h);
+  }
+
 	drawMeter(v, label, x1,y1,w,h, clr = '#8F8', s=35) {
     var c = this.canvas[0];
 		var ctx = c.getContext("2d");

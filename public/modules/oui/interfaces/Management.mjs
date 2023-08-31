@@ -67,7 +67,7 @@ export default class Management extends ModuleInterface {
     s += String(seconds).padStart(2, "0");
 
     this.drawLabel("Uptime", 0, 0, mw, 20);
-    this.drawMeterValue(s, 0, 25, mw, 30, "#5f5", 20);
+    this.drawMeterValueScaled(s, 0, 25, mw, 30, "#5f5");
 
     /*
 		Firmware version
@@ -81,19 +81,15 @@ export default class Management extends ModuleInterface {
         this.channel.node.firmwareVersion !=
         this.channel.node.latestFirmwareVersion;
 
-      ctx.fillStyle = diffVersions ? "#f55" : "#343a40";
-      ctx.fillRect(mw, 30, mw, 40);
-
       this.drawLabel("Firmware", mw, 0, mw, 20);
-      var s = this.channel.node.firmwareVersion + (diffVersions ? " ✘" : " ✔");
-      this.drawMeterValue(
+      var s = this.channel.node.firmwareVersion;
+      this.drawMeterValueScaled(
         s,
         mw,
         25,
         mw,
         30,
-        diffVersions ? "#fff" : "#5f5",
-        20
+        diffVersions ? "#f55" : "#5f5"
       );
     }
 
@@ -105,7 +101,7 @@ export default class Management extends ModuleInterface {
     var ipAddress = this.state.getParamValues(node, channel, 12, [0, 0, 0, 0]);
     if (ipAddress[0] != 0) {
       var ipString = ipAddress.join(".");
-      this.drawMeterValue(ipString, 2 * mw, 25, mw, 30, "#5f5", 20);
+      this.drawMeterValueScaled(ipString, 2 * mw, 25, mw, 30, "#5f5");
     }
   }
 
