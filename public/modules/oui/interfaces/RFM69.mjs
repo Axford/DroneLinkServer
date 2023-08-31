@@ -104,7 +104,7 @@ export default class RFM69 extends ModuleInterface {
 		super.build('RFM69');
 
 		// power select
-		this.powerSelect = $('<select class="RFMPowerSelect"></select>');
+		this.powerSelect = $('<select class="custom-select RFMPowerSelect"></select>');
     // add power options
 		for (var i=-14; i<=20; i++) {
 			this.powerSelect.append($('<option value="'+i+'">'+i+'</option>'));

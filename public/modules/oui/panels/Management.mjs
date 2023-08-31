@@ -29,6 +29,9 @@ export default class Management extends Panel {
   build() {
     super.build();
 
+    // set UI to be sortable
+    this.ui.panel.sortable();
+
     // subscribe to module.new events
     this.node.state.on('module.new', (data)=>{
       if (data.node != this.node.id) return;

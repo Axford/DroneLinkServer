@@ -279,8 +279,11 @@ export default class HMC5883L extends ModuleInterface {
 
 	build() {
 		super.build('HMC5883L');
+    var me = this;
 
-    this.modeSelect = $('<select class="modeSelect"></select>');
+    var controlsContainer = $('<div class="form-row mr-1 ml-1" />');
+
+    this.modeSelect = $('<select class="col-8 custom-select custom-select-sm modeSelect"></select>');
     // add mode options
     this.modeSelect.append($('<option value="0">Online Calibration</option>'));
     this.modeSelect.append($('<option value="1">Fixed Calibration</option>'));
@@ -299,8 +302,22 @@ export default class HMC5883L extends ModuleInterface {
 
       this.queryParam(20);
     });
+    controlsContainer.append(this.modeSelect);
 
-    this.ui.append(this.modeSelect);
+    this.button3D = $('<button class="col-4 btn btn-sm btn-primary">Show 3D</button>');
+    this.button3D.on('click', ()=>{
+      if (me.renderer.domElement.style.display == 'none') {
+        me.renderer.domElement.style.display = 'block';
+        this.button3D.html('Hide 3D');
+        this.update();
+      } else {
+        me.renderer.domElement.style.display = 'none';
+        this.button3D.html('Show 3D');
+      }
+    });
+    controlsContainer.append(this.button3D);
+
+    this.ui.append(controlsContainer);
 
 
     var w = Math.max(this.ui.width(), 200);
@@ -322,6 +339,9 @@ export default class HMC5883L extends ModuleInterface {
     this.renderer = new THREE.WebGLRenderer();
     this.renderer.setSize( w, h1 );
     this.ui.append( this.renderer.domElement );
+
+    // hide 3D by default
+    this.renderer.domElement.style.display = 'none';
 
     this.camera.position.x = 10;
     this.camera.position.y = -20;

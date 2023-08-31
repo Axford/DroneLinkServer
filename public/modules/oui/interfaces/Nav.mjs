@@ -237,7 +237,7 @@ export default class Nav extends ModuleInterface {
 	build() {
     super.build('Nav');
 
-    this.modeSelect = $('<select class="navModeSelect"></select>');
+    this.modeSelect = $('<select class="custom-select navModeSelect"></select>');
     // add mode options
     this.modeSelect.append($('<option value="0">Idle</option>'));
     this.modeSelect.append($('<option value="1">Goto</option>'));

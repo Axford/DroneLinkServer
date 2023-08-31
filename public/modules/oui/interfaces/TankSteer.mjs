@@ -163,7 +163,7 @@ export default class TankSteer extends ModuleInterface {
 	build() {
 		super.build('TankSteer');
 
-		this.modeSelect = $('<select class="tankSteerModeSelect"></select>');
+		this.modeSelect = $('<select class="custom-select tankSteerModeSelect"></select>');
     // add mode options
     this.modeSelect.append($('<option value="0">Manual</option>'));
     this.modeSelect.append($('<option value="1">Automatic</option>'));
