@@ -178,17 +178,22 @@ export default class HMC5883L extends ModuleInterface {
 
 		this.drawCompassIndicator(cx, cy, r, 25, h2, heading.toFixed(0), 20);
 
-
     // render artificial horizons
     // -------------------------------------------------------------------------
     w1 = w/2;
 		cy = h * 0.8;
+
+    this.drawArtificialHorizon(pitch, roll, 0, h1, w1, h * 0.4);
+
+    this.drawValue(5,h1,'Pitch',pitch.toFixed(0), '#5f5');
+    this.drawValue(5,h1+40,'Roll',roll.toFixed(0), '#5f5');
 
 		//ctx.fillStyle = '#343a40';
 		//ctx.fillRect(w/2,0,w1,h);
 
     // pitch
     // positive pitch is up, negative is down
+    /*
     var cx1 = w1/4;
     var r1 = w/8-5;
 
@@ -205,6 +210,7 @@ export default class HMC5883L extends ModuleInterface {
     this.drawCompassIndicator(cx1, cy, r1, 20, rollAng, roll.toFixed(0), 15);
 
     this.drawPill('Roll', cx1, h*0.55, 50, '#000');
+    */
 
 
     // QUALITY

@@ -179,23 +179,26 @@ export default class INA219 {
     var xOffset = r * Math.cos(degreesToRadians(roll));
     
     ctx.fillStyle = '#558';
+    ctx.save();
     ctx.beginPath();
     ctx.moveTo(cx-xOffset, y1-yOffset);
     ctx.lineTo(cx+xOffset, y1+yOffset);
     ctx.arc(cx,y1, r, degreesToRadians(roll), degreesToRadians(roll+180));
-    ctx.fill();
+    ctx.clip();
+    ctx.fillRect(x,y,w,h);
+    ctx.restore();
 
     // draw pitch lines
     // centre line
     ctx.strokeStyle = 'rgba(255,255,255,0.5)';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    var x1 = x + w * 0.25;
-    var x2 = x + w * 0.4;
+    var x1 = x + w * 0.35;
+    var x2 = x + w * 0.45;
     ctx.moveTo(x1,cy);
     ctx.lineTo(x2,cy);
-    x1 = x + w * 0.6;
-    x2 = x + w * 0.75;
+    x1 = x + w * 0.55;
+    x2 = x + w * 0.65;
     ctx.moveTo(x1,cy);
     ctx.lineTo(x2,cy);
 
