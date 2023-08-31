@@ -31,15 +31,21 @@ export default class MPU6050 extends ModuleInterface {
     var node = this.channel.node.id;
     var channel = this.channel.channel;
 
+    var c = this.canvas[0];
+		var ctx = c.getContext("2d");
   
 		// keep size updated
 		var w = this.ui.width();
-    var h = Math.max(this.ui.height(), 400) - 20;
+		ctx.canvas.width = w;
+    var h = 200;
 
-    this.renderer.setSize( w, h );
+    // keep size updated
+    var h1 = Math.max(ctx.canvas.height, 600) - 200;
+    this.renderer.setSize( w, h1 );
     this.camera.updateProjectionMatrix();
-    this.camera.aspect = w/h;
+    this.camera.aspect = w/h1;
 
+    // fetch params
     var pos = this.state.getParamValues(node, channel, 10, [0,0,0]);
 
     var pitch = this.state.getParamValues(node, channel, 13, [0])[0];
@@ -49,6 +55,18 @@ export default class MPU6050 extends ModuleInterface {
     var calibX = this.state.getParamValues(node, channel, 16, [0,0,0]);
     var calibY = this.state.getParamValues(node, channel, 17, [0,0,0]);
     var calibZ = this.state.getParamValues(node, channel, 18, [0,0,0]);
+
+
+    // 2D Artificial horizon
+    ctx.fillStyle = '#343a40';
+		ctx.fillRect(0,0,w,h);
+
+    this.drawArtificialHorizon(pitch, roll, 0, 0, w, h);
+
+    this.drawValue(10,10,'Pitch',pitch.toFixed(0), '#5f5');
+    this.drawValue(10,60,'Roll',roll.toFixed(0), '#5f5');
+
+    // 3D Vis
 
     this.cube.position.x = pos[0];
     this.cube.position.y = pos[1];
@@ -133,20 +151,27 @@ export default class MPU6050 extends ModuleInterface {
 
     this.ui.append(this.modeSelect);
 
-    this.uiOverlay = $('<div style="position:absolute; z-index:1000; padding: 4px 8px; color:white">test</div>');
+    var w = Math.max(this.ui.width(), 200);
+    var h = Math.max(this.ui.height(), 600);
+
+    this.canvas = $('<canvas height=200 />');
+
+		this.ui.append(this.canvas);
+
+    this.uiOverlay = $('<div style="position:absolute; z-index:1000; padding: 4px 8px; color:white">.</div>');
     this.ui.append(this.uiOverlay);
 
-    var w = Math.max(this.ui.width(), 200);
-    var h = Math.max(this.ui.height(), 400);
+    // THREE
+    var h1 = h - 200;
 
-    console.log('THREE', w, h);
+    console.log('THREE', w, h1);
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color( 0x343a40 );
-    this.camera = new THREE.PerspectiveCamera( 75, w / h, 0.1, 1000 );
+    this.camera = new THREE.PerspectiveCamera( 75, w / h1, 0.1, 1000 );
     this.camera.up = new THREE.Vector3(0, 0, 1);
 
     this.renderer = new THREE.WebGLRenderer();
-    this.renderer.setSize( w, h );
+    this.renderer.setSize( w, h1 );
     this.ui.append( this.renderer.domElement );
 
     this.camera.position.x = 7;

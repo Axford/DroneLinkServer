@@ -61,7 +61,6 @@ export default class HMC5883L extends ModuleInterface {
     var node = this.channel.node.id;
     var channel = this.channel.channel;
 
-
 		var c = this.canvas[0];
 		var ctx = c.getContext("2d");
 
