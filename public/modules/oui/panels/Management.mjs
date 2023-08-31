@@ -195,7 +195,7 @@ export default class Management extends Panel {
         }
         if (obj.sortOrder != this.settings[key].sortOrder) {
           this.settings[key].sortOrder = obj.sortOrder;
-          this.channels[key].ui.data('sortOrder') = obj.sortOrder;
+          this.channels[key].ui.data('sortOrder', obj.sortOrder);
         }
       } else {
         // add and action
