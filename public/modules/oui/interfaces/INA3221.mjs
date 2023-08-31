@@ -56,6 +56,7 @@ export default class INA3221 extends ModuleInterface {
       loadV: this.state.getParamValues(node, channel, 14, [0,0,0]),
 			cellV: this.state.getParamValues(node, channel, 15, [0,0,0]),
 			alarm: this.state.getParamValues(node, channel, 16, [0,0,0]),
+      usage: this.state.getParamValues(node, channel, 20, [0,0,0]),
       capacity: [0,0,0]
     }
 
@@ -93,9 +94,11 @@ export default class INA3221 extends ModuleInterface {
       //this.drawMeterValue(ina.capacity[i].toFixed(0) + '%', 0, y1+20, mw,hm, clr, 16);
 
       ctx.textAlign = 'center';
-      if (ina.loadV[i]) this.drawMeterValue(ina.loadV[i].toFixed(1) + ' V', x1, h1, mw, hm-2, '#8F8', 20);
-      if (ina.current[i]) this.drawMeterValue(ina.current[i].toFixed(2) + ' A', x1, h1 + hm, mw, hm-2, '#8F8', 20);
+      //if (ina.loadV[i]) this.drawMeterValue(ina.loadV[i].toFixed(1) + ' V', x1, h1, mw, hm-2, '#8F8', 20);
+      if (ina.current[i]) this.drawMeterValue(ina.current[i].toFixed(2) + ' A', x1, h1 , mw, hm-2, '#8F8', 20);
+      if (ina.usage[i]) this.drawMeterValue(ina.usage[i].toFixed(2) + ' Ah', x1, h1 +hm , mw, hm-2, '#8F8', 20);
       if (ina.power[i]) this.drawMeterValue(ina.power[i].toFixed(2) + ' W', x1, h1 + 2*hm, mw, hm-2, '#8F8', 20);
+
       // V
   		//this.drawMeterValue(ina.loadV[i].toFixed(2), w, y1, mw,hm);
 

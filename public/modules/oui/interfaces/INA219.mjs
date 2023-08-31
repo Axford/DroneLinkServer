@@ -82,6 +82,7 @@ export default class INA219 extends ModuleInterface {
       loadV: this.state.getParamValues(node, channel, 14, [0])[0],
       cellV: this.state.getParamValues(node, channel, 15, [0])[0],
       alarm: this.state.getParamValues(node, channel, 16, [0])[0],
+	  usage: this.state.getParamValues(node, channel, 19, [0])[0]
     };
     ina.capacity = this.estimateCellCapacity(ina.cellV);
 
@@ -109,8 +110,9 @@ export default class INA219 extends ModuleInterface {
     }
 
 	ctx.textAlign = 'left';
-    if (ina.loadV) this.drawMeterValue(ina.loadV.toFixed(1) + ' V', w/2, 10, w/2, hm-2, '#8F8', 20);
-    if (ina.current) this.drawMeterValue(ina.current.toFixed(2) + ' A', w/2, 10 + hm, w/2, hm-2, '#8F8', 20);
+    //if (ina.loadV) this.drawMeterValue(ina.loadV.toFixed(1) + ' V', w/2, 10, w/2, hm-2, '#8F8', 20);
+    if (ina.current) this.drawMeterValue(ina.current.toFixed(2) + ' A', w/2, 10, w/2, hm-2, '#8F8', 20);
+	if (ina.usage) this.drawMeterValue(ina.usage.toFixed(2) + ' Ah', x1, 10 +hm , mw, hm-2, '#8F8', 20);
     if (ina.power) this.drawMeterValue(ina.power.toFixed(2) + ' W', w/2, 10 + 2*hm, w/2, hm-2, '#8F8', 20);
   }
 
