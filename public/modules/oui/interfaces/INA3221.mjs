@@ -76,33 +76,34 @@ export default class INA3221 extends ModuleInterface {
 		ctx.fillStyle = '#343a40';
 		ctx.fillRect(0,0,w,200);
 
-		var mw = w/4;
-
-    var h1 = h - 20;
-    var hm = h1/3;
-
-    this.drawLabel( 'Cell V', 0, 0, mw, 20);
-    this.drawLabel( 'V', mw, 0, mw, 20);
-    this.drawLabel( 'A', 2*mw, 0, mw, 20);
-    this.drawLabel( 'W', 3*mw, 0, mw, 20);
+		var mw = w/3;
+    var h2 = 70;
+    var h1 = h - h2;
+    var hm = (h2-8)/3;
 
     for (var i=0; i<3; i++) {
-      var y1 = hm * i;
-      var clr = ina.capacity[i]<20 ? '#f55' : '#8f8';
+      var x1 = mw * i;
+      var clr = ina.capacity < 20 ? "#f55" : (ina.capacity[i]<50 ? '#fa5' : '#8f8');
+
+      this.drawDialIndicator('cellV', ina.cellV[i].toFixed(1), ina.capacity[i], 0, 100, x1, 0, mw, h1 + 10, clr, 8);
       // 'Cell V'
-      this.drawMeterValue(ina.cellV[i].toFixed(2), 0, y1, mw,hm, clr);
+      //this.drawMeterValue(ina.cellV[i].toFixed(2), 0, y1, mw,hm, clr);
 
       // capacity
-      this.drawMeterValue(ina.capacity[i].toFixed(0) + '%', 0, y1+20, mw,hm, clr, 16);
+      //this.drawMeterValue(ina.capacity[i].toFixed(0) + '%', 0, y1+20, mw,hm, clr, 16);
 
+      ctx.textAlign = 'center';
+      if (ina.loadV[i]) this.drawMeterValue(ina.loadV[i].toFixed(1) + ' V', x1, h1, mw, hm-2, '#8F8', 20);
+      if (ina.current[i]) this.drawMeterValue(ina.current[i].toFixed(2) + ' A', x1, h1 + hm, mw, hm-2, '#8F8', 20);
+      if (ina.power[i]) this.drawMeterValue(ina.power[i].toFixed(2) + ' W', x1, h1 + 2*hm, mw, hm-2, '#8F8', 20);
       // V
-  		this.drawMeterValue(ina.loadV[i].toFixed(2), w, y1, mw,hm);
+  		//this.drawMeterValue(ina.loadV[i].toFixed(2), w, y1, mw,hm);
 
       // A
-  		this.drawMeterValue(ina.current[i].toFixed(2), 2*mw, y1, mw,hm);
+  		//this.drawMeterValue(ina.current[i].toFixed(2), 2*mw, y1, mw,hm);
 
       // W
-  		this.drawMeterValue(ina.power[i].toFixed(2), 3*mw, y1, mw,hm);
+  		//this.drawMeterValue(ina.power[i].toFixed(2), 3*mw, y1, mw,hm);
     }
 
   }
@@ -110,7 +111,7 @@ export default class INA3221 extends ModuleInterface {
 	build() {
 		super.build('INA3221');
 
-    this.canvas = $('<canvas height=200 />');
+    this.canvas = $('<canvas height=150 />');
 
 		this.ui.append(this.canvas);
 

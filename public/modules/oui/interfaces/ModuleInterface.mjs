@@ -21,7 +21,7 @@ export default class INA219 {
     ctx.font = '12px serif';
     ctx.fillText(label, x, y+15);
     ctx.font = '20px bold serif';
-		ctx.fillStyle = fillColor ? fillColor : '#5f5';
+		ctx.fillStyle = fillColor ? fillColor : '#8f8';
     ctx.fillText(v, x, y+35);
   }
 
@@ -145,14 +145,14 @@ export default class INA219 {
     ctx.stroke();
 
 		// heading
-    ctx.strokeStyle = '#5F5';
+    ctx.strokeStyle = '#8f8';
     ctx.lineWidth = 5;
     ctx.beginPath();
     ctx.moveTo(cx + innerR*Math.cos(v), cy + innerR*Math.sin(v));
     ctx.lineTo(cx + (outerR+10)*Math.cos(v), cy + (outerR+10)*Math.sin(v) );
     ctx.stroke();
 
-    ctx.fillStyle = '#5F5';
+    ctx.fillStyle = '#8f8';
     ctx.font = (fontSize ? fontSize : 20) + 'px bold serif';
 		ctx.textAlign = 'center';
     ctx.fillText(label + '°', cx, cy+6);
@@ -217,6 +217,58 @@ export default class INA219 {
     }
     ctx.stroke();
   }
+
+
+  drawDialIndicator(label, vStr, v, vMin, vMax, x, y, w, h, clr, padding=5) {
+    var c = this.canvas[0];
+      var ctx = c.getContext("2d");
+  
+    var ratio = (v - vMin)/(vMax - vMin);
+    if (ratio > 1) ratio = 1;
+    if (ratio < 0) ratio = 0;
+  
+    var cx = x + w/2;
+    var cy = y + h/2;
+    var rOuter = Math.min(w,h) / 2 - padding;
+    var rInner = rOuter - 5;
+    var a1 = degreesToRadians(135);
+    var a2 = degreesToRadians(45);
+  
+    // background
+    ctx.fillStyle = '#888';
+    ctx.strokeStyle = '#888';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(cx, cy, rInner, a1, a2);
+    ctx.arc(cx, cy, rOuter, a2, a1, true);
+    ctx.stroke();
+  
+    // foreground
+    var a2 = degreesToRadians(135 + 270 * ratio);
+    ctx.fillStyle = clr;
+    ctx.beginPath();
+    ctx.arc(cx, cy, rInner, a1, a2);
+    ctx.arc(cx, cy, rOuter, a2, a1, true);
+    ctx.fill();
+  
+    // central value
+    ctx.font = '20px bold serif';
+  
+    // measure text at default size
+    var tm = ctx.measureText(vStr);
+    // rescale font 
+    var fs = 20 * (rInner * 2 - 20) / tm.width;
+    ctx.font = fs.toFixed(0)+'px bold serif';
+    tm = ctx.measureText(vStr);
+  
+    ctx.fillStyle = '#8f8';
+    ctx.textAlign = 'center';
+    ctx.fillText(vStr, cx, cy + tm.actualBoundingBoxAscent/2);
+  
+    ctx.fillStyle = '#aaa';
+    ctx.font = '12px serif';
+    ctx.fillText(label, cx, cy + rInner);
+    }
 
 
   queryParam(param) {
