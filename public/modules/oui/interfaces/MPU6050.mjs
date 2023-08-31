@@ -21,6 +21,22 @@ export default class MPU6050 extends ModuleInterface {
       this.modeSelect.val(data.values[0]);
     }
 
+    // temp
+		if (data.param == 12 &&  (data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT)) {
+      var d = data.values[0];
+			if (d > 40 ) {
+				this.widget.removeClass('warning');
+				this.widget.addClass('danger');
+			} else if (d > 30) {
+				this.widget.removeClass('danger');
+				this.widget.addClass('warning');
+			} else {
+				this.widget.removeClass('danger');
+				this.widget.removeClass('warning');
+			}
+      this.widgetText.html(d.toFixed(0) + '°');
+    }
+
     this.updateNeeded = true;
   }
 
@@ -55,6 +71,7 @@ export default class MPU6050 extends ModuleInterface {
     var calibX = this.state.getParamValues(node, channel, 16, [0,0,0]);
     var calibY = this.state.getParamValues(node, channel, 17, [0,0,0]);
     var calibZ = this.state.getParamValues(node, channel, 18, [0,0,0]);
+    var temp = this.state.getParamValues(node, channel, 12, [0])[0];
 
 
     // 2D Artificial horizon
@@ -65,6 +82,7 @@ export default class MPU6050 extends ModuleInterface {
 
     this.drawValue(10,10,'Pitch',pitch.toFixed(0), '#5f5');
     this.drawValue(10,60,'Roll',roll.toFixed(0), '#5f5');
+    this.drawValue(10,110,'Temp',temp.toFixed(1) + '°', '#5f5');
 
     // 3D Vis
 
@@ -240,6 +258,13 @@ export default class MPU6050 extends ModuleInterface {
     // mode
     var mode = this.state.getParamValues(node, channel, 19, [0])[0];
     this.modeSelect.val(mode);
+
+    // widget
+		this.widget = $('<div class="widget"><i class="fas fa-thermometer-half"></i></div>');
+		this.channel.node.addWidget(this.widget);
+
+		this.widgetText = $('<span>?</span>');
+		this.widget.append(this.widgetText);
 
     this.finishBuild();
 
