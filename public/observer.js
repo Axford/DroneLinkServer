@@ -82,13 +82,13 @@ var uiManager = new UIManager(nodes);
 
 
 
-function saveMapLocation(lngLat) {
+function saveMapLocation() {
+  var lngLat = map.getCenter();
   localStorage.location = JSON.stringify({
     lng:lngLat.lng,
     lat:lngLat.lat
   });
-  // TODO
-  localStorage.zoom = JSON.stringify(17.5);
+  localStorage.zoom = JSON.stringify(map.getZoom());
 }
 
 socket.on('localAddress', (id)=>{
@@ -575,9 +575,6 @@ function init() {
     map.on('mousemove',(e)=>{
       // update coord div
       $('.mapCoords').html(e.lngLat.lng.toFixed(6) + ', ' + e.lngLat.lat.toFixed(6));
-
-      // update last location in localstorage
-      saveMapLocation(e.lngLat);
     });
 
     map.on('contextmenu', (e) => {
@@ -587,6 +584,11 @@ function init() {
 
     map.on('click', (e) =>{
       uiManager.hideContextMenu();
+    });
+
+    map.on('move', ()=>{
+      // update last location in localstorage
+      saveMapLocation();
     });
 
 
