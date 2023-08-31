@@ -80,7 +80,7 @@ var logMarkers = [];
 // give UI manager a reference to the nodes collection
 var uiManager = new UIManager(nodes);
 
-
+var lastSelectedNode = 1;
 
 function saveMapLocation() {
   var lngLat = map.getCenter();
@@ -320,6 +320,11 @@ function fetchFirmwareVersion() {
 function init() {
   // install showHelp on window object
   window.showHelp = showHelp;
+
+  // load previous selection
+  if (localStorage.selectedNode)
+    lastSelectedNode = JSON.parse(localStorage.selectedNode);
+  
 
   // fetch latest firmware version from server, and repeat on a regular basis
   fetchFirmwareVersion();
@@ -649,6 +654,9 @@ function init() {
         // update AIS tracker
         tracker.focus(n);
 
+        // save selection for reload
+        localStorage.selectedNode = JSON.stringify(n.id);
+
         // ensure mgmt panel is open
         openPanel();
       }
@@ -657,6 +665,11 @@ function init() {
         node.focus();
         // hide status
         $('.status').hide();
+      }
+
+      // is this the last selected node?
+      if (id == lastSelectedNode) {
+        node.focus();
       }
 
     });
