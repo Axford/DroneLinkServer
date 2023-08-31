@@ -170,18 +170,19 @@ export default class INA219 {
 
     // positive pitches are up
     var y1 = cy + h * Math.sin(degreesToRadians(pitch));
-   
+  
+    var r=2*w;
+
     // calculate roll offset, at radius w
     // positive roll is to the left
-    var yOffset = w * Math.sin(degreesToRadians(roll));
+    var yOffset = r * Math.sin(degreesToRadians(roll));
+    var xOffset = r * Math.cos(degreesToRadians(roll));
     
     ctx.fillStyle = '#558';
     ctx.beginPath();
-    ctx.moveTo(cx-w, y1-yOffset);
-    ctx.lineTo(cx+w, y1+yOffset);
-    ctx.lineTo(x+w,y+h);
-    ctx.lineTo(x,y+h);
-    ctx.lineTo(cx-w, y1-yOffset);
+    ctx.moveTo(cx-xOffset, y1-yOffset);
+    ctx.lineTo(cx+xOffset, y1+yOffset);
+    ctx.arc(cx,y1, r, degreesToRadians(roll), degreesToRadians(roll+180));
     ctx.fill();
 
     // draw pitch lines
