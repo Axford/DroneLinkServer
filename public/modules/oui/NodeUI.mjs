@@ -275,7 +275,7 @@ export default class NodeUI {
           this.panels.Management.updateSettings(docData.management);
 
           // read the nav mapping style
-          updateNavMappingStyle(docData.navMappingStyle);
+          me.updateNavMappingStyle(docData.navMappingStyle, false);
         }
         if (change.type === "removed") {
           
@@ -718,11 +718,11 @@ export default class NodeUI {
   };
 
 
-  updateNavMappingStyle(style) {
+  updateNavMappingStyle(style, update=true) {
     if (this.navMappingStyle == style) return;
 
     this.navMappingStyle = style;
-    this.settingsChanged = true;
+    this.settingsChanged = update;
 
     // show/hide stuff we don't want
 
