@@ -332,7 +332,7 @@ export default class Channel {
 
 
   enable(notify) {
-    if (this.statusHeard && this.enabled) return;
+    //if (this.statusHeard && this.enabled) return;
     this.enabled = true;
 
     // enabled
