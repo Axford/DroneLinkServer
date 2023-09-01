@@ -12,24 +12,44 @@ export default class WaterSensor extends ModuleInterface {
 
     // raw
     if (
-      data.param == 9 &&
-      (data.msgType == DLM.DRONE_LINK_MSG_TYPE_UINT8_T ||
-        data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT)
+      data.param == 11 &&
+      (data.msgType == DLM.DRONE_LINK_MSG_TYPE_UINT32_T)
     ) {
-      // 9 - satellites
       var d = data.values[0];
-      if (d < 4) {
-        this.widget.removeClass("warning");
-        this.widget.addClass("danger");
-      } else if (d < 9) {
-        this.widget.removeClass("danger");
-        this.widget.addClass("warning");
+
+      // see if we have a valid threshold
+      var node = this.channel.node.id;
+      var channel = this.channel.channel;
+      var threshold = this.state.getParamValues(node, channel, 12, [0])[0];
+
+      if (threshold > 0) {
+        var ratio = d / threshold;
+        this.widgetText.html((100 * ratio).toFixed(0) + '%');
+
+        if (ratio > 0.5 && ratio < 1) {
+            this.widget.addClass("warning");
+        } else {
+            this.widget.removeClass("warning");
+        }
       } else {
-        this.widget.removeClass("danger");
-        this.widget.removeClass("warning");
+        this.widgetText.html(d);
       }
-      this.widgetText.html(d.toFixed(0));
     }
+
+    // alarm
+    if (
+        data.param == 13 &&
+        (data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT)
+      ) {
+        var d = data.values[0];
+        if (d >= 1) {
+          this.widget.removeClass("warning");
+          this.widget.addClass("danger");
+        } else {
+          this.widget.removeClass("danger");
+          this.widget.removeClass("warning");
+        }
+      }
 
     this.updateNeeded = true;
   }
@@ -75,7 +95,7 @@ export default class WaterSensor extends ModuleInterface {
     ctx.stroke();
 
     var h2 = (h-20) * raw / 4096;
-    ctx.fillStyle = '#55f';
+    ctx.fillStyle = alarm > 0 ? '#f55' : '#55f';
     ctx.fillRect(0,h-20-h2,w,h2);
 
     if (threshold > 0) {
