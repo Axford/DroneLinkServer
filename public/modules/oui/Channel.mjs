@@ -300,8 +300,10 @@ export default class Channel {
 
       // status
       if (data.param == DLM.DRONE_MODULE_PARAM_STATUS && data.msgType == DLM.DRONE_LINK_MSG_TYPE_UINT8_T) {
-        if (data.values[0] > 0) {
+        if (data.values[0] == 1) {
           this.enable(false);
+        } else if (data.values[0] == 2) {
+          this.waiting(false);
         } else {
           this.disable(true);
         }
@@ -333,6 +335,21 @@ export default class Channel {
     // enabled
     this.ui.addClass('enabled');
     this.ui.removeClass('disabled');
+    this.ui.removeClass('waiting');
+    this.uiEnable.hide();
+    this.uiDisable.show();
+
+    this.statusHeard = true;
+  }
+
+  waiting(notify) {
+    //if (this.statusHeard && !this.enabled) return;
+    this.enabled = true;
+
+    // waiting
+    this.ui.addClass('waiting');
+    this.ui.removeClass('disabled');
+    this.ui.removeClass('enabled');
     this.uiEnable.hide();
     this.uiDisable.show();
 
@@ -347,6 +364,7 @@ export default class Channel {
     // disabled
     this.ui.removeClass('enabled');
     this.ui.addClass('disabled');
+    this.ui.removeClass('waiting');
     this.collapse();
     this.uiEnable.show();
     this.uiDisable.hide();
