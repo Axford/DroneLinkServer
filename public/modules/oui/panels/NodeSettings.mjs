@@ -19,6 +19,7 @@ export default class NodeSettings extends Panel {
 
   build() {
     super.build();
+    var me = this;
 
     // container for mapParams
     this.ui.mapParamsContainer = $('<table />');
@@ -30,6 +31,25 @@ export default class NodeSettings extends Panel {
     // body
     this.ui.mapParamsBody = $('<tbody/>');
     this.ui.mapParamsContainer.append(this.ui.mapParamsBody);
+
+    // controls
+    this.ui.resetSnailBtn = $('<button class="btn btn-danger mt-5">Reset Snail Trail</button>');
+    this.ui.resetSnailBtn.on('click', ()=>{
+      me.node.resetSnailTrail();
+    });
+    this.ui.panel.append(this.ui.resetSnailBtn);
+
+    this.ui.minimalMapStyleBtn = $('<button class="btn btn-primary ml-5 mt-5">Minimal Map Style</button>');
+    this.ui.minimalMapStyleBtn.on('click', ()=>{
+      me.node.updateNavMappingStyle('minimal');
+    });
+    this.ui.panel.append(this.ui.minimalMapStyleBtn);
+
+    this.ui.fullMapStyleBtn = $('<button class="btn btn-primary ml-2 mt-5">Full Map Style</button>');
+    this.ui.fullMapStyleBtn.on('click', ()=>{
+      me.node.updateNavMappingStyle('full');
+    });
+    this.ui.panel.append(this.ui.fullMapStyleBtn);
   }
 
   update() {

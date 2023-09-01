@@ -55,6 +55,9 @@ export default class NodeUI {
     this.mapLayerOpacities = {};  // to store original opactities by id
     this.mapElements = [];  // list of html elements (object references) on the map
 
+    this.settingsChanged = false;
+    this.navMappingStyle = 'full';
+
     // used to track mappable params like location or heading
     this.mapParams = {};
 
@@ -270,6 +273,9 @@ export default class NodeUI {
         if (change.type === "added" || change.type == "modified") {
           var docData = change.doc.data();
           this.panels.Management.updateSettings(docData.management);
+
+          // read the nav mapping style
+          updateNavMappingStyle(docData.navMappingStyle);
         }
         if (change.type === "removed") {
           
@@ -361,11 +367,12 @@ export default class NodeUI {
 
 
   checkIfSettingsChanged() {
-    if (this.panels.Management.settingsChanged) {
+    if (this.panels.Management.settingsChanged || this.settingsChanged) {
       // update firestore
       try {
         var nodeSettings = {
           id: this.id,
+          navMappingStyle: this.navMappingStyle,
           management: this.panels.Management.settings
         };
         const docRef = doc(this.db, 'nodeSettings', this.id.toString());
@@ -711,6 +718,36 @@ export default class NodeUI {
   };
 
 
+  updateNavMappingStyle(style) {
+    if (this.navMappingStyle == style) return;
+
+    this.navMappingStyle = style;
+    this.settingsChanged = true;
+
+    // show/hide stuff we don't want
+
+    var items = [
+      this.targetOutlineName,
+      this.lastOutlineName,
+      this.lastTraceName,
+      this.starboardCorridorTraceName,
+      this.portCorridorTraceName
+    ];
+
+    if (style == 'minimal') {
+      items.forEach((item)=>{
+        this.map.setLayoutProperty(item, 'visibility', 'none');
+      });
+    } else {
+      items.forEach((item)=>{
+        this.map.setLayoutProperty(item, 'visibility', 'visible');
+      });
+    }
+    
+    
+  }
+
+
   initNodeLocation() {
     var me = this;
     console.log('Adding node');
@@ -838,6 +875,14 @@ export default class NodeUI {
     var d = Math.sqrt(x*x + y*y) * R;
 
     return d;
+  }
+
+
+  resetSnailTrail() {
+    if (!this.snailTrail) return;
+    this.snailTrail.coordinates = [ this.location ];
+    var src = this.map.getSource('snailTrail' + this.id);
+    if (src) src.setData(this.snailTrail);
   }
 
   updateLocation(newLoc) {
@@ -1020,13 +1065,13 @@ export default class NodeUI {
         });
 
         // -- target outline --
-        var outlineName = 'targetOutline' + this.id;
+        this.targetOutlineName = 'targetOutline' + this.id;
         this.targetOutline = this.createGeoJSONCircle(this.target, this.target[2]);
-        this.map.addSource(outlineName, { type: 'geojson', data: this.targetOutline });
+        this.map.addSource(this.targetOutlineName, { type: 'geojson', data: this.targetOutline });
         this.map.addLayer({
-  				'id': outlineName,
+  				'id': this.targetOutlineName,
   				'type': 'line',
-  				'source': outlineName,
+  				'source': this.targetOutlineName,
           'layout': {},
   				'paint': {
             'line-color': 'yellow',
@@ -1034,7 +1079,7 @@ export default class NodeUI {
   					'line-width': 2
   				}
   			});
-        this.mapLayerIDs.push(outlineName);
+        this.mapLayerIDs.push(this.targetOutlineName);
 
         // -- target trace --
         var traceName = 'targetTrace' + this.id;
@@ -1116,13 +1161,13 @@ export default class NodeUI {
             .addTo(this.map);
 
         // -- last outline --
-        var outlineName = 'lastOutline' + this.id;
+        this.lastOutlineName = 'lastOutline' + this.id;
         this.lastOutline = this.createGeoJSONCircle(this.last, this.last[2]);
-        this.map.addSource(outlineName, { type: 'geojson', data: this.lastOutline });
+        this.map.addSource(this.lastOutlineName, { type: 'geojson', data: this.lastOutline });
         this.map.addLayer({
-  				'id': outlineName,
+  				'id': this.lastOutlineName,
   				'type': 'line',
-  				'source': outlineName,
+  				'source': this.lastOutlineName,
           'layout': {},
   				'paint': {
             'line-color': 'red',
@@ -1130,26 +1175,26 @@ export default class NodeUI {
   					'line-width': 2
   				}
   			});
-        this.mapLayerIDs.push(outlineName);
+        this.mapLayerIDs.push(this.lastOutlineName);
 
         // -- last trace --
-        var traceName = 'lastTrace' + this.id;
+        this.lastTraceName = 'lastTrace' + this.id;
         this.lastTrace = { "type": "LineString", "coordinates": [ this.last, this.target ] };
-        this.map.addSource(traceName, { type: 'geojson', data: this.lastTrace });
+        this.map.addSource(this.lastTraceName, { type: 'geojson', data: this.lastTrace });
   			this.map.addLayer({
-  				'id': traceName,
+  				'id': this.lastTraceName,
   				'type': 'line',
-  				'source': traceName,
+  				'source': this.lastTraceName,
   				'paint': {
   					'line-color': 'red',
   					'line-opacity': 0.5,
   					'line-width': 2
   				}
   			});
-        this.mapLayerIDs.push(traceName);
+        this.mapLayerIDs.push(this.lastTraceName);
 
         // -- starboard corridor --
-        var traceName = 'starboardTrace' + this.id;
+        this.starboardCorridorTraceName = 'starboardTrace' + this.id;
 
         // target needs to be transformed by translating on a vector given by target radius rotated by 90 CW
         var course = calculateInitialBearingBetweenCoordinates( this.last[0], this.last[1],  this.target[0], this.target[1]);
@@ -1158,11 +1203,11 @@ export default class NodeUI {
         var offsetLast = calculateDestinationFromDistanceAndBearing(this.last, this.target[2], course+90);
 
         this.starboardTrace = { "type": "LineString", "coordinates": [ offsetLast, offsetTarget ] };
-        this.map.addSource(traceName, { type: 'geojson', data: this.starboardTrace });
+        this.map.addSource(this.starboardCorridorTraceName, { type: 'geojson', data: this.starboardTrace });
   			this.map.addLayer({
-  				'id': traceName,
+  				'id': this.starboardCorridorTraceName,
   				'type': 'line',
-  				'source': traceName,
+  				'source': this.starboardCorridorTraceName,
   				'paint': {
   					'line-color': 'yellow',
   					'line-opacity': 0.3,
@@ -1170,21 +1215,21 @@ export default class NodeUI {
             'line-dasharray': [4,4]
   				}
   			});
-        this.mapLayerIDs.push(traceName);
+        this.mapLayerIDs.push(this.starboardCorridorTraceName);
 
         // -- port corridor --
-        var traceName = 'portTrace' + this.id;
+        this.portCorridorTraceName = 'portTrace' + this.id;
 
         // target needs to be transformed by translating on a vector given by target radius rotated by 90 CW
         offsetTarget = calculateDestinationFromDistanceAndBearing(this.target, this.target[2], course-90);
         offsetLast = calculateDestinationFromDistanceAndBearing(this.last, this.target[2], course-90);
 
         this.portTrace = { "type": "LineString", "coordinates": [ offsetLast, offsetTarget ] };
-        this.map.addSource(traceName, { type: 'geojson', data: this.portTrace });
+        this.map.addSource(this.portCorridorTraceName, { type: 'geojson', data: this.portTrace });
   			this.map.addLayer({
-  				'id': traceName,
+  				'id': this.portCorridorTraceName,
   				'type': 'line',
-  				'source': traceName,
+  				'source': this.portCorridorTraceName,
   				'paint': {
   					'line-color': 'yellow',
   					'line-opacity': 0.3,
@@ -1192,7 +1237,7 @@ export default class NodeUI {
             'line-dasharray': [4,4]
   				}
   			});
-        this.mapLayerIDs.push(traceName);
+        this.mapLayerIDs.push(this.portCorridorTraceName);
 
 
       } else {
