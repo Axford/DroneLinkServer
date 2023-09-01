@@ -26,6 +26,7 @@ import Servo from './interfaces/Servo.mjs';
 import TankSteer from './interfaces/TankSteer.mjs';
 import TurnRate from './interfaces/TurnRate.mjs';
 import UDPTelemetry from './interfaces/UDPTelemetry.mjs';
+import WaterSensor from './interfaces/WaterSensor.mjs';
 import Waypoint from './interfaces/Waypoint.mjs';
 import Wind from './interfaces/Wind.mjs';
 import WindFromWing from './interfaces/WindFromWing.mjs';
@@ -241,6 +242,8 @@ export default class Channel {
         this.interface = new TurnRate(this, state);
       } else if (data.type == 'UDPTelemetry') {
         this.interface = new UDPTelemetry(this, state);
+      } else if (data.type == 'WaterSensor') {
+        this.interface = new WaterSensor(this, state);
       } else if (data.type == 'Waypoint') {
         this.interface = new Waypoint(this, state);
       } else if (data.type == 'Wind') {
