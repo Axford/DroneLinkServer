@@ -734,16 +734,10 @@ export default class NodeUI {
       this.portCorridorTraceName
     ];
 
-    if (style == 'minimal') {
-      items.forEach((item)=>{
-        this.map.setLayoutProperty(item, 'visibility', 'none');
-      });
-    } else {
-      items.forEach((item)=>{
-        this.map.setLayoutProperty(item, 'visibility', 'visible');
-      });
-    }
-    
+    items.forEach((item)=>{
+      if (item !== undefined)
+        this.map.setLayoutProperty(item, 'visibility', style == 'minimal' ? 'none' : 'visible');
+    });
     
   }
 

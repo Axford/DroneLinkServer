@@ -317,6 +317,17 @@ export default class INA219 {
     this.queryParam(param);
   }
 
+  setAndQueryFloatParam(param, value) {
+    var qm = new DLM.DroneLinkMsg();
+    qm.node = this.channel.node.id;
+    qm.channel = this.channel.channel;
+    qm.param = param;
+    qm.setFloat([ value ]);
+    this.state.send(qm);
+
+    this.queryParam(param);
+  }
+
 
 	onParamValue(data) {
     this.updateNeeded = true;

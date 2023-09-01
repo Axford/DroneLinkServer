@@ -8,6 +8,9 @@ import { degreesToRadians, radiansToDegrees } from '../../navMath.mjs';
 export default class TankSteer extends ModuleInterface {
 	constructor(channel, state) {
     super(channel, state);
+
+    this.commandDistance = 0;
+    this.commandHeading = 0;
 	}
 
 	onParamValue(data) {
@@ -18,6 +21,11 @@ export default class TankSteer extends ModuleInterface {
 			// pass onto node for mapping
 		  this.channel.node.updateMapParam('heading', 2, data.values, this.channel.channel, 22);
 		}
+
+    // mode
+    if (data.param == 10 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_UINT8_T) {
+      this.modeSelect.val(data.values[0]);
+    }
 
     this.updateNeeded = true;
   }
@@ -43,7 +51,7 @@ export default class TankSteer extends ModuleInterface {
 		var w = this.ui.width();
 		ctx.canvas.width = w;
 		var cx = w/2;
-    var h = this.ui.height()-15;
+    var h = ctx.canvas.height;
 
 		ctx.fillStyle = '#343a40';
 		ctx.fillRect(0,0,w,h);
@@ -91,7 +99,6 @@ export default class TankSteer extends ModuleInterface {
 
     // calc scaling for radius
     var rMax = Math.min(w/2, h/2) * 0.9;
-    var r = rMax * (Math.min(distance,50) / 50);
 
     // center vector plot
     // -------------------------------------------------
@@ -125,8 +132,8 @@ export default class TankSteer extends ModuleInterface {
 
     // draw current vector
     var ang = currentHeading;
-    var vx = w/2 + r * Math.cos(degreesToRadians(ang-90));
-    var vy = h/2 + r * Math.sin(degreesToRadians(ang-90));
+    var vx = w/2 + rMax * Math.cos(degreesToRadians(ang-90));
+    var vy = h/2 + rMax * Math.sin(degreesToRadians(ang-90));
 
     //var vx = w/2 + turnRate * cw/2;
     //var vy = h/2 - speed * ch/2;
@@ -138,8 +145,28 @@ export default class TankSteer extends ModuleInterface {
     ctx.lineTo(vx, vy);
     ctx.stroke();
 
+
+    // draw command vector
+    ang = this.commandHeading;
+    var r = rMax * (Math.min(this.commandDistance,20) / 20);
+    vx = w/2 + r * Math.cos(degreesToRadians(ang-90));
+    vy = h/2 + r * Math.sin(degreesToRadians(ang-90));
+
+    //var vx = w/2 + turnRate * cw/2;
+    //var vy = h/2 - speed * ch/2;
+
+    ctx.strokeStyle = 'rgba(64,255,255,0.4)';
+    ctx.lineWidth = 4;
+    ctx.setLineDash([8, 4]);
+    ctx.beginPath();
+    ctx.moveTo((bx1+bx2)/2, (by1+by2)/2);
+    ctx.lineTo(vx, vy);
+    ctx.stroke();
+
+
     // draw target vector
     ang = targetHeading;
+    r = rMax * (Math.min(distance,20) / 20);
     vx = w/2 + r * Math.cos(degreesToRadians(ang-90));
     vy = h/2 + r * Math.sin(degreesToRadians(ang-90));
 
@@ -148,6 +175,7 @@ export default class TankSteer extends ModuleInterface {
 
     ctx.strokeStyle = '#5ff';
     ctx.lineWidth = 4;
+    ctx.setLineDash([]);
     ctx.beginPath();
     ctx.moveTo((bx1+bx2)/2, (by1+by2)/2);
     ctx.lineTo(vx, vy);
@@ -162,8 +190,11 @@ export default class TankSteer extends ModuleInterface {
 
 	build() {
 		super.build('TankSteer');
+    var me = this;
 
-		this.modeSelect = $('<select class="custom-select tankSteerModeSelect"></select>');
+    var controlsContainer = $('<div class="form-row mr-1 ml-1" />');
+
+		this.modeSelect = $('<select class="col-8 custom-select tankSteerModeSelect"></select>');
     // add mode options
     this.modeSelect.append($('<option value="0">Manual</option>'));
     this.modeSelect.append($('<option value="1">Automatic</option>'));
@@ -185,8 +216,19 @@ export default class TankSteer extends ModuleInterface {
       qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
 			this.state.send(qm);
     });
+    controlsContainer.append(this.modeSelect);
 
-    this.ui.append(this.modeSelect);
+
+    this.stopBtn = $('<button class="col-4 btn btn-sm btn-danger">Stop</button>');
+    this.stopBtn.on('click', ()=>{
+      this.setAndQueryFloatParam(24, 0);
+      this.commandDistance = 0;
+      this.update();
+    });
+    controlsContainer.append(this.stopBtn);
+
+
+    this.ui.append(controlsContainer);
 
     this.canvas = $('<canvas height=200 />');
     this.canvas.on('click', (e)=>{
@@ -204,47 +246,44 @@ export default class TankSteer extends ModuleInterface {
 			var x = (e.pageX - offsetX) - w/2;
 			var y = (e.pageY - offsetY) - h/2;
 
-      var currentHeading = this.state.getParamValues(node, channel, 22, [0])[0];
+      //var currentHeading = this.state.getParamValues(node, channel, 22, [0])[0];
 
       // convert to angle / distance
       var ang = radiansToDegrees(Math.atan2(y,x)) + 90;
       var targetHeading = ang;
 
-      var distance = 50 * Math.sqrt(x*x, y*y) / rMax;
+      var distance = 20 * Math.sqrt(x*x + y*y) / rMax;
+
+      var s = '';
+      s += 'x: ' + x.toFixed(0)+ '<br/>';
+      s += 'y: ' + y.toFixed(0)+ '<br/>';
+      s += 'Heading: ' + targetHeading.toFixed(0) + '<br/>';
+      s += 'Distance: ' + distance.toFixed(1) + 'm<br/>';
+      this.uiOverlay.html(s);
 
       // 20 = target, 24 = distance
 
-			var qm = new DLM.DroneLinkMsg();
-			qm.node = this.channel.node.id;
-			qm.channel = this.channel.channel;
-			qm.param = 20;
-			qm.setFloat([ targetHeading ]);
-			this.state.send(qm);
+			this.setAndQueryFloatParam(20, targetHeading);
 
-      var qm = new DLM.DroneLinkMsg();
-			qm.node = this.channel.node.id;
-			qm.channel = this.channel.channel;
-			qm.param = 20;
-      qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
-			this.state.send(qm);
-
-			var qm = new DLM.DroneLinkMsg();
-			qm.node = this.channel.node.id;
-			qm.channel = this.channel.channel;
-			qm.param = 24;
-			qm.setFloat([ distance ]);
-			this.state.send(qm);
-
-      var qm = new DLM.DroneLinkMsg();
-			qm.node = this.channel.node.id;
-			qm.channel = this.channel.channel;
-			qm.param = 24;
-      qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
-			this.state.send(qm);
+      this.setAndQueryFloatParam(24, distance);
       
+      this.commandDistance = distance;
+      this.commandHeading = targetHeading;
+      this.update();
 		});
 
+    this.uiOverlay = $('<div style="position:absolute; z-index:1000; padding: 4px 8px; color:white; display:none;">.</div>');
+    this.ui.append(this.uiOverlay);
+
 		this.ui.append(this.canvas);
+
+    // see if we already know key params
+    var node = this.channel.node.id;
+    var channel = this.channel.channel;
+
+    // mode
+    var mode = this.state.getParamValues(node, channel, 10, [0])[0];
+    this.modeSelect.val(mode);
     
     super.finishBuild();
   }
