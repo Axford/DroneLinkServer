@@ -47,7 +47,7 @@ export default class NMEA extends ModuleInterface {
 			if (d < 4) {
 				this.widget.removeClass('warning');
 				this.widget.addClass('danger');
-			} else if (d < 10) {
+			} else if (d < 9) {
 				this.widget.removeClass('danger');
 				this.widget.addClass('warning');
 			} else {

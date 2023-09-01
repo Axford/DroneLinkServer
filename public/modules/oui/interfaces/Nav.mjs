@@ -337,7 +337,6 @@ export default class Nav extends ModuleInterface {
       console.log('Advanced register last');
     } 
 
-
     super.finishBuild();
   }
 }
