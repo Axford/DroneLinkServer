@@ -45,6 +45,14 @@ export default class WaterSensor extends ModuleInterface {
         if (d >= 1) {
           this.widget.removeClass("warning");
           this.widget.addClass("danger");
+
+          // notify!!
+          $(this.node.ui).notify("Water detected!!",  {
+            className: 'error',
+            autoHide:false,
+            arrowShow:false,
+            position:'right'
+          });
         } else {
           this.widget.removeClass("danger");
           this.widget.removeClass("warning");
