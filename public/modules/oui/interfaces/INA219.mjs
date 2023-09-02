@@ -1,7 +1,7 @@
 import ModuleInterface from "./ModuleInterface.mjs";
 import loadStylesheet from "../../loadStylesheet.js";
 import * as DLM from "../../droneLinkMsg.mjs";
-import { degreesToRadians } from '../../navMath.mjs';
+import { degreesToRadians } from "../../navMath.mjs";
 
 //loadStylesheet('./css/modules/interfaces/INA219.css');
 
@@ -69,7 +69,6 @@ export default class INA219 extends ModuleInterface {
     this.updateNeeded = true;
   }
 
-
   update() {
     if (!super.update()) return;
 
@@ -82,7 +81,7 @@ export default class INA219 extends ModuleInterface {
       loadV: this.state.getParamValues(node, channel, 14, [0])[0],
       cellV: this.state.getParamValues(node, channel, 15, [0])[0],
       alarm: this.state.getParamValues(node, channel, 16, [0])[0],
-	  usage: this.state.getParamValues(node, channel, 19, [0])[0]
+      usage: this.state.getParamValues(node, channel, 19, [0])[0],
     };
     ina.capacity = this.estimateCellCapacity(ina.cellV);
 
@@ -93,27 +92,66 @@ export default class INA219 extends ModuleInterface {
     // keep width updated
     var w = this.ui.width();
     ctx.canvas.width = w;
-	var h = this.ui.height();
+    var h = this.ui.height();
 
     ctx.fillStyle = "#343a40";
     ctx.fillRect(0, 0, w, 200);
 
     var mw = w / 4;
-	var hm = (h-20)/3;
+    var hm = (h - 20) / 3;
 
     if (ina.cellV) {
       //this.drawMeter(ina.cellV.toFixed(1), "Cell V", 0, 0, mw, 100);
 
       // capacity
-	  var clr = ina.capacity < 20 ? "#f55" : (ina.capacity<50 ? '#fa5' : '#8f8');
-	  this.drawDialIndicator('cellV', ina.cellV.toFixed(1), ina.capacity, 0, 100, 0,0,w/2,h, clr);
+      var clr =
+        ina.capacity < 20 ? "#f55" : ina.capacity < 50 ? "#fa5" : "#8f8";
+      this.drawDialIndicator(
+        "cellV",
+        ina.cellV.toFixed(1),
+        ina.capacity,
+        0,
+        100,
+        0,
+        0,
+        w / 2,
+        h,
+        clr
+      );
     }
 
-	ctx.textAlign = 'left';
+    ctx.textAlign = "left";
     //if (ina.loadV) this.drawMeterValue(ina.loadV.toFixed(1) + ' V', w/2, 10, w/2, hm-2, '#8F8', 20);
-    if (ina.current) this.drawMeterValue(ina.current.toFixed(2) + ' A', w/2, 10, w/2, hm-2, '#8F8', 20);
-	if (ina.usage) this.drawMeterValue(ina.usage.toFixed(2) + ' Ah', x1, 10 +hm , mw, hm-2, '#8F8', 20);
-    if (ina.power) this.drawMeterValue(ina.power.toFixed(2) + ' W', w/2, 10 + 2*hm, w/2, hm-2, '#8F8', 20);
+    if (ina.current)
+      this.drawMeterValue(
+        ina.current.toFixed(2) + " A",
+        w / 2,
+        10,
+        w / 2,
+        hm - 2,
+        "#8F8",
+        20
+      );
+    if (ina.usage)
+      this.drawMeterValue(
+        ina.usage.toFixed(2) + " Ah",
+        w/2,
+        10 + hm,
+        w/2,
+        hm - 2,
+        "#8F8",
+        20
+      );
+    if (ina.power)
+      this.drawMeterValue(
+        ina.power.toFixed(2) + " W",
+        w / 2,
+        10 + 2 * hm,
+        w / 2,
+        hm - 2,
+        "#8F8",
+        20
+      );
   }
 
   build() {
