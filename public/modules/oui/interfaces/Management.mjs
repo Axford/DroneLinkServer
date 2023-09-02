@@ -31,6 +31,8 @@ export default class Management extends ModuleInterface {
 
     if (!super.update()) return;
 
+    var reset = this.state.getParamValues(node, channel, 10, [0,0,0]);
+
     var c = this.canvas[0];
     var ctx = c.getContext("2d");
 
@@ -103,6 +105,30 @@ export default class Management extends ModuleInterface {
       var ipString = ipAddress.join(".");
       this.drawMeterValueScaled(ipString, 2 * mw, 25, mw, 30, "#8f8");
     }
+
+
+    var rs = '';
+    switch ( reset[1])
+    {
+      case 1 : rs ="POWERON";break;          /**<1, Vbat power on reset*/
+      case 3 : rs ="SW";break;               /**<3, Software reset digital core*/
+      case 4 : rs ="OWDT";break;             /**<4, Legacy watch dog reset digital core*/
+      case 5 : rs ="DEEPSLEEP";break;        /**<5, Deep Sleep reset digital core*/
+      case 6 : rs ="SDIO";break;             /**<6, Reset by SLC module, reset digital core*/
+      case 7 : rs ="TG0WDT_SYS";break;       /**<7, Timer Group0 Watch dog reset digital core*/
+      case 8 : rs ="TG1WDT_SYS";break;       /**<8, Timer Group1 Watch dog reset digital core*/
+      case 9 : rs ="RTCWDT_SYS";break;       /**<9, RTC Watch dog Reset digital core*/
+      case 10 : rs ="INTRUSION";break;       /**<10, Instrusion tested to reset CPU*/
+      case 11 : rs ="TGWDT_CPU";break;       /**<11, Time Group reset CPU*/
+      case 12 : rs ="SW_CPU";break;          /**<12, Software reset CPU*/
+      case 13 : rs ="RTCWDT_CPU";break;      /**<13, RTC Watch dog Reset CPU*/
+      case 14 : rs ="EXT_CPU";break;         /**<14, for APP CPU, reseted by PRO CPU*/
+      case 15 : rs ="RTCWDT_BROWN_OUT";break;/**<15, Reset when the vdd voltage is not stable*/
+      case 16 : rs ="RTCWDT_RTC";break;      /**<16, RTC Watch dog reset digital core and rtc module*/
+      default : rs ="Unknown";
+    }
+
+    this.drawValue(10,60,'Reset Code 0',rs, '#5f5');
   }
 
   onParamValue(data) {
@@ -132,7 +158,7 @@ export default class Management extends ModuleInterface {
     var node = this.channel.node.id;
     var channel = this.channel.channel;
 
-    this.canvas = $('<canvas height=70 class="mb-2" />');
+    this.canvas = $('<canvas height=100 class="mb-2" />');
 
     this.ui.append(this.canvas);
 
