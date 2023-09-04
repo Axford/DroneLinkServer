@@ -185,8 +185,8 @@ export default class HMC5883L extends ModuleInterface {
 
     this.drawArtificialHorizon(pitch, roll, 0, h1, w1, h * 0.4);
 
-    this.drawValue(5,h1,'Pitch',pitch.toFixed(0), '#5f5');
-    this.drawValue(5,h1+40,'Roll',roll.toFixed(0), '#5f5');
+    this.drawValue(5,h1,'Pitch',pitch.toFixed(0), '#8f8');
+    this.drawValue(5,h1+40,'Roll',roll.toFixed(0), '#8f8');
 
 		//ctx.fillStyle = '#343a40';
 		//ctx.fillRect(w/2,0,w1,h);
@@ -214,7 +214,7 @@ export default class HMC5883L extends ModuleInterface {
 
 
     // QUALITY
-    this.drawValue(w/2 + 5,5,'Calibration Quality', rawVector[3].toFixed(0), rawVector[3] > 80 ? '#5f5' : '#f55');
+    this.drawValue(w/2 + 5,5,'Calibration Quality', rawVector[3].toFixed(0), rawVector[3] > 80 ? '#8f8' : '#f55');
 
 
     // 3D

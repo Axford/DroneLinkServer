@@ -128,7 +128,7 @@ export default class Management extends ModuleInterface {
       default : rs ="Unknown";
     }
 
-    this.drawValue(10,60,'Reset Code 0',rs, '#5f5');
+    this.drawValue(10,60,'Reset Code 0',rs, '#8f8');
   }
 
   onParamValue(data) {
