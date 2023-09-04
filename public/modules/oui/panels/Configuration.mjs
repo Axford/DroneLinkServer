@@ -260,6 +260,11 @@ class DroneFSEntry {
     // allocate buffer to hold file data
     this.filedata = new Uint8Array(this.size);
 
+    // init filedata to ????
+    for (var i=0; i<this.filedata.length; i++) {
+      this.filedata[i] = 63;  // ?
+    }
+
     // setup structure to track block download
     this.blocks = [];
     this.numBlocks = Math.ceil(this.size / 32);
@@ -411,6 +416,8 @@ class DroneFSEntry {
 
       // inform manager download is complete
       this.manager.onDownloadComplete(this);
+    } else {
+      this.manager.onDownloadProgress(this, progress/this.numBlocks);
     }
   }
 
@@ -1190,6 +1197,16 @@ export default class Configuration extends Panel {
     */
     this.selectedEntry.download();
   }
+
+
+  onDownloadProgress(entry, progress) {
+    var data = '';
+    for (var i=0; i<entry.filedata.length; i++) {
+      data += String.fromCharCode(entry.filedata[i]);
+    }
+    this.aceEditor.session.setValue(data,-1);
+  }
+
 
   onDownloadComplete(entry) {
     // get data from entry
