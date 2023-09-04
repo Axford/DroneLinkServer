@@ -719,7 +719,7 @@ export default class NodeUI {
 
 
   updateNavMappingStyle(style, update=true) {
-    if (this.navMappingStyle == style) return;
+    if (this.navMappingStyle == style || style === undefined) return;
 
     this.navMappingStyle = style;
     this.settingsChanged = update;
