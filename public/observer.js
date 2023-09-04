@@ -8,7 +8,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.14.0/firebas
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 import { getFirestore,  collection, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.14.0/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, listAll, getBytes } from "https://www.gstatic.com/firebasejs/9.14.0/firebase-storage.js";
+import { getStorage, ref, uploadBytesResumable, listAll, getBytes } from "https://www.gstatic.com/firebasejs/9.14.0/firebase-storage.js";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -46,6 +46,7 @@ var firmwareVersion = '', latestFirmwareVersion = '';
 import UIManager from './modules/oui/UIManager.mjs';
 import NodeUI from './modules/oui/NodeUI.mjs';
 import { controllers, initGamepads } from './modules/gamepads.js';
+import UploadManager from './modules/UploadManager.mjs';
 
 import AisTracker from './modules/oui/AisTracker.mjs';
 var tracker = new AisTracker();
@@ -71,6 +72,8 @@ var networkGraph;
 import AnalysisManager from './modules/oui/AnalysisManager.mjs';
 import Neopixel from './modules/oui/interfaces/Neopixel.mjs';
 var analyser;
+
+var uploadManager;
 
 var liveMode = true;
 
@@ -194,17 +197,13 @@ function saveLog() {
   // generate filename
   var filename = 'logs/' + (new Date(logger.startTime)).toISOString() + '.log';
 
-  const storageRef = ref(storage, filename);
-
   // get blob from logger
   var blob = logger.createBlob();
 
-  // 'file' comes from the Blob or File API
-  uploadBytes(storageRef, blob).then((snapshot) => {
-    console.log('Uploaded a blob or file!');
-    // now reset log contents ready to store some more
-    logger.reset();
-  }); 
+  uploadManager.uploadFile(filename, blob, {});
+
+  // now reset log contents ready to store some more
+  logger.reset();
 }
 
 
@@ -360,6 +359,10 @@ function init() {
   $('.helpHeader button').on('click', ()=>{
     $(".helpContainer").hide();
   });
+
+
+  // configure upload manager
+  uploadManager = new UploadManager(storage, $('#uploadManager'));
 
 
   // view controls

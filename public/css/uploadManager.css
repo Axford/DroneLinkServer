@@ -1,0 +1,38 @@
+#uploadManager {
+
+}
+
+
+.uploadsPanel {
+    position:absolute;
+    display:none;
+    top:40px;
+    right:5px;
+    min-width:400px;
+    padding:8px 8px;
+    background-color: #444a50;
+    z-index:3000;
+    box-shadow: 4px 4px 6px rgba(0,0,0,0.4);
+    border:1px solid #007bff;
+    border-radius: 6px;
+}
+
+.uploadsPanelTitle {
+    font-weight: bold;
+    font-size: 1.2em;
+}
+
+.uploadFrame {
+    border:1px solid #aaa;
+    padding:8px 8px;
+    border-radius: 6px;
+}
+
+.uploadTitle {
+    font-weight: bold;
+}
+
+.uploadStatus {
+    
+}
+
