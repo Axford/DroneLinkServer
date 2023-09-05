@@ -135,7 +135,7 @@ export default class UploadManager {
 
     // build top-nav UI
     this.ui.uploadsBtn = $(
-      '<button class="btn btn-sm btn-secondary mt-1">Uploads</button>'
+      '<button class="btn btn-sm btn-dark mt-1">Uploads</button>'
     );
     this.ui.uploadsBtn.on("click", () => {
       me.togglePanel();
