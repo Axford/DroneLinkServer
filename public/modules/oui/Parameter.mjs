@@ -199,7 +199,6 @@ export default class Parameter {
     this.ui.append(this.uiValues);
 
 
-
     this.channel.parametersTab.append(this.ui);
 
     this.built = true;
@@ -240,9 +239,14 @@ export default class Parameter {
 		}
 
 		// pre-populate current values
+		var paramStr = '';
 		for (var i=0; i<this.eBody.children().length; i++) {
 			this.eBody.children().eq(i).val( this.paramValues[i] );
+			paramStr += this.paramValues[i].toFixed(1) + ',';
 		}
+
+
+		this.eValueStr.html(paramStr);
 
 		this.editor.show();
 	}
@@ -331,6 +335,10 @@ export default class Parameter {
 
 		this.eTitle = $('<div class="modal-title h4"></div>');
 		this.eHeader.append(this.eTitle);
+
+		// value as param string to use in config
+		this.eValueStr = $('<div class="valueStr">xxx</div>');
+		this.eHeader.append(this.eValueStr);
 
 		this.eBody = $('<div class="modal-body"></div>');
 		this.eContent.append(this.eBody);
