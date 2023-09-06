@@ -76,3 +76,15 @@
   grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
   grid-gap: 8px;
 }
+
+.modal.paramEditor input {
+  user-select: contain;
+}
+
+.modal.paramEditor .valueStr {
+  border:1px solid #ccc;
+  background-color: #eee;
+  padding: 2px 4px;
+  user-select: all;
+  border-radius: 4px;
+}

@@ -225,6 +225,8 @@ export default class Parameter {
 
 
 	showEditor() {
+		var me = this;
+
 		if (this.editor == null) {
 			this.buildEditor();
 		}
@@ -235,21 +237,47 @@ export default class Parameter {
 
 		// ensure we have the right number of form inputs
 		while (this.eBody.children().length < (this.paramValues.length)) {
-			this.eBody.append('<input type="text" class="form-control"/>')
+			var input = $('<input type="text" class="form-control"/>');
+			input.change(()=>{
+				me.updateValueStr();
+			});
+			this.eBody.append(input);
 		}
 
 		// pre-populate current values
-		var paramStr = '';
 		for (var i=0; i<this.eBody.children().length; i++) {
-			this.eBody.children().eq(i).val( this.paramValues[i] );
-			paramStr += this.paramValues[i].toFixed(1) + ',';
+			if (this.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
+				this.eBody.children().eq(i).val( this.paramValues[i].toFixed(4));
+			} else {
+				this.eBody.children().eq(i).val( this.paramValues[i] );
+			}
+			
 		}
 
-
-		this.eValueStr.html(paramStr);
+		this.updateValueStr();
 
 		this.editor.show();
 	}
+
+
+	updateValueStr() {
+		var paramStr = '';
+		for (var i=0; i<this.eBody.children().length; i++) {
+			if (paramStr != '') paramStr += ', ';
+			if (this.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
+				paramStr += parseFloat(this.eBody.children().eq(i).val()).toFixed(4);
+			} else {
+				paramStr += this.eBody.children(i).eq(i).val();
+			}
+			
+		}
+		paramStr = this.title + ' = ' + paramStr;
+
+		navigator.clipboard.writeText(paramStr);
+
+		this.eValueStr.html(paramStr);
+	}
+
 
 	saveParam() {
 		this.editor.hide();
