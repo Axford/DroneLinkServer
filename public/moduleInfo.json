@@ -539,18 +539,18 @@
             "../DroneNode/src/droneModules/I2CBaseModule.h"
         ]
     },
-    "I2CCOMPASS": {
+    "I2CCompass": {
         "type": [
-            "I2CCOMPASS"
+            "I2CCompass"
         ],
         "inherits": [
             "I2CBase"
         ],
         "description": [
-            "Manages a generic I2C Compass, to be implemented in a concrete class e.g. I2CCOMPASS"
+            "Manages a generic I2C Compass, to be implemented in a concrete class e.g. I2CCompass"
         ],
         "config": [
-            "[I2CCOMPASS = 6]\n  name=\"Compass\"\n  interval= 50\n  calibX= -6,0,6\n  calibY= -6,0,6\n  calibZ=-6,0,6\n  trim= 180\n  location= -1.8, 52, 100\n  mode=1\n  centre = -3.188, 4.167, -0.1043\n  $location = @>GPS.location\n  $roll = @>MPU6050.roll\n  $pitch = @>MPU6050.pitch\n  publish =heading, vector, calibX, calibY, calibZ\n  publish = trim, mode, roll, pitch, raw"
+            "[I2CCompass = 6]\n  name=\"Compass\"\n  interval= 50\n  calibX= -6,0,6\n  calibY= -6,0,6\n  calibZ=-6,0,6\n  trim= 180\n  location= -1.8, 52, 100\n  mode=1\n  centre = -3.188, 4.167, -0.1043\n  $location = @>GPS.location\n  $roll = @>MPU6050.roll\n  $pitch = @>MPU6050.pitch\n  publish =heading, vector, calibX, calibY, calibZ\n  publish = trim, mode, roll, pitch, raw"
         ],
         "pub": [
             {
@@ -942,7 +942,7 @@
                 "address": 14,
                 "type": "f",
                 "numValues": 1,
-                "name": "rol",
+                "name": "roll",
                 "description": "Roll angle in degrees, negative values are roll right"
             },
             {
