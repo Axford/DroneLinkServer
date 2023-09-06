@@ -10,6 +10,16 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.14.0/firebas
 import { getFirestore,  collection, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.14.0/firebase-firestore.js";
 import { getStorage, ref, uploadBytesResumable, listAll, getBytes } from "https://www.gstatic.com/firebasejs/9.14.0/firebase-storage.js";
 
+Date.prototype.yyyymmdd = function() {
+  var mm = this.getMonth() + 1; // getMonth() is zero-based
+  var dd = this.getDate();
+
+  return [this.getFullYear(),
+          (mm>9 ? '' : '0') + mm,
+          (dd>9 ? '' : '0') + dd
+         ].join('');
+};
+
 // Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyCk0qtHjpFO90FBXJtqXVPB2RSBc8b2e_g",
@@ -77,8 +87,8 @@ var uploadManager;
 
 var liveMode = true;
 
-var parsedLog = [];
-var logMarkers = [];
+// indexed by day
+var loadedLogs = {};
 
 // give UI manager a reference to the nodes collection
 var uiManager = new UIManager(nodes);
@@ -212,32 +222,61 @@ function saveLog() {
 async function loadLogs() {
 
   // clear selection
-  $('#logSelect').empty();
+  $('#logSelect').html('Loading...');
+
 
   // Create a reference under which you want to list
   const listRef = ref(storage, 'logs');
 
+  var dayList = [];
+
   // Find all the prefixes and items.
   listAll(listRef)
     .then((res) => {
-      res.prefixes.forEach((folderRef) => {
-        // All the prefixes under listRef.
-        // You may call listAll() recursively on them.
-      });
       res.items.forEach((itemRef) => {
         // All the items under listRef.
         console.log(itemRef.name);
         var dateStr = itemRef.name.slice(0,-4);
         var fileDate = new Date(dateStr);
 
-        var niceName = fileDate.toString().slice(0,24);
+        //var niceName = fileDate.toString().slice(0,24);
+
+        var index = fileDate.yyyymmdd();
+
+        if (!loadedLogs.hasOwnProperty(index)) {
+          loadedLogs[index] = {
+            items: [],
+            fileDate: fileDate // only interested in the day part
+          };
+          dayList.push(index);
+        }
+
+        loadedLogs[index].items.push({
+          fullPath: itemRef.fullPath,
+          fileDate: fileDate
+        });
 
         // add to selection box
-        var option = $('<option value="'+itemRef.fullPath+'">'+niceName+'</option>');
-        $('#logSelect').append(option);
+        //var option = $('<a class="dropdown-item" href="#" value="'+itemRef.fullPath+'">'+niceName+'</a>');
+        //$('#logSelectMenu').append(option);
       });
 
-      $('#logSelect').val('');
+      // sort dayList
+      dayList.sort();
+
+      // build 
+      var menu = $('#logSelectMenu');
+      //menu.empty();
+
+      dayList.forEach((dayCode)=>{
+        var option = $('<a class="dropdown-item" href="#">'+dayCode+'</a>');
+        //menu.append(option);
+      });
+
+
+      $('#logSelect').html('Select a log');
+
+      //$('#logSelect').val('');
     }).catch((error) => {
       // Uh-oh, an error occurred!
       console.error(error);
