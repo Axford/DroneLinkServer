@@ -57,6 +57,7 @@ import UIManager from './modules/oui/UIManager.mjs';
 import NodeUI from './modules/oui/NodeUI.mjs';
 import { controllers, initGamepads } from './modules/gamepads.js';
 import UploadManager from './modules/UploadManager.mjs';
+import LogManager from './modules/LogManager.mjs';
 
 import AisTracker from './modules/oui/AisTracker.mjs';
 var tracker = new AisTracker();
@@ -80,15 +81,11 @@ import NetManager from './modules/oui/NetManager.mjs';
 var networkGraph;
 
 import AnalysisManager from './modules/oui/AnalysisManager.mjs';
-import Neopixel from './modules/oui/interfaces/Neopixel.mjs';
 var analyser;
 
-var uploadManager;
+var uploadManager, logManager;
 
 var liveMode = true;
-
-// indexed by day
-var loadedLogs = {};
 
 // give UI manager a reference to the nodes collection
 var uiManager = new UIManager(nodes);
@@ -219,86 +216,7 @@ function saveLog() {
 
 
 
-async function loadLogs() {
 
-  // clear selection
-  $('#logSelect').html('Loading...');
-
-
-  // Create a reference under which you want to list
-  const listRef = ref(storage, 'logs');
-
-  var dayList = [];
-
-  // Find all the prefixes and items.
-  listAll(listRef)
-    .then((res) => {
-      res.items.forEach((itemRef) => {
-        // All the items under listRef.
-        console.log(itemRef.name);
-        var dateStr = itemRef.name.slice(0,-4);
-        var fileDate = new Date(dateStr);
-
-        //var niceName = fileDate.toString().slice(0,24);
-
-        var index = fileDate.yyyymmdd();
-
-        if (!loadedLogs.hasOwnProperty(index)) {
-          loadedLogs[index] = {
-            items: [],
-            fileDate: fileDate // only interested in the day part
-          };
-          dayList.push(index);
-        }
-
-        loadedLogs[index].items.push({
-          fullPath: itemRef.fullPath,
-          fileDate: fileDate
-        });
-
-        // add to selection box
-        //var option = $('<a class="dropdown-item" href="#" value="'+itemRef.fullPath+'">'+niceName+'</a>');
-        //$('#logSelectMenu').append(option);
-      });
-
-      // sort dayList
-      dayList.sort();
-
-      // build 
-      var menu = $('#logSelectMenu');
-      //menu.empty();
-
-      dayList.forEach((dayCode)=>{
-        var option = $('<a class="dropdown-item" href="#">'+dayCode+'</a>');
-        //menu.append(option);
-      });
-
-
-      $('#logSelect').html('Select a log');
-
-      //$('#logSelect').val('');
-    }).catch((error) => {
-      // Uh-oh, an error occurred!
-      console.error(error);
-    });
-}
-
-
-async function loadLog(filePath) {
-  const docRef = ref(storage, filePath);
-
-  getBytes(docRef)
-    .then((buffer)=>{
-      // pass to logger to load and playback
-      logger.loadFromBuffer(buffer);
-
-      if (resumeLogPlayback) logger.play();
-    })
-    .catch((error) => {
-      // Uh-oh, an error occurred!
-      console.error(error);
-    });
-}
 
 
 function calculateDistanceBetweenCoordinates( p1, p2) {
@@ -403,6 +321,14 @@ function init() {
   // configure upload manager
   uploadManager = new UploadManager(storage, $('#uploadManager'));
 
+  // configure logManager
+  logManager = new LogManager(storage, $('#logManager'));
+  logManager.on('logLoaded', (buffer)=>{
+    // pass to logger to load and playback
+    logger.loadFromBuffer(buffer);
+
+    if (resumeLogPlayback) logger.play();
+  });
 
   // view controls
   $('#viewMapButton').on('click', ()=>{
@@ -495,7 +421,7 @@ function init() {
       $('.logPlaybackControls').show();
 
       // load logs
-      loadLogs();
+      logManager.loadLogs();
 
     } else {
       // switch to liveMode
@@ -530,10 +456,6 @@ function init() {
     logger.forward();
   });
 
-  $('#logSelect').on('change', function() {
-    loadLog(this.value);
-  });
-
   logger.on('status', ()=>{
     // update recording status
     $('#logRecordButton').html(logger.recording ? '<i class="fas fa-stop"></i>' : '<i class="fas fa-circle"></i>');
@@ -565,15 +487,8 @@ function init() {
   logger.on('EOF', ()=>{
     // load next log file...
     resumeLogPlayback = true;
-    // current index
-    var index = $('#logSelect').prop('selectedIndex');
-    // number of options
-    var numOptions = $('#logSelect option').length;
-    index++;
-    if (index < numOptions) {
-      $('#logSelect option')[index].selected = true;
-      $('#logSelect').change();
-    }
+    
+    logManager.selectNextLog();
   });
 
   // load last position from local storage
