@@ -14,6 +14,12 @@ import {calculateDistanceBetweenCoordinates} from "../../navMath.mjs";
 
 loadStylesheet('./css/modules/oui/panels/Configuration.css');
 
+
+const DRONE_FS_UPLOAD_STATE_NONE       =0;  // no upload initiated, buffer is null
+const DRONE_FS_UPLOAD_STATE_WIP        =1;  // upload initiated and in progress
+const DRONE_FS_UPLOAD_STATE_COMPLETE   =2; 
+
+
 //--------------------------------------------------------
 // DroneFSEntry
 //--------------------------------------------------------
@@ -178,8 +184,8 @@ class DroneFSEntry {
   }
 
 
-  enumerate() {
-    if (this.enumerated) return;
+  enumerate(redo) {
+    if (this.enumerated && (!redo)) return;
 
     // get info about self
     this.getNodeFileByPath(this.fullpath);
@@ -940,12 +946,24 @@ export default class Configuration extends Panel {
 
     this.build();
 
+    this.socket = this.node.state.socket;
+
     this.root = new DroneFSEntry(this, this.node.state.socket, this.node.id, null, '/', true, this.cuiFilesOnNodeFiles);
 
     this.serverRoot = new ServerFSEntry(this, this.node.state.db, this.node.id, null, '/', true, this.cuiFilesOnServerFiles);
 
     this.selectedEntry = null;
     this.selectedServerEntry = null;
+
+    // for upload to node mgmt
+    this.uploadSize = 0;
+    this.uploadBlocks = [];
+    this.numUploadBlocks = 0;
+    this.uploading = false;
+    this.uploadState = 0;  // 0 = pending, 1 = in progress, 2 = waiting for confirmation
+    this.uploadStarted = 0; // time
+    this.uploadData = null;
+    this.uploadPath = '';
   }
 
 
@@ -1049,7 +1067,9 @@ export default class Configuration extends Panel {
     this.cuiFilesOnNodeFiles = $('<div class="files"></div>');
     this.cuiFilesOnNode.append(this.cuiFilesOnNodeFiles);
 
-
+    // upload management
+    this.cuiUploadToNode = $('<canvas class="upload" height="10" style="display:none;"></canvas>');
+    this.cuiFilesOnNode.append(this.cuiUploadToNode);
 
     // file editor block
     this.cuiEditorBlock = $('<div class="editorBlock" ></div>');
@@ -1131,17 +1151,17 @@ export default class Configuration extends Panel {
     });
 
 
-    this.node.state.socket.on('fs.resize.response', (data)=>{
+    this.node.state.socket.on('fs.manage.response', (data)=>{
       // see if it's for us
       if (data.node != this.node.id) return;
 
       // hydrate
-      data.payload = new DMFS.DroneMeshFSResizeResponse(data.payload);
+      data.payload = new DMFS.DroneMeshFSManageResponse(data.payload);
 
-      console.log('fs.resize.response: ' + data.node + '=>' + data.payload.toString());
+      console.log('fs.manage.response: ' + data.node + '=>' + data.payload.toString());
 
       // pass to root to handle
-      this.root.handleResizeResponse(data.payload);
+      this.handleManageResponse(data.payload);
     });
 
 
@@ -1155,7 +1175,7 @@ export default class Configuration extends Panel {
       console.log('fs.write.response: ' + data.node + '=>' + data.payload.toString());
 
       // pass to root to handle
-      this.root.handleWriteResponse(data.payload);
+      this.handleWriteResponse(data.payload);
     });
   }
 
@@ -1166,9 +1186,7 @@ export default class Configuration extends Panel {
 
   show() {
     super.show();
-    if (!this.root.enumerated) {
-      this.root.enumerate();
-    }
+    this.root.enumerate(false);
     this.serverRoot.enumerate();
   }
 
@@ -1183,7 +1201,7 @@ export default class Configuration extends Panel {
   }
 
   getNodeFileList() {
-    this.root.enumerate();
+    this.root.enumerate(true);
   }
 
 
@@ -1244,30 +1262,244 @@ export default class Configuration extends Panel {
 
 
   saveFileToNode() {
+    if (this.uploading) {
+      this.cuiFilesOnNode.notify("Upload already in progress",  {
+        className: 'error',
+        autoHide:false,
+        arrowShow:false,
+        position:'bottom'
+      });
+
+      return;
+    }
+
     var contents = this.aceEditor.session.getValue();
-    var path = this.cuiEditorTitle.val();
+    this.uploadPath = this.cuiEditorTitle.val();
 
     // convert to buffer
-    var buffer = new Uint8Array(contents.length);
-    for (var i=0; i<buffer.length; i++) {
-      buffer[i] = contents.charCodeAt(i);
+    this.uploadSize = contents.length;
+    this.uploadData = new Uint8Array(this.uploadSize);
+    for (var i=0; i<this.uploadData.length; i++) {
+      this.uploadData[i] = contents.charCodeAt(i);
     }
 
-    // locate an entry
-    var entry = this.root.findEntryByPath(path)
-    if (entry != null) {
-      this.root.select(entry);
-      this.selectedEntry = entry;
-      entry.upload(buffer);
+    // prep blocks
+    this.uploadBlocks = [];
+    this.numUploadBlocks = Math.ceil(this.uploadSize / 32);
+    for (var i=0; i<this.numUploadBlocks; i++) {
+      this.uploadBlocks.push({
+        offset: i * 32,
+        sent:false,
+        sentTime:Date.now(),
+        written:false,
+        error:false
+      });
+    }
+
+    this.uploading = true;
+    this.uploadState = 0;
+    this.uploadStarted = Date.now();
+
+    this.cuiUploadToNode.show();
+
+    // initiate upload
+    this.startUpload();
+
+    this.uploadInterval = setInterval(()=>{
+      this.monitorUpload();
+    }, 100);
+  }
+
+
+  sendUploadBlock(offset) {
+    var qm = new DMFS.DroneMeshFSWriteRequest();
+    qm.offset = offset;
+
+    // calc size
+    qm.size = Math.min(32, this.uploadSize - offset);
+
+    // copy to data to buffer
+    for (var i=0; i<qm.size; i++) {
+      qm.data[i] = this.uploadData[offset + i];
+    }
+
+    var data = {
+      node: this.node.id,
+      payload: qm.encode()
+    };
+
+    console.log('Emitting fs.write.request: ' + qm.toString() );
+    this.socket.emit('fs.write.request', data);
+  }
+
+
+  sendManageRequest(flags) {
+    var qm = new DMFS.DroneMeshFSManageRequest();
+    qm.flags = flags;
+    qm.path = this.uploadPath;
+    qm.size = this.uploadSize;
+
+    var data = {
+      node: this.node.id,
+      payload: qm.encode()
+    };
+
+    console.log('Emitting fs.manage.request: ' + qm.toString() );
+    this.socket.emit('fs.manage.request', data);
+  }
+
+  uploadError(msg) {
+    // abort upload
+    this.cuiFilesOnNode.notify("Error uploading file: " + msg,  {
+      className: 'error',
+      autoHide:false,
+      arrowShow:false,
+      position:'bottom'
+    });
+
+    // reset state
+    this.uploading = false;
+    this.uploadState = 0;
+
+    console.error('Error uploading file: '  +msg);
+  }
+
+
+  handleManageResponse(fr) {
+    // did we get an error ?
+    if (fr.flags == DMFS.DRONE_MESH_MSG_FS_FLAG_ERROR) {
+      this.uploadError('General upload error');
 
     } else {
-      // or create a new one!
-      // ?
+      // check status
+      if (fr.status == DRONE_FS_UPLOAD_STATE_NONE) {
+        if (this.uploadState == 0) {
+          // if it was in response to a start request, then we failed to allocate memory
+          this.uploadError('Failed to initiate upload');
 
+        } else if (this.uploadState == 2) {
+          // if this was in response to a save operation, then we are done 
+          clearInterval(this.uploadInterval);
+          this.uploading = false;
+          this.cuiUploadToNode.hide();
+
+          // re-enumerate node filesystem
+          this.getNodeFileList();
+
+          this.cuiFilesOnNode.notify("Upload complete",  {
+            className: 'success',
+            autoHide:false,
+            arrowShow:false,
+            position:'bottom'
+          });
+        }
+
+      } else if (fr.status == DRONE_FS_UPLOAD_STATE_WIP) {
+        // good to write blocks
+        this.uploadState = 1;
+      }; 
+    }
+  }
+
+
+  handleWriteResponse(fr) {
+    var blockIndex = Math.floor(fr.offset / 32);
+
+    // check size
+    if (fr.flags == DMFS.DRONE_MESH_MSG_FS_FLAG_SUCCESS) {
+      this.uploadBlocks[blockIndex].written = true;
+
+    } else {
+      // error retrieving block
+      this.uploadBlocks[blockIndex].written = false;
+      this.uploadBlocks[blockIndex].error = true;
+    }
+  }
+
+
+  startUpload() {
+    this.uploadState = 0;  // pending confirmation
+    this.sendManageRequest(DMFS.DRONE_MESH_MSG_FS_FLAG_START);
+  }
+
+
+  monitorUpload() {
+    if (!this.uploading) return;
+
+    var loopTime = Date.now();
+
+    if (this.uploadState == 1) {
+      // check status and send blocks if we have capacity
+      var requested = 0;
+      for (var i=0; i<this.numUploadBlocks; i++) {
+        if (requested > 0) break;
+
+        if (!this.uploadBlocks[i].error && !this.uploadBlocks[i].written) {
+          var doRequest = false;
+          if (this.uploadBlocks[i].sent) {
+            requested++;
+            // check timer
+            if (loopTime > this.uploadBlocks[i].sentTime + 2000) {
+              // re-request the block
+              doRequest = true;
+            }
+          } else {
+            // request the block
+            doRequest = true;
+            requested++;
+          }
+          if (doRequest) {
+            this.uploadBlocks[i].sent = true;
+            this.uploadBlocks[i].sentTime = loopTime;
+            this.sendUploadBlock(this.uploadBlocks[i].offset);
+          }
+        }
+      }
     }
 
-    
+
+    // render progress
+    var c = this.cuiUploadToNode[0];
+		var ctx = c.getContext("2d");
+
+    // keep width updated
+    var w = this.cuiUploadToNode.width();
+    ctx.canvas.width = w;
+    var h = this.cuiUploadToNode.height();
+
+    ctx.fillStyle = '#343a40';
+		ctx.fillRect(0,0,w,h);
+
+    var bw = w / this.numUploadBlocks;
+    var progress = 0;
+    for (var i=0; i<this.numUploadBlocks; i++) {
+      var x1 = w * (i/(this.numUploadBlocks));
+
+      if (this.uploadBlocks[i].error) {
+        ctx.fillStyle = '#f55';
+        ctx.fillRect(x1,0,bw,h);
+      }  else if (this.uploadBlocks[i].written) {
+        ctx.fillStyle = '#5f5';
+        ctx.fillRect(x1,0,bw,h);
+        progress++;
+      } else if (this.uploadBlocks[i].sent) {
+        var age = 1 - (loopTime - this.uploadBlocks[i].sentTime)/2000;
+
+        ctx.fillStyle = 'rgba(255,190,50, '+(age).toFixed(2)+')';
+        ctx.fillRect(x1,0,bw,h);
+      }
+    }
+
+    var complete = progress == this.numUploadBlocks;
+
+    if (complete && (this.uploadState != 2)) {
+      this.uploadState = 2;  // complete, waiting for confirmation of save to disk
+
+      // send completion packet
+      this.sendManageRequest(DMFS.DRONE_MESH_MSG_FS_FLAG_SAVE);
+    }
   }
+
 
   saveFileToServer() {
     var contents = this.aceEditor.session.getValue();

@@ -48,8 +48,8 @@ export const DRONE_MESH_MSG_TYPE_FIRMWARE_REWIND          =25;
 // filesystem messages
 export const DRONE_MESH_MSG_TYPE_FS_FILE_REQUEST          =10;
 export const DRONE_MESH_MSG_TYPE_FS_FILE_RESPONSE         =11;
-export const DRONE_MESH_MSG_TYPE_FS_RESIZE_REQUEST        =12;
-export const DRONE_MESH_MSG_TYPE_FS_RESIZE_RESPONSE       =13;
+export const DRONE_MESH_MSG_TYPE_FS_MANAGE_REQUEST        =12;
+export const DRONE_MESH_MSG_TYPE_FS_MANAGE_RESPONSE       =13;
 export const DRONE_MESH_MSG_TYPE_FS_READ_REQUEST          =14;
 export const DRONE_MESH_MSG_TYPE_FS_READ_RESPONSE         =15;
 export const DRONE_MESH_MSG_TYPE_FS_WRITE_REQUEST         =16;
@@ -169,7 +169,7 @@ export class DroneMeshMsg {
   setPriorityAndType(p,t) {
     this.priorityType = (p << 6) | t;
   }
-
+å
   getTypeName() {
     switch(this.getPayloadType()) {
       case DRONE_MESH_MSG_TYPE_HELLO: return 'Hello';
@@ -199,8 +199,8 @@ export class DroneMeshMsg {
       case DRONE_MESH_MSG_TYPE_FS_FILE_RESPONSE: return 'FS File Response';
       case DRONE_MESH_MSG_TYPE_FS_READ_REQUEST: return 'FS Read Request';
       case DRONE_MESH_MSG_TYPE_FS_READ_RESPONSE: return 'FS Read Response';
-      case DRONE_MESH_MSG_TYPE_FS_RESIZE_REQUEST: return 'FS Resize Request';
-      case DRONE_MESH_MSG_TYPE_FS_RESIZE_RESPONSE: return 'FS Resize Response';
+      case DRONE_MESH_MSG_TYPE_FS_MANAGE_REQUEST: return 'FS Manage Request';
+      case DRONE_MESH_MSG_TYPE_FS_MANAGE_RESPONSE: return 'FS Manage Response';
       case DRONE_MESH_MSG_TYPE_FS_WRITE_REQUEST: return 'FS Write Request';
       case DRONE_MESH_MSG_TYPE_FS_WRITE_RESPONSE: return 'FS Write Response';
 

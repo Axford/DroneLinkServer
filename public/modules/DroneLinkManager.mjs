@@ -695,13 +695,13 @@ export default class DroneLinkManager {
   }
 
 
-  sendFSResizeRequest(data) {
+  sendFSManageRequest(data) {
     // msg.node = target, msg.payload = DMFS request
 
     // hydrate payload
-    data.payload = new DMFS.DroneMeshFSResizeRequest(data.payload);
+    data.payload = new DMFS.DroneMeshFSManageRequest(data.payload);
 
-    this.clog('fs.resize.request: '+data.node + '=> '+data.payload.toString());
+    this.clog('fs.manage.request: '+data.node + '=> '+data.payload.toString());
 
     var nodeInfo = this.getNodeInfo(data.node, false);
     if (!nodeInfo) return;
@@ -712,7 +712,7 @@ export default class DroneLinkManager {
     var buffer = this.getTransmitBuffer(nodeInfo.netInterface, p);
     if (buffer) {
       var msg = buffer.msg;
-      var payloadSize = DMFS.DRONE_MESH_MSG_FS_RESIZE_REQUEST_SIZE;
+      var payloadSize = DMFS.DRONE_MESH_MSG_FS_MANAGE_REQUEST_SIZE;
 
       msg.typeGuaranteeSize = g | (payloadSize-1);
       msg.txNode = this.node;
@@ -720,7 +720,7 @@ export default class DroneLinkManager {
       msg.nextNode = nodeInfo.nextHop;
       msg.destNode = data.node;
       msg.seq = this.gSeq;
-      msg.setPriorityAndType(p, DMM.DRONE_MESH_MSG_TYPE_FS_RESIZE_REQUEST);
+      msg.setPriorityAndType(p, DMM.DRONE_MESH_MSG_TYPE_FS_MANAGE_REQUEST);
 
       this.gSeq++;
       if (this.gSeq > 255) this.gSeq = 0;
@@ -990,7 +990,7 @@ export default class DroneLinkManager {
 
               case DMM.DRONE_MESH_MSG_TYPE_FS_READ_RESPONSE: this.receiveFSReadResponse(netInterface, msg, metric); break;
 
-              case DMM.DRONE_MESH_MSG_TYPE_FS_RESIZE_RESPONSE: this.receiveFSResizeResponse(netInterface, msg, metric); break;
+              case DMM.DRONE_MESH_MSG_TYPE_FS_MANAGE_RESPONSE: this.receiveFSManageResponse(netInterface, msg, metric); break;
 
               case DMM.DRONE_MESH_MSG_TYPE_FS_WRITE_RESPONSE: this.receiveFSWriteResponse(netInterface, msg, metric); break;
 
@@ -1417,25 +1417,25 @@ export default class DroneLinkManager {
   }
 
 
-  receiveFSResizeResponse(netInterface, msg, metric) {
+  receiveFSManageResponse(netInterface, msg, metric) {
     var loopTime = Date.now();
 
     if (this.logOptions.FS)
-      this.clog(('  FS Resize Response from '+msg.srcNode + ', tx by '+msg.txNode).green);
+      this.clog(('  FS Manage Response from '+msg.srcNode + ', tx by '+msg.txNode).green);
 
     // are we the destination?
     if (msg.destNode == this.node) {
       try {
         // unwrap contained msg
-        var fsr = new DMFS.DroneMeshFSResizeResponse( msg.rawPayload );
+        var fsr = new DMFS.DroneMeshFSManageResponse( msg.rawPayload );
 
         // publish
-        if (this.io) this.io.emit('fs.resize.response', {
+        if (this.io) this.io.emit('fs.manage.response', {
           node:msg.srcNode,
           payload:fsr.encode()
         });
       } catch(err) {
-        this.clog(('ERROR in receiveFSResizeResponse: '+err).red);
+        this.clog(('ERROR in receiveFSManageResponse: '+err).red);
       }
     }
   }

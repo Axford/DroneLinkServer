@@ -5,11 +5,23 @@ export const DRONE_MESH_MSG_FS_MAX_PATH_SIZE       =24  // inc null termination
 
 export const DRONE_MESH_MSG_FS_FLAG_PATH_INFO      =0;
 export const DRONE_MESH_MSG_FS_FLAG_INDEX_INFO     =1;
+export const DRONE_MESH_MSG_FS_FLAG_DELETE         =2;
 
+export const DRONE_MESH_MSG_FS_FLAG_SUCCESS        =0;
 export const DRONE_MESH_MSG_FS_FLAG_DIRECTORY      =4;
 export const DRONE_MESH_MSG_FS_FLAG_FILE           =5;
 export const DRONE_MESH_MSG_FS_FLAG_NOT_FOUND      =6;
 export const DRONE_MESH_MSG_FS_FLAG_ERROR          =7;
+
+
+// Manage Request flags
+export const DRONE_MESH_MSG_FS_FLAG_START          =0;
+export const DRONE_MESH_MSG_FS_FLAG_QUERY          =1;
+export const DRONE_MESH_MSG_FS_FLAG_SAVE           =2;
+
+// Manage Response flags
+export const DRONE_MESH_MSG_FS_FLAG_WIP            =8;  // transfer in progress
+export const DRONE_MESH_MSG_FS_FLAG_READY          =9;  // all blocks written, ready to save to disk
 
 
 // ----------------------------------------------------------------------------
@@ -20,8 +32,8 @@ export const DRONE_MESH_MSG_FS_FILE_REQUEST_SIZE = DRONE_MESH_MSG_FS_MAX_PATH_SI
 export class DroneMeshFSFileRequest {
 
   constructor(buffer) {
-    this.flags = 0;
-    this.id = 0;
+    this.flags = 0;  // DRONE_MESH_MSG_FS_FLAG_PATH_INFO | DRONE_MESH_MSG_FS_FLAG_INDEX_INFO | DRONE_MESH_MSG_FS_FLAG_DELETE
+    this.id = 0;  // index of file in directory (subject to flags)
     this.path = '';
 
     if (buffer) this.parse(buffer);
@@ -249,14 +261,15 @@ export class DroneMeshFSReadResponse {
 
 
 // ----------------------------------------------------------------------------
-// DRONE_MESH_MSG_TYPE_FS_RESIZE_REQUEST
+// DRONE_MESH_MSG_TYPE_FS_MANAGE_REQUEST
 // ----------------------------------------------------------------------------
 
-export const DRONE_MESH_MSG_FS_RESIZE_REQUEST_SIZE = DRONE_MESH_MSG_FS_MAX_PATH_SIZE + 4;
+export const DRONE_MESH_MSG_FS_MANAGE_REQUEST_SIZE = DRONE_MESH_MSG_FS_MAX_PATH_SIZE + 4 + 1;
 
-export class DroneMeshFSResizeRequest {
+export class DroneMeshFSManageRequest {
 
   constructor(buffer) {
+    this.flags= 0;
     this.size = 0;
     this.path = '';
 
@@ -265,12 +278,13 @@ export class DroneMeshFSResizeRequest {
 
   parse(rawBuffer) {
     var buffer = new Uint8Array(rawBuffer, 0);
+    this.flags = buffer[0]
     // little endian byte order
-    this.size = (buffer[3] << 24) + (buffer[2] << 16) + (buffer[1] << 8) + buffer[0];
+    this.size = (buffer[4] << 24) + (buffer[3] << 16) + (buffer[2] << 8) + buffer[1];
 
     // parse path
     this.path = '';
-    var p = 4;
+    var p = 5;
     for (var i=0; i<DRONE_MESH_MSG_FS_MAX_PATH_SIZE; i++) {
       if (buffer[p] > 0) {
         this.path += String.fromCharCode(buffer[p]);
@@ -282,21 +296,23 @@ export class DroneMeshFSResizeRequest {
   }
 
   toString() {
-    return this.path + ', size: '+this.size;
+    return this.path + ', size: '+this.size + ', flags: ' + this.flags;
   }
 
   encode() {
     // return Uint8Array
-    var buffer = new Uint8Array(DRONE_MESH_MSG_FS_RESIZE_REQUEST_SIZE);
+    var buffer = new Uint8Array(DRONE_MESH_MSG_FS_MANAGE_REQUEST_SIZE);
+
+    buffer[0] = this.flags;
 
     // little endian byte order
-    buffer[3] = (this.size >> 24) & 0xFF;
-    buffer[2] = (this.size >> 16) & 0xFF;
-    buffer[1] = (this.size >> 8) & 0xFF;
-    buffer[0] = (this.size) & 0xFF;
+    buffer[4] = (this.size >> 24) & 0xFF;
+    buffer[3] = (this.size >> 16) & 0xFF;
+    buffer[2] = (this.size >> 8) & 0xFF;
+    buffer[1] = (this.size) & 0xFF;
 
     // encode path
-    var p = 4;
+    var p = 5;
     for (var i=0; i<this.path.length; i++) {
       buffer[p] = this.path.charCodeAt(i);
       p++;
@@ -311,60 +327,37 @@ export class DroneMeshFSResizeRequest {
 
 
 // ----------------------------------------------------------------------------
-// DRONE_MESH_MSG_TYPE_FS_RESIZE_RESPONSE
+// DRONE_MESH_MSG_TYPE_FS_MANAGE_RESPONSE
 // ----------------------------------------------------------------------------
 
-export const DRONE_MESH_MSG_FS_RESIZE_RESPONSE_SIZE = DRONE_MESH_MSG_FS_MAX_PATH_SIZE + 4;
+export const DRONE_MESH_MSG_FS_MANAGE_RESPONSE_SIZE = 2;
 
-export class DroneMeshFSResizeResponse {
+export class DroneMeshFSManageResponse {
 
   constructor(buffer) {
-    this.size = 0;
-    this.path = '';
+    this.flags = 0;
+    this.status = 0;
 
     if (buffer) this.parse(buffer);
   }
 
   parse(rawBuffer) {
     var buffer = new Uint8Array(rawBuffer, 0);
-    // little endian byte order
-    this.size = (buffer[3] << 24) + (buffer[2] << 16) + (buffer[1] << 8) + buffer[0];
-
-    // parse path
-    this.path = '';
-    var p = 4;
-    for (var i=0; i<DRONE_MESH_MSG_FS_MAX_PATH_SIZE; i++) {
-      if (buffer[p] > 0) {
-        this.path += String.fromCharCode(buffer[p]);
-      } else {
-        break;
-      }
-      p++;
-    }
+    
+    this.flags = buffer[0];
+    this.status = buffer[1];
   }
 
   toString() {
-    return this.path + ', size: '+this.size;
+    return 'flags: '+this.flags + ', status: ' + this.status;
   }
 
   encode() {
     // return Uint8Array
-    var buffer = new Uint8Array(DRONE_MESH_MSG_FS_RESIZE_RESPONSE_SIZE);
+    var buffer = new Uint8Array(DRONE_MESH_MSG_FS_MANAGE_RESPONSE_SIZE);
 
-    // little endian byte order
-    buffer[3] = (this.size >> 24) & 0xFF;
-    buffer[2] = (this.size >> 16) & 0xFF;
-    buffer[1] = (this.size >> 8) & 0xFF;
-    buffer[0] = (this.size) & 0xFF;
-
-    // encode path
-    var p = 4;
-    for (var i=0; i<this.path.length; i++) {
-      buffer[p] = this.path.charCodeAt(i);
-      p++;
-    }
-    // add a null
-    buffer[p] = 0;
+    buffer[0] = this.flags;
+    buffer[1] = this.status;
 
     return buffer;
   }
@@ -376,12 +369,11 @@ export class DroneMeshFSResizeResponse {
 // DRONE_MESH_MSG_TYPE_FS_WRITE_REQUEST
 // ----------------------------------------------------------------------------
 
-export const DRONE_MESH_MSG_FS_WRITE_REQUEST_SIZE = 32 + 2 + 4;
+export const DRONE_MESH_MSG_FS_WRITE_REQUEST_SIZE = 32 + 1 + 4;
 
 export class DroneMeshFSWriteRequest {
 
   constructor(buffer) {
-    this.id = 0;
     this.offset = 0;
     this.size = 0;
     this.data = new Uint8Array(32);
@@ -391,19 +383,18 @@ export class DroneMeshFSWriteRequest {
 
   parse(rawBuffer) {
     var buffer = new Uint8Array(rawBuffer, 0);
-    this.id = buffer[0];
     // little endian byte order
-    this.offset = (buffer[4] << 24) + (buffer[3] << 16) + (buffer[2] << 8) + buffer[1];
-    this.size = buffer[5];
+    this.offset = (buffer[3] << 24) + (buffer[2] << 16) + (buffer[1] << 8) + buffer[0];
+    this.size = buffer[4];
 
     // read data
     for (var i=0; i<this.size; i++) {
-      this.data[i] = buffer[6+i];
+      this.data[i] = buffer[5+i];
     }
   }
 
   toString() {
-    var s = this.id + ', offset: '+this.offset +', size: '+this.size + ', data: ';
+    var s = 'offset: '+this.offset +', size: '+this.size + ', data: ';
     for (var i=0; i<this.size; i++) {
       s+= String.fromCharCode(this.data[i]);
     }
@@ -414,19 +405,17 @@ export class DroneMeshFSWriteRequest {
     // return Uint8Array
     var buffer = new Uint8Array(DRONE_MESH_MSG_FS_WRITE_REQUEST_SIZE);
 
-    buffer[0] = this.id;
-
     // little endian byte order
-    buffer[4] = (this.offset >> 24) & 0xFF;
-    buffer[3] = (this.offset >> 16) & 0xFF;
-    buffer[2] = (this.offset >> 8) & 0xFF;
-    buffer[1] = (this.offset) & 0xFF;
+    buffer[3] = (this.offset >> 24) & 0xFF;
+    buffer[2] = (this.offset >> 16) & 0xFF;
+    buffer[1] = (this.offset >> 8) & 0xFF;
+    buffer[0] = (this.offset) & 0xFF;
 
-    buffer[5] = this.size;
+    buffer[4] = this.size;
 
     // write data
     for (var i=0; i<this.size; i++) {
-      buffer[6+i] = this.data[i];
+      buffer[5+i] = this.data[i];
     }
 
     return buffer;
@@ -439,43 +428,40 @@ export class DroneMeshFSWriteRequest {
 // DRONE_MESH_MSG_TYPE_FS_WRITE_RESPONSE
 // ----------------------------------------------------------------------------
 
-export const DRONE_MESH_MSG_FS_WRITE_RESPONSE_SIZE = 2 + 4;
+export const DRONE_MESH_MSG_FS_WRITE_RESPONSE_SIZE = 1 + 4;
 
 export class DroneMeshFSWriteResponse {
 
   constructor(buffer) {
-    this.id = 0;
+    this.flags = 0;
     this.offset = 0;
-    this.size = 0;
 
     if (buffer) this.parse(buffer);
   }
 
   parse(rawBuffer) {
     var buffer = new Uint8Array(rawBuffer, 0);
-    this.id = buffer[0];
+    this.flags = buffer[0];
+
     // little endian byte order
     this.offset = (buffer[4] << 24) + (buffer[3] << 16) + (buffer[2] << 8) + buffer[1];
-    this.size = buffer[5];
   }
 
   toString() {
-    return this.id + ', offset: '+this.offset +', size: '+this.size;
+    return 'flags: ' + this.flags + ', offset: '+this.offset;
   }
 
   encode() {
     // return Uint8Array
     var buffer = new Uint8Array(DRONE_MESH_MSG_FS_WRITE_RESPONSE_SIZE);
 
-    buffer[0] = this.id;
+    buffer[0] = this.flags;
 
     // little endian byte order
     buffer[4] = (this.offset >> 24) & 0xFF;
     buffer[3] = (this.offset >> 16) & 0xFF;
     buffer[2] = (this.offset >> 8) & 0xFF;
     buffer[1] = (this.offset) & 0xFF;
-
-    buffer[5] = this.size;
 
     return buffer;
   }

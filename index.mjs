@@ -695,11 +695,11 @@ io.on('connection', (socket) => {
     dlm.sendFSReadRequest(msg);
   });
 
-  socket.on('fs.resize.request', (msg)=>{
+  socket.on('fs.manage.request', (msg)=>{
     try {
-      dlm.sendFSResizeRequest(msg);
+      dlm.sendFSManageRequest(msg);
     } catch(err) {
-      clog('ERROR in fs.resize.request: ' + err);
+      clog('ERROR in fs.manage.request: ' + err);
     }
   });
 
