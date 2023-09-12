@@ -1432,7 +1432,7 @@ export default class Configuration extends Panel {
       // check status and send blocks if we have capacity
       var requested = 0;
       for (var i=0; i<this.numUploadBlocks; i++) {
-        if (requested > 0) break;
+        if (requested > 3) break;  // 4 in progress at a time
 
         if (!this.uploadBlocks[i].error && !this.uploadBlocks[i].written) {
           var doRequest = false;
