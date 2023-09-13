@@ -84,7 +84,7 @@ export default class DroneLinkManager {
 
     this.logOptions = {
       Hello:true,
-      DroneLinkMsg: false,
+      DroneLinkMsg: true,
       RouteEntry: false,
       Transmit: false,
       Subscription: false,

@@ -76,6 +76,7 @@ export default class Channel {
       qm.node = me.node.id;
       qm.channel = me.channel;
       qm.param = DLM.DRONE_MODULE_PARAM_STATUS;
+      qm.setUint8([0]);
       qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
       this.state.send(qm);
     });
@@ -96,6 +97,7 @@ export default class Channel {
       qm.node = me.node.id;
       qm.channel = me.channel;
       qm.param = DLM.DRONE_MODULE_PARAM_STATUS;
+      qm.setUint8([0]);
       qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
       this.state.send(qm);
     });
@@ -394,6 +396,19 @@ export default class Channel {
       if (this.interface && (typeof this.interface.show === 'function')) {
         //if (this.visible)
           this.interface.show();
+      } else {
+        // have we not heard the module type yet? 
+        if (this.type == '') {
+          // query type
+          var qm = new DLM.DroneLinkMsg();
+          qm.source = this.state.localAddress;
+          qm.node = this.node.id;
+          qm.channel = this.channel;
+          qm.param = DLM.DRONE_MODULE_PARAM_TYPE;
+          qm.setUint8([0]);
+          qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
+          this.state.send(qm);
+        }
       }
     } else if (s == 'parameters') {
       this.interfaceButton.show();

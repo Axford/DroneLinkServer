@@ -33,3 +33,17 @@
 .Management .macros {
   padding-left: 0.25rem;
 }
+
+.Management-modal .modal-dialog {
+  width:70vw;
+  max-width: 70vw;
+}
+
+.Management-viewer {
+  max-height: 60vh;
+  scroll-behavior: auto;
+}
+
+.Management-viewer .table {
+  font-size:1em;
+}

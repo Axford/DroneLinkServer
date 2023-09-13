@@ -644,7 +644,12 @@ function init() {
     for (const [key, n] of Object.entries(nodes)) {
       if (n.focused) n.updateGamepad(controllers[0]);
     }
-  })
+  });
+
+  // poll for discovery queue size
+  setInterval(()=>{
+    $('#discoveryQueueSize').html(state.discoveryQueue.length());
+  }, 1000);
 
 }
 
