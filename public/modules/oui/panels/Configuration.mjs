@@ -222,6 +222,13 @@ class DroneFSEntry {
 
   handleFileResponse(fr) {
     console.log('fs.file.response: path: ', fr.path);
+
+    // check for file not found... and trigger re-enumeration
+    if (fr.flags == DMFS.DRONE_MESH_MSG_FS_FLAG_NOT_FOUND) {
+      console.log('File not found...  probably just deleted something');
+      this.enumerate(true);
+      return;
+    }
     
     // separate path from name
     var fp = 0;
@@ -451,6 +458,23 @@ class DroneFSEntry {
     } else {
       this.manager.onDownloadProgress(this, progress/this.numBlocks);
     }
+  }
+
+
+  delete() {
+    // delete self on node
+    var qm = new DMFS.DroneMeshFSFileRequest();
+    qm.flags = DMFS.DRONE_MESH_MSG_FS_FLAG_DELETE;
+    qm.id = 0;
+    qm.path = this.fullpath;
+
+    var data = {
+      node: this.nodeId,
+      payload: qm.encode()
+    };
+
+    console.log('Emitting fs.file.request: ' + qm.toString() );
+    this.socket.emit('fs.file.request', data);
   }
 
 
@@ -685,6 +709,13 @@ class ServerFSEntry {
       this.contents = contents;
       this.size = contents.length;
 
+      this.ui.container.notify("Upload complete",  {
+        className: 'success',
+        autoHide:false,
+        arrowShow:false,
+        position:'bottom'
+      });
+
       this.update();
     } catch (e) {
       console.error("Firebase, Error updating file contents: ", e);
@@ -818,6 +849,12 @@ export default class Configuration extends Panel {
   onFSEntryClick(entry) {
     this.root.select(entry);
     this.selectedEntry = entry;
+
+    if (entry.isDir) {
+      this.cuiDeleteNodeFileBut.hide();
+    } else {
+      this.cuiDeleteNodeFileBut.show();
+    }
   }
 
 
@@ -906,7 +943,7 @@ export default class Configuration extends Panel {
     this.cuiFilesOnNodeNav = $('<div class="nav"></div>');
     this.cuiFilesOnNode.append(this.cuiFilesOnNodeNav);
 
-    this.cuiGetFileListBut = $('<button class="btn btn-sm btn-primary">List</button>');
+    this.cuiGetFileListBut = $('<button class="btn btn-sm btn-primary mr-2">List</button>');
     this.cuiGetFileListBut.on('click',()=>{ this.getNodeFileList()  });
     this.cuiFilesOnNodeNav.append(this.cuiGetFileListBut);
 
@@ -914,6 +951,13 @@ export default class Configuration extends Panel {
     //    filelist
     this.cuiFilesOnNodeFiles = $('<div class="files"></div>');
     this.cuiFilesOnNode.append(this.cuiFilesOnNodeFiles);
+
+    // delete
+    this.cuiDeleteNodeFileBut = $('<button class="btn btn-sm btn-danger" style="display:none"><i class="fas fa-trash"></i></button>');
+    this.cuiDeleteNodeFileBut.on('click',()=>{ 
+      me.deleteFileOnNode();
+     });
+    this.cuiFilesOnNodeNav.append(this.cuiDeleteNodeFileBut);
 
 
     // upload management
@@ -1063,13 +1107,6 @@ export default class Configuration extends Panel {
 
 
   loadFileFromNode() {
-    /*
-    if (this.selectedEntry.isDownloaded) {
-      this.onDownloadComplete(this.selectedEntry);
-    } else {
-      this.selectedEntry.download();
-    }
-    */
     this.selectedEntry.download();
   }
 
@@ -1110,6 +1147,16 @@ export default class Configuration extends Panel {
     this.cuiEditorTitle.val(fullpath);
    
     this.analyseFile();
+  }
+
+
+  deleteFileOnNode() {
+    if (this.selectedEntry) this.selectedEntry.delete();
+    // select root
+    this.root.select(this.root);
+    this.selectedEntry = this.root;
+    // hide button
+    this.cuiDeleteNodeFileBut.hide();
   }
 
 
