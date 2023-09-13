@@ -184,8 +184,34 @@ class DroneFSEntry {
   }
 
 
+  removeChildren() {
+    console.log('fs removeChildren: ' + this.fullpath);
+    // remove children
+    for (const [id, obj] of Object.entries(this.children)) {
+      obj.remove();
+    }
+    this.children = {};
+    this.size = 0;
+  }
+
+
+  remove() {
+    console.log('fs remove: ' + this.fullpath);
+    // remove children 
+    this.removeChildren();
+
+    // remove ui objects
+    if (this.ui.container) this.ui.container.remove();
+  }
+
+
   enumerate(redo) {
     if (this.enumerated && (!redo)) return;
+
+    if (redo && this.enumerated) {
+      // delete existing children recursively
+      this.removeChildren();
+    }
 
     // get info about self
     this.getNodeFileByPath(this.fullpath);
@@ -235,7 +261,7 @@ class DroneFSEntry {
 
         // is this about one of our immediate children?
         if (path == this.path) {
-          console.log('fs.file.response: its one of our children');
+          console.log('fs.file.response: its one of our children, id:' + fr.id);
 
           // do we need to create a new child?
           if (!this.children[fr.id]) {
@@ -428,185 +454,7 @@ class DroneFSEntry {
   }
 
 
-  sendFSWriteRequest(id, offset) {
-    var qm = new DMFS.DroneMeshFSWriteRequest();
-    qm.id = id;
-    qm.offset = offset;
 
-    // calc size
-    qm.size = Math.min(32, this.newSize - offset);
-
-    // copy to data to buffer
-    for (var i=0; i<qm.size; i++) {
-      qm.data[i] = this.filedata[offset + i];
-    }
-
-    var data = {
-      node: this.nodeId,
-      payload: qm.encode()
-    };
-
-    console.log('Emitting fs.write.request: ' + qm.toString() );
-    this.socket.emit('fs.write.request', data);
-  }
-
-
-  handleWriteResponse(fr) {
-
-    // is this about us?
-    if (fr.id == this.id) {
-      console.log('fs.write.response: its about us');
-
-      var blockIndex = Math.floor(fr.offset / 32);
-
-      // check size
-      if (fr.size > 0) {
-        this.blocks[blockIndex].written = true;
-
-      } else if (fr.offset < this.newSize) {
-        // error retrieving block
-        this.blocks[blockIndex].written = false;
-        this.blocks[blockIndex].error = true;
-      } else {
-        // this is the response to the completion block
-        console.log('fs.write.response:  completion confirmed');
-      }
-
-    } else {
-      if (this.isDir) {
-        // pass to children
-        for (const [id, obj] of Object.entries(this.children)) {
-          obj.handleWriteResponse(fr);
-        }
-      }
-    }
-  }
-
-
-  upload(data) {
-    if (this.isDir) return;
-
-    // update size
-    this.newSize = data.length;
-
-    // allocate buffer to hold file data
-    this.filedata = new Uint8Array(this.newSize);
-
-    // copy data contents
-    for (var i=0; i<data.length; i++) {
-      this.filedata[i] = data[i];
-    }
-
-    // setup structure to track block upload
-    this.blocks = [];
-    this.numBlocks = Math.ceil(this.newSize / 32);
-    for (var i=0; i<this.numBlocks; i++) {
-      this.blocks.push({
-        offset: i * 32,
-        sent:false,
-        sentTime:Date.now(),
-        written:false,
-        error:false
-      });
-    }
-
-    // start the monitoring process
-    if (!this.isUploading) {
-      this.uploadStarted = Date.now();
-
-      this.isUploading = true;
-      this.ui.download.show();
-
-      this.uploadInterval = setInterval(()=>{
-        this.monitorUpload();
-      }, 100);
-    }
-  }
-
-
-  monitorUpload() {
-    if (!this.isUploading) return;
-
-    var loopTime = Date.now();
-
-    // check status and send blocks if we have capacity
-    var requested = 0;
-    for (var i=0; i<this.numBlocks; i++) {
-      if (requested > 0) break;
-
-      if (!this.blocks[i].error && !this.blocks[i].written) {
-        var doRequest = false;
-        if (this.blocks[i].sent) {
-          requested++;
-          // check timer
-          if (loopTime > this.blocks[i].sentTime + 2000) {
-            // re-request the block
-            doRequest = true;
-          }
-        } else {
-          // request the block
-          doRequest = true;
-          requested++;
-        }
-        if (doRequest) {
-          this.blocks[i].sent = true;
-          this.blocks[i].sentTime = loopTime;
-          this.sendFSWriteRequest(this.id, this.blocks[i].offset);
-        }
-      }
-    }
-
-    // render progress
-    var c = this.ui.download[0];
-		var ctx = c.getContext("2d");
-
-    // keep width updated
-    var w = this.ui.download.width();
-    ctx.canvas.width = w;
-    var h = this.ui.download.height();
-
-    ctx.fillStyle = '#343a40';
-		ctx.fillRect(0,0,w,h);
-
-    var bw = w / this.numBlocks;
-    var progress = 0;
-    for (var i=0; i<this.numBlocks; i++) {
-      var x1 = w * (i/(this.numBlocks));
-
-      if (this.blocks[i].error) {
-        ctx.fillStyle = '#f55';
-        ctx.fillRect(x1,0,bw,h);
-      }  else if (this.blocks[i].written) {
-        ctx.fillStyle = '#5f5';
-        ctx.fillRect(x1,0,bw,h);
-        progress++;
-      } else if (this.blocks[i].sent) {
-        var age = 1 - (loopTime - this.blocks[i].sentTime)/2000;
-
-        ctx.fillStyle = 'rgba(255,190,50, '+(age).toFixed(2)+')';
-        ctx.fillRect(x1,0,bw,h);
-      }
-    }
-
-    var complete = progress == this.numBlocks;
-
-    if (complete) {
-      // send completion packet
-      this.sendFSWriteRequest(this.id, this.newSize);
-
-      this.size = this.newSize;
-
-      clearInterval(this.uploadInterval);
-      this.isUploading = false;
-      this.isUploaded = true;
-      this.ui.download.hide();
-
-      this.update();
-
-      // inform manager upload is complete
-      this.manager.onUploadComplete(this);
-    }
-  }
 
 }
 
