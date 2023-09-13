@@ -18,6 +18,7 @@ export const DRONE_MESH_MSG_FS_FLAG_ERROR          =7;
 export const DRONE_MESH_MSG_FS_FLAG_START          =0;
 export const DRONE_MESH_MSG_FS_FLAG_QUERY          =1;
 export const DRONE_MESH_MSG_FS_FLAG_SAVE           =2;
+export const DRONE_MESH_MSG_FS_FLAG_CANCEL         =3;
 
 // Manage Response flags
 export const DRONE_MESH_MSG_FS_FLAG_WIP            =8;  // transfer in progress

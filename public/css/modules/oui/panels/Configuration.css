@@ -23,6 +23,11 @@
   border-top-right-radius: 4px;
 }
 
+.filePane .upload {
+  margin: 4px 4px;
+  border-radius: 4px;
+}
+
 .filePane .files {
   margin-top: 4px;
   background-color: #333;

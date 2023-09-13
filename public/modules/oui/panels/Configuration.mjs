@@ -1067,9 +1067,11 @@ export default class Configuration extends Panel {
     this.cuiFilesOnNodeFiles = $('<div class="files"></div>');
     this.cuiFilesOnNode.append(this.cuiFilesOnNodeFiles);
 
+
     // upload management
     this.cuiUploadToNode = $('<canvas class="upload" height="10" style="display:none;"></canvas>');
     this.cuiFilesOnNode.append(this.cuiUploadToNode);
+
 
     // file editor block
     this.cuiEditorBlock = $('<div class="editorBlock" ></div>');
@@ -1078,6 +1080,13 @@ export default class Configuration extends Panel {
     // nav
     this.cuiEditorNav = $('<div class="editorNav clearfix"></div>');
     this.cuiEditorBlock.append(this.cuiEditorNav);
+
+    // cancel save to node button
+    this.cuiEditorCancelSaveToNodeBut = $('<button class="btn btn-sm btn-danger float-right" style="display:none" >Cancel Save to Node</button>');
+    this.cuiEditorCancelSaveToNodeBut.on('click',()=>{
+      me.cancelSaveFileToNode();
+    });
+    this.cuiEditorNav.append(this.cuiEditorCancelSaveToNodeBut);
 
     // save to node button
     this.cuiEditorSaveToNodeBut = $('<button class="btn btn-sm btn-primary float-right" >Save to Node</button>');
@@ -1261,6 +1270,14 @@ export default class Configuration extends Panel {
   }
 
 
+  cancelSaveFileToNode() {
+    // send cancellation
+    this.sendManageRequest(DMFS.DRONE_MESH_MSG_FS_FLAG_CANCEL);
+
+    this.uploadState = 3;
+  }
+
+
   saveFileToNode() {
     if (this.uploading) {
       this.cuiFilesOnNode.notify("Upload already in progress",  {
@@ -1301,6 +1318,7 @@ export default class Configuration extends Panel {
     this.uploadStarted = Date.now();
 
     this.cuiUploadToNode.show();
+    this.cuiEditorCancelSaveToNodeBut.show();
 
     // initiate upload
     this.startUpload();
@@ -1358,10 +1376,14 @@ export default class Configuration extends Panel {
     });
 
     // reset state
+    if (this.uploadInterval) clearInterval(this.uploadInterval);
     this.uploading = false;
     this.uploadState = 0;
 
     console.error('Error uploading file: '  +msg);
+
+    this.cuiUploadToNode.hide();
+    this.cuiEditorCancelSaveToNodeBut.hide();
   }
 
 
@@ -1374,14 +1396,16 @@ export default class Configuration extends Panel {
       // check status
       if (fr.status == DRONE_FS_UPLOAD_STATE_NONE) {
         if (this.uploadState == 0) {
-          // if it was in response to a start request, then we failed to allocate memory
+          // if it was in response to a start request, then we failed to allocate memory... 
           this.uploadError('Failed to initiate upload');
 
         } else if (this.uploadState == 2) {
           // if this was in response to a save operation, then we are done 
           clearInterval(this.uploadInterval);
           this.uploading = false;
+          this.uploadState = 0;
           this.cuiUploadToNode.hide();
+          this.cuiEditorCancelSaveToNodeBut.hide();
 
           // re-enumerate node filesystem
           this.getNodeFileList();
@@ -1392,6 +1416,9 @@ export default class Configuration extends Panel {
             arrowShow:false,
             position:'bottom'
           });
+        } else {
+          // cancelled
+          this.uploadError('Upload cancelled');
         }
 
       } else if (fr.status == DRONE_FS_UPLOAD_STATE_WIP) {
