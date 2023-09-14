@@ -41,7 +41,7 @@
 
 .Management-viewer {
   max-height: 60vh;
-  scroll-behavior: auto;
+  overflow:scroll;
 }
 
 .Management-viewer .table {

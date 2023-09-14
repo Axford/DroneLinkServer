@@ -203,6 +203,9 @@ export default class Management extends ModuleInterface {
 
   showNodeInfo() {
     var me = this;
+    me.vTitle.html("Node Info");
+    me.vBody.html('Loading...');
+    
     $.getJSON("http://" + me.getIpString() + "/nodeInfo", function (data) {
       //var s = JSON.stringify(data);
       var s = "";
@@ -276,9 +279,9 @@ export default class Management extends ModuleInterface {
       s += '<dt class="col-sm-3">Size</dt>';
       s += '<dd class="col-sm-9">'+data.queue.size+'</dd>';
       s += '<dt class="col-sm-3">Kicked (rate)</dt>';
-      s += '<dd class="col-sm-9">'+data.queue.kicked+ '(' + data.queue.kickRate.toFixed(1) + ')</dd>';
+      s += '<dd class="col-sm-9">'+data.queue.kicked+ ' (' + data.queue.kickRate.toFixed(1) + ')</dd>';
       s += '<dt class="col-sm-3">Choked (rate)</dt>';
-      s += '<dd class="col-sm-9">'+data.queue.choked+ '(' + data.queue.chokeRate.toFixed(1) + ')</dd>';
+      s += '<dd class="col-sm-9">'+data.queue.choked+ ' (' + data.queue.chokeRate.toFixed(1) + ')</dd>';
       s += '</dl>';
 
       s += '<table class="table table-sm table-bordered">';
@@ -301,9 +304,125 @@ export default class Management extends ModuleInterface {
       s += "</table>";
 
       me.vBody.html(s);
-      me.vTitle.html("Node Info");
     });
   }
+
+
+  paramToRow(param, incReceived) {
+    // return html table row
+    var s = '';
+    s += "<tr>";
+    s += "<td>" + param.id + "</td>";
+    s += '<td class="'+ (param.publish ? 'bg-success text-white' : '') +'">' + param.name + "</td>";
+    //s += "<td>" + param.publish + "</td>";
+    s += "<td>" + DLM.DRONE_LINK_MSG_TYPE_NAMES[param.type] + "</td>";
+    //s += "<td>" + param.writeable + "</td>";
+    s += "<td>" + param.size + "</td>";
+    s += '<td class="'+ (param.writeable ? 'bg-info text-white' : '') +'">';
+    if (Array.isArray(param.value)) {
+      param.value.forEach((v, index)=>{
+        if (index > 0) s += ', ';
+        s += v;
+      });
+    } else {
+      s += param.value;
+    }
+    s += "</td>";
+    if (incReceived) {
+      s += '<td class="'+ (param.received ? 'bg-success text-white' : '') +'">' + (param.received ? 'Y' : 'N') + "</td>";
+    }
+    s += "</tr>";
+    return s;
+  }
+
+
+
+  showModuleInfo() {
+    var me = this;
+    me.vTitle.html("Loaded Modules");
+    me.vBody.html('Loading...');
+
+    $.getJSON("http://" + me.getIpString() + "/modules", function (data) {
+      //var s = JSON.stringify(data);
+      var s = "";
+
+      // count up params across all modules
+      var totalParams = 0;
+      data.forEach((module) => {
+        totalParams += module.mgmt.length;
+        totalParams += module.params.length;
+        totalParams += module.subs.length;
+      });
+
+      s += '<h1>' + data[0].params[0].value +': ' +data.length+' <span class="text-muted font-weight-light"> Modules, </span> ' +totalParams+'<span class="text-muted font-weight-light"> Parameters</span> </h1>';
+
+
+
+      data.forEach((module) => {
+        s += '<h2 class=mt-4>'+module.id+'. '+ module.mgmt[1].value +'</h2>';
+
+        s += '<div class="row">';
+
+        s += '<div class="col-sm-4">';
+        s += '<dl class="row">';
+        s += '<dt class="col-sm-8">HandleLinkMsg Duration</dt>';
+        s += '<dd class="col-sm-4">'+module.HLMDuration+' ms</dd>';
+        s += '<dt class="col-sm-8">Loop Duration (rate)</dt>';
+        s += '<dd class="col-sm-4">'+module.loopDuration+ ' ms (' + (module.loopRate ? module.loopRate.toFixed(1) : '') + ' / sec)</dd>';
+        s += '</dl>';
+        s += '</div>';
+
+        s += '<div class="col-sm-8">';
+
+        // mgmt params
+        s += '<table class="table table-sm table-bordered">';
+        s += '<thead class="thead-dark">';
+        s += "<tr>";
+        s += "<th>ID</th>";
+        s += "<th>Name</th>";
+        s += "<th>Type</th>";
+        s += "<th>Size</th>";
+        s += "<th>Value</th>";
+        s += "</tr>";
+        s += '</thead>';
+        module.mgmt.forEach((param)=>{
+          s += me.paramToRow(param, false);
+        });
+
+        // params
+        module.params.forEach((param)=>{
+          s += me.paramToRow(param, false);
+        });
+        s += "</table>";
+
+        // subs
+        if (module.subs.length > 0) {
+          s += '<p><b>Subs</b></p>'
+          s += '<table class="table table-sm table-bordered">';
+          s += '<thead class="thead-dark">';
+          s += "<tr>";
+          s += "<th>ID</th>";
+          s += "<th>Name</th>";
+          s += "<th>Type</th>";
+          s += "<th>Size</th>";
+          s += "<th>Value</th>";
+          s += "<th>Received</th>";
+          s += "</tr>";
+          s += '</thead>';
+          module.subs.forEach((param)=>{
+            s += me.paramToRow(param, true);
+          });
+          s += "</table>";
+        }
+        s += '</div>';
+        s += '</div>';
+
+      });
+
+      me.vBody.html(s);
+    });
+  }
+
 
   build() {
     var me = this;
@@ -319,7 +438,7 @@ export default class Management extends ModuleInterface {
     this.ui.append(this.canvas);
 
     this.config = $(
-      '<button class="btn btn-sm btn-primary mb-2 ml-1 mr-1">Web Mgmt</button>'
+      '<button class="btn btn-sm btn-primary mb-2 ml-1 mr-3">Web Mgmt</button>'
     );
     this.config.on("click", () => {
       window.open("http://" + me.getIpString());
@@ -343,7 +462,7 @@ export default class Management extends ModuleInterface {
     */
 
     this.nodeInfoBut = $(
-      '<button class="btn btn-sm btn-primary mb-2 mr-3">Node Info</button>'
+      '<button class="btn btn-sm btn-primary mb-2 mr-1">Node Info</button>'
     );
     this.nodeInfoBut.on("click", () => {
       me.showNodeInfo();
@@ -355,6 +474,15 @@ export default class Management extends ModuleInterface {
       me.viewer.show();
     });
     this.ui.append(this.nodeInfoBut);
+
+    this.moduleInfoBut = $(
+      '<button class="btn btn-sm btn-primary mb-2 mr-3">Module Info</button>'
+    );
+    this.moduleInfoBut.on("click", () => {
+      me.showModuleInfo();
+      me.viewer.show();
+    });
+    this.ui.append(this.moduleInfoBut);
 
     this.reset = $(
       '<button class="btn btn-sm btn-danger mb-2 mr-3">Reset</button>'
