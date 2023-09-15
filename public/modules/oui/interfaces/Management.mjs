@@ -203,7 +203,7 @@ export default class Management extends ModuleInterface {
 
   showNodeInfo() {
     var me = this;
-    me.vTitle.html("Node Info");
+    me.vTitle.html("Network Info");
     me.vBody.html('Loading...');
 
     $.getJSON("http://" + me.getIpString() + "/nodeInfo", function (data) {
@@ -225,7 +225,7 @@ export default class Management extends ModuleInterface {
         s += "<tr>";
         s += "<td>" + obj.id + "</td>";
         s += "<td>" + obj.type + "</td>";
-        s += "<td>" + obj.state + "</td>";
+        s += '<td class="'+ (obj.state == 'Up' ? 'bg-success text-white' : '') +'">' + obj.state + "</td>";
         s += "<td>" + obj.link + "</td>";
         s += "</tr>";
       });
@@ -275,7 +275,7 @@ export default class Management extends ModuleInterface {
 
       s += '<dl class="row">';
       s += '<dt class="col-sm-3">Utilisation</dt>';
-      s += '<dd class="col-sm-9">'+data.queue.utilisation+'</dd>';
+      s += '<dd class="col-sm-9">'+data.queue.utilisation+' %</dd>';
       s += '<dt class="col-sm-3">Size</dt>';
       s += '<dd class="col-sm-9">'+data.queue.size+'</dd>';
       s += '<dt class="col-sm-3">Kicked (rate)</dt>';
@@ -526,14 +526,6 @@ export default class Management extends ModuleInterface {
 
     this.ui.append(this.canvas);
 
-    this.config = $(
-      '<button class="btn btn-sm btn-primary mb-2 ml-1 mr-3">Web Mgmt</button>'
-    );
-    this.config.on("click", () => {
-      window.open("http://" + me.getIpString());
-    });
-    this.ui.append(this.config);
-
     /*
     this.saveConfigBut = $(
       '<button class="btn btn-sm btn-primary mb-2 mr-3">Save Config</button>'
@@ -550,8 +542,19 @@ export default class Management extends ModuleInterface {
     this.ui.append(this.saveConfigBut);
     */
 
+    this.infoBtnGroup = $('<div class="btn-group mr-3"></div>');
+    this.ui.append(this.infoBtnGroup);
+
+    this.config = $(
+      '<button class="btn btn-sm btn-secondary mb-2"><i class="fas fa-info-circle"></i></button>'
+    );
+    this.config.on("click", () => {
+      window.open("http://" + me.getIpString());
+    });
+    this.infoBtnGroup.append(this.config);
+
     this.nodeInfoBut = $(
-      '<button class="btn btn-sm btn-primary mb-2 mr-1">Node Info</button>'
+      '<button class="btn btn-sm btn-primary mb-2">Network</button>'
     );
     this.nodeInfoBut.on("click", () => {
       me.showNodeInfo();
@@ -562,34 +565,34 @@ export default class Management extends ModuleInterface {
 
       me.viewer.show();
     });
-    this.ui.append(this.nodeInfoBut);
+    this.infoBtnGroup.append(this.nodeInfoBut);
 
     this.moduleInfoBut = $(
-      '<button class="btn btn-sm btn-primary mb-2 mr-1">Module Info</button>'
+      '<button class="btn btn-sm btn-primary mb-2">Modules</button>'
     );
     this.moduleInfoBut.on("click", () => {
       me.showModuleInfo();
       me.viewer.show();
     });
-    this.ui.append(this.moduleInfoBut);
+    this.infoBtnGroup.append(this.moduleInfoBut);
 
     this.channelInfoBut = $(
-      '<button class="btn btn-sm btn-primary mb-2 mr-1">Channel Info</button>'
+      '<button class="btn btn-sm btn-primary mb-2">Channels</button>'
     );
     this.channelInfoBut.on("click", () => {
       me.showChannelInfo();
       me.viewer.show();
     });
-    this.ui.append(this.channelInfoBut);
+    this.infoBtnGroup.append(this.channelInfoBut);
 
     this.pinInfoBut = $(
-      '<button class="btn btn-sm btn-primary mb-2 mr-3">Pin Info</button>'
+      '<button class="btn btn-sm btn-primary mb-2">Pins</button>'
     );
     this.pinInfoBut.on("click", () => {
       me.showPinInfo();
       me.viewer.show();
     });
-    this.ui.append(this.pinInfoBut);
+    this.infoBtnGroup.append(this.pinInfoBut);
 
     this.reset = $(
       '<button class="btn btn-sm btn-danger mb-2 mr-3">Reset</button>'
