@@ -423,6 +423,53 @@ export default class Management extends ModuleInterface {
   }
 
 
+  showChannelInfo() {
+    var me = this;
+    me.vTitle.html("Channel Info");
+    me.vBody.html('Loading...');
+
+    $.getJSON("http://" + me.getIpString() + "/channelInfo", function (data) {
+      //var s = JSON.stringify(data);
+      var s = "";
+
+      data.forEach((channel) => {
+        s += '<h2 class=mt-4>'+channel.node+' &gt; '+ channel.channel +'</h2>';
+
+        s += '<div class="row">';
+
+        s += '<div class="col-sm-3">';
+        s += '<dl class="row">';
+        s += '<dt class="col-sm-8">Size (peak)</dt>';
+        s += '<dd class="col-sm-4">'+channel.size+' ('+channel.peakSize+')</dd>';
+        s += '</dl>';
+        s += '</div>';
+
+        s += '<div class="col-sm-9">';
+
+        s += '<table class="table table-sm table-bordered">';
+        s += '<thead class="thead-dark">';
+        s += "<tr>";
+        s += "<th>Param</th>";
+        s += "<th>Sub</th>";
+        s += "</tr>";
+        s += '</thead>';
+        channel.subs.forEach((sub)=>{
+          s += "<tr>";
+          s += "<td>" + sub.param + "</td>";
+          s += "<td>" + sub.sub + "</td>";
+          s += "</tr>";
+        });
+        s += "</table>";
+
+        s += '</div>';
+        s += '</div>';
+      });
+
+      me.vBody.html(s);
+    });
+  }
+
+
   showPinInfo() {
     var me = this;
     me.vTitle.html("Pin Assignments");
@@ -437,26 +484,26 @@ export default class Management extends ModuleInterface {
       s += "<tr>";
       s += "<th>Pin</th>";
       s += "<th>State</th>";
+      s += "<th>Module</th>";
       s += "<th>Output</th>";
       s += "<th>Input</th>";
       s += "<th>Analog</th>";
       s += "<th>Serial</th>";
       s += "<th>LED</th>";
       s += "<th>Strip</th>";
-      s += "<th>Module</th>";
       s += "</tr>";
       s += '</thead>';
       data.forEach((pin)=>{
         s += "<tr>";
         s += "<td>" + pin.id + "</td>";
         s += '<td class="'+ (pin.state == 1 ? 'bg-success text-white' : '') +'">' + (pin.state == 1 ? 'Available' : 'Assigned') + "</td>";
+        s += "<td>" + (pin.module ? pin.module : '') + "</td>";
         s += '<td class="'+ (pin.output ? 'bg-info text-white' : '') +'">' + (pin.output ? 'Y' : 'N') + "</td>";
         s += '<td class="'+ (pin.input ? 'bg-info text-white' : '') +'">' + (pin.input ? 'Y' : 'N') + "</td>";
         s += '<td class="'+ (pin.analog ? 'bg-info text-white' : '') +'">' + (pin.analog ? 'Y' : 'N') + "</td>";
         s += '<td class="'+ (pin.serial ? 'bg-info text-white' : '') +'">' + (pin.serial ? 'Y' : 'N') + "</td>";
         s += '<td class="'+ (pin.LED ? 'bg-info text-white' : '') +'">' + (pin.LED ? 'Y' : 'N') + "</td>";
-        s += '<td class="'+ (pin.strip ? 'bg-info text-white' : '') +'">' + (pin.strip ? 'Y' : 'N') + "</td>";
-        s += "<td>" + (pin.module ? pin.module : '') + "</td>";
+        s += '<td class="'+ (pin.strip ? 'bg-info text-white' : '') +'">' + (pin.strip ? 'Y' : 'N') + "</td>";        
         s += "</tr>";
       });
       s += "</table>";
@@ -525,6 +572,15 @@ export default class Management extends ModuleInterface {
       me.viewer.show();
     });
     this.ui.append(this.moduleInfoBut);
+
+    this.channelInfoBut = $(
+      '<button class="btn btn-sm btn-primary mb-2 mr-1">Channel Info</button>'
+    );
+    this.channelInfoBut.on("click", () => {
+      me.showChannelInfo();
+      me.viewer.show();
+    });
+    this.ui.append(this.channelInfoBut);
 
     this.pinInfoBut = $(
       '<button class="btn btn-sm btn-primary mb-2 mr-3">Pin Info</button>'
