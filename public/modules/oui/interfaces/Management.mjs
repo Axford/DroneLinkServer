@@ -205,7 +205,7 @@ export default class Management extends ModuleInterface {
     var me = this;
     me.vTitle.html("Node Info");
     me.vBody.html('Loading...');
-    
+
     $.getJSON("http://" + me.getIpString() + "/nodeInfo", function (data) {
       //var s = JSON.stringify(data);
       var s = "";
@@ -298,7 +298,6 @@ export default class Management extends ModuleInterface {
         s += "<td>" + obj.i + "</td>";
         s += "<td>" + obj.state + "</td>";
         s += "<td>" + obj.int + "</td>";
-        s += "<td>" + "</td>";
         s += "</tr>";
       });
       s += "</table>";
@@ -424,6 +423,49 @@ export default class Management extends ModuleInterface {
   }
 
 
+  showPinInfo() {
+    var me = this;
+    me.vTitle.html("Pin Assignments");
+    me.vBody.html('Loading...');
+
+    $.getJSON("http://" + me.getIpString() + "/pins", function (data) {
+      //var s = JSON.stringify(data);
+      var s = "";
+
+      s += '<table class="table table-sm table-bordered">';
+      s += '<thead class="thead-dark">';
+      s += "<tr>";
+      s += "<th>Pin</th>";
+      s += "<th>State</th>";
+      s += "<th>Output</th>";
+      s += "<th>Input</th>";
+      s += "<th>Analog</th>";
+      s += "<th>Serial</th>";
+      s += "<th>LED</th>";
+      s += "<th>Strip</th>";
+      s += "<th>Module</th>";
+      s += "</tr>";
+      s += '</thead>';
+      data.forEach((pin)=>{
+        s += "<tr>";
+        s += "<td>" + pin.id + "</td>";
+        s += '<td class="'+ (pin.state == 1 ? 'bg-success text-white' : '') +'">' + (pin.state == 1 ? 'Available' : 'Assigned') + "</td>";
+        s += '<td class="'+ (pin.output ? 'bg-info text-white' : '') +'">' + (pin.output ? 'Y' : 'N') + "</td>";
+        s += '<td class="'+ (pin.input ? 'bg-info text-white' : '') +'">' + (pin.input ? 'Y' : 'N') + "</td>";
+        s += '<td class="'+ (pin.analog ? 'bg-info text-white' : '') +'">' + (pin.analog ? 'Y' : 'N') + "</td>";
+        s += '<td class="'+ (pin.serial ? 'bg-info text-white' : '') +'">' + (pin.serial ? 'Y' : 'N') + "</td>";
+        s += '<td class="'+ (pin.LED ? 'bg-info text-white' : '') +'">' + (pin.LED ? 'Y' : 'N') + "</td>";
+        s += '<td class="'+ (pin.strip ? 'bg-info text-white' : '') +'">' + (pin.strip ? 'Y' : 'N') + "</td>";
+        s += "<td>" + (pin.module ? pin.module : '') + "</td>";
+        s += "</tr>";
+      });
+      s += "</table>";
+
+      me.vBody.html(s);
+    });
+  }
+
+
   build() {
     var me = this;
     super.build("Management");
@@ -476,13 +518,22 @@ export default class Management extends ModuleInterface {
     this.ui.append(this.nodeInfoBut);
 
     this.moduleInfoBut = $(
-      '<button class="btn btn-sm btn-primary mb-2 mr-3">Module Info</button>'
+      '<button class="btn btn-sm btn-primary mb-2 mr-1">Module Info</button>'
     );
     this.moduleInfoBut.on("click", () => {
       me.showModuleInfo();
       me.viewer.show();
     });
     this.ui.append(this.moduleInfoBut);
+
+    this.pinInfoBut = $(
+      '<button class="btn btn-sm btn-primary mb-2 mr-3">Pin Info</button>'
+    );
+    this.pinInfoBut.on("click", () => {
+      me.showPinInfo();
+      me.viewer.show();
+    });
+    this.ui.append(this.pinInfoBut);
 
     this.reset = $(
       '<button class="btn btn-sm btn-danger mb-2 mr-3">Reset</button>'
