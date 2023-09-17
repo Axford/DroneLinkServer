@@ -513,6 +513,41 @@ export default class Management extends ModuleInterface {
   }
 
 
+  showI2CInfo() {
+    var me = this;
+    me.vTitle.html("I2C Scan");
+    me.vBody.html('Loading...');
+
+    $.getJSON("http://" + me.getIpString() + "/i2c", function (data) {
+      //var s = JSON.stringify(data);
+      var s = "";
+
+      data.forEach((bus)=>{
+
+        if (bus.addresses.length > 0) {
+          s += '<h2><span class="text-muted font-weight-light">Bus </span> ' +bus.channel+'</h2>';
+
+          s += '<table class="table table-sm table-bordered">';
+          s += '<thead class="thead-dark">';
+          s += "<tr>";
+          s += "<th>Address</th>";
+          s += "</tr>";
+          s += '</thead>';
+          bus.addresses.forEach((address)=>{
+            var v = parseInt(address);
+            s += "<tr>";
+            s += "<td>" + address + ' (0x'+v.toString(16)+')' + "</td>";
+            s += "</tr>";
+          });
+          s += "</table>";
+        }
+      });
+
+      me.vBody.html(s);
+    });
+  }
+
+
   build() {
     var me = this;
     super.build("Management");
@@ -593,6 +628,15 @@ export default class Management extends ModuleInterface {
       me.viewer.show();
     });
     this.infoBtnGroup.append(this.pinInfoBut);
+
+    this.i2cInfoBut = $(
+      '<button class="btn btn-sm btn-primary mb-2">I2C</button>'
+    );
+    this.i2cInfoBut.on("click", () => {
+      me.showI2CInfo();
+      me.viewer.show();
+    });
+    this.infoBtnGroup.append(this.i2cInfoBut);
 
     this.reset = $(
       '<button class="btn btn-sm btn-danger mb-2 mr-3">Reset</button>'
