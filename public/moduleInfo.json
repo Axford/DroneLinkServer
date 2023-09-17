@@ -245,6 +245,9 @@
         "config": [
             "[ BME280 = 14 ]\n  name = BME280\n  bus = 4\n  publish = temperature, humidity, pressure, altitude"
         ],
+        "I2CAddress": [
+            "0x76"
+        ],
         "pub": [
             {
                 "address": 10,
@@ -291,6 +294,9 @@
         ],
         "config": [
             "[CMPS12= 8]\n  name= \"Compass\"\n  interval= 100\n  bus= 3\n  status= 1\n  trim= 0\n  location= -1.8, 52, 100\n  $location= @>7.8\n  publish = heading, trim"
+        ],
+        "I2CAddress": [
+            "0x60"
         ],
         "pub": [
             {
@@ -471,6 +477,9 @@
         "config": [
             "[Diagnostic = 6]\n  name= \"Diagnostic\"\n  interval= 200\n  bus= 0"
         ],
+        "I2CAddress": [
+            "0x3C"
+        ],
         "filename": [
             "../DroneNode/src/droneModules/DiagnosticModule.h"
         ]
@@ -488,6 +497,9 @@
         "config": [
             "[HMC5883L= 8]\n  name= \"Compass\"\n  interval= 50\n  bus= 0\n  calibX= -6,0,6\n  calibY= -6,0,6\n  calibZ=-6,0,6\n  trim= 180\n  location= -1.8, 52, 100\n  mode=1\n  centre = -3.188, 4.167, -0.1043\n  $location = @>GPS.location\n  $roll = @>MPU6050.roll\n  $pitch = @>MPU6050.pitch\n  publish =heading, vector, calibX, calibY, calibZ\n  publish = trim, mode, roll, pitch, raw"
         ],
+        "I2CAddress": [
+            "0x1E"
+        ],
         "filename": [
             "../DroneNode/src/droneModules/HMC5883LModule.h"
         ]
@@ -504,6 +516,9 @@
         ],
         "config": [
             "[HT16K33= 8]\n  name= \"7Seg\"\n  bus= 3"
+        ],
+        "I2CAddress": [
+            "0x70"
         ],
         "filename": [
             "../DroneNode/src/droneModules/HT16K33Module.h"
@@ -660,6 +675,9 @@
         "config": [
             "[INA219= 4]\n  name= \"Power\"\n  bus= 1\n  addr= 64\n  interval= 1000\n  cells= 2\n  threshold= 6.4\n  status= 1\n  publish =current, power, loadV, alarm, shuntV, busV, cellV"
         ],
+        "I2CAddress": [
+            "0x40"
+        ],
         "pub": [
             {
                 "address": 10,
@@ -749,6 +767,9 @@
         "config": [
             "[INA3221= 4]\n  name= \"Power\"\n  bus= 1\n  addr= 64\n  interval= 1000\n  cells= 2\n  threshold= 6.4\n  status= 1\n  publish =current, power, loadV, alarm, shuntV, busV, cellV"
         ],
+        "I2CAddress": [
+            "0x40"
+        ],
         "pub": [
             {
                 "address": 12,
@@ -831,6 +852,10 @@
         "config": [
             "[LSM9DS1 = 6]\n  name= \"Compass\"\n  interval= 200\n  bus= 0\n  status= 1\n  calibX= -3.5, 0, 2.3\n  calibY= -3.6, 0, 1.7\n  location= -1.8, 52, 100\n  $location = @>GPS.location\n  publish = heading, vector, calibX, calibY"
         ],
+        "I2CAddress": [
+            "0x1E",
+            "0x6B"
+        ],
         "pub": [
             {
                 "address": 10,
@@ -908,6 +933,9 @@
         ],
         "config": [
             "[MPU6050 = 14 ]\n  name = \"MPU6050\"\n  bus = 4\n  interval = 50\n  publish = accel, pitch, roll\n  publish = raw, calibX, calibY, calibZ, mode"
+        ],
+        "I2CAddress": [
+            "0x68"
         ],
         "pub": [
             {
@@ -1715,6 +1743,9 @@
         ],
         "config": [
             "[QMC5883L= 5]\n  name= \"Compass\"\n  interval= 50\n  bus= 0\n  calibX= -6,0,6\n  calibY= -6,0,6\n  calibZ=-6,0,6\n  trim= 180\n  location= -1.8, 52, 100\n  mode=1\n  centre = -3.188, 4.167, -0.1043\n  $location = @>GPS.location\n  $roll = @>MPU6050.roll\n  $pitch = @>MPU6050.pitch\n  publish =heading, vector, calibX, calibY, calibZ\n  publish = trim, mode, roll, pitch, raw"
+        ],
+        "I2CAddress": [
+            "0x0D"
         ],
         "filename": [
             "../DroneNode/src/droneModules/QMC5883LModule.h"
@@ -2542,6 +2573,9 @@
         "config": [
             "[VL53L0X = 8]\n  name= \"Laser\"\n  bus= 3\n  publish = distance"
         ],
+        "I2CAddress": [
+            "0x29"
+        ],
         "pub": [
             {
                 "address": 10,
@@ -2762,6 +2796,9 @@
         ],
         "config": [
             "[Wind= 14]\n  name= \"Wind\"\n  interval= 100\n  bus= 4\n  $heading= @>8.11\n  centre= -10\n  samples=10\n  publish= heading, direction, centre, wind"
+        ],
+        "I2CAddress": [
+            "0x36"
         ],
         "pub": [
             {

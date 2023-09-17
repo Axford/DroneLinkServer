@@ -4,6 +4,20 @@ import * as DLM from "../../droneLinkMsg.mjs";
 
 loadStylesheet("./css/modules/oui/interfaces/Management.css");
 
+import moduleInfo from "/moduleInfo.json" assert { type: "json" };
+
+function decimalToHex(d, padding) {
+  var hex = Number(d).toString(16);
+  padding = typeof (padding) === "undefined" || padding === null ? padding = 2 : padding;
+
+  while (hex.length < padding) {
+      hex = "0" + hex;
+  }
+
+  return hex;
+}
+
+
 export default class Management extends ModuleInterface {
   constructor(channel, state) {
     super(channel, state);
@@ -531,12 +545,28 @@ export default class Management extends ModuleInterface {
           s += '<thead class="thead-dark">';
           s += "<tr>";
           s += "<th>Address</th>";
+          s += "<th>Possible Module(s)</th>";
           s += "</tr>";
           s += '</thead>';
           bus.addresses.forEach((address)=>{
             var v = parseInt(address);
+            var hexV = '0X' + decimalToHex(v,2).toUpperCase();
             s += "<tr>";
-            s += "<td>" + address + ' (0x'+v.toString(16)+')' + "</td>";
+            s += "<td>" + address + ' ('+hexV+')' + "</td>";
+            s += '<td><ul>';
+            // look for potential module matches
+            for (const moduleName in moduleInfo) {
+              var m = moduleInfo[moduleName];
+              if (m.I2CAddress) {
+                // check each entry in array
+                m.I2CAddress.forEach((addr)=>{
+                  if (addr.toUpperCase() == hexV) {
+                    s += '<li>' + m.type + ': ' + m.description + '</li>';
+                  }
+                });
+              }  
+            }
+            s += '</ul></td>';
             s += "</tr>";
           });
           s += "</table>";
