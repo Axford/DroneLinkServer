@@ -276,6 +276,7 @@ export default class NodeUI {
 
           // read the nav mapping style
           me.updateNavMappingStyle(docData.navMappingStyle, false);
+          this.panels.NodeSettings.updateSettings(docData.navMappingStyle);
         }
         if (change.type === "removed") {
           

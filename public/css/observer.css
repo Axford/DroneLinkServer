@@ -9,6 +9,12 @@ body {
 
 html, body {margin: 0; height: 100%; overflow: hidden}
 
+.btn-default {
+  color: #333;
+  background-color: #fff;
+  border-color: #ccc;
+}
+
 .btn-tiny {
   font-size: 0.8em;
   line-height: 1;

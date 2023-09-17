@@ -22,7 +22,7 @@ export default class NodeSettings extends Panel {
     var me = this;
 
     // container for mapParams
-    this.ui.mapParamsContainer = $('<table />');
+    this.ui.mapParamsContainer = $('<table class="mb-5" />');
     this.ui.panel.append(this.ui.mapParamsContainer);
 
     // headings
@@ -33,24 +33,28 @@ export default class NodeSettings extends Panel {
     this.ui.mapParamsContainer.append(this.ui.mapParamsBody);
 
     // controls
-    this.ui.resetSnailBtn = $('<button class="btn btn-danger mt-5">Reset Snail Trail</button>');
+    this.ui.resetSnailBtn = $('<button class="btn btn-danger mr-3">Reset Snail Trail</button>');
     this.ui.resetSnailBtn.on('click', ()=>{
       me.node.resetSnailTrail();
     });
     this.ui.panel.append(this.ui.resetSnailBtn);
 
-    this.ui.minimalMapStyleBtn = $('<button class="btn btn-primary ml-5 mt-5">Minimal Map Style</button>');
-    this.ui.minimalMapStyleBtn.on('click', ()=>{
-      me.node.updateNavMappingStyle('minimal');
-    });
-    this.ui.panel.append(this.ui.minimalMapStyleBtn);
-
-    this.ui.fullMapStyleBtn = $('<button class="btn btn-primary ml-2 mt-5">Full Map Style</button>');
-    this.ui.fullMapStyleBtn.on('click', ()=>{
-      me.node.updateNavMappingStyle('full');
-    });
-    this.ui.panel.append(this.ui.fullMapStyleBtn);
+    this.ui.mapStyleToggle = $('<input type="checkbox" data-toggle="toggle" data-on="Full Mapping" data-off="Minimal Mapping" data-onstyle="success" data-offstyle="secondary" data-width="150" data-height="24">');
+    this.ui.mapStyleToggle.change(function() {
+      me.node.updateNavMappingStyle( $(this).prop('checked') ? 'full' : 'minimal' );
+    })
+    this.ui.panel.append(this.ui.mapStyleToggle);
   }
+
+
+  updateSettings(newMappingStyle) {
+    if (newMappingStyle == 'full') {
+      this.ui.mapStyleToggle.bootstrapToggle('on');
+    } else if (newMappingStyle == 'minimal') {
+      this.ui.mapStyleToggle.bootstrapToggle('off');
+    }
+  }
+
 
   update() {
     var s = '';
