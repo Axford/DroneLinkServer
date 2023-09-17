@@ -39,6 +39,11 @@ export default class RFM69 extends ModuleInterface {
 			this.powerSelect.val(p);
 		}
 
+    if (data.param == 13 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_UINT8_T) {
+			var p = Math.round(data.values[0]);
+			this.thresholdSelect.val(p);
+		}
+
     this.updateNeeded = true;
   }
 
@@ -103,6 +108,15 @@ export default class RFM69 extends ModuleInterface {
 	build() {
 		super.build('RFM69');
 
+    var inlineForm = $('<form class="form-inline mb-1" style="width:100%"></form>');
+    this.ui.append(inlineForm);
+
+    /*
+    Tx Power Selection
+    */
+    var powerContainer = $('<div class="input-group input-group-sm col-sm-6"><div class="input-group-prepend"><span class="input-group-text" id="inputGroup-sizing-sm">Tx Power</span></div></div>');
+    inlineForm.append(powerContainer);
+
 		// power select
 		this.powerSelect = $('<select class="custom-select custom-select-sm RFMPowerSelect"></select>');
     // add power options
@@ -113,17 +127,36 @@ export default class RFM69 extends ModuleInterface {
       // get value
       var newPower = this.powerSelect.val();
 
-			var qm = new DLM.DroneLinkMsg();
-			qm.node = this.channel.node.id;
-			qm.channel = this.channel.channel;
-			qm.param = 11;
-			qm.setFloat([ newPower ]);
-			this.state.send(qm);
+			this.setAndQueryFloatParam(11, newPower);
     });
 
-    this.ui.append(this.powerSelect);
+    powerContainer.append(this.powerSelect);
 
-		// canvas
+    /*
+    Priority Threshold Selection
+    */
+    var thresholdContainer = $('<div class="input-group input-group-sm col-sm-6"><div class="input-group-prepend"><span class="input-group-text" id="inputGroup-sizing-sm">Pri. Thresh.</span></div></div>');
+    inlineForm.append(thresholdContainer);
+
+		// select
+		this.thresholdSelect = $('<select class="custom-select custom-select-sm"></select>');
+    // add power options
+		for (var i=0; i<4; i++) {
+			this.thresholdSelect.append($('<option value="'+i+'">'+i+'</option>'));
+		}
+    this.thresholdSelect.change((e)=>{
+      // get value
+      var newV = this.thresholdSelect.val();
+
+			this.setAndQueryUint8Param(13, newV);
+    });
+
+    thresholdContainer.append(this.thresholdSelect);
+
+
+		/*
+    Canvas
+    */
     this.canvas = $('<canvas height=100 />');
 
 		this.ui.append(this.canvas);

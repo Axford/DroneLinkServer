@@ -210,6 +210,20 @@ export default class Parameter {
     this.uiValues = $('<div class="values"></div>');
     this.ui.append(this.uiValues);
 
+    // query button
+    this.uiQuery = $('<button class="btn btn-sm btn-light" style="position:absolute; bottom:2px; right:2px;"><i class="fas fa-sync-alt"></i></button>');
+    this.uiQuery.on('click', ()=>{
+      var qm = new DLM.DroneLinkMsg();
+      qm.node = this.channel.node.id;
+      qm.channel = this.channel.channel;
+      qm.param = this.param;
+      qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
+      qm.msgLength = 1;
+      this.state.send(qm);
+      event.stopPropagation();
+    });
+    this.ui.append(this.uiQuery);
+
     this.channel.parametersTab.append(this.ui);
 
     this.built = true;
