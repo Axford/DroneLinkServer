@@ -1,0 +1,56 @@
+.wizardPanel {
+    position:absolute;
+    display:none;
+    top:10vh;
+    left:5vw;
+    z-index:3000;
+    box-shadow: 3px 3px 5px #000;
+    width:45vw;
+    height:80vh;
+    background-color:#555;
+    border-radius: 6px;
+    padding:8px 8px;
+}
+
+.wizardTitle {
+    cursor:move;
+    padding: 0 0;
+    margin-bottom:8px; 
+    font-weight: bold;
+    color:white;
+    font-size:1.5em;
+}
+
+.moduleWidget {
+  color: black;
+  border-radius: 2px;
+  background-color: #ccc;
+  padding: 4px 8px 4px 8px;
+  font-weight:bold;
+  font-size: 1em;
+  margin-bottom: 8px;
+}
+
+.moduleWidget.configured {
+    background-color: #cfc;
+}
+
+.moduleWidget.selected {
+    border-right: 8px solid #007bff;
+  margin-right:-8px;
+}
+
+
+.inputWidget {
+    color: black;
+    border-radius: 2px;
+    background-color: #ccc;
+    padding: 4px 8px 4px 8px;
+    font-weight:bold;
+    font-size: 1em;
+    margin-bottom: 8px;
+  }
+
+  .inputWidget.configured {
+    background-color: #cfc;
+}

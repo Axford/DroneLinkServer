@@ -16,6 +16,8 @@ import GraphPanel from './panels/Graph.mjs';
 import NodeSettingsPanel from './panels/NodeSettings.mjs';
 import VisualisationPanel from './panels/Visualisation.mjs';
 
+import Wizard from './Wizard.mjs';
+
 import {calculateDestinationFromDistanceAndBearing, calculateInitialBearingBetweenCoordinates} from '../navMath.mjs';
 
 loadStylesheet('./css/modules/oui/NodeUI.css');
@@ -27,12 +29,13 @@ const ACTIVE_THRESHOLD = 10*60;  // 10 minutes
 
 export default class NodeUI {
 
-  constructor(id, state, map, uiManager, db) {
+  constructor(id, state, map, uiManager, db, storage) {
     var me = this;
     this.state = state;
     this.map = map;
     this.uiManager = uiManager;
     this.db = db;
+    this.storage = storage;
     this.location=  [0,0];
     this.target=  [0,0,0];
     this.last=  [0,0,0];
@@ -138,19 +141,31 @@ export default class NodeUI {
     this.pui.node = this;
     $('#nodeManager').append(this.pui);
 
+    // container for title controls
+    var titleContainer = $('<div class="nodeTitleContainer"></div>');
+    this.pui.append(titleContainer);
+
     // add node name (title) to right panel
     this.uiTitle = $('<div class="nodeTitle">'+ this.id +'</div>');
-    this.pui.append(this.uiTitle);
+    titleContainer.append(this.uiTitle);
+
+    this.uiWizardBut = $('<button class="btn btn-sm btn-primary"><i class="fas fa-tasks"></i> Configure</button>');
+		this.uiWizardBut.on('click', ()=>{
+      // display configuration wizard
+      this.wizard.show();
+		});
+    titleContainer.append(this.uiWizardBut);
 
     // add network priority pie widget
     this.uiPriorityPie = $('<canvas width=20 height=20 class="priorityPie"></canvas>');
-    this.pui.append(this.uiPriorityPie);
+    titleContainer.append(this.uiPriorityPie);
 
     // add rebuild button to right panel
-    this.uiRebuildBut = $('<button class="btn btn-sm btn-dark mb-2 mr-3 rebuildModules">Rebuild</button>');
+    this.uiRebuildBut = $('<button class="btn btn-sm btn-dark rebuildModules">Rebuild</button>');
 		this.uiRebuildBut.on('click', ()=>{
 			// remove UI for modules, params, etc
       me.panels.Management.clear();
+      me.uiWidgets.empty();
       
       // clear state info... and also remove from firestore
       me.state.rebuildNode(me.id);
@@ -161,7 +176,7 @@ export default class NodeUI {
       // remove histogram data
 
 		});
-    this.pui.append(this.uiRebuildBut);
+    titleContainer.append(this.uiRebuildBut);
 
     // container for tabs
     this.puiNav = $('<div class="panelNav"></div>');
@@ -191,7 +206,8 @@ export default class NodeUI {
 
     this.panels.NodeSettings = new NodeSettingsPanel(this, this.puiTabs, this.puiPanels);
 
-   
+    // wizard
+    this.wizard = new Wizard(this, this.storage);
 
     // create empty div ready to build context menu
     this.contextMenuContainer = $('<div class="contextMenu nav flex-column" style="display:none"/>');
@@ -283,6 +299,13 @@ export default class NodeUI {
         }
       });
     });
+  }
+
+
+  displayNewConfig(str) {
+    // display new config str from wizard and in editor
+    this.puiTabs.selectTab('Configuration');
+    this.panels.Configuration.setEditorContents(str, '/config.ini');
   }
 
 
@@ -682,6 +705,9 @@ export default class NodeUI {
     for (const [panelName, panel] of Object.entries(this.panels)) {
       panel.hide();
     }
+
+    // hide wizard
+    this.wizard.hide();
   }
 
 

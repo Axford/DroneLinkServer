@@ -27,25 +27,32 @@
 
 }
 
+.NodeUI .nodeTitleContainer {
+  display:flex;
+  flex-direction:row;
+  align-items:stretch;
+  gap:10px;
+  margin-bottom:5px;
+}
+
 .NodeUI .nodeTitle {
   font-size: 16px;
   font-weight:bold;
   margin-top:-2px;
   margin-bottom:2px;
   color:#def;
-  position:relative;
+  flex:1;
 }
 
 .NodeUI button.rebuildModules {
-  position:absolute;
   top: 2px;
   right: 0;
 }
 
-.NodeUI .priorityPie {
-  position:absolute; 
-  top:5px; 
-  right:70px;
+.NodeUI .priorityPie { 
+  top:5px;
+  width:20px;
+  height:20px;
 }
 
 .NodeUI .panelNav {

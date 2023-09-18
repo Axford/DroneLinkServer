@@ -90,6 +90,7 @@ export default class Management extends Panel {
   }
 
   clear() {
+    this.channels = {};
     this.ui.panel.empty();
   }
 

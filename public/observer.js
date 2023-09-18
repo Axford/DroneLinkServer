@@ -594,7 +594,7 @@ function init() {
       console.log('node.new:' + id);
 
       // create new node entry
-      var node = new NodeUI(id, state, map, uiManager, db);
+      var node = new NodeUI(id, state, map, uiManager, db, storage);
       node.setLatestFirmwareVersion(latestFirmwareVersion);
       nodes[id] = node;
       numNodes++;
