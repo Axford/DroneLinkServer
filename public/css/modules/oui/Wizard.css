@@ -36,10 +36,15 @@
 }
 
 .moduleWidget.selected {
-    border-right: 8px solid #007bff;
-  margin-right:-8px;
+    border-right: 8px solid #80ff80;
+    margin-right:-8px;
+    margin-left: 8px;
 }
 
+.moduleInputsContainer h2 {
+    font-size:1.2em;
+    color:white;
+}
 
 .inputWidget {
     color: black;
@@ -52,5 +57,19 @@
   }
 
   .inputWidget.configured {
+    background-color: #cfc;
+}
+
+.typeWidget {
+    color: black;
+    border-radius: 2px;
+    background-color: #ccc;
+    padding: 4px 8px 4px 8px;
+    font-weight:bold;
+    font-size: 1em;
+    margin-bottom: 8px;
+  }
+
+  .typeWidget.configured {
     background-color: #cfc;
 }
