@@ -479,7 +479,7 @@ export default class Wiring {
 
             // compare it to the target length based on metric
             var hvl = hv.length();
-            var targetLen = 50;
+            var targetLen = 100;
             var hvr = (hvl - targetLen) / 10;
 
             // update accel vector
