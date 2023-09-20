@@ -351,6 +351,7 @@ export default class Wiring {
     this.node = node;
     this.visible = false;
     this.built = false;
+    this.needsRedraw = true;
 
     this.rawConfig = "";
 
@@ -379,8 +380,11 @@ export default class Wiring {
 
     this.ui.panel
       .resizable({
+        resize: () => {
+            me.updateScaling();
+        },
         stop: () => {
-          me.update();
+            me.updateScaling();
         },
       })
       .draggable({ handle: ".wiringTitle" });
@@ -455,6 +459,7 @@ export default class Wiring {
         newPos.x += dx;
         newPos.y += dy;
         this.dragBlock.updatePosition(newPos);
+        this.needsRedraw = true;
       }
     });
 
@@ -471,6 +476,8 @@ export default class Wiring {
 
     me.selectMoboVersion("v4");
 
+    me.update(); // start update process
+
     this.built = true;
   }
 
@@ -481,7 +488,7 @@ export default class Wiring {
     this.ui.image.height = mi.imgHeight;
     this.ui.image.src = mi.img;
     this.pinMap = mi.pinMap;
-    this.update();
+    this.updateScaling();
   }
 
   show() {
@@ -520,6 +527,8 @@ export default class Wiring {
     this.y1 = (h - h1) / 2;
     this.x2 = this.x1 + w1;
     this.y2 = this.y1 + h1;
+
+    this.needsRedraw = true;
   }
 
   getPinLocation(pin) {
@@ -534,7 +543,6 @@ export default class Wiring {
   }
 
   update() {
-    this.updateScaling();
     this.updatePositions();
     this.draw();
 
@@ -544,6 +552,7 @@ export default class Wiring {
   draw() {
     if (!this.visible) return;
     if (!this.built) this.build();
+    if (!this.needsRedraw) return;
 
     // check image has loaded
     //if (!this.imageLoaded) return;
@@ -627,6 +636,8 @@ export default class Wiring {
     this.modules.forEach((m) => {
       m.draw();
     });
+
+    this.needsRedraw = false;
   }
 
   parseNameValue(line) {
@@ -838,7 +849,7 @@ export default class Wiring {
       }
     });
 
-    this.update();
+    this.needsRedraw = true;
   }
 
   updatePositions() {
@@ -943,6 +954,9 @@ export default class Wiring {
 
       // update position
       b.addToPosition(b.velocity);
+
+      // trigger redraw if movement is significant
+      if (b.velocity.dot(b.velocity) > 0.01) this.needsRedraw = true;
     }
   }
 }
