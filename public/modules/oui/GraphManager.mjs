@@ -241,7 +241,8 @@ export default class GraphManager {
           // overlap is a vector in direction of minimum overlap
           var overlap = b.collidingWith(ob, padding);
           if (overlap.length() > 0) {
-            overlap.multiply(20);
+            overlap.capLength(50);
+            overlap.multiply(5);
             b.av.add(overlap);
           }
         }
@@ -250,7 +251,8 @@ export default class GraphManager {
       // pull blocks gently towards the centre
       var temp = cv.clone();
       temp.subtract(b.position);
-      temp.multiply(0.01);
+      overlap.capLength(100);
+      temp.multiply(0.1);
       b.av.add(temp);
       /*
       if (b.numConnectedPorts > 0) {
@@ -279,10 +281,7 @@ export default class GraphManager {
       b.velocity.add(b.av);
 
       // clamp velocity
-      var bv = b.velocity.length();
-      if (bv > 50) {
-        b.velocity.multiply(10 / bv);
-      }
+      b.velocity.capLength(30);
 
       // apply drag
       b.velocity.multiply(0.8);
@@ -291,7 +290,7 @@ export default class GraphManager {
       b.addToPosition(b.velocity);
 
       // trigger redraw if movement is significant
-      if (bv > 0.1) this.needsRedraw = true;
+      if (b.velocity.dot(b.velocity) > 0.01) this.needsRedraw = true;
     }
   }
 
