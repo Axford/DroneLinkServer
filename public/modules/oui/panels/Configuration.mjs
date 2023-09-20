@@ -11,6 +11,7 @@ import moduleInfo from "/moduleInfo.json" assert { type: "json" };
 
 import {calculateDistanceBetweenCoordinates} from "../../navMath.mjs";
 
+import Wiring from '../Wiring.mjs';
 
 loadStylesheet('./css/modules/oui/panels/Configuration.css');
 
@@ -823,6 +824,8 @@ export default class Configuration extends Panel {
       }
     });
 
+    this.wiring = new Wiring(node);
+
     this.build();
 
     this.socket = this.node.state.socket;
@@ -972,6 +975,14 @@ export default class Configuration extends Panel {
     // nav
     this.cuiEditorNav = $('<div class="editorNav clearfix"></div>');
     this.cuiEditorBlock.append(this.cuiEditorNav);
+
+    // show wiring
+    this.cuiShowWiringBut = $('<button class="btn btn-sm btn-info float-right ml-4" ><i class="fas fa-plug"></i> Wiring</button>');
+    this.cuiShowWiringBut.on('click',()=>{
+      me.wiring.show();
+      me.wiring.parseConfig( this.aceEditor.session.getValue() );
+    });
+    this.cuiEditorNav.append(this.cuiShowWiringBut);
 
     // cancel save to node button
     this.cuiEditorCancelSaveToNodeBut = $('<button class="btn btn-sm btn-danger float-right" style="display:none" >Cancel Save to Node</button>');
