@@ -5,28 +5,120 @@ loadStylesheet("./css/modules/oui/wiring.css");
 
 // position of pins map
 
-var pinMapV4 = {
-  i0: [2334, 1844],
-  i1: [2334, 1311],
-  i2: [2334, 782],
-  i3: [2334, 254],
-  i4: [1940, 878],
-  i5: [1940, 364],
-  i6: [1940, 878],
-  i7: [1940, 101],
-  2: [1800, 1860],
-  12: [410, 1720], // serial 1 Tx
-  13: [310, 1720], // serial 1 Rx
-  17: [410, 1485], // serial 2 Tx
-  16: [310, 1485], // serial 2 Rx
-  14: [310, 1245],
-  15: [410, 1245],
-  25: [310, 1005],
-  26: [410, 1005],
-  32: [314, 762],
-  33: [410, 760],
-  35: [310, 1980], // analog
+var moboInfo = {
+  v2: {
+    img: "/images/DroneLinkV2PinOutSimple.jpeg",
+    imgWidth: 1237,
+    imgHeight: 901,
+    pinMap: {
+      i0: [985, 783],
+      i1: [1079, 783],
+      i2: [985, 561],
+      i3: [1079, 561],
+      i4: [985, 337],
+      i5: [1079, 337],
+      i6: [985, 116],
+      i7: [1079, 116],
+      1: [864, 56], // serial 0 Tx
+      2: [864, 685],
+      3: [864, 97], // serial 0 Rx
+      4: [864, 646],
+      12: [262, 644], // serial 1 Tx
+      13: [262, 685], // serial 1 Rx
+      17: [864, 348], // serial 2 Tx
+      16: [864, 390], // serial 2 Rx
+      14: [262, 380],
+      15: [262, 339],
+      25: [156, 771],
+      26: [156, 731],
+      32: [156, 544],
+      33: [156, 505],
+      34: [156, 318],
+      35: [156, 279], // analog
+    },
+  },
+  v4: {
+    img: "/images/DroneLinkV4PinOutSimple.png",
+    imgWidth: 2434,
+    imgHeight: 2096,
+    pinMap: {
+      i0: [2334, 1844],
+      i1: [2334, 1311],
+      i2: [2334, 782],
+      i3: [2334, 254],
+      i4: [1940, 878],
+      i5: [1940, 364],
+      i6: [1940, 878],
+      i7: [1940, 101],
+      2: [1800, 1860],
+      12: [410, 1720], // serial 1 Tx
+      13: [310, 1720], // serial 1 Rx
+      17: [410, 1485], // serial 2 Tx
+      16: [310, 1485], // serial 2 Rx
+      14: [310, 1245],
+      15: [410, 1245],
+      25: [310, 1005],
+      26: [410, 1005],
+      32: [314, 762],
+      33: [410, 760],
+      35: [310, 1980], // analog
+    },
+  },
 };
+
+
+/**
+ * Draws a rounded rectangle using the current state of the canvas.
+ * If you omit the last three params, it will draw a rectangle
+ * outline with a 5 pixel border radius
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {Number} x The top left x coordinate
+ * @param {Number} y The top left y coordinate
+ * @param {Number} width The width of the rectangle
+ * @param {Number} height The height of the rectangle
+ * @param {Number} [radius = 5] The corner radius; It can also be an object
+ *                 to specify different radii for corners
+ * @param {Number} [radius.tl = 0] Top left
+ * @param {Number} [radius.tr = 0] Top right
+ * @param {Number} [radius.br = 0] Bottom right
+ * @param {Number} [radius.bl = 0] Bottom left
+ * @param {Boolean} [fill = false] Whether to fill the rectangle.
+ * @param {Boolean} [stroke = true] Whether to stroke the rectangle.
+ */
+function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
+    if (typeof stroke === 'undefined') {
+      stroke = true;
+    }
+    if (typeof radius === 'undefined') {
+      radius = 5;
+    }
+    if (typeof radius === 'number') {
+      radius = {tl: radius, tr: radius, br: radius, bl: radius};
+    } else {
+      var defaultRadius = {tl: 0, tr: 0, br: 0, bl: 0};
+      for (var side in defaultRadius) {
+        radius[side] = radius[side] || defaultRadius[side];
+      }
+    }
+    ctx.beginPath();
+    ctx.moveTo(x + radius.tl, y);
+    ctx.lineTo(x + width - radius.tr, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius.tr);
+    ctx.lineTo(x + width, y + height - radius.br);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius.br, y + height);
+    ctx.lineTo(x + radius.bl, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius.bl);
+    ctx.lineTo(x, y + radius.tl);
+    ctx.quadraticCurveTo(x, y, x + radius.tl, y);
+    ctx.closePath();
+    if (fill) {
+      ctx.fill();
+    }
+    if (stroke) {
+      ctx.stroke();
+    }
+  
+  }
 
 /*
 
@@ -49,14 +141,17 @@ class ModuleBlock {
     this.saturation = 0;
     this.lightness = 90;
 
-    this.fillStyle = "hsl(" + 360 * Math.random() + ',' +
-             '100%,' +
-             (65 + 20 * Math.random()) + '%)';
+    this.fillStyle =
+      "hsl(" +
+      360 * Math.random() +
+      "," +
+      "100%," +
+      (65 + 20 * Math.random()) +
+      "%)";
 
     var c = this.mgr.ui.canvas[0];
     var ctx = c.getContext("2d");
     var w = ctx.canvas.width;
-    if (w < 200) w = 200;
     var h = ctx.canvas.height;
 
     this.position = new Vector(w * Math.random(), h * Math.random());
@@ -85,20 +180,19 @@ class ModuleBlock {
     return 100;
   }
 
-  hit(x,y) {
-    return (x > this.x1 && x < this.x2 &&
-            y > this.y1 && y < this.y2);
+  hit(x, y) {
+    return x > this.x1 && x < this.x2 && y > this.y1 && y < this.y2;
   }
 
   collidingWith(ob, padding) {
-    var v = new Vector(0,0);
+    var v = new Vector(0, 0);
     // overlap values will be positive if overlapping
-    var xo1 = (ob.x2 + padding) - this.x1;
-    var xo2 = (this.x2 + padding) - ob.x1;
-    var yo1 = (ob.y2 + padding) - this.y1;
-    var yo2 = (this.y2 + padding) - ob.y1;
+    var xo1 = ob.x2 + padding - this.x1;
+    var xo2 = this.x2 + padding - ob.x1;
+    var yo1 = ob.y2 + padding - this.y1;
+    var yo2 = this.y2 + padding - ob.y1;
     if (xo1 > 0 && xo2 > 0 && yo1 > 0 && yo2 > 0) {
-      if (Math.min(xo1,xo2) > Math.min(yo1,yo2)) {
+      if (Math.min(xo1, xo2) > Math.min(yo1, yo2)) {
         if (yo1 < yo2) {
           v.y = yo1;
         } else {
@@ -166,15 +260,20 @@ class ModuleBlock {
     var py = 0;
 
     ctx.fillStyle = this.fillStyle;
-    var x1 = px + this.position.x - this.width/2;
-    var y1 = px + this.position.y - this.height/2;
+    roundRect(ctx, this.x1, this.y1, this.width, this.height, 6, this.fillStyle, false);
 
-    ctx.fillRect(x1, y1, this.width, this.height);
-    this.drawTextScaled(this.typeName + ': ' + this.name, x1, y1, this.width, this.height-5);
+    this.drawTextScaled(
+      this.typeName + ": " + this.name,
+      this.x1,
+      this.y1,
+      this.width,
+      this.height - 5,
+      '#000',
+      8
+    );
   }
 
   drawWires() {
-
     var c = this.mgr.ui.canvas[0];
     var ctx = c.getContext("2d");
 
@@ -211,9 +310,15 @@ export default class Wiring {
 
     this.modules = [];
 
-    this.pinMap = pinMapV4;
+    this.moboVersion = "";
+
+    this.pinMap = {};
 
     this.ui = {};
+
+    this.dragStart = new Vector(0, 0);
+    this.dragBlock = null;
+    this.dragBlockPos = new Vector(0, 0); // starting pos
   }
 
   build() {
@@ -246,20 +351,90 @@ export default class Wiring {
     this.ui.title = $('<div class="wiringTitle">Wiring</div>');
     this.ui.panel.append(this.ui.title);
 
+    // add motherboard version selector to title
+    this.ui.moboSelect = $('<select class="form-control mt-2"></div>');
+    this.ui.moboSelect.append($('<option value="v2">V2 Motherboard</option>'));
+    this.ui.moboSelect.append(
+      $('<option value="v4" selected>V4 Motherboard</option>')
+    );
+    this.ui.moboSelect.on("change", () => {
+      me.selectMoboVersion(me.ui.moboSelect.val());
+    });
+    this.ui.title.append(this.ui.moboSelect);
+
     // canvas
     this.ui.canvas = $("<canvas width=100 height=100 />");
     this.ui.panel.append(this.ui.canvas);
 
+    // event handlers
+    this.ui.canvas.on("mousedown", (e) => {
+      var offsetX = $(e.target).offset().left;
+      var offsetY = $(e.target).offset().top;
+      var w = $(e.target).innerWidth();
+      var h = $(e.target).innerHeight();
+
+      this.dragStart.x = e.pageX - offsetX;
+      this.dragStart.y = e.pageY - offsetY;
+
+      // check if we're clicking on a block...
+      var x1 = this.dragStart.x;
+      var y1 = this.dragStart.y;
+
+      this.dragBlock = null;
+      //console.log('hit', x1, y1);
+      for (var i = 0; i < this.modules.length; i++) {
+        var b = this.modules[i];
+        //console.log('hit', b);
+        if (b.hit(x1, y1)) {
+          console.log("hit", b);
+          this.dragBlock = b;
+          this.dragBlockPos.set(b.position);
+          continue;
+        }
+      }
+    });
+
+    this.ui.canvas.on("mousemove", (e) => {
+      var offsetX = $(e.target).offset().left;
+      var offsetY = $(e.target).offset().top;
+      var w = $(e.target).innerWidth();
+      var h = $(e.target).innerHeight();
+
+      var dx = e.pageX - offsetX - this.dragStart.x;
+      var dy = e.pageY - offsetY - this.dragStart.y;
+
+      if (this.dragBlock) {
+        var newPos = this.dragBlockPos.clone();
+        newPos.x += dx;
+        newPos.y += dy;
+        this.dragBlock.updatePosition(newPos);
+      } 
+    });
+
+    this.ui.canvas.on("mouseup", (e) => {
+      this.dragBlock = null;
+    });
+
     // reference image
     this.imageLoaded = false;
-    this.ui.image = new Image(2434, 2096);
+    this.ui.image = new Image();
     this.ui.image.onload = () => {
       this.imageLoaded = true;
-      me.update();
     };
-    this.ui.image.src = "/images/DroneLinkV4PinOutSimple.png";
+
+    me.selectMoboVersion("v4");
 
     this.built = true;
+  }
+
+  selectMoboVersion(ver) {
+    this.moboVersion = ver;
+    var mi = moboInfo[ver];
+    this.ui.image.width = mi.imgWidth;
+    this.ui.image.height = mi.imgHeight;
+    this.ui.image.src = mi.img;
+    this.pinMap = mi.pinMap;
+    this.update();
   }
 
   show() {
@@ -298,7 +473,7 @@ export default class Wiring {
     if (!this.built) this.build();
 
     // check image has loaded
-    if (!this.imageLoaded) return;
+    //if (!this.imageLoaded) return;
 
     var c = this.ui.canvas[0];
     var ctx = c.getContext("2d");
@@ -306,7 +481,7 @@ export default class Wiring {
     // keep size updated
     var w = this.ui.panel.width();
     ctx.canvas.width = w;
-    var h = this.ui.panel.height() - 30;
+    var h = this.ui.panel.height() - 67;
     ctx.canvas.height = h;
 
     ctx.fillStyle = "#343a40";
@@ -347,6 +522,8 @@ export default class Wiring {
   parseConfig(config) {
     this.rawConfig = config;
 
+    //console.log(config);
+
     // clear
     this.modules = [];
 
@@ -384,7 +561,7 @@ export default class Wiring {
                 .substring(epos + 1, line.length)
                 .trim()
                 .split(",");
-              console.log(name, values);
+              //console.log(name, values);
               if (name == "pins") {
                 values.forEach((v) => {
                   module.pins.push(parseInt(v));
@@ -417,15 +594,17 @@ export default class Wiring {
       }
     }
 
+    console.log("Config parsed, loaded " + this.modules.length + " modules");
+
     // reset initial positions
     this.modules.forEach((m) => {
-        if (m.pins.length > 0) {
-            var p = this.getPinLocation(m.pins[0]);
-            if (p) {
-                m.position.x = p.x;
-                m.position.y = p.y + 5;
-            }
+      console.log("Module: " + m.typeName + ", pins: " + m.pins.length);
+      if (m.pins.length > 0) {
+        var p = this.getPinLocation(m.pins[0]);
+        if (p) {
+          m.updatePosition(new Vector(p.x, p.y + 5));
         }
+      }
     });
 
     this.update();
@@ -469,23 +648,23 @@ export default class Wiring {
       b.av.add(temp);
 
       // check wiring
-      b.pins.forEach((pin)=> {
+      b.pins.forEach((pin) => {
         // calc vector from this node to hop
 
         var p = this.getPinLocation(pin);
         if (p) {
-            var hv = new Vector(p.x, p.y);
-            hv.subtract(b.position);
+          var hv = new Vector(p.x, p.y);
+          hv.subtract(b.position);
 
-            // compare it to the target length based on metric
-            var hvl = hv.length();
-            var targetLen = 100;
-            var hvr = (hvl - targetLen) / 10;
+          // compare it to the target length based on metric
+          var hvl = hv.length();
+          var targetLen = 100;
+          var hvr = (hvl - targetLen) / 10;
 
-            // update accel vector
-            hv.normalize();
-            hv.multiply(hvr);
-            b.av.add(hv);
+          // update accel vector
+          hv.normalize();
+          hv.multiply(hvr);
+          b.av.add(hv);
         }
       });
 
