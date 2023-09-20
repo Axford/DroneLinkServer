@@ -707,11 +707,11 @@ export default class Management extends ModuleInterface {
     --------------  Wifi btn group  ----------------------------------
     */
 
-    this.wifiBtnGroup = $('<div class="btn-group mr-3"></div>');
+    this.wifiBtnGroup = $('<div class="btn-group mr-3 mb-2"><button class="btn btn-sm btn-secondary" disabled><i class="fas fa-wifi"></i></button></div>');
     this.ui.append(this.wifiBtnGroup);
 
     this.wifiOffBtn = $(
-      '<button class="btn btn-sm btn-warning mb-2 ">WiFi Off</button>'
+      '<button class="btn btn-sm btn-dark">Off</button>'
     );
     this.wifiOffBtn.on("click", () => {
       var qm = new DLM.DroneLinkMsg();
@@ -725,7 +725,7 @@ export default class Management extends ModuleInterface {
     this.wifiBtnGroup.append(this.wifiOffBtn);
 
     this.wifiOnBtn = $(
-      '<button class="btn btn-sm btn-success mb-2 mr-3">WiFi On</button>'
+      '<button class="btn btn-sm btn-success mr-3">On</button>'
     );
     this.wifiOnBtn.on("click", () => {
       var qm = new DLM.DroneLinkMsg();

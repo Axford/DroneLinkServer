@@ -21,6 +21,13 @@ html, body {margin: 0; height: 100%; overflow: hidden}
   padding: 0.2rem 0.2rem;
 }
 
+.btn-group label {
+  margin-bottom:0;
+  margin-top:0.3rem;
+  margin-right: 0.5rem;
+  
+}
+
 
 .gamepadUI {
   display: grid;
