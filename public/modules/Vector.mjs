@@ -85,6 +85,12 @@ export default class Vector {
 	normalize() {
 		return this.divide(this.length());
 	}
+	capLength(len) {
+		var curLen = this.length();
+		if (curLen > len) {
+			this.multiply(len / curLen);
+		}
+	}
 	min() {
 		return Math.min(this.x, this.y);
 	}

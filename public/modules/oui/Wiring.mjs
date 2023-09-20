@@ -46,9 +46,9 @@ var moboInfo = {
       i1: [2334, 1311],
       i2: [2334, 782],
       i3: [2334, 254],
-      i4: [1940, 878],
-      i5: [1940, 364],
-      i6: [1940, 878],
+      i4: [1940, 883],
+      i5: [1940, 622],
+      i6: [1940, 372],
       i7: [1940, 101],
       2: [1800, 1860],
       12: [410, 1720], // serial 1 Tx
@@ -65,7 +65,6 @@ var moboInfo = {
     },
   },
 };
-
 
 /**
  * Draws a rounded rectangle using the current state of the canvas.
@@ -86,39 +85,43 @@ var moboInfo = {
  * @param {Boolean} [stroke = true] Whether to stroke the rectangle.
  */
 function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
-    if (typeof stroke === 'undefined') {
-      stroke = true;
-    }
-    if (typeof radius === 'undefined') {
-      radius = 5;
-    }
-    if (typeof radius === 'number') {
-      radius = {tl: radius, tr: radius, br: radius, bl: radius};
-    } else {
-      var defaultRadius = {tl: 0, tr: 0, br: 0, bl: 0};
-      for (var side in defaultRadius) {
-        radius[side] = radius[side] || defaultRadius[side];
-      }
-    }
-    ctx.beginPath();
-    ctx.moveTo(x + radius.tl, y);
-    ctx.lineTo(x + width - radius.tr, y);
-    ctx.quadraticCurveTo(x + width, y, x + width, y + radius.tr);
-    ctx.lineTo(x + width, y + height - radius.br);
-    ctx.quadraticCurveTo(x + width, y + height, x + width - radius.br, y + height);
-    ctx.lineTo(x + radius.bl, y + height);
-    ctx.quadraticCurveTo(x, y + height, x, y + height - radius.bl);
-    ctx.lineTo(x, y + radius.tl);
-    ctx.quadraticCurveTo(x, y, x + radius.tl, y);
-    ctx.closePath();
-    if (fill) {
-      ctx.fill();
-    }
-    if (stroke) {
-      ctx.stroke();
-    }
-  
+  if (typeof stroke === "undefined") {
+    stroke = true;
   }
+  if (typeof radius === "undefined") {
+    radius = 5;
+  }
+  if (typeof radius === "number") {
+    radius = { tl: radius, tr: radius, br: radius, bl: radius };
+  } else {
+    var defaultRadius = { tl: 0, tr: 0, br: 0, bl: 0 };
+    for (var side in defaultRadius) {
+      radius[side] = radius[side] || defaultRadius[side];
+    }
+  }
+  ctx.beginPath();
+  ctx.moveTo(x + radius.tl, y);
+  ctx.lineTo(x + width - radius.tr, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius.tr);
+  ctx.lineTo(x + width, y + height - radius.br);
+  ctx.quadraticCurveTo(
+    x + width,
+    y + height,
+    x + width - radius.br,
+    y + height
+  );
+  ctx.lineTo(x + radius.bl, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius.bl);
+  ctx.lineTo(x, y + radius.tl);
+  ctx.quadraticCurveTo(x, y, x + radius.tl, y);
+  ctx.closePath();
+  if (fill) {
+    ctx.fill();
+  }
+  if (stroke) {
+    ctx.stroke();
+  }
+}
 
 /*
 
@@ -146,7 +149,7 @@ class ModuleBlock {
       360 * Math.random() +
       "," +
       "100%," +
-      (65 + 20 * Math.random()) +
+      (75 + 5 * Math.random()) +
       "%)";
 
     var c = this.mgr.ui.canvas[0];
@@ -260,15 +263,25 @@ class ModuleBlock {
     var py = 0;
 
     ctx.fillStyle = this.fillStyle;
-    roundRect(ctx, this.x1, this.y1, this.width, this.height, 6, this.fillStyle, false);
-
-    this.drawTextScaled(
-      this.typeName + ": " + this.name,
+    roundRect(
+      ctx,
       this.x1,
       this.y1,
       this.width,
-      this.height - 5,
-      '#000',
+      this.height,
+      6,
+      this.fillStyle,
+      false
+    );
+
+    var s = this.name + " (" + this.typeName + ")";
+    this.drawTextScaled(
+      s,
+      this.x1,
+      this.y1,
+      this.width,
+      this.height,
+      "#000",
       8
     );
   }
@@ -287,10 +300,17 @@ class ModuleBlock {
       this.pins.forEach((pin) => {
         var p = this.mgr.getPinLocation(pin);
         if (p) {
-          ctx.beginPath();
-          ctx.moveTo(cx, cy);
-          ctx.lineTo(p.x, p.y);
-          ctx.stroke();
+
+
+            // calc vector and shorten to get to pin
+            var v = new Vector(p.x-cx, p.y-cy);
+            var r = pin < 100 ? 11 : 21;
+            v.multiply((v.length()-r)/v.length());
+
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx + v.x, cy + v.y);
+            ctx.stroke();
         }
       });
     }
@@ -313,6 +333,7 @@ export default class Wiring {
     this.moboVersion = "";
 
     this.pinMap = {};
+    this.connectedPins = {};
 
     this.ui = {};
 
@@ -408,7 +429,7 @@ export default class Wiring {
         newPos.x += dx;
         newPos.y += dy;
         this.dragBlock.updatePosition(newPos);
-      } 
+      }
     });
 
     this.ui.canvas.on("mouseup", (e) => {
@@ -450,6 +471,31 @@ export default class Wiring {
     this.ui.panel.hide();
   }
 
+  updateScaling() {
+    if (!this.visible) return;
+    if (!this.built) this.build();
+
+    var c = this.ui.canvas[0];
+    var ctx = c.getContext("2d");
+
+    // keep size updated
+    var w = this.ui.panel.width();
+    ctx.canvas.width = w;
+    var h = this.ui.panel.height() - 67;
+    ctx.canvas.height = h;
+
+    // draw image, centred and half the width of the window
+    var aspect = this.ui.image.height / this.ui.image.width;
+    var w1 = w / 2;
+    var h1 = w1 * aspect;
+    this.scaling = w1 / this.ui.image.width;
+
+    this.x1 = (w - w1) / 2;
+    this.y1 = (h - h1) / 2;
+    this.x2 = this.x1 + w1;
+    this.y2 = this.y1 + h1;
+  }
+
   getPinLocation(pin) {
     if (this.pinMap.hasOwnProperty(pin)) {
       return {
@@ -462,6 +508,7 @@ export default class Wiring {
   }
 
   update() {
+    this.updateScaling();
     this.updatePositions();
     this.draw();
 
@@ -487,25 +534,58 @@ export default class Wiring {
     ctx.fillStyle = "#343a40";
     ctx.fillRect(0, 0, w, h);
 
-    // draw image, centred and half the width of the window
-    var aspect = this.ui.image.height / this.ui.image.width;
-    var w1 = w / 2;
-    var h1 = w1 * aspect;
-    this.scaling = w1 / this.ui.image.width;
+    ctx.globalAlpha = 0.5;
+    ctx.drawImage(
+      this.ui.image,
+      this.x1,
+      this.y1,
+      this.x2 - this.x1,
+      this.y2 - this.y1
+    );
 
-    this.x1 = (w - w1) / 2;
-    this.y1 = (h - h1) / 2;
-
-    ctx.drawImage(this.ui.image, this.x1, this.y1, w1, h1);
+    ctx.globalAlpha = 1;
 
     // draw pin locations
+    ctx.textAlign = "center";
     for (const pin in this.pinMap) {
       var p = this.getPinLocation(pin);
       if (p) {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 5, 0, 2 * Math.PI);
-        ctx.fillStyle = "#0f0";
-        ctx.fill();
+        var connected = this.connectedPins[pin];
+        if (pin.startsWith("i")) {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 20, 0, 2 * Math.PI);
+          ctx.fillStyle = connected ? connected.module.fillStyle : "#000";
+          ctx.fill();
+
+          if (connected) {
+            ctx.strokeStyle = "#000";
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+
+          // pin label
+          ctx.font = "11px serif";
+          ctx.fillStyle = connected ? "#000" : "#fff";
+          ctx.fillText("I2C", p.x, p.y - 5);
+
+          ctx.font = "17px serif";
+          ctx.fillText(pin.substring(1, 10), p.x, p.y + 12);
+        } else {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 10, 0, 2 * Math.PI);
+          ctx.fillStyle = connected ? connected.module.fillStyle : "#000";
+          ctx.fill();
+          if (connected) {
+            ctx.strokeStyle = "#000";
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+
+          // pin label
+          ctx.font = "13px serif";
+          ctx.fillStyle = connected ? "#000" : "#fff";
+          ctx.fillText((connected && connected.label > '') ? connected.label : pin, p.x, p.y + 5);
+        }
       }
     }
 
@@ -519,13 +599,85 @@ export default class Wiring {
     });
   }
 
+  parseNameValue(line) {
+    var res = {
+      name: "",
+      value: "",
+      error: "",
+    };
+
+    var inString = false,
+      inValue = false,
+      buf = "";
+
+    for (var i = 0; i < line.length; i++) {
+      var c = line[i];
+      if (inString) {
+        if (c == '"') {
+          // end of string
+          inString = false;
+        } else {
+          buf += c;
+        }
+      } else {
+        if (c == '"') {
+          // check this is the first character we've seen
+          if (buf.length > 0) {
+            res.error = "text encountered before quotation marks";
+            break;
+          } else {
+            inString = true;
+          }
+        } else if (c == "=") {
+          if (!inValue) {
+            // store name
+            if (buf.length > 0) {
+              res.name = buf;
+              buf = "";
+            } else {
+              res.error = "Undefined parameter name";
+              break;
+            }
+            inValue = true;
+          } else {
+            res.error = "unexpected equals character";
+            break;
+          }
+        } else {
+          // skip whitespace, add anything else to buffer
+          if (c != " " && c != "\t") {
+            buf += c;
+          }
+        }
+      }
+    }
+
+    // store value
+    if (inValue) {
+      if (buf.length > 0) {
+        res.value = buf;
+
+        // parse values if it's an array
+      } else {
+        res.error = "Undefined parameter value";
+      }
+    } else {
+      res.error = "Undefined parameter value";
+    }
+
+    return res;
+  }
+
   parseConfig(config) {
     this.rawConfig = config;
+
+    this.updateScaling();
 
     //console.log(config);
 
     // clear
     this.modules = [];
+    this.connectedPins = {};
 
     // setup syntax parser
     var module = null;
@@ -542,7 +694,8 @@ export default class Wiring {
           // check ends with a ]
           if (line[line.length - 1] == "]") {
             // instance a new module
-            module = new ModuleBlock(this, line.substring(1, line.length - 1));
+            var nv = this.parseNameValue(line.substring(1, line.length - 1));
+            module = new ModuleBlock(this, nv.name);
             this.modules.push(module);
           } else {
             // error, no closing bracket
@@ -565,20 +718,63 @@ export default class Wiring {
               if (name == "pins") {
                 values.forEach((v) => {
                   module.pins.push(parseInt(v));
+                  this.connectedPins[parseInt(v)] = {
+                    connected: true,
+                    label: "",
+                    module: module,
+                  };
                 });
               } else if (name == "bus") {
                 values.forEach((v) => {
                   module.pins.push("i" + parseInt(v));
+                  this.connectedPins["i" + parseInt(v)] = {
+                    connected: true,
+                    label: "",
+                    module: module,
+                  };
                 });
               } else if (name == "port") {
                 values.forEach((v) => {
                   var p = parseInt(v);
-                  if (p == 1) {
+                  if (p == 0) {
+                    module.pins.push(1);
+                    module.pins.push(3);
+                    this.connectedPins[1] = {
+                      connected: true,
+                      label: "Tx",
+                      module: module,
+                    };
+                    this.connectedPins[3] = {
+                      connected: true,
+                      label: "Rx",
+                      module: module,
+                    };
+                  } else if (p == 1) {
                     module.pins.push(12);
                     module.pins.push(13);
+                    this.connectedPins[12] = {
+                      connected: true,
+                      label: "Tx",
+                      module: module,
+                    };
+                    this.connectedPins[13] = {
+                      connected: true,
+                      label: "Rx",
+                      module: module,
+                    };
                   } else if (p == 2) {
                     module.pins.push(16);
                     module.pins.push(17);
+                    this.connectedPins[17] = {
+                      connected: true,
+                      label: "Tx",
+                      module: module,
+                    };
+                    this.connectedPins[16] = {
+                      connected: true,
+                      label: "Rx",
+                      module: module,
+                    };
                   }
                 });
               } else if (name == "name") {
@@ -596,13 +792,17 @@ export default class Wiring {
 
     console.log("Config parsed, loaded " + this.modules.length + " modules");
 
+    console.log(this.connectedPins);
+
     // reset initial positions
     this.modules.forEach((m) => {
       console.log("Module: " + m.typeName + ", pins: " + m.pins.length);
       if (m.pins.length > 0) {
         var p = this.getPinLocation(m.pins[0]);
         if (p) {
-          m.updatePosition(new Vector(p.x, p.y + 5));
+          m.updatePosition(
+            new Vector(p.x + Math.random(), p.y + Math.random())
+          );
         }
       }
     });
@@ -635,17 +835,26 @@ export default class Wiring {
       b.av.y = 0;
     }
 
+    // dummy pcb block
+    var pcb = {
+      x1: this.x1,
+      x2: this.x2,
+      y1: this.y1,
+      y2: this.y2,
+    };
+
     // update accelerations
     for (var i = 0; i < this.modules.length; i++) {
       var b = this.modules[i];
       if (b.pins.length == 0) continue;
 
-      // push away from centre of view
-      var temp = b.position.clone();
-      temp.subtract(cv);
-      temp.normalize();
-      temp.multiply(0.001);
-      b.av.add(temp);
+      // check for overlap with pcb
+      var overlap = b.collidingWith(pcb, padding);
+      if (overlap.length() > 0) {
+        overlap.capLength(50);
+        overlap.multiply(1);
+        b.av.add(overlap);
+      }
 
       // check wiring
       b.pins.forEach((pin) => {
@@ -679,18 +888,9 @@ export default class Wiring {
           // overlap is a vector in direction of minimum overlap
           var overlap = b.collidingWith(ob, padding);
           if (overlap.length() > 0) {
-            overlap.multiply(20);
+            overlap.capLength(50);
+            overlap.multiply(1);
             b.av.add(overlap);
-          } else {
-            // otherwise add a gentle repulsion
-            var temp = ob.position.clone();
-            temp.subtract(b.position);
-            temp.normalize();
-            temp.multiply(1);
-            ob.av.add(temp);
-
-            temp.multiply(-1);
-            b.av.add(temp);
           }
         }
       }
@@ -705,10 +905,7 @@ export default class Wiring {
       b.velocity.add(b.av);
 
       // clamp velocity
-      var bv = b.velocity.length();
-      if (bv > 50) {
-        b.velocity.multiply(10 / bv);
-      }
+      b.velocity.capLength(30);
 
       // apply drag
       b.velocity.multiply(0.8);
