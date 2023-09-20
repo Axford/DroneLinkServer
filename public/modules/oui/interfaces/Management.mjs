@@ -605,21 +605,7 @@ export default class Management extends ModuleInterface {
 
     this.ui.append(this.canvas);
 
-    /*
-    this.saveConfigBut = $(
-      '<button class="btn btn-sm btn-primary mb-2 mr-3">Save Config</button>'
-    );
-    this.saveConfigBut.on("click", () => {
-      var qm = new DLM.DroneLinkMsg();
-      qm.source = this.state.localAddress;
-      qm.node = this.channel.node.id;
-      qm.channel = 1;
-      qm.param = 17;
-      qm.setUint8([1]);
-      this.state.send(qm);
-    });
-    this.ui.append(this.saveConfigBut);
-    */
+    
 
     /*
     --------------  Info btn group ----------------------------
@@ -737,6 +723,24 @@ export default class Management extends ModuleInterface {
       this.state.send(qm);
     });
     this.wifiBtnGroup.append(this.wifiOnBtn);
+
+    /*
+    --------------  Save btn ----------------------------------
+    */
+    this.saveConfigBut = $(
+      '<button class="btn btn-sm btn-warning mb-2 mr-3">Save Live Config</button>'
+    );
+    this.saveConfigBut.on("click", () => {
+      var qm = new DLM.DroneLinkMsg();
+      qm.source = this.state.localAddress;
+      qm.node = this.channel.node.id;
+      qm.channel = 1;
+      qm.param = 17;
+      qm.setUint8([1]);
+      this.state.send(qm);
+    });
+    this.ui.append(this.saveConfigBut);
+    
 
     /*
     ------------------------------------------------------------
