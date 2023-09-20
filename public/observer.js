@@ -58,6 +58,7 @@ import NodeUI from './modules/oui/NodeUI.mjs';
 import { controllers, initGamepads } from './modules/gamepads.js';
 import UploadManager from './modules/UploadManager.mjs';
 import LogManager from './modules/LogManager.mjs';
+import SparkLine from './modules/SparkLine.mjs';
 
 import AisTracker from './modules/oui/AisTracker.mjs';
 var tracker = new AisTracker();
@@ -646,9 +647,18 @@ function init() {
     }
   });
 
+  var transmitSpark = new SparkLine($('#transmitGraph'), { depth:60, label:'Tx' });
+  var receiveSpark = new SparkLine($('#receiveGraph'), { depth:60, label:'Rx' });
+
   // poll for discovery queue size
   setInterval(()=>{
-    $('#discoveryQueueSize').html(state.discoveryQueue.length());
+    transmitSpark.addSample(state.discoveryQueue.sent);
+    state.discoveryQueue.sent = 0;
+
+    // get rx info...
+    receiveSpark.addSample(state.received);
+    state.received = 0;
+
   }, 1000);
 
 }

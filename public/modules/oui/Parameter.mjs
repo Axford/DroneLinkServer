@@ -97,7 +97,7 @@ export default class Parameter {
     if (data.msgType <= DLM.DRONE_LINK_MSG_TYPE_CHAR) {
       this.paramValues = data.values;
 
-      if (this.msgType == 255) {
+      if (this.msgType != data.msgType) {
         this.msgType = data.msgType;
         this.uiAddr.html(
           this.addr +

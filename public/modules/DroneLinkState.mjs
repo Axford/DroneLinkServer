@@ -42,6 +42,7 @@ export default class DroneLinkState {
     this.discoveryQueue = new DroneLinkMsgQueue();
     this.callbacks = {}; // each key is an event type, values are an array of callback functions
     this.liveMode = false;  // set to false to stop using the socket (i.e. log playback mode)
+    this.received = 0; // received msg count
 
     this.socket.on('DLM.msg',function(msgBuffer) {
       if (!me.liveMode) return;
@@ -50,6 +51,8 @@ export default class DroneLinkState {
       //if (msg.node == 2 && msg.channel == 7)
       //  console.log('DLM.msg: ' + msg.asString());
       me.handleLinkMsg(msg, true, 'socket');
+
+      me.received++;
 
       me.trigger('raw', msg);
     });

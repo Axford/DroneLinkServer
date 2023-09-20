@@ -12,6 +12,7 @@ import * as DLM from './droneLinkMsg.mjs';
 export default class DroneLinkMsgQueue {
   constructor() {
     this.queue = [];
+    this.sent = 0;
   }
 
   add(msg) {
@@ -36,6 +37,7 @@ export default class DroneLinkMsgQueue {
 
   process(socket) {
     if (this.queue.length > 0) {
+      this.sent++;
       var msg = this.queue.shift();
       console.log('emit ['+this.queue.length+']', msg.asString());
       socket.emit('sendMsg', msg.encodeUnframed());
