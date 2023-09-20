@@ -139,6 +139,7 @@ class ModuleBlock {
     this.name = name;
     this.typeName = typeName;
     this.pins = [];
+    this.pinLabel = '';
 
     this.hue = 0;
     this.saturation = 0;
@@ -163,6 +164,21 @@ class ModuleBlock {
     this.height = 30;
     this.av = new Vector(0, 0);
     this.updatePosition(this.position);
+  }
+
+  updateLabels() {
+    // pre-compute pin labelling to speed up drawing process
+    if (this.pins.length > 1) {
+        this.pinLabel = '';
+        this.pins.forEach((pin, index)=>{
+            if (index > 0) this.pinLabel += ', ';
+            this.pinLabel += pin;
+        });
+
+        // update size to allow room for pin labels
+        this.height = 50;
+        this.updateCorners();
+    }
   }
 
   getStyle(alpha) {
@@ -280,10 +296,22 @@ class ModuleBlock {
       this.x1,
       this.y1,
       this.width,
-      this.height,
+      30,
       "#000",
       8
     );
+
+    if (this.pinLabel > '') {
+        this.drawTextScaled(
+        this.pinLabel,
+        this.x1,
+        this.y1 + 35,
+        this.width,
+        15,
+        "#000",
+        8
+        );
+    }
   }
 
   drawWires() {
@@ -300,17 +328,15 @@ class ModuleBlock {
       this.pins.forEach((pin) => {
         var p = this.mgr.getPinLocation(pin);
         if (p) {
+          // calc vector and shorten to get to pin
+          var v = new Vector(p.x - cx, p.y - cy);
+          var r = pin < 100 ? 11 : 21;
+          v.multiply((v.length() - r) / v.length());
 
-
-            // calc vector and shorten to get to pin
-            var v = new Vector(p.x-cx, p.y-cy);
-            var r = pin < 100 ? 11 : 21;
-            v.multiply((v.length()-r)/v.length());
-
-            ctx.beginPath();
-            ctx.moveTo(cx, cy);
-            ctx.lineTo(cx + v.x, cy + v.y);
-            ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.lineTo(cx + v.x, cy + v.y);
+          ctx.stroke();
         }
       });
     }
@@ -584,7 +610,11 @@ export default class Wiring {
           // pin label
           ctx.font = "13px serif";
           ctx.fillStyle = connected ? "#000" : "#fff";
-          ctx.fillText((connected && connected.label > '') ? connected.label : pin, p.x, p.y + 5);
+          ctx.fillText(
+            connected && connected.label > "" ? connected.label : pin,
+            p.x,
+            p.y + 5
+          );
         }
       }
     }
@@ -796,6 +826,7 @@ export default class Wiring {
 
     // reset initial positions
     this.modules.forEach((m) => {
+      m.updateLabels();
       console.log("Module: " + m.typeName + ", pins: " + m.pins.length);
       if (m.pins.length > 0) {
         var p = this.getPinLocation(m.pins[0]);
