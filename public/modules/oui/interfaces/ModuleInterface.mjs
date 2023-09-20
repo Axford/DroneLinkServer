@@ -2,7 +2,7 @@ import loadStylesheet from '../../loadStylesheet.js';
 import * as DLM from '../../droneLinkMsg.mjs';
 import { degreesToRadians } from '../../navMath.mjs';
 
-export default class INA219 {
+export default class ModuleInterface {
 	constructor(channel, state) {
     this.channel = channel;
     this.state = state;

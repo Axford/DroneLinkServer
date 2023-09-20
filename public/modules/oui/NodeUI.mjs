@@ -226,6 +226,15 @@ export default class NodeUI {
     qm.msgLength = 1;
     this.state.send(qm);
 
+    // query hostname
+    var qm = new DLM.DroneLinkMsg();
+    qm.node = this.id;
+    qm.channel = 1;
+    qm.param = 8;
+    qm.msgType = DLM.DRONE_LINK_MSG_TYPE_QUERY;
+    qm.msgLength = 1;
+    this.state.send(qm);
+
 
     // show management tab
     this.puiTabs.selectTab('Management');

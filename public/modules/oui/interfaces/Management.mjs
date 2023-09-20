@@ -18,6 +18,61 @@ function decimalToHex(d, padding) {
 }
 
 
+function resetCodeToString(code) {
+  var rs = "";
+    switch (code) {
+      case 1:
+        rs = "POWERON";
+        break; /**<1, Vbat power on reset*/
+      case 3:
+        rs = "SW";
+        break; /**<3, Software reset digital core*/
+      case 4:
+        rs = "OWDT";
+        break; /**<4, Legacy watch dog reset digital core*/
+      case 5:
+        rs = "DEEPSLEEP";
+        break; /**<5, Deep Sleep reset digital core*/
+      case 6:
+        rs = "SDIO";
+        break; /**<6, Reset by SLC module, reset digital core*/
+      case 7:
+        rs = "TG0WDT_SYS";
+        break; /**<7, Timer Group0 Watch dog reset digital core*/
+      case 8:
+        rs = "TG1WDT_SYS";
+        break; /**<8, Timer Group1 Watch dog reset digital core*/
+      case 9:
+        rs = "RTCWDT_SYS";
+        break; /**<9, RTC Watch dog Reset digital core*/
+      case 10:
+        rs = "INTRUSION";
+        break; /**<10, Instrusion tested to reset CPU*/
+      case 11:
+        rs = "TGWDT_CPU";
+        break; /**<11, Time Group reset CPU*/
+      case 12:
+        rs = "SW_CPU";
+        break; /**<12, Software reset CPU*/
+      case 13:
+        rs = "RTCWDT_CPU";
+        break; /**<13, RTC Watch dog Reset CPU*/
+      case 14:
+        rs = "EXT_CPU";
+        break; /**<14, for APP CPU, reseted by PRO CPU*/
+      case 15:
+        rs = "RTCWDT_BROWN_OUT";
+        break; /**<15, Reset when the vdd voltage is not stable*/
+      case 16:
+        rs = "RTCWDT_RTC";
+        break; /**<16, RTC Watch dog reset digital core and rtc module*/
+      default:
+        rs = "Unknown";
+    }
+    return rs;
+}
+
+
 export default class Management extends ModuleInterface {
   constructor(channel, state) {
     super(channel, state);
@@ -127,58 +182,17 @@ export default class Management extends ModuleInterface {
       this.drawMeterValueScaled(ipString, 2 * mw, 25, mw, 30, "#8f8");
     }
 
-    var rs = "";
-    switch (reset[1]) {
-      case 1:
-        rs = "POWERON";
-        break; /**<1, Vbat power on reset*/
-      case 3:
-        rs = "SW";
-        break; /**<3, Software reset digital core*/
-      case 4:
-        rs = "OWDT";
-        break; /**<4, Legacy watch dog reset digital core*/
-      case 5:
-        rs = "DEEPSLEEP";
-        break; /**<5, Deep Sleep reset digital core*/
-      case 6:
-        rs = "SDIO";
-        break; /**<6, Reset by SLC module, reset digital core*/
-      case 7:
-        rs = "TG0WDT_SYS";
-        break; /**<7, Timer Group0 Watch dog reset digital core*/
-      case 8:
-        rs = "TG1WDT_SYS";
-        break; /**<8, Timer Group1 Watch dog reset digital core*/
-      case 9:
-        rs = "RTCWDT_SYS";
-        break; /**<9, RTC Watch dog Reset digital core*/
-      case 10:
-        rs = "INTRUSION";
-        break; /**<10, Instrusion tested to reset CPU*/
-      case 11:
-        rs = "TGWDT_CPU";
-        break; /**<11, Time Group reset CPU*/
-      case 12:
-        rs = "SW_CPU";
-        break; /**<12, Software reset CPU*/
-      case 13:
-        rs = "RTCWDT_CPU";
-        break; /**<13, RTC Watch dog Reset CPU*/
-      case 14:
-        rs = "EXT_CPU";
-        break; /**<14, for APP CPU, reseted by PRO CPU*/
-      case 15:
-        rs = "RTCWDT_BROWN_OUT";
-        break; /**<15, Reset when the vdd voltage is not stable*/
-      case 16:
-        rs = "RTCWDT_RTC";
-        break; /**<16, RTC Watch dog reset digital core and rtc module*/
-      default:
-        rs = "Unknown";
-    }
+    // horizontal line
+    ctx.strokeStyle = '#888';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, 62);
+    ctx.lineTo(w, 62);
+    ctx.stroke();
+    
 
-    this.drawValue(10, 60, "Reset Code 0", rs, "#8f8");
+    this.drawValue(10, 60, "Reset Code 0", resetCodeToString(reset[1]), "#8f8");
+    this.drawValue(w/2, 60, "Reset Code 1", resetCodeToString(reset[2]), "#8f8");
   }
 
   onParamValue(data) {
@@ -607,6 +621,9 @@ export default class Management extends ModuleInterface {
     this.ui.append(this.saveConfigBut);
     */
 
+    /*
+    --------------  Info btn group ----------------------------
+    */
     this.infoBtnGroup = $('<div class="btn-group mr-3"></div>');
     this.ui.append(this.infoBtnGroup);
 
@@ -668,6 +685,10 @@ export default class Management extends ModuleInterface {
     });
     this.infoBtnGroup.append(this.i2cInfoBut);
 
+    /*
+    --------------  Reset btn  ----------------------------------
+    */
+
     this.reset = $(
       '<button class="btn btn-sm btn-danger mb-2 mr-3">Reset</button>'
     );
@@ -681,6 +702,46 @@ export default class Management extends ModuleInterface {
       this.state.send(qm);
     });
     this.ui.append(this.reset);
+
+    /*
+    --------------  Wifi btn group  ----------------------------------
+    */
+
+    this.wifiBtnGroup = $('<div class="btn-group mr-3"></div>');
+    this.ui.append(this.wifiBtnGroup);
+
+    this.wifiOffBtn = $(
+      '<button class="btn btn-sm btn-warning mb-2 ">WiFi Off</button>'
+    );
+    this.wifiOffBtn.on("click", () => {
+      var qm = new DLM.DroneLinkMsg();
+      qm.source = this.state.localAddress;
+      qm.node = this.channel.node.id;
+      qm.channel = 1;
+      qm.param = 18;
+      qm.setUint8([0]);
+      this.state.send(qm);
+    });
+    this.wifiBtnGroup.append(this.wifiOffBtn);
+
+    this.wifiOnBtn = $(
+      '<button class="btn btn-sm btn-success mb-2 mr-3">WiFi On</button>'
+    );
+    this.wifiOnBtn.on("click", () => {
+      var qm = new DLM.DroneLinkMsg();
+      qm.source = this.state.localAddress;
+      qm.node = this.channel.node.id;
+      qm.channel = 1;
+      qm.param = 18;
+      qm.setUint8([1]);
+      this.state.send(qm);
+    });
+    this.wifiBtnGroup.append(this.wifiOnBtn);
+
+    /*
+    ------------------------------------------------------------
+    */
+
 
     // json viewer widget
     this.viewer = $('<div class="modal Management-modal" role="dialog" style="display:none;">');

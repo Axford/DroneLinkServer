@@ -50,7 +50,7 @@ export default class Channel {
     this.uiState = 'parameters';
     this.visible = false;
     this.enabled = false; 
-    this.statusHeard = false;
+    this.status = -1;
 
     sortOrder = sortOrder ? sortOrder : this.channel;
 
@@ -334,7 +334,7 @@ export default class Channel {
 
 
   enable(notify) {
-    //if (this.statusHeard && this.enabled) return;
+    if (this.status == 1) return;
     this.enabled = true;
 
     // enabled
@@ -344,11 +344,11 @@ export default class Channel {
     this.uiEnable.hide();
     this.uiDisable.show();
 
-    this.statusHeard = true;
+    this.status = 1;
   }
 
   waiting(notify) {
-    //if (this.statusHeard && !this.enabled) return;
+    if (this.status == 2) return;
     this.enabled = true;
 
     // waiting
@@ -358,12 +358,12 @@ export default class Channel {
     this.uiEnable.hide();
     this.uiDisable.show();
 
-    this.statusHeard = true;
+    this.status = 2;
   }
 
 
   disable(notify) {
-    if (this.statusHeard && !this.enabled) return;
+    if (this.status == 0 && !this.enabled) return;
     this.enabled = false;
 
     // disabled
@@ -374,7 +374,7 @@ export default class Channel {
     this.uiEnable.show();
     this.uiDisable.hide();
 
-    if (this.statusHeard && notify) {
+    if (this.status == 0 && notify) {
       $(this.node.ui).notify("Module "+this.node.id + ' > ' + this.channel + ' . ' + this.name+" disabled",  {
         className: 'warn',
         autoHide:false,
@@ -383,7 +383,7 @@ export default class Channel {
       });
     }
 
-    this.statusHeard = true;
+    this.status = 0;
   }
 
 
