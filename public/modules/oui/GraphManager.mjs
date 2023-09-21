@@ -7,8 +7,7 @@ loadStylesheet('./css/modules/oui/GraphManager.css');
 
 
 export default class GraphManager {
-  constructor(node, uiRoot) {
-    this.node = node;
+  constructor(uiRoot) {
     this.uiRoot = uiRoot;
 
     this.needsRedraw = true;
@@ -102,8 +101,15 @@ export default class GraphManager {
   }
 
 
+  clear() {
+    this.blocks = [];
+    this.dragBlock = null;
+  }
+
   show() {
     this.visible = true;
+    this.resize();
+    this.update();
   }
 
   hide() {
@@ -254,21 +260,6 @@ export default class GraphManager {
       overlap.capLength(100);
       temp.multiply(0.1);
       b.av.add(temp);
-      /*
-      if (b.numConnectedPorts > 0) {
-        var temp = cv.clone();
-        temp.subtract(b.position);
-        temp.multiply(0.1);
-        b.av.add(temp);
-      } else {
-        // everything else toward the top
-        var temp = cv.clone();
-        temp.y /= 2;
-        temp.subtract(b.position);
-        temp.multiply(0.1);
-        b.av.add(temp);
-      }
-      */
 
     }
 
@@ -294,9 +285,9 @@ export default class GraphManager {
     }
   }
 
-  addBlock(state, data) {
+  addBlock(data) {
     // add a new block representing a module
-    var b = new GraphBlock(this, state, data);
+    var b = new GraphBlock(this, data);
     this.blocks.push( b );
   }
 }

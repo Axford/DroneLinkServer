@@ -12,6 +12,8 @@ import moduleInfo from "/moduleInfo.json" assert { type: "json" };
 import {calculateDistanceBetweenCoordinates} from "../../navMath.mjs";
 
 import Wiring from '../Wiring.mjs';
+import Wizard from '../Wizard.mjs';
+import GraphEditor from '../GraphEditor.mjs';
 
 loadStylesheet('./css/modules/oui/panels/Configuration.css');
 
@@ -826,6 +828,10 @@ export default class Configuration extends Panel {
 
     this.wiring = new Wiring(node);
 
+    this.wizard = new Wizard(this, node.storage);
+
+    this.graphEditor = new GraphEditor();
+
     this.build();
 
     this.socket = this.node.state.socket;
@@ -972,42 +978,63 @@ export default class Configuration extends Panel {
     this.cuiEditorBlock = $('<div class="editorBlock" ></div>');
     this.ui.panel.append(this.cuiEditorBlock);
 
-    // nav
-    this.cuiEditorNav = $('<div class="editorNav clearfix"></div>');
+    // ----------------------------------------------------------
+    // edtior nav bar
+    // --------------
+    this.cuiEditorNav = $('<div class="editorNav"></div>');
     this.cuiEditorBlock.append(this.cuiEditorNav);
 
+    // editor title
+    this.cuiEditorTitle = $('<input type="text" class="title mr-5" style="flex-grow:2"></input>');
+    this.cuiEditorNav.append(this.cuiEditorTitle);
+
+    // save to server button
+    this.cuiEditorSaveToServerBut = $('<button class="btn btn-sm btn-primary mr-2" >Save to Server</button>');
+    this.cuiEditorSaveToServerBut.on('click',()=>{
+      me.saveFileToServer();
+    });
+    this.cuiEditorNav.append(this.cuiEditorSaveToServerBut);
+
+    // save to node button
+    this.cuiEditorSaveToNodeBut = $('<button class="btn btn-sm btn-primary mr-3" >Save to Node</button>');
+    this.cuiEditorSaveToNodeBut.on('click',()=>{
+      me.saveFileToNode();
+    });
+    this.cuiEditorNav.append(this.cuiEditorSaveToNodeBut);
+
+    // cancel save to node button
+    this.cuiEditorCancelSaveToNodeBut = $('<button class="btn btn-sm btn-danger mr-3" style="display:none" >Cancel Save to Node</button>');
+    this.cuiEditorCancelSaveToNodeBut.on('click',()=>{
+      me.cancelSaveFileToNode();
+    });
+    this.cuiEditorNav.append(this.cuiEditorCancelSaveToNodeBut);
+
+    // wizard
+    this.uiGraphBut = $('<button class="btn btn-sm btn-info mr-3"><i class="fas fa-project-diagram"></i> Configure</button>');
+		this.uiGraphBut.on('click', ()=>{
+      // display configuration graph editor
+      me.graphEditor.show();
+      me.graphEditor.parseConfig( me.aceEditor.session.getValue() );
+		});
+    this.cuiEditorNav.append(this.uiGraphBut);
+
+    // wizard
+    this.uiWizardBut = $('<button class="btn btn-sm btn-info mr-3"><i class="fas fa-birthday-cake"></i> Recipes</button>');
+		this.uiWizardBut.on('click', ()=>{
+      // display configuration wizard
+      this.wizard.show();
+		});
+    this.cuiEditorNav.append(this.uiWizardBut);
+
     // show wiring
-    this.cuiShowWiringBut = $('<button class="btn btn-sm btn-info float-right ml-4" ><i class="fas fa-plug"></i> Wiring</button>');
+    this.cuiShowWiringBut = $('<button class="btn btn-sm btn-info" ><i class="fas fa-plug"></i> Wiring</button>');
     this.cuiShowWiringBut.on('click',()=>{
       me.wiring.show();
       me.wiring.parseConfig( this.aceEditor.session.getValue() );
     });
     this.cuiEditorNav.append(this.cuiShowWiringBut);
 
-    // cancel save to node button
-    this.cuiEditorCancelSaveToNodeBut = $('<button class="btn btn-sm btn-danger float-right" style="display:none" >Cancel Save to Node</button>');
-    this.cuiEditorCancelSaveToNodeBut.on('click',()=>{
-      me.cancelSaveFileToNode();
-    });
-    this.cuiEditorNav.append(this.cuiEditorCancelSaveToNodeBut);
-
-    // save to node button
-    this.cuiEditorSaveToNodeBut = $('<button class="btn btn-sm btn-primary float-right" >Save to Node</button>');
-    this.cuiEditorSaveToNodeBut.on('click',()=>{
-      me.saveFileToNode();
-    });
-    this.cuiEditorNav.append(this.cuiEditorSaveToNodeBut);
-
-    // save to server button
-    this.cuiEditorSaveToServerBut = $('<button class="btn btn-sm btn-primary float-right mr-2" >Save to Server</button>');
-    this.cuiEditorSaveToServerBut.on('click',()=>{
-      me.saveFileToServer();
-    });
-    this.cuiEditorNav.append(this.cuiEditorSaveToServerBut);
-
-    // editor title
-    this.cuiEditorTitle = $('<input type="text" class="title"></input>');
-    this.cuiEditorNav.append(this.cuiEditorTitle);
+    // ----------------------------------------------------------
 
     // editor
     this.cuiEditor = $('<div class="editor"></div>');
@@ -1100,6 +1127,12 @@ export default class Configuration extends Panel {
     super.show();
     this.root.enumerate(false);
     this.serverRoot.enumerate();
+  }
+
+  hide() {
+    super.hide();
+    this.wizard.hide();
+    this.graphEditor.hide();
   }
 
 

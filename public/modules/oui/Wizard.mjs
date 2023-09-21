@@ -675,8 +675,8 @@ class ModuleWizard {
   Manages the overall configuration wizard for a node
 */
 export default class Wizard {
-  constructor(node, storage) {
-    this.node = node;
+  constructor(configPanel, storage) {
+    this.configPanel = configPanel;
     this.storage = storage;
     this.visible = false;
     this.built = false;
@@ -710,7 +710,7 @@ export default class Wizard {
     this.ui.panel.append(this.ui.closeBtn);
 
     // add title area / drag handle
-    this.ui.title = $('<div class="wizardTitle">Configuration Wizard</div>');
+    this.ui.title = $('<div class="wizardTitle">Configuration Recipes</div>');
     this.ui.panel.append(this.ui.title);
 
     // add a recipe selection drop-down
@@ -884,6 +884,8 @@ export default class Wizard {
     this.modules.forEach((m) => {
       if (m.isConfigured()) s += m.toConfigString();
     });
-    this.node.displayNewConfig(s);
+    //this.node.displayNewConfig(s);
+    console.log(this.configPanel);
+    this.configPanel.setEditorContents(s, '/config.ini');
   }
 }

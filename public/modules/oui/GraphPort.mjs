@@ -3,12 +3,11 @@ import Vector from '../Vector.mjs';
 import GraphWire from './GraphWire.mjs';
 
 export default class GraphPort {
-  constructor(mgr, state, block, param) {
+  constructor(mgr, block, param) {
     this.mgr = mgr;
-    this.state = state;
     this.block = block;
     this.param = param;
-    this.name = '';
+    this.name = param.name;
     this.isAddr = false;
 
     this.sortOrder = 0; // sort order
@@ -19,6 +18,9 @@ export default class GraphPort {
     this.numOutputs = 0;
     this.outputs = [];
 
+
+
+    /*
     // listen for names
     this.state.on('param.name', (data)=>{
       if (data.node != this.block.node ||
@@ -60,6 +62,7 @@ export default class GraphPort {
       this.mgr.needsRedraw = true;
 
     });
+    */
   }
 
   findAndHideSub() {
@@ -136,7 +139,7 @@ export default class GraphPort {
     ctx.font = this.mgr.uiRoot.css('font');
     ctx.font.replace(/\d+\.?\d*px/, "8px");
     ctx.textAlign = 'center';
-    ctx.fillText(this.param + ': ' + this.name, px + x1 + w/2, py + y1 + h/2 + 4);
+    ctx.fillText(this.param.address + ': ' + this.name, px + x1 + w/2, py + y1 + h/2 + 4);
 
 
   }

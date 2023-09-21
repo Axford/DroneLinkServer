@@ -59,12 +59,11 @@ function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
 
 
 export default class GraphBlock {
-  constructor(mgr, state, data) {
+  constructor(mgr, data) {
     this.mgr = mgr;
-    this.state = state;
-    this.node = data.node; // node id
-    this.channel = data.channel; // channel id
-    this.name = '';
+    this.channel = data.id; // channel id
+    this.name = data.params[2].values[0];
+    this.module = data;
 
     this.numPorts = 0;
     this.numConnectedPorts = 0;
@@ -89,31 +88,17 @@ export default class GraphBlock {
     this.av = new Vector(0,0);
     this.updatePosition(this.position);
 
-    // listen for module name
-    this.state.on('module.name', (data)=>{
-      if (data.node != this.node ||
-         data.channel != this.channel) return;
+    // setup params
+    for (const id in this.module.params) {
+      var param = this.module.params[id];
 
-      this.name = data.name;
-      this.mgr.needsRedraw = true;
-    });
+      var p = new GraphPort(this.mgr, this, param);
+      this.ports[param.address] = p;
+    }
 
-    // listen for params (and create ports)
-    this.state.on('param.new', (data)=>{
-      if (data.node != this.node ||
-         data.channel != this.channel) return;
+    this.updatePortPositions();
 
-     // construct Port (ignore system parameters)
-     if (data.param >= 8) {
-       var p = new GraphPort(this.mgr, this.state, this, data.param);
-       this.ports[data.param] = p;
-
-       // update positions
-       this.updatePortPositions();
-     }
-
-     this.mgr.needsRedraw = true;
-    });
+    this.mgr.needsRedraw = true;
   }
 
   hit(x,y) {

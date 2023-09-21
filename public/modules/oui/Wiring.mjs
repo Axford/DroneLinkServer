@@ -472,6 +472,7 @@ export default class Wiring {
     this.ui.image = new Image();
     this.ui.image.onload = () => {
       this.imageLoaded = true;
+      this.needsRedraw = true;
     };
 
     me.selectMoboVersion("v4");

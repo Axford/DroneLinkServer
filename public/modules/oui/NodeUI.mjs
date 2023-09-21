@@ -16,8 +16,6 @@ import GraphPanel from './panels/Graph.mjs';
 import NodeSettingsPanel from './panels/NodeSettings.mjs';
 import VisualisationPanel from './panels/Visualisation.mjs';
 
-import Wizard from './Wizard.mjs';
-
 import {calculateDestinationFromDistanceAndBearing, calculateInitialBearingBetweenCoordinates} from '../navMath.mjs';
 
 loadStylesheet('./css/modules/oui/NodeUI.css');
@@ -149,13 +147,6 @@ export default class NodeUI {
     this.uiTitle = $('<div class="nodeTitle">'+ this.id +'</div>');
     titleContainer.append(this.uiTitle);
 
-    this.uiWizardBut = $('<button class="btn btn-sm btn-primary"><i class="fas fa-tasks"></i> Configure</button>');
-		this.uiWizardBut.on('click', ()=>{
-      // display configuration wizard
-      this.wizard.show();
-		});
-    titleContainer.append(this.uiWizardBut);
-
     // add network priority pie widget
     this.uiPriorityPie = $('<canvas width=20 height=20 class="priorityPie"></canvas>');
     titleContainer.append(this.uiPriorityPie);
@@ -202,12 +193,9 @@ export default class NodeUI {
 
     this.panels.Configuration = new ConfigurationPanel(this, this.puiTabs, this.puiPanels);
 
-    this.panels.Graph = new GraphPanel(this, this.puiTabs, this.puiPanels);
+    //this.panels.Graph = new GraphPanel(this, this.puiTabs, this.puiPanels);
 
     this.panels.NodeSettings = new NodeSettingsPanel(this, this.puiTabs, this.puiPanels);
-
-    // wizard
-    this.wizard = new Wizard(this, this.storage);
 
     // create empty div ready to build context menu
     this.contextMenuContainer = $('<div class="contextMenu nav flex-column" style="display:none"/>');
@@ -309,14 +297,6 @@ export default class NodeUI {
       });
     });
   }
-
-
-  displayNewConfig(str) {
-    // display new config str from wizard and in editor
-    this.puiTabs.selectTab('Configuration');
-    this.panels.Configuration.setEditorContents(str, '/config.ini');
-  }
-
 
   deactivate() {
     if (!this.active) return;
@@ -714,9 +694,6 @@ export default class NodeUI {
     for (const [panelName, panel] of Object.entries(this.panels)) {
       panel.hide();
     }
-
-    // hide wizard
-    this.wizard.hide();
   }
 
 
