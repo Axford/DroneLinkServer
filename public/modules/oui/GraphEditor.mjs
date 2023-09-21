@@ -83,9 +83,33 @@ export default class GraphEditor {
         // clear and instantiate blocks
         this.gm.clear();
 
+        // create dummy block for the overall node config
+        this.config.modules[0] = {
+            id:0,
+            type:'Node',
+            params:{
+                0:{
+                    address:0,
+                    configured:true,
+                    description:'Node ID',
+                    name:'node',
+                    numValues:1,
+                    values:[this.config.id],
+                    published:false,
+                    type:'u8',
+                    writeable:true
+                }
+            }
+        };
+
+        this.gm.nodeId = this.config.id;
+
         for (const id in this.config.modules) {
             this.gm.addBlock(this.config.modules[id]);            
         }
+
+        // now resolve addreses
+        this.gm.resolveAddresses();
     }
 
   }

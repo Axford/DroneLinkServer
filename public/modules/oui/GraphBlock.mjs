@@ -67,6 +67,8 @@ export default class GraphBlock {
     if (data.params.hasOwnProperty(2)) this.name = data.params[2].values[0];
     this.module = data;
 
+    this.hovering = false;
+
     this.numPorts = 0;
     this.numConnectedPorts = 0;
     this.ports = {};
@@ -103,6 +105,61 @@ export default class GraphBlock {
     this.needsPortResize = true;
 
     this.mgr.needsRedraw = true;
+  }
+
+  resolveAddresses() {
+    for (const [key, port] of Object.entries(this.ports)) {
+      port.resolveAddress();
+    }
+  }
+
+  getPortByName(name) {
+    for (const [key, port] of Object.entries(this.ports)) {
+      if (port.name == name) {
+        return port;
+      }
+    }
+    return null;
+  }
+
+  hover() {
+    if (this.hovering) return;
+
+    // show stuff
+    for (const [key, port] of Object.entries(this.ports)) {
+      port.hover();
+    };
+    this.needsPortResize = true;
+    this.mgr.needsRedraw = true;
+
+    this.hovering = true;
+  }
+
+  unhover() {
+    if (!this.hovering) return;
+
+    // hide stuff
+    for (const [key, port] of Object.entries(this.ports)) {
+      port.unhover();
+    };
+    this.needsPortResize = true;
+    this.mgr.needsRedraw = true;
+
+    this.hovering = false;
+  }
+
+  mousedown(x,y) {
+    // x,y should already have been hit tested and fall within our bounds
+    // should return true if this causes an interaction
+
+    // pass the hit on to ports
+    for (const [key, port] of Object.entries(this.ports)) {
+      if (port.hit(x,y)) {
+        return port.mousedown(x,y);
+      }
+    };
+
+    return false;
   }
 
   hit(x,y) {
@@ -162,7 +219,7 @@ export default class GraphBlock {
     for (const [key, port] of Object.entries(this.ports)) {
       port.sortOder = i;
       port.y = y;
-      y += port.height;
+      y += port.height * port.shrink;
       i++;
       if (port.connected) this.numConnectedPorts++;
 
@@ -182,6 +239,8 @@ export default class GraphBlock {
     this.columns.forEach((c)=>{
       this.width += c;
     });
+
+    this.updateCorners();
 
     this.needsPortResize = false;
   }

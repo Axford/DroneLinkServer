@@ -140,6 +140,8 @@ export default class DroneConfigParser {
                     name: '$' + p.name,
                     address: p.addrAddress,
                     type: 'addr',
+                    sourceType: p.type,
+                    sourceNumValues: p.numValues,
                     numValues: 1,
                     writeable: true,
                     description: p.description

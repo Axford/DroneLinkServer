@@ -2,6 +2,8 @@ import * as DLM from '../droneLinkMsg.mjs';
 import Vector from '../Vector.mjs';
 import GraphWire from './GraphWire.mjs';
 
+import moduleInfo from "/moduleInfo.json" assert { type: "json" };
+
 /*
 
 GraphPorts are synonomous with Module Params
@@ -19,17 +21,20 @@ export default class GraphPort {
     this.name = param.name;
     this.subName;  //  same as name but without the $ sign
     this.isAddr = false;
+    this.enabled = true; // rendered
+    this.param.alwaysPublished = false;
 
     this.sortOrder = 0; // sort order
     this.y = 0;  // relative to block
     this.height = 16;
+    this.shrink = 1;  // a scale factor from 0..1 used to animate shrinkage of unhovered elements
 
     this.wire = null;
     this.numOutputs = 0;
     this.outputs = [];
 
     this.font = '';
-    this.padding = 2;
+    this.padding = [4,2];
 
     this.cellsNeedUpdate = true;
 
@@ -39,6 +44,9 @@ export default class GraphPort {
     this.cellMinWidths = [ ];
 
 
+    // look for additional tags in moduleInfo 
+    this.checkForPublishTags(this.block.module.type);
+
     // check type
     if (param.type == 'addr') {
       this.isAddr = true;
@@ -47,49 +55,151 @@ export default class GraphPort {
       this.findAndHideSub();
     }
 
-    /*
-    // listen for names
-    this.state.on('param.name', (data)=>{
-      if (data.node != this.block.node ||
-         data.channel != this.block.channel ||
-         data.param != this.param) return;
+    this.unhover();
+  }
 
-      //console.log('portName', data);
-      this.name = data.name;
+  resolveAddress() {
+    if (!this.isAddr) return;
 
-      if (this.isAddr) this.findAndHideSub();
-    });
+    // parse and resolve address
+    this.addr = [0,0,0];
+    if (this.param.values && this.param.values.length > 0) {
+      var gPos = this.param.values[0].indexOf('>');
+      var pPos = this.param.values[0].indexOf('.');
+      if (gPos > -1 && pPos > -1) {
+        var n = this.param.values[0].substring(0,gPos);
+        var m = this.param.values[0].substring(gPos+1,pPos);
+        var p = this.param.values[0].substring(pPos+1, this.param.values[0].length);
+        console.log(this.param.values[0], n,m,p);
 
-    // listen for values
-    this.state.on('param.value', (data)=>{
-      if (data.node != this.block.node ||
-         data.channel != this.block.channel ||
-         data.param != this.param) return;
-
-      if (data.msgType == DLM.DRONE_LINK_MSG_TYPE_ADDR) {
-        console.log('portWire', data);
-        var onode = data.values[1];
-        var ochannel = data.values[2];
-        var oparam = data.values[3];
-        var addr = onode +'>' + ochannel + '.' + oparam;
-
-        this.isAddr = true;
-
-        this.findAndHideSub();
-
-        // ignore subs to other nodes
-        if (onode != this.block.node) return;
-
-        if (!this.wire) {
-          this.wire = new GraphWire(this.mgr, this.state, this, onode, ochannel, oparam);
+        // convert to numeric values
+        if (n == '@') {
+          n = this.mgr.nodeId;
+        } else {
+          n = parseInt(n);
         }
 
+        var mv = parseInt(m);
+        if (!isNaN(mv)) {
+          m = mv;
+        } else {
+          // attempt to resolve module name
+          var b = this.mgr.getBlockByName(m);
+          if (b) {
+            m = b.channel;
+          }
+        }
+
+        var pv = parseInt(p);
+        if (!isNaN(pv)) {
+          p = pv;
+        } else {
+          // attempt to resolve param name
+          // first get block by id
+          var b = this.mgr.getBlockById(m);
+          if (b) {
+            var port = b.getPortByName(p);
+            if (port) {
+              p = port.param.address;
+            }
+          }
+        }
+
+        this.addr = [n,m,p];
+        //console.log(this.addr);
+
+        // try to locate matching block using numeric address
+        if (this.addr[0] == this.mgr.nodeId) {
+          if (this.wire) {
+            this.wire.updateAddress(n,m,p);
+          } else {
+            this.wire = new GraphWire(this.mgr, this, n,m,p);
+          }
+            
+        }
       }
+    }
+  }
 
-      this.mgr.needsRedraw = true;
+  hover() {
+    if (this.enabled) this.shrink = 1;
+  }
 
-    });
-    */
+  unhover() {
+    // shrink if not configured or published (excluding alwaysPublished)
+    if (this.param.configured) {
+      // do nothing
+    } else {
+      if (!this.param.published || this.param.alwaysPublished ) this.shrink = 0;
+    }
+  }
+
+  hit(x,y) {
+    var x1 = this.block.x1;
+    var y1 = this.block.y1 + this.y;
+    var w = this.block.width;
+    var h = this.height;
+
+    return (x > x1 && x < x1+w &&
+      y > y1 && y < y1+h);
+  }
+
+  mousedown(x,y) {
+    // should already be hit tested
+    var c = this.mgr.canvas[0];
+    var ctx = c.getContext("2d");
+
+    var w = this.block.width;
+    var h = this.height;
+
+    var px = this.mgr.panPosition.x;
+    var py = this.mgr.panPosition.y;
+
+    var x1 = this.block.x1;
+    var y1 = this.block.y1 + this.y;
+
+    var h1 = 16;  // title
+    var h2 = 20;  // input area
+
+    var x2 = 0;
+    for(var i=0; i<this.cells.length; i++) {
+
+      // see if mouse is down in this cell
+      if (x > x1 + x2 && x < x1 + x2 + this.block.columns[i]) {
+        // decide what todo with the hit
+        if (i == 3) {
+          // toggle published, assuming not alwaysPublished
+          if (!this.param.alwaysPublished) {
+            this.param.published = !this.param.published;
+          }
+        }
+      }
+      
+      x2 += this.block.columns[i];
+    }
+
+    return true;
+  }
+
+  checkForPublishTags(moduleType) {
+    if (moduleInfo.hasOwnProperty(moduleType)) {
+      var m = moduleInfo[moduleType];
+
+      // check for relevant publish entry
+      if (m.hasOwnProperty('publish')) {
+        var i = _.indexOf(m.publish, this.name);
+        if (i > -1) {
+
+          this.param.published = true;
+          this.param.alwaysPublished = true;
+
+          return;  // to avoid further searching
+        }
+      }
+      
+      // check parent class
+      if (m.hasOwnProperty('inherits') && m.inherits.length > 0) this.checkForPublishTags(m.inherits[0]);
+    }
   }
 
   findAndHideSub() {
@@ -97,7 +207,8 @@ export default class GraphPort {
     if (this.subName != '') {
       for (const [key, port] of Object.entries(this.block.ports)) {
         if (port != this && this.subName == port.name) {
-          port.height = 0;
+          port.enabled = false;
+          port.shrink = 0;
           this.block.updatePortPositions();
         }
       }
@@ -114,12 +225,16 @@ export default class GraphPort {
     this.cellFixedWidth = [
       0,
       0,
+      0,
+      this.height,
       this.height
     ];
 
     this.cells = [
       this.param.address,
       this.name,
+      this.param.numValues + ':' + this.param.type,
+      '',
       ''
     ];
 
@@ -129,11 +244,14 @@ export default class GraphPort {
     for (var i=0; i<this.cells.length; i++) {
       if (this.cellFixedWidth[i] == 0) {
         var tm = ctx.measureText(this.cells[i]);
-        this.cellMinWidths.push(tm.width + 2*this.padding);
+        this.cellMinWidths.push(tm.width + 2*this.padding[0]);
       } else {
         this.cellMinWidths.push(this.cellFixedWidth[i]);
       }
     }
+
+    // calc height
+    this.height = this.param.configured ? 16 + 20 : 16;
 
     this.cellsNeedUpdate = false;
     this.block.needsPortResize = true;
@@ -141,7 +259,7 @@ export default class GraphPort {
 
 
   draw() {
-    if (this.height == 0) return;
+    if (!this.enabled || this.shrink == 0) return;
 
     var c = this.mgr.canvas[0];
     var ctx = c.getContext("2d");
@@ -171,19 +289,25 @@ export default class GraphPort {
 
     this.updateCells(ctx);
 
+    var h1 = 16;  // title
+    var h2 = 20;  // input area
+
     ctx.beginPath();
+    var bkc;
     if (dim) {
-      ctx.fillStyle = '#606060';
+      bkc= '#606060';
     } else
     if (this.wire) {
-      ctx.fillStyle = this.block.fillStyle;
+      bkc = this.block.fillStyle;
     } else if (this.numOutputs == 1) {
-      ctx.fillStyle = this.outputs[0].block.fillStyle;
+      bkc = this.outputs[0].block.fillStyle;
     } else if (this.numOutputs > 1) {
-      ctx.fillStyle = '#fff';
+      bkc = '#fff';
     } else {
-      ctx.fillStyle = this.param.writeable ? '#848ac0' : '#848a90';
+      bkc = '#848a90';
     }
+
+    ctx.fillStyle = bkc;
 
     ctx.fillRect(px + x1, py + y1, w, h);
     ctx.strokeStyle = '#555';
@@ -194,29 +318,70 @@ export default class GraphPort {
     if (this.isAddr) {
       // draw input nubbin
       ctx.beginPath();
-      ctx.arc(px + x1, py + y1 + h/2, 4, 0, 2 * Math.PI);
+      var r = 6;
+      ctx.fillStyle = '#555';
+      ctx.arc(px + x1 - r, py + y1 + h1/2, r, 0, 2 * Math.PI);
       ctx.fill();
+      ctx.strokeStyle = bkc;
+      ctx.stroke();
     }
 
     // render cells
     var x2 = 0;
     for(var i=0; i<this.cells.length; i++) {
       
-      if (i == 2) {
+      if (i == 3) {
         // draw a circle for Publish status
-        ctx.fillStyle = this.param.published ? '#0f0' : '#555';
+        ctx.fillStyle = (this.param.published && !this.param.alwaysPublished) ? '#5f5' : '#555';
         ctx.beginPath();
-        ctx.arc(px + x1 + x2 + this.block.columns[i]/2, py + y1 + h/2, this.height/2-this.padding, 0, 2*Math.PI);
+        ctx.arc(px + x1 + x2 + this.block.columns[i]/2, py + y1 + h1/2, h1/2-this.padding[1], 0, 2*Math.PI);
         ctx.fill();
-      } else {
-        ctx.fillStyle = '#000';
+
+        // place a P in the circle
+        ctx.fillStyle = this.param.alwaysPublished ? '#5f5' : '#aaa';
         ctx.font = this.font;
+        ctx.textAlign = 'center';
+        ctx.fillText('P', px + x1 + x2 + this.block.columns[i]/2, py + y1 + h1/2+4);
+
+      } else if (i == 4) {
+        if (this.param.writeable) {
+          // draw a circle for Configured status
+          ctx.fillStyle = this.param.configured ? '#5f5' : '#555';
+          ctx.beginPath();
+          ctx.arc(px + x1 + x2 + this.block.columns[i]/2, py + y1 + h1/2, h1/2-this.padding[1], 0, 2*Math.PI);
+          ctx.fill();
+
+          // place a C in the circle
+          ctx.fillStyle = '#aaa';
+          ctx.font = this.font;
+          ctx.textAlign = 'center';
+          ctx.fillText('C', px + x1 + x2 + this.block.columns[i]/2, py + y1 + h1/2+4);
+        }
+      } else {
+        ctx.fillStyle = (i == 2 || i == 0) ? '#444' : '#000';
+        ctx.font = this.font + (i==1 ? ' bold' : '');
         ctx.textAlign = 'left';
-        ctx.fillText(this.cells[i], px + x1 + x2 + this.padding, py + y1 + h/2 + 4);
+        ctx.fillText(this.cells[i], px + x1 + x2 + this.padding[0], py + y1 + h1/2 + 4);
       }
       x2 += this.block.columns[i];
     }
 
+    // render input - start from cell 1 onward
+    if (this.param.configured) {
+
+      var x2 = px + x1 + this.block.columns[0];
+      var w1 = w - this.block.columns[0] - 2;
+
+      // background
+      ctx.fillStyle = '#555';
+      ctx.fillRect(x2, py + y1 + h1 + 2, w1-2, h2-4);
+
+      // values
+      ctx.fillStyle = '#fff';
+      ctx.font = this.font;
+      ctx.textAlign = 'left';
+      ctx.fillText(this.param.values[0], x2 + this.padding[0], py + y1 + h - 6);
+    }
 
   }
 

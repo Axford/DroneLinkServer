@@ -3,9 +3,8 @@ import Vector from '../Vector.mjs';
 
 
 export default class GraphWire {
-  constructor(mgr, state, port, onode, ochannel, oparam) {
+  constructor(mgr, port, onode, ochannel, oparam) {
     this.mgr = mgr;
-    this.state = state;
     this.port = port;
     this.oport = null; // other port
     this.onode = onode;
@@ -13,6 +12,12 @@ export default class GraphWire {
     this.oparam = oparam;
   }
 
+  updateAddress(onode, ochannel, oparam) {
+    this.onode = onode;
+    this.ochannel = ochannel;
+    this.oparam = oparam;
+    this.updateOtherPort();
+  }
 
   updateOtherPort() {
     // find matching port
@@ -52,10 +57,10 @@ export default class GraphWire {
     ctx.strokeStyle = dim ? '#606060' : this.port.block.fillStyle;
     ctx.lineWidth = dim ? 1 : 6;
 
-    var x1 = p.block.x1;
-    var y1 = (p.block.y1 + p.y + p.height/2);
+    var x1 = p.block.x1-8;
+    var y1 = (p.block.y1 + p.y + 8);
     var x2 = op ? op.block.x2 : x1 - 20;
-    var y2 = op ? (op.block.y1 + op.y + op.height/2) : y1;
+    var y2 = op ? (op.block.y1 + op.y + 8) : y1;
 
 
     var hsize = (op && p.block == op.block) ? 50 : 20;

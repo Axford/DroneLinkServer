@@ -16,12 +16,15 @@ export default class GraphManager {
 
     this.blocks = [];
 
+    this.nodeId = 0;
+
     this.pan = false;
     this.panPosition = new Vector(0,0);
     this.panStart = new Vector(0,0);
     this.dragStart = new Vector(0,0);
     this.dragBlock = null;
     this.dragBlockPos = new Vector(0,0);  // starting pos
+    this.hoverBlock = null;
 
     // create canvas
     this.canvas = $('<canvas />');
@@ -44,19 +47,37 @@ export default class GraphManager {
       var y1 = this.dragStart.y - this.panPosition.y;
 
       this.dragBlock = null;
-      //console.log('hit', x1, y1);
-      for (var i=0; i<this.blocks.length; i++) {
-        var b = this.blocks[i];
-        //console.log('hit', b);
-        if (b.hit(x1,y1)) {
-          console.log('hit',b);
-          this.dragBlock = b;
-          this.dragBlockPos.set(b.position);
-          continue;
+      var hitBlock = null;
+
+      // check to see if we have a hoverBlock to speed up the search
+      if (this.hoverBlock) {
+        // see if we're still over it, seems most likely
+        if (this.hoverBlock.hit(x1,y1)) {
+          hitBlock = this.hoverBlock;
         }
       }
 
-      if (!this.dragBlock) {
+      if (!hitBlock) {
+        for (var i=0; i<this.blocks.length; i++) {
+          var b = this.blocks[i];
+          //console.log('hit', b);
+          if (b.hit(x1,y1)) {
+            console.log('hit',b);
+            hitBlock = b;
+            continue;
+          }
+        }
+      }
+
+      if (hitBlock) {
+        // pass the hit onto the block to see if it interacts with a control
+        if (hitBlock.mousedown(x1,y1)) {
+          this.needsRedraw = true;  // in case something changed
+        } else {
+          this.dragBlock = hitBlock;
+          this.dragBlockPos.set(hitBlock.position);
+        }
+      } else if (!this.dragBlock) {
         // otherwise its a pan
         this.panStart.x = this.panPosition.x;
         this.panStart.y = this.panPosition.y;
@@ -75,6 +96,9 @@ export default class GraphManager {
       var dx = (e.pageX - offsetX) - this.dragStart.x;
       var dy = (e.pageY - offsetY) - this.dragStart.y;
 
+      var x1 = (e.pageX - offsetX) - this.panPosition.x;
+      var y1 = (e.pageY - offsetY) - this.panPosition.y;
+
       if (this.dragBlock) {
         var newPos = this.dragBlockPos.clone();
         newPos.x += dx;
@@ -85,6 +109,26 @@ export default class GraphManager {
         this.panPosition.x = this.panStart.x + dx;
         this.panPosition.y = this.panStart.y + dy;
         this.needsRedraw = true;
+      } else {
+        // check for hover
+        if (this.hoverBlock) {
+          // see if we're still over it, seems most likely
+          if (!this.hoverBlock.hit(x1,y1)) {
+            this.hoverBlock = null;
+          }
+        }
+        
+        if (!this.hoverBlock) {
+          for (var i=0; i<this.blocks.length; i++) {
+            var b = this.blocks[i];
+            if (b.hit(x1,y1)) {
+              this.hoverBlock = b;
+              b.hover();
+            } else {
+              b.unhover();
+            }
+          }
+        }
       }
 
     });
@@ -126,14 +170,41 @@ export default class GraphManager {
     window.requestAnimationFrame(this.update.bind(this));
   }
 
-  getPortByAddress(channel, param) {
+  resolveAddresses() {
     for (var i=0; i<this.blocks.length; i++) {
       var b = this.blocks[i];
-      if (b.channel == channel) {
-        // check ports
-        if (b.ports[param]) return b.ports[param];
+      b.resolveAddresses(); 
+    }
+  }
+
+  getBlockByName(name) {
+    // search for a block (module) based on name
+    for (var i=0; i<this.blocks.length; i++) {
+      var b = this.blocks[i];
+      if (b.name == name) {
+        return b;
       }
     }
+    return null;
+  }
+
+  getBlockById(id) {
+    // search for a block (module) based on name
+    for (var i=0; i<this.blocks.length; i++) {
+      var b = this.blocks[i];
+      if (b.channel == id) {
+        return b;
+      }
+    }
+    return null;
+  }
+
+  getPortByAddress(channel, param) {
+    var b = this.getBlockById(channel);
+    if (b) {
+      // check ports
+      if (b.ports[param]) return b.ports[param];
+    }     
     return null;
   }
 
@@ -200,7 +271,7 @@ export default class GraphManager {
     var blockSpacing = 150;
     var blockYSpacing = 50;
 
-    var padding = 40;
+    var padding = 80;
 
     // reset accel vectors
     for (var i=0; i<this.blocks.length; i++) {
@@ -214,7 +285,6 @@ export default class GraphManager {
       var b = this.blocks[i];
 
       // check wiring
-
       for (const [key, port] of Object.entries(b.ports)) {
         if (port.wire && port.wire.oport) {
           // check this block is to the right of oblock
@@ -248,7 +318,7 @@ export default class GraphManager {
           var overlap = b.collidingWith(ob, padding);
           if (overlap.length() > 0) {
             overlap.capLength(50);
-            overlap.multiply(5);
+            overlap.multiply(10);
             b.av.add(overlap);
           }
         }
@@ -257,7 +327,7 @@ export default class GraphManager {
       // pull blocks gently towards the centre
       var temp = cv.clone();
       temp.subtract(b.position);
-      overlap.capLength(100);
+      overlap.capLength(20);
       temp.multiply(0.1);
       b.av.add(temp);
 
@@ -267,21 +337,26 @@ export default class GraphManager {
     for (var i=0; i<this.blocks.length; i++) {
       var b = this.blocks[i];
 
-      // accelerate in net direction
-      b.av.multiply(0.01);
-      b.velocity.add(b.av);
+      if (b.hovering) {
+        b.velocity.x = 0;
+        b.velocity.y = 0;
+      } else {
+        // accelerate in net direction
+        b.av.multiply(0.01);
+        b.velocity.add(b.av);
 
-      // clamp velocity
-      b.velocity.capLength(30);
+        // clamp velocity
+        b.velocity.capLength(30);
 
-      // apply drag
-      b.velocity.multiply(0.8);
+        // apply drag
+        b.velocity.multiply(0.8);
 
-      // update position
-      b.addToPosition(b.velocity);
+        // update position
+        b.addToPosition(b.velocity);
 
-      // trigger redraw if movement is significant
-      if (b.velocity.dot(b.velocity) > 0.01) this.needsRedraw = true;
+        // trigger redraw if movement is significant
+        if (b.velocity.dot(b.velocity) > 0.01) this.needsRedraw = true;
+      }
     }
   }
 

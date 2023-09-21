@@ -7,6 +7,7 @@ const modulesPath = '../DroneNode/src/droneModules/';
 const baseDroneModulePath = '../DroneNode/src/DroneModule.h';
 const outputFile = 'public/moduleInfo.json';
 const fs = require('fs');
+const _ = require('lodash');
 
 var moduleInfo = {};  // the parsed map of module info
 
@@ -103,6 +104,20 @@ function parseModule(fn) {
         }
       }
 
+      // parse default
+      if (tagName == 'default') {
+        // of form: <param name>=<comma delimited list of values>
+        var tagValues = tagValue.split('=');
+        if (tagValues.length == 2) {
+          tagValue = {
+            param: tagValues[0],
+            values: tagValues[1].split(',')
+          };
+        } else {
+          console.log('  Error: invalid number of tag values');
+        }
+      }
+
       if (!tags.hasOwnProperty(tagName)) tags[tagName] = [];
 
       tags[tagName].push(tagValue);
@@ -116,7 +131,11 @@ function parseModule(fn) {
   if (tags.type && tags.type[0] != '') {
     // store tags into overall modules map
     tags.filename = [ fn ];
-    moduleInfo[ tags.type[0] ] = tags;
+    if (moduleInfo.hasOwnProperty( tags.type[0] )) {
+      _.merge( moduleInfo[ tags.type[0] ], tags);
+    } else {
+      moduleInfo[ tags.type[0] ] = tags;
+    }
     //console.log(tags);
     console.log('  Parsed OK')
   } else {
@@ -126,8 +145,10 @@ function parseModule(fn) {
 
 function parseModules() {
   fs.readdirSync(modulesPath, { withFileTypes:true }).forEach(file => {
-    if (file.isFile() && file.name.slice(-2) == '.h') {
-      parseModule(modulesPath +  file.name);
+    if (file.isFile()) {
+      var ppos = file.name.indexOf('.');
+      var ext = file.name.substring(ppos+1, file.name.length);
+      if (ext == 'h' || ext == 'cpp') parseModule(modulesPath +  file.name);
     }
   });
 }
