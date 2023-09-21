@@ -76,7 +76,7 @@ function parseModule(fn) {
             address: parseInt(tagValues[0]),
             type: tagValues[1],
             numValues: parseInt(tagValues[2]),
-            writable: tagValues[3] == 'w',
+            writeable: tagValues[3] == 'w',
             name: tagValues[4],
             description: tagValues[5]
           };

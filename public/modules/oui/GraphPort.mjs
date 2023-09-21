@@ -2,12 +2,22 @@ import * as DLM from '../droneLinkMsg.mjs';
 import Vector from '../Vector.mjs';
 import GraphWire from './GraphWire.mjs';
 
+/*
+
+GraphPorts are synonomous with Module Params
+They provide an editing interface for setting configuration values
+
+UI is arranged in columns, managed via the parent GraphBlock
+*/
+
+
 export default class GraphPort {
   constructor(mgr, block, param) {
     this.mgr = mgr;
     this.block = block;
     this.param = param;
     this.name = param.name;
+    this.subName;  //  same as name but without the $ sign
     this.isAddr = false;
 
     this.sortOrder = 0; // sort order
@@ -18,7 +28,24 @@ export default class GraphPort {
     this.numOutputs = 0;
     this.outputs = [];
 
+    this.font = '';
+    this.padding = 2;
 
+    this.cellsNeedUpdate = true;
+
+    // cells in the ui table
+    this.cellFixedWidth = [];  // 0 for dynamic, or a fixed value
+    this.cells = []; // strings for each cell
+    this.cellMinWidths = [ ];
+
+
+    // check type
+    if (param.type == 'addr') {
+      this.isAddr = true;
+      this.subName = this.name.substring(1, this.name.length);
+
+      this.findAndHideSub();
+    }
 
     /*
     // listen for names
@@ -67,14 +94,49 @@ export default class GraphPort {
 
   findAndHideSub() {
     // find matching port with same name and hide
-    if (this.name != '') {
+    if (this.subName != '') {
       for (const [key, port] of Object.entries(this.block.ports)) {
-        if (port != this && this.name == port.name) {
+        if (port != this && this.subName == port.name) {
           port.height = 0;
           this.block.updatePortPositions();
         }
       }
     }
+  }
+
+  updateCells(ctx) {
+    if (!this.cellsNeedUpdate) return;
+
+    this.font = this.mgr.uiRoot.css('font');
+    this.font.replace(/\d+\.?\d*px/, "8px");
+    ctx.font = this.font;
+
+    this.cellFixedWidth = [
+      0,
+      0,
+      this.height
+    ];
+
+    this.cells = [
+      this.param.address,
+      this.name,
+      ''
+    ];
+
+    this.cellMinWidths = [];
+    
+    // calc widths
+    for (var i=0; i<this.cells.length; i++) {
+      if (this.cellFixedWidth[i] == 0) {
+        var tm = ctx.measureText(this.cells[i]);
+        this.cellMinWidths.push(tm.width + 2*this.padding);
+      } else {
+        this.cellMinWidths.push(this.cellFixedWidth[i]);
+      }
+    }
+
+    this.cellsNeedUpdate = false;
+    this.block.needsPortResize = true;
   }
 
 
@@ -107,6 +169,8 @@ export default class GraphPort {
 
     }
 
+    this.updateCells(ctx);
+
     ctx.beginPath();
     if (dim) {
       ctx.fillStyle = '#606060';
@@ -118,7 +182,7 @@ export default class GraphPort {
     } else if (this.numOutputs > 1) {
       ctx.fillStyle = '#fff';
     } else {
-      ctx.fillStyle = '#848a90';
+      ctx.fillStyle = this.param.writeable ? '#848ac0' : '#848a90';
     }
 
     ctx.fillRect(px + x1, py + y1, w, h);
@@ -134,12 +198,24 @@ export default class GraphPort {
       ctx.fill();
     }
 
-    // label
-    ctx.fillStyle = '#000';
-    ctx.font = this.mgr.uiRoot.css('font');
-    ctx.font.replace(/\d+\.?\d*px/, "8px");
-    ctx.textAlign = 'center';
-    ctx.fillText(this.param.address + ': ' + this.name, px + x1 + w/2, py + y1 + h/2 + 4);
+    // render cells
+    var x2 = 0;
+    for(var i=0; i<this.cells.length; i++) {
+      
+      if (i == 2) {
+        // draw a circle for Publish status
+        ctx.fillStyle = this.param.published ? '#0f0' : '#555';
+        ctx.beginPath();
+        ctx.arc(px + x1 + x2 + this.block.columns[i]/2, py + y1 + h/2, this.height/2-this.padding, 0, 2*Math.PI);
+        ctx.fill();
+      } else {
+        ctx.fillStyle = '#000';
+        ctx.font = this.font;
+        ctx.textAlign = 'left';
+        ctx.fillText(this.cells[i], px + x1 + x2 + this.padding, py + y1 + h/2 + 4);
+      }
+      x2 += this.block.columns[i];
+    }
 
 
   }

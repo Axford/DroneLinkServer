@@ -141,6 +141,7 @@ export default class DroneConfigParser {
                     address: p.addrAddress,
                     type: 'addr',
                     numValues: 1,
+                    writeable: true,
                     description: p.description
                 };
                 module.params[p1.address] = p1;
@@ -153,6 +154,7 @@ export default class DroneConfigParser {
                     address: p.address,
                     type: p.type,
                     numValues: p.numValues,
+                    writeable: true,
                     description: p.description
                 };
                 module.params[p2.address] = p2;

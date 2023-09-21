@@ -62,12 +62,16 @@ export default class GraphBlock {
   constructor(mgr, data) {
     this.mgr = mgr;
     this.channel = data.id; // channel id
-    this.name = data.params[2].values[0];
+    // check for name
+    this.name = '';
+    if (data.params.hasOwnProperty(2)) this.name = data.params[2].values[0];
     this.module = data;
 
     this.numPorts = 0;
     this.numConnectedPorts = 0;
     this.ports = {};
+
+    this.columns = [];  // a set of column widths, used to manage UI layout of GraphPorts
 
     this.fillStyle = "hsl(" + 360 * Math.random() + ',' +
              '100%,' +
@@ -96,7 +100,7 @@ export default class GraphBlock {
       this.ports[param.address] = p;
     }
 
-    this.updatePortPositions();
+    this.needsPortResize = true;
 
     this.mgr.needsRedraw = true;
   }
@@ -150,6 +154,8 @@ export default class GraphBlock {
   }
 
   updatePortPositions() {
+    if (!this.needsPortResize) return;
+
     var y = this.headerHeight;
     var i = 0;
     this.numConnectedPorts = 0;
@@ -159,11 +165,30 @@ export default class GraphBlock {
       y += port.height;
       i++;
       if (port.connected) this.numConnectedPorts++;
+
+      // update column widths
+      for (var j=0; j<port.cellMinWidths.length; j++) {
+        if (j >= this.columns.length) {
+          this.columns.push(port.cellMinWidths[j]);
+        } else {
+          if (this.columns[j] < port.cellMinWidths[j]) this.columns[j] = port.cellMinWidths[j];
+        }
+      }
     }
     this.height = y;
+
+    // recalc width
+    this.width = 0;
+    this.columns.forEach((c)=>{
+      this.width += c;
+    });
+
+    this.needsPortResize = false;
   }
 
   draw() {
+    this.updatePortPositions();
+
     var c = this.mgr.canvas[0];
     var ctx = c.getContext("2d");
 
