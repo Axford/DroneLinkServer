@@ -27,7 +27,14 @@ export default class GraphEditor {
       // append to body for absolute positioning
       $(document.body).prepend(this.ui.panel);
   
-      this.ui.panel.resizable().draggable({ handle: ".graphEditorTitle" });
+      this.ui.panel.resizable({
+        resize:()=>{
+            this.gm.resize();    
+        },
+        stop:()=>{
+            this.gm.resize();
+        }
+      }).draggable({ handle: ".graphEditorTitle" });
   
       // add a close button
       this.ui.closeBtn = $(

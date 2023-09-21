@@ -71,13 +71,14 @@ function parseModule(fn) {
       if (tagName == 'pub') {
         // pubs of form: <param address>;<type>;<number of values>;<name>;<description>
         var tagValues = tagValue.split(';');
-        if (tagValues.length == 5) {
+        if (tagValues.length == 6) {
           tagValue = {
             address: parseInt(tagValues[0]),
             type: tagValues[1],
             numValues: parseInt(tagValues[2]),
-            name: tagValues[3],
-            description: tagValues[4]
+            writable: tagValues[3] == 'w',
+            name: tagValues[4],
+            description: tagValues[5]
           };
         } else {
           console.log('  Error: invalid number of tag values');
