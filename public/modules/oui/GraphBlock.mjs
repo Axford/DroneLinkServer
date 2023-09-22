@@ -317,7 +317,7 @@ export default class GraphBlock {
     ctx.fillStyle = dim ? '#505050' : this.fillStyle;
     ctx.strokeStyle = '#505050';
     ctx.lineWidth = 1;
-    roundRect(ctx, px + this.position.x - w2, py + this.position.y - h2, w, h, 6, true);
+    roundRect(ctx, px + this.x1, py + this.y1, w, h, 6, true);
 
     // title
     ctx.fillStyle = '#000';

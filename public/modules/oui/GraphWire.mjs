@@ -37,6 +37,7 @@ export default class GraphWire {
     this.oport = this.mgr.getPortByAddress(this.ochannel, this.oparam);
     if (this.oport) {
       this.oport.numOutputs += 1;
+      this.oport.connected =true;
       this.oport.outputs.push(this.port);
       // make sure params with subscribers are published
       this.oport.param.published = true;

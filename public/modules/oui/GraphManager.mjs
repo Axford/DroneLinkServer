@@ -5,6 +5,11 @@ import Vector from '../Vector.mjs';
 
 loadStylesheet('./css/modules/oui/GraphManager.css');
 
+function constrain(v, minV, maxV) {
+  if (v > maxV) return maxV;
+  if (v < minV) return minV;
+  return v;
+}
 
 export default class GraphManager {
   constructor(uiRoot) {
@@ -242,6 +247,15 @@ export default class GraphManager {
     ctx.fillStyle = '#343a40';
     ctx.fillRect(0,0,w,h);
 
+    // draw cross hairs
+    ctx.strokeStyle = '#555';
+    ctx.beginPath();
+    ctx.moveTo(0, this.panPosition.y + cy);
+    ctx.lineTo(w, this.panPosition.y + cy);
+    ctx.moveTo(this.panPosition.x + cx, 0);
+    ctx.lineTo(this.panPosition.x + cx, h);
+    ctx.stroke();
+
     // draw wires
     for (var i=0; i<this.blocks.length; i++) {
       this.blocks[i].drawWires();
@@ -325,12 +339,29 @@ export default class GraphManager {
         }
       }
 
-      // pull blocks gently towards the centre
-      var temp = cv.clone();
-      temp.subtract(b.position);
-      overlap.capLength(20);
-      temp.multiply(0.1);
-      b.av.add(temp);
+      // pull blocks gently towards the centre in x
+      var olx = constrain(b.position.x - cv.x, -10, 10);
+      b.av.x -= 2 * olx;
+      
+
+      if (b.numConnectedPorts == 0) {
+        // put unconnected blocks below the centreline
+        var ol = (cv.y + padding/2) - b.y1;
+        if (ol > 0) {
+          b.av.y += 5 * ol;
+        } else {
+          b.av.y += ol/10;
+        }
+
+      } else {
+        // put connected blocks above the centreline
+        var ol = b.y2 - (cv.y - padding/2);
+        if (ol > 0) { 
+          b.av.y -= 5 * ol;
+        } else {
+          b.av.y -= ol/10;
+        }
+      }
 
     }
 

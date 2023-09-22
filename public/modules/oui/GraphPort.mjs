@@ -29,6 +29,7 @@ export default class GraphPort {
     this.height = 16;
     this.shrink = 1;  // a scale factor from 0..1 used to animate shrinkage of unhovered elements
 
+    this.connected = false; // true if numOutputs > 0 || has a wire
     this.wire = null;
     this.numOutputs = 0;
     this.outputs = [];
@@ -118,7 +119,7 @@ export default class GraphPort {
           } else {
             this.wire = new GraphWire(this.mgr, this, n,m,p);
           }
-          
+          this.connected = true; 
         }
       }
     }
