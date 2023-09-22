@@ -167,6 +167,31 @@ export default class GraphBlock {
             y > this.y1 && y < this.y2);
   }
 
+  collidingWithPoint(p, padding) {
+    var v = new Vector(0,0);
+    // overlap values will be positive if overlapping
+    var xo1 = (p.x + padding) - this.x1;
+    var xo2 = (this.x2 + padding) - p.x;
+    var yo1 = (p.y + padding) - this.y1;
+    var yo2 = (this.y2 + padding) - p.y;
+    if (xo1 > 0 && xo2 > 0 && yo1 > 0 && yo2 > 0) {
+      if (Math.min(xo1,xo2) > Math.min(yo1,yo2)) {
+        if (yo1 < yo2) {
+          v.y = yo1;
+        } else {
+          v.y = -yo2;
+        }
+      } else {
+        if (xo1 < xo2) {
+          v.x = xo1;
+        } else {
+          v.x = -xo2;
+        }
+      }
+    }
+    return v;
+  }
+
   collidingWith(ob, padding) {
     var v = new Vector(0,0);
     // overlap values will be positive if overlapping
