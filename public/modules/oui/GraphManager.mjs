@@ -196,7 +196,7 @@ export default class GraphManager {
   }
 
   getBlockById(id) {
-    // search for a block (module) based on name
+    // search for a block (module) based on id
     for (var i=0; i<this.blocks.length; i++) {
       var b = this.blocks[i];
       if (b.channel == id) {
@@ -402,5 +402,23 @@ export default class GraphManager {
     // add a new block representing a module
     var b = new GraphBlock(this, data);
     this.blocks.push( b );
+  }
+
+  generateConfig() {
+    var str = '';
+
+    // export node id from dummy block
+    str += 'node = ' + this.getBlockById(0).ports[0].param.values[0] + '\n';
+    str += '\n';
+
+    // then generate the rest
+    for (var i=0; i<this.blocks.length; i++) {
+      var b = this.blocks[i];
+      if (b.channel != 0) {
+        str += b.generateConfig();
+      }
+    }
+
+    return str;
   }
 }

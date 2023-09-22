@@ -134,7 +134,7 @@ export default class GraphPort {
     if (this.param.configured) {
       // do nothing
     } else {
-      if (!this.param.published || this.param.alwaysPublished ) this.shrink = 0;
+      if (!this.param.published || this.param.alwaysPublished ) this.shrink = 1; //0;
     }
   }
 
@@ -452,6 +452,32 @@ export default class GraphPort {
   drawWire() {
     // draw wire
     if (this.wire) this.wire.draw();
+  }
+
+
+  generateConfig() {
+    var str = '';
+
+    if (this.param.configured) {
+      // name 
+      str += '  ' + this.param.name + ' = ';
+
+      // value
+      var numValues = this.param.type != 'c' ? this.param.numValues : 1;
+
+      if (this.param.type == 'c') str += '"';
+      for (var i=0; i<numValues; i++) {
+        if (this.param.values[i] !== undefined) {
+          if (i>0) str += ', ';
+          str += this.param.values[i];
+        }
+      }
+      if (this.param.type == 'c') str += '"';
+
+      str += '\n';
+    }
+
+    return str;
   }
 
 

@@ -343,4 +343,42 @@ export default class GraphBlock {
     }
   }
 
+
+  generateConfig() {
+    var str = '';
+
+    // section header
+    str += '[ ' + this.module.type + ' = ' + this.module.id + ' ]\n';
+
+    // ports / params
+    for (const [key, port] of Object.entries(this.ports)) {
+      str += port.generateConfig();
+    }
+
+    // publish
+    var toPublish = [];
+    for (const [key, port] of Object.entries(this.ports)) {
+      if (port.param.published && !port.param.alwaysPublished) {
+        if (!port.name.startsWith('$')) toPublish.push(port.name);
+      }
+    }
+
+    var j = 0;
+    if (toPublish.length > 0) str += '  publish = ';
+    toPublish.forEach((p, i)=>{
+      if (j > 0) str += ', ';
+      str += p;     
+      j++;
+      if (j == 5) {
+        j=0;
+        str += '\n';
+        if (i < toPublish.length-1) str += '  publish = ';
+      }
+    });
+    if (toPublish.length > 0 && j > 0) str += '\n';
+
+    str += '\n';
+    return str;
+  }
+
 }
