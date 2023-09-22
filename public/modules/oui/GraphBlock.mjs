@@ -85,7 +85,15 @@ export default class GraphBlock {
     if (w < 200) w = 200;
     var h = ctx.canvas.height;
 
-    this.headerHeight = 20;
+    this.headerHeight = 40;
+
+    this.title = this.channel +'. '+ this.name;
+    this.titleFont = '15px bold, ' + this.mgr.baseFont;
+    console.log(this.titleFont);
+
+    ctx.font = this.titleFont;
+    var tm = ctx.measureText(this.title);
+    this.minTitleWidth = tm.width;
 
     this.position = new Vector(w * Math.random(), h * Math.random());
     this.velocity = new Vector(0,0);
@@ -99,6 +107,7 @@ export default class GraphBlock {
       var param = this.module.params[id];
 
       var p = new GraphPort(this.mgr, this, param);
+      p.updateCells();
       this.ports[param.address] = p;
     }
 
@@ -248,7 +257,7 @@ export default class GraphBlock {
     var i = 0;
     this.numConnectedPorts = 0;
     for (const [key, port] of Object.entries(this.ports)) {
-      port.sortOder = i;
+      port.sortOrder = i;
       port.y = y;
       y += port.height * port.shrink;
       i++;
@@ -271,9 +280,24 @@ export default class GraphBlock {
       this.width += c;
     });
 
+    // sense check vs title width
+    var extraForTitle = this.minTitleWidth - (this.width - 8);
+    if (extraForTitle > 0) {
+      this.width += extraForTitle;
+      console.log(this.name, this.columns);
+      if (this.columns[1]) {
+        extraForTitle -= 8;
+        if (extraForTitle > 0) {
+          console.log(this.name, extraForTitle);
+          this.columns[1] += extraForTitle;
+        }
+      }      
+    }
+
     this.updateCorners();
 
     this.needsPortResize = false;
+    this.mgr.needsRedraw = true;
   }
 
   draw() {
@@ -289,17 +313,22 @@ export default class GraphBlock {
     var px = this.mgr.panPosition.x;
     var py = this.mgr.panPosition.y;
 
-    var dim = (this.mgr.dragBlock && this.mgr.dragBlock != this);
+    var dim = ((this.mgr.dragBlock && this.mgr.dragBlock != this)) || (this.mgr.hoverBlock && this.mgr.hoverBlock != this);
     ctx.fillStyle = dim ? '#505050' : this.fillStyle;
     ctx.strokeStyle = '#505050';
     ctx.lineWidth = 1;
     roundRect(ctx, px + this.position.x - w2, py + this.position.y - h2, w, h, 6, true);
 
-    // label
+    // title
     ctx.fillStyle = '#000';
-    ctx.font = this.mgr.uiRoot.css('font');
-		ctx.textAlign = 'center';
-    ctx.fillText(this.channel +'. '+ this.name, px + this.position.x, py + this.y1 + this.headerHeight - 6);
+    ctx.font = this.titleFont;
+		ctx.textAlign = 'left';
+    ctx.fillText(this.channel + '.' , px + this.x1 + 4, py + this.y1 + this.headerHeight/2);
+    ctx.fillText(this.name , px + this.x1 + this.columns[0] + 4, py + this.y1 + this.headerHeight/2);
+
+    ctx.font = '10px ' + this.mgr.baseFont;
+    ctx.fillStyle = '#111';
+    ctx.fillText(this.module.type , px + this.x1 + this.columns[0] + 4, py + this.y1 + this.headerHeight - 5);
 
     // draw ports
     for (const [key, port] of Object.entries(this.ports)) {

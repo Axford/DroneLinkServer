@@ -18,6 +18,8 @@ export default class GraphManager {
 
     this.nodeId = 0;
 
+    this.baseFont = '-apple-system, "system-ui", "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"';
+
     this.pan = false;
     this.panPosition = new Vector(0,0);
     this.panStart = new Vector(0,0);
@@ -224,6 +226,7 @@ export default class GraphManager {
 
   draw() {
     if (!this.needsRedraw) return;
+    this.needsRedraw = false;
 
     this.frame++;
 
@@ -251,11 +254,9 @@ export default class GraphManager {
 
     // frame counter
     ctx.fillStyle = '#5F5';
-    ctx.font = '10px bold sans-serif';
+    ctx.font = '10px ' + this.baseFont;
 		ctx.textAlign = 'left';
     ctx.fillText(this.frame, 5, 10);
-
-    this.needsRedraw = false;
   }
 
   updatePositions() {
@@ -290,8 +291,8 @@ export default class GraphManager {
           // check this block is to the right of oblock
           var ol = (port.wire.oport.block.x2 + padding) - b.x1;
           if (ol > 0) {
-            b.av.x += ol * 10;
-            port.wire.oport.block.av.x += -ol * 10;
+            b.av.x += ol * 10;  // 10 
+            port.wire.oport.block.av.x += -ol * 10;  // 10
           } else {
             b.av.x += -1;
             port.wire.oport.block.av.x += 1;
@@ -300,8 +301,8 @@ export default class GraphManager {
           // gently pull into vertical alignment
           ol = (b.y1 + port.y) - (port.wire.oport.block.y1 + port.wire.oport.y);
 
-          b.av.y += -ol;
-          port.wire.oport.block.av.y += ol;
+          b.av.y += -ol / 10;
+          port.wire.oport.block.av.y += ol/10;
 
         }
       }
@@ -317,8 +318,8 @@ export default class GraphManager {
           // overlap is a vector in direction of minimum overlap
           var overlap = b.collidingWith(ob, padding);
           if (overlap.length() > 0) {
-            overlap.capLength(50);
-            overlap.multiply(10);
+            overlap.capLength(100);
+            overlap.multiply(15);
             b.av.add(overlap);
           }
         }

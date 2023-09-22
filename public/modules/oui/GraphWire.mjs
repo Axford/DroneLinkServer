@@ -20,6 +20,8 @@ export default class GraphWire {
       });
     }
 
+    this.updateOtherPort();
+
     this.pointsBuilt = false;
   }
 
@@ -36,6 +38,10 @@ export default class GraphWire {
     if (this.oport) {
       this.oport.numOutputs += 1;
       this.oport.outputs.push(this.port);
+      // make sure params with subscribers are published
+      this.oport.param.published = true;
+      this.oport.shrink = 1;
+      this.oport.cellsNeedUpdate = true;
       this.mgr.needsRedraw = true;
     }
   }
@@ -88,7 +94,7 @@ export default class GraphWire {
     }
 
     var padding = 20;
-    var g = new Vector(0, 0.005 * this.mass);
+    var g = new Vector(0, 0.003 * this.mass);
 
     // for each point, calc the forces acted on by its neighbours
     for (var i = 1; i < this.points.length-1; i++) {
@@ -188,14 +194,19 @@ export default class GraphWire {
 
       // check other end
       if (op && op.block == this.mgr.dragBlock) dim = false;
+    } else if (this.mgr.hoverBlock) {
+      dim = this.mgr.hoverBlock != p.block;
+
+      // check other end
+      if (op && op.block == this.mgr.hoverBlock) dim = false;
     }
 
-    ctx.strokeStyle = dim ? "#606060" : this.port.block.fillStyle;
+    ctx.strokeStyle = dim ? "#606060" : (this.oport ? this.oport.block.fillStyle : '#606060');
     ctx.lineWidth = dim ? 1 : 6;
 
     var x1 = p.block.x1 - 8;
     var y1 = p.block.y1 + p.y + 8;
-    var x2 = op ? op.block.x2 : x1 - 20;
+    var x2 = op ? op.block.x2 + 8 : x1 - 20;
     var y2 = op ? op.block.y1 + op.y + 8 : y1;
 
     // ensure ends stay connected
