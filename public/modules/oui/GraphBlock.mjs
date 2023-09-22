@@ -197,6 +197,12 @@ export default class GraphBlock {
     this.updateCorners();
   }
 
+  updateWirePositions() {
+    for (const [key, port] of Object.entries(this.ports)) {
+      port.updateWirePosition();
+    }
+  }
+
   updateCorners() {
     // calculate corner points
     this.x1 = this.position.x - this.width/2;

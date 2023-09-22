@@ -358,6 +358,12 @@ export default class GraphManager {
         if (b.velocity.dot(b.velocity) > 0.01) this.needsRedraw = true;
       }
     }
+
+    // update wires
+    for (var i=0; i<this.blocks.length; i++) {
+      var b = this.blocks[i];
+      b.updateWirePositions();
+    }
   }
 
   addBlock(data) {

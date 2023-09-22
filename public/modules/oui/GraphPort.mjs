@@ -257,6 +257,12 @@ export default class GraphPort {
     this.block.needsPortResize = true;
   }
 
+  updateWirePosition() {
+    if (this.wire) {
+      this.wire.updatePosition();
+    }
+  }
+
 
   draw() {
     if (!this.enabled || this.shrink == 0) return;
