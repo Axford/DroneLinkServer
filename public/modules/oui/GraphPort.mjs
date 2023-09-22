@@ -33,7 +33,7 @@ export default class GraphPort {
     this.numOutputs = 0;
     this.outputs = [];
 
-    this.font = '';
+    this.font = '10px '+this.mgr.baseFont;
     this.padding = [4,2];
 
     this.cellsNeedUpdate = true;
@@ -42,6 +42,9 @@ export default class GraphPort {
     this.cellFixedWidth = [];  // 0 for dynamic, or a fixed value
     this.cells = []; // strings for each cell
     this.cellMinWidths = [ ];
+
+    // input area
+    this.inputMinWidth = 0;
 
 
     // look for additional tags in moduleInfo 
@@ -115,7 +118,7 @@ export default class GraphPort {
           } else {
             this.wire = new GraphWire(this.mgr, this, n,m,p);
           }
-            
+          
         }
       }
     }
@@ -172,6 +175,11 @@ export default class GraphPort {
           if (!this.param.alwaysPublished) {
             this.param.published = !this.param.published;
           }
+        } else if (i == 4) {
+          // toggle configured
+          this.param.configured = !this.param.configured;
+
+          this.cellsNeedUpdate = true;
         }
       }
       
@@ -215,19 +223,20 @@ export default class GraphPort {
     }
   }
 
-  updateCells(ctx) {
+  updateCells() {
     if (!this.cellsNeedUpdate) return;
 
-    this.font = this.mgr.uiRoot.css('font');
-    this.font.replace(/\d+\.?\d*px/, "8px");
+    var c = this.mgr.canvas[0];
+    var ctx = c.getContext("2d");
+
     ctx.font = this.font;
 
     this.cellFixedWidth = [
       0,
       0,
       0,
-      this.height,
-      this.height
+      16,
+      16
     ];
 
     this.cells = [
@@ -238,6 +247,7 @@ export default class GraphPort {
       ''
     ];
 
+    var totalWidth = 0;
     this.cellMinWidths = [];
     
     // calc widths
@@ -248,13 +258,23 @@ export default class GraphPort {
       } else {
         this.cellMinWidths.push(this.cellFixedWidth[i]);
       }
+      totalWidth += this.cellMinWidths[i];
     }
+
+    // sense check vs inputarea
+    var extraForInput = this.inputMinWidth - (totalWidth - this.cellMinWidths[0]);
+    if (extraForInput > 0 ) {
+      // add extra to "name" cell
+      this.cellMinWidths[1] += extraForInput;
+    }
+
 
     // calc height
     this.height = this.param.configured ? 16 + 20 : 16;
 
     this.cellsNeedUpdate = false;
     this.block.needsPortResize = true;
+    this.mgr.needsRedraw = true;
   }
 
   updateWirePosition() {
@@ -291,9 +311,20 @@ export default class GraphPort {
         if (this.outputs[i].block == this.mgr.dragBlock) dim = false;
       }
 
+    } else if ( this.mgr.hoverBlock ) {
+      dim = this.mgr.hoverBlock != this.block;
+
+      // check inputs
+      if (this.wire && this.wire.oport && this.wire.oport.block == this.mgr.hoverBlock) dim = false;
+
+      // check outputs
+      for (var i=0; i < this.outputs.length; i++) {
+        if (this.outputs[i].block == this.mgr.hoverBlock) dim = false;
+      }
+
     }
 
-    this.updateCells(ctx);
+    this.updateCells();
 
     var h1 = 16;  // title
     var h2 = 20;  // input area
@@ -303,14 +334,17 @@ export default class GraphPort {
     if (dim) {
       bkc= '#606060';
     } else
-    if (this.wire) {
-      bkc = this.block.fillStyle;
+    if (this.wire && this.wire.oport) {
+      //bkc = this.block.fillStyle;
+      bkc = this.wire.oport.block.fillStyle;
     } else if (this.numOutputs == 1) {
-      bkc = this.outputs[0].block.fillStyle;
+      bkc = this.block.fillStyle;
+      //bkc = this.outputs[0].block.fillStyle;
     } else if (this.numOutputs > 1) {
-      bkc = '#fff';
+      bkc = this.block.fillStyle;
+      //bkc = '#fff';
     } else {
-      bkc = '#848a90';
+      bkc = '#a4aab0';
     }
 
     ctx.fillStyle = bkc;
@@ -332,13 +366,24 @@ export default class GraphPort {
       ctx.stroke();
     }
 
+    // draw output nubbin?
+    if (this.numOutputs > 0) {
+      ctx.beginPath();
+      var r = 6;
+      ctx.fillStyle = '#555';
+      ctx.arc(px + this.block.x2 + r, py + y1 + h1/2, r, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.strokeStyle = bkc;
+      ctx.stroke();
+    }
+
     // render cells
     var x2 = 0;
     for(var i=0; i<this.cells.length; i++) {
       
       if (i == 3) {
         // draw a circle for Publish status
-        ctx.fillStyle = (this.param.published && !this.param.alwaysPublished) ? '#5f5' : '#555';
+        ctx.fillStyle = (this.param.published && !this.param.alwaysPublished) ? (dim ? '#5a5' : '#5f5') : '#555';
         ctx.beginPath();
         ctx.arc(px + x1 + x2 + this.block.columns[i]/2, py + y1 + h1/2, h1/2-this.padding[1], 0, 2*Math.PI);
         ctx.fill();
@@ -352,7 +397,7 @@ export default class GraphPort {
       } else if (i == 4) {
         if (this.param.writeable) {
           // draw a circle for Configured status
-          ctx.fillStyle = this.param.configured ? '#5f5' : '#555';
+          ctx.fillStyle = this.param.configured ? (dim ? '#5a5' : '#5f5') : '#555';
           ctx.beginPath();
           ctx.arc(px + x1 + x2 + this.block.columns[i]/2, py + y1 + h1/2, h1/2-this.padding[1], 0, 2*Math.PI);
           ctx.fill();
@@ -376,17 +421,29 @@ export default class GraphPort {
     if (this.param.configured) {
 
       var x2 = px + x1 + this.block.columns[0];
-      var w1 = w - this.block.columns[0] - 2;
+      var w1 = w - this.block.columns[0];
 
-      // background
-      ctx.fillStyle = '#555';
-      ctx.fillRect(x2, py + y1 + h1 + 2, w1-2, h2-4);
+      var numValues = this.param.type != 'c' ? this.param.numValues : 1;
 
-      // values
-      ctx.fillStyle = '#fff';
-      ctx.font = this.font;
-      ctx.textAlign = 'left';
-      ctx.fillText(this.param.values[0], x2 + this.padding[0], py + y1 + h - 6);
+      var wi = w1 / numValues;
+
+      // for each value
+      var x3 = x2;
+      for (var i=0; i<numValues; i++) {
+        // background
+        ctx.fillStyle = '#555';
+        ctx.fillRect(x3, py + y1 + h1 + 2, wi-2, h2-4);
+
+        // values
+        ctx.fillStyle = '#fff';
+        ctx.font = this.font;
+        ctx.textAlign = 'left';
+        if (this.param.values && this.param.values.length > i) {
+          ctx.fillText(this.param.values[i], x3 + this.padding[0], py + y1 + h - 6);
+        }
+
+        x3 += wi;
+      }
     }
 
   }
