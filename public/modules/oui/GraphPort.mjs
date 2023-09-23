@@ -13,6 +13,25 @@ UI is arranged in columns, managed via the parent GraphBlock
 */
 
 
+// valid char maps by param type
+
+var validKeyMap = {
+  c: 'zxcvbnm,./asdfghjkl;qwertyuiop[]\`1234567890-=ZXCVBNM<>?ASDFGHJKL:"QWERTYUIOP{}|~!@£$%^&*()_+ ',
+  u8: '1234567890 ',
+  u32: '1234567890 ',
+  f: '1234567890-. ',
+  addr: '1234567890@>.zxcvbnmasdfghjklqwertyuiopZXCVBNMASDFGHJKLQWERTYUIOP '
+};
+
+var maxInputLengthMap = {
+  c: 12,
+  u8: 3,
+  u32: 10,
+  f: 9,
+  addr: 32
+};
+
+
 export default class GraphPort {
   constructor(mgr, block, param) {
     this.mgr = mgr;
@@ -26,7 +45,9 @@ export default class GraphPort {
 
     this.sortOrder = 0; // sort order
     this.y = 0;  // relative to block
-    this.height = 16;
+    this.titleHeight = 16;
+    this.inputHeight = 20;
+    this.height = this.titleHeight;
     this.shrink = 1;  // a scale factor from 0..1 used to animate shrinkage of unhovered elements
 
     this.connected = false; // true if numOutputs > 0 || has a wire
@@ -49,6 +70,8 @@ export default class GraphPort {
     // input cells
     this.inputCells = []; // strings for each input cell
     this.inputCellWidths = [];
+    this.inputCellValid = []; // booleans to indicate correct syntax
+    this.selectedInputCell = -1;
 
     // populate input cells
     if (this.param.values) {
@@ -70,6 +93,11 @@ export default class GraphPort {
       }
     }
 
+    // populate inputCellValid
+    this.inputCells.forEach((c)=>{
+      this.inputCellValid.push( this.checkInputIsValid(c) );
+    });
+
     // input area
     this.inputMinWidth = 0;
 
@@ -88,8 +116,26 @@ export default class GraphPort {
     this.unhover();
   }
 
+  connect(oport) {
+    this.connected =true;
+    this.outputs.push(oport);
+    this.numOutputs = this.outputs.length;
+    // make sure params with subscribers are published
+    this.param.published = true;
+    this.shrink = 1;
+    this.cellsNeedUpdate = true;
+  }
+
+  disconnect(oport) {
+    this.outputs = _.without(this.outputs, oport);
+    this.numOutputs = this.outputs.length;
+    this.connected = this.numOutputs > 0;
+    if (!this.connected) this.cellsNeedUpdate = true;
+  }
+
   resolveAddress() {
-    if (!this.isAddr) return;
+    if (!this.isAddr) return false;
+    this.connected = false;
 
     // parse and resolve address
     this.addr = [0,0,0];
@@ -145,10 +191,11 @@ export default class GraphPort {
           } else {
             this.wire = new GraphWire(this.mgr, this, n,m,p);
           }
-          this.connected = true; 
+          this.connected = this.wire.isConnected();
         }
       }
     }
+    return this.connected;
   }
 
   hover() {
@@ -165,13 +212,14 @@ export default class GraphPort {
   }
 
   hit(x,y) {
+    if (!this.enabled) return false;
     var x1 = this.block.x1;
     var y1 = this.block.y1 + this.y;
     var w = this.block.width;
     var h = this.height;
 
     return (x > x1 && x < x1+w &&
-      y > y1 && y < y1+h);
+      y > y1 && y < y1 + h*this.shrink);
   }
 
   mousedown(x,y) {
@@ -188,35 +236,105 @@ export default class GraphPort {
     var x1 = this.block.x1;
     var y1 = this.block.y1 + this.y;
 
-    var h1 = 16;  // title
-    var h2 = 20;  // input area
+    console.log(this.name);
 
-    var x2 = 0;
-    for(var i=0; i<this.cells.length; i++) {
+    // check title area
+    if (y <= y1 + this.titleHeight) {
+      var x2 = 0;
+      for(var i=0; i<this.cells.length; i++) {
 
-      // see if mouse is down in this cell
-      if (x > x1 + x2 && x < x1 + x2 + this.block.columns[i]) {
-        // decide what todo with the hit
-        if (i == 3) {
-          // toggle published, assuming not alwaysPublished
-          if (!this.param.alwaysPublished) {
-            this.param.published = !this.param.published;
-          }
-        } else if (i == 4) {
-          if (this.param.writeable) {
-            // toggle configured
-            this.param.configured = !this.param.configured;
-            // update cell sizes
-            this.cellsNeedUpdate = true;
+        // see if mouse is down in this cell
+        if (x > x1 + x2 && x < x1 + x2 + this.block.columns[i]) {
+          // decide what todo with the hit
+          if (i == 3) {
+            // toggle published, assuming not alwaysPublished
+            if (!this.param.alwaysPublished) {
+              this.param.published = !this.param.published;
+            }
+          } else if (i == 4) {
+            if (this.param.writeable) {
+              // toggle configured
+              this.param.configured = !this.param.configured;
+              // update cell sizes
+              this.cellsNeedUpdate = true;
+            }
           }
         }
+        
+        x2 += this.block.columns[i];
       }
-      
-      x2 += this.block.columns[i];
+    } else {
+      // check input area
+      var x2 = this.cellWidths[0];
+      this.selectedInputCell = -1;
+      for(var i=0; i<this.inputCells.length; i++) {
+
+        // see if mouse is down in this cell
+        if (x > x1 + x2 && x < x1 + x2 + this.inputCellWidths[i]) {
+          this.selectedInputCell = i;
+          break;
+        }
+        
+        x2 += this.inputCellWidths[i];
+      }
     }
 
     return true;
   }
+
+
+  checkInputIsValid(s) {
+    switch(this.param.type) {
+      case 'u8':
+        var v = parseInt(s);
+        return !isNaN(v) && (v >= 0) && (v <= 255);
+      case 'u32':
+        var v = parseInt(s);
+        return !isNaN(v) && (v >= 0) && (v <= 4294967295);
+        break;
+      case 'f':
+        return !isNaN(parseFloat(s));
+        break;
+      case 'addr':
+      case 'c':
+          return true;
+          break;
+    }
+  }
+  
+  keydown(e) {
+    if (this.selectedInputCell > -1) {
+
+      if (e.which == 8) {  // backspace
+        this.inputCells[this.selectedInputCell] = this.inputCells[this.selectedInputCell].slice(0, -1);
+      } else if (e.which >= 48 && e.which <=221) {  // everything else
+        // check keymap
+        if (validKeyMap[this.param.type].indexOf(e.key) > -1) {
+          // check for max input length
+          if (this.inputCells[this.selectedInputCell].length < maxInputLengthMap[this.param.type]) {
+            this.inputCells[this.selectedInputCell] += e.key;
+            this.cellsNeedUpdate = true;
+          }
+            
+        }    
+      }
+
+      this.inputCellValid[this.selectedInputCell] = this.checkInputIsValid(this.inputCells[this.selectedInputCell]);
+      
+      if (this.param.type == 'addr') {
+        // update internal value
+        this.param.values[0] = this.inputCells[this.selectedInputCell];
+
+        // rewire
+        this.inputCellValid[this.selectedInputCell] = this.resolveAddress();
+      }
+
+      e.preventDefault();
+    }
+
+    this.mgr.needsRedraw = true;
+  }
+
 
   checkForPublishTags(moduleType) {
     if (moduleInfo.hasOwnProperty(moduleType)) {
@@ -306,12 +424,10 @@ export default class GraphPort {
     if (extraForInput > 0 ) {
       // add extra to "name" cell
       this.cellWidths[1] += extraForInput;
-
-      console.log(this.name, extraForInput);
     } 
 
     // calc height
-    this.height = this.param.configured ? 16 + 20 : 16;
+    this.height = this.param.configured ? this.titleHeight + this.inputHeight : this.titleHeight;
 
     this.cellsNeedUpdate = false;
     this.block.needsPortResize = true;
@@ -388,15 +504,13 @@ export default class GraphPort {
 
     this.updateCells();
 
-    var h1 = 16;  // title
-    var h2 = 20;  // input area
-
     ctx.beginPath();
     var bkc;
-    if (dim) {
+    if (this.block.selectedPort == this) {
+      bkc = '#000';
+    } else if (dim) {
       bkc= '#606060';
-    } else
-    if (this.wire && this.wire.oport) {
+    } else if (this.wire && this.wire.oport) {
       //bkc = this.block.fillStyle;
       bkc = this.wire.oport.block.fillStyle;
     } else if (this.numOutputs == 1) {
@@ -422,7 +536,7 @@ export default class GraphPort {
       ctx.beginPath();
       var r = 6;
       ctx.fillStyle = '#555';
-      ctx.arc(px + x1 - r, py + y1 + h1/2, r, 0, 2 * Math.PI);
+      ctx.arc(px + x1 - r, py + y1 + this.titleHeight/2, r, 0, 2 * Math.PI);
       ctx.fill();
       ctx.strokeStyle = bkc;
       ctx.stroke();
@@ -433,7 +547,7 @@ export default class GraphPort {
       ctx.beginPath();
       var r = 6;
       ctx.fillStyle = '#555';
-      ctx.arc(px + this.block.x2 + r, py + y1 + h1/2, r, 0, 2 * Math.PI);
+      ctx.arc(px + this.block.x2 + r, py + y1 + this.titleHeight/2, r, 0, 2 * Math.PI);
       ctx.fill();
       ctx.strokeStyle = bkc;
       ctx.stroke();
@@ -447,34 +561,37 @@ export default class GraphPort {
         // draw a circle for Publish status
         ctx.fillStyle = (this.param.published && !this.param.alwaysPublished) ? (dim ? '#5a5' : '#5f5') : '#555';
         ctx.beginPath();
-        ctx.arc(px + x1 + x2 + this.block.columns[i]/2, py + y1 + h1/2, h1/2-this.padding[1], 0, 2*Math.PI);
+        ctx.arc(px + x1 + x2 + this.block.columns[i]/2, py + y1 + this.titleHeight/2, this.titleHeight/2-this.padding[1], 0, 2*Math.PI);
         ctx.fill();
 
         // place a P in the circle
         ctx.fillStyle = this.param.alwaysPublished ? '#5f5' : '#aaa';
         ctx.font = this.font;
         ctx.textAlign = 'center';
-        ctx.fillText('P', px + x1 + x2 + this.block.columns[i]/2, py + y1 + h1/2+4);
+        ctx.fillText('P', px + x1 + x2 + this.block.columns[i]/2, py + y1 + this.titleHeight/2+4);
 
       } else if (i == 4) {
         if (this.param.writeable) {
           // draw a circle for Configured status
           ctx.fillStyle = this.param.configured ? (dim ? '#5a5' : '#5f5') : '#555';
           ctx.beginPath();
-          ctx.arc(px + x1 + x2 + this.block.columns[i]/2, py + y1 + h1/2, h1/2-this.padding[1], 0, 2*Math.PI);
+          ctx.arc(px + x1 + x2 + this.block.columns[i]/2, py + y1 + this.titleHeight/2, this.titleHeight/2-this.padding[1], 0, 2*Math.PI);
           ctx.fill();
 
           // place a C in the circle
           ctx.fillStyle = '#aaa';
           ctx.font = this.font;
           ctx.textAlign = 'center';
-          ctx.fillText('C', px + x1 + x2 + this.block.columns[i]/2, py + y1 + h1/2+4);
+          ctx.fillText('C', px + x1 + x2 + this.block.columns[i]/2, py + y1 + this.titleHeight/2+4);
         }
       } else {
-        ctx.fillStyle = (i == 2 || i == 0) ? '#444' : '#000';
+        if (this.block.selectedPort == this) {
+          ctx.fillStyle = (i == 2 || i == 0) ? '#aaa' : '#fff';
+        } else 
+          ctx.fillStyle = (i == 2 || i == 0) ? '#444' : '#000';
         ctx.font = this.font + (i==1 ? ' bold' : '');
         ctx.textAlign = 'left';
-        ctx.fillText(this.cells[i], px + x1 + x2 + this.padding[0], py + y1 + h1/2 + 4);
+        ctx.fillText(this.cells[i], px + x1 + x2 + this.padding[0], py + y1 + this.titleHeight/2 + 4);
       }
       x2 += this.block.columns[i];
     }
@@ -489,8 +606,13 @@ export default class GraphPort {
       var x3 = x2;
       for (var i=0; i<this.inputCells.length; i++) {
         // background
-        ctx.fillStyle = '#555';
-        ctx.fillRect(x3, py + y1 + h1 + 2, this.inputCellWidths[i]-2, h2-4);
+        if (this.inputCellValid[i]) {
+          ctx.fillStyle = this.selectedInputCell == i ? '#33c' : '#555';
+        } else {
+          ctx.fillStyle = '#c33';
+        }
+        
+        ctx.fillRect(x3, py + y1 + this.titleHeight + 2, this.inputCellWidths[i]-2, this.inputHeight-4);
 
         // values
         ctx.fillStyle = '#fff';
@@ -522,9 +644,9 @@ export default class GraphPort {
 
       if (this.param.type == 'c') str += '"';
       for (var i=0; i<numValues; i++) {
-        if (this.param.values[i] !== undefined) {
+        if (this.inputCells[i] !== undefined) {
           if (i>0) str += ', ';
-          str += this.param.values[i];
+          str += this.inputCells[i];
         }
       }
       if (this.param.type == 'c') str += '"';

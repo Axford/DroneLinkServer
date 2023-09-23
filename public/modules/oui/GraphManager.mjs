@@ -34,7 +34,7 @@ export default class GraphManager {
     this.hoverBlock = null;
 
     // create canvas
-    this.canvas = $('<canvas />');
+    this.canvas = $('<canvas tabindex=1 />');
     this.uiRoot.append(this.canvas);
 
     // event handlers
@@ -145,6 +145,20 @@ export default class GraphManager {
 			this.pan = false;
       this.dragBlock = null;
     });
+
+
+    // use global keydown messages to avoid focus issues
+    $(document).keydown((e)=>{
+      // if we are active...
+      if (this.visible) {
+        // pass to hover block if available
+        if (this.hoverBlock) {
+          this.hoverBlock.keydown(e);
+        }
+      }
+    });
+
+
 
     this.resize(); // will trigger a redraw
 

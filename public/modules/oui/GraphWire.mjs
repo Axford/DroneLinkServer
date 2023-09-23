@@ -25,26 +25,31 @@ export default class GraphWire {
     this.pointsBuilt = false;
   }
 
+  isConnected() {
+    return this.oport !== null;
+  }
+
   updateAddress(onode, ochannel, oparam) {
     this.onode = onode;
     this.ochannel = ochannel;
     this.oparam = oparam;
-    this.updateOtherPort();
+    return this.updateOtherPort();
   }
 
   updateOtherPort() {
+    // disconnect existing port if we have one
+    if (this.oport) {
+      this.oport.disconnect(this.port);
+    }
+
     // find matching port
     this.oport = this.mgr.getPortByAddress(this.ochannel, this.oparam);
     if (this.oport) {
-      this.oport.numOutputs += 1;
-      this.oport.connected =true;
-      this.oport.outputs.push(this.port);
-      // make sure params with subscribers are published
-      this.oport.param.published = true;
-      this.oport.shrink = 1;
-      this.oport.cellsNeedUpdate = true;
+      this.oport.connect(this.port);
       this.mgr.needsRedraw = true;
+      return true;
     }
+    return false;
   }
 
   rebuildPoints() {

@@ -73,6 +73,8 @@ export default class GraphBlock {
     this.numConnectedPorts = 0;
     this.ports = {};
 
+    this.selectedPort = null; // to drive keyboard interactions
+
     this.columns = [];  // a set of column widths, used to manage UI layout of GraphPorts
 
     var hue = (this.channel * 67) % 360;
@@ -153,6 +155,10 @@ export default class GraphBlock {
     for (const [key, port] of Object.entries(this.ports)) {
       port.unhover();
     };
+    if (this.selectedPort) {
+      this.selectedPort.selectedInputCell = -1;
+    }
+    this.selectedPort = null;
     this.needsPortResize = true;
     this.mgr.needsRedraw = true;
 
@@ -163,14 +169,32 @@ export default class GraphBlock {
     // x,y should already have been hit tested and fall within our bounds
     // should return true if this causes an interaction
 
-    // pass the hit on to ports
-    for (const [key, port] of Object.entries(this.ports)) {
-      if (port.hit(x,y)) {
-        return port.mousedown(x,y);
+    // update selection
+    if (this.selectedPort) {
+      // see if hit area has changed
+      if (this.selectedPort.hit(x,y)) {
+        return this.selectedPort.mousedown(x,y);
+      } else {
+        this.selectedPort.selectedInputCell = -1;
+        this.selectedPort = null;
       }
-    };
+    }
+
+    // pass the hit on to ports
+    if (!this.selectedPort) {
+      for (const [key, port] of Object.entries(this.ports)) {
+        if (port.hit(x,y)) {
+          this.selectedPort = port;
+          return port.mousedown(x,y);
+        }
+      };
+    }
 
     return false;
+  }
+
+  keydown(e) {
+    if (this.selectedPort) this.selectedPort.keydown(e)
   }
 
   hit(x,y) {
