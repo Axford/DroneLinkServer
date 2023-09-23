@@ -120,7 +120,8 @@ export default class GraphPort {
     this.connected =true;
     this.outputs.push(oport);
     this.numOutputs = this.outputs.length;
-    // make sure params with subscribers are published
+    // make sure params with subscribers are published and enabled
+    this.enabled = true;
     this.param.published = true;
     this.shrink = 1;
     this.cellsNeedUpdate = true;
@@ -305,28 +306,34 @@ export default class GraphPort {
   keydown(e) {
     if (this.selectedInputCell > -1) {
 
-      if (e.which == 8) {  // backspace
-        this.inputCells[this.selectedInputCell] = this.inputCells[this.selectedInputCell].slice(0, -1);
-      } else if (e.which >= 48 && e.which <=221) {  // everything else
-        // check keymap
-        if (validKeyMap[this.param.type].indexOf(e.key) > -1) {
-          // check for max input length
-          if (this.inputCells[this.selectedInputCell].length < maxInputLengthMap[this.param.type]) {
-            this.inputCells[this.selectedInputCell] += e.key;
-            this.cellsNeedUpdate = true;
-          }
-            
-        }    
-      }
+      if (e.which == 9) { // tab
+        this.selectedInputCell++;
+        if (this.selectedInputCell >= this.inputCells.length) this.selectedInputCell = 0;
 
-      this.inputCellValid[this.selectedInputCell] = this.checkInputIsValid(this.inputCells[this.selectedInputCell]);
-      
-      if (this.param.type == 'addr') {
-        // update internal value
-        this.param.values[0] = this.inputCells[this.selectedInputCell];
-
-        // rewire
-        this.inputCellValid[this.selectedInputCell] = this.resolveAddress();
+      } else {
+        if (e.which == 8) {  // backspace
+          this.inputCells[this.selectedInputCell] = this.inputCells[this.selectedInputCell].slice(0, -1);
+        } else if (e.which >= 48 && e.which <=221) {  // everything else
+          // check keymap
+          if (validKeyMap[this.param.type].indexOf(e.key) > -1) {
+            // check for max input length
+            if (this.inputCells[this.selectedInputCell].length < maxInputLengthMap[this.param.type]) {
+              this.inputCells[this.selectedInputCell] += e.key;
+              this.cellsNeedUpdate = true;
+            }
+              
+          }    
+        }
+  
+        this.inputCellValid[this.selectedInputCell] = this.checkInputIsValid(this.inputCells[this.selectedInputCell]);
+        
+        if (this.param.type == 'addr') {
+          // update internal value
+          this.param.values[0] = this.inputCells[this.selectedInputCell];
+  
+          // rewire
+          this.inputCellValid[this.selectedInputCell] = this.resolveAddress();
+        }
       }
 
       e.preventDefault();
