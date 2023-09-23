@@ -75,9 +75,11 @@ export default class GraphBlock {
 
     this.columns = [];  // a set of column widths, used to manage UI layout of GraphPorts
 
-    this.fillStyle = "hsl(" + 360 * Math.random() + ',' +
+    var hue = (this.channel * 67) % 360;
+
+    this.fillStyle = "hsl(" + hue + ',' +
              '100%,' +
-             (65 + 20 * Math.random()) + '%)';
+             (65 ) + '%)';
 
     var c = this.mgr.canvas[0];
     var ctx = c.getContext("2d");

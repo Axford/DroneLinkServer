@@ -134,7 +134,7 @@ export default class GraphPort {
     if (this.param.configured) {
       // do nothing
     } else {
-      if (!this.param.published || this.param.alwaysPublished ) this.shrink = 1; //0;
+      if (this.enabled && (!this.param.published || this.param.alwaysPublished )) this.shrink = 1; //0;
     }
   }
 
@@ -177,10 +177,12 @@ export default class GraphPort {
             this.param.published = !this.param.published;
           }
         } else if (i == 4) {
-          // toggle configured
-          this.param.configured = !this.param.configured;
-
-          this.cellsNeedUpdate = true;
+          if (this.param.writeable) {
+            // toggle configured
+            this.param.configured = !this.param.configured;
+            // update cell sizes
+            this.cellsNeedUpdate = true;
+          }
         }
       }
       
