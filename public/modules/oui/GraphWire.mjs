@@ -40,14 +40,17 @@ export default class GraphWire {
     // disconnect existing port if we have one
     if (this.oport) {
       this.oport.disconnect(this.port);
+      this.oport = null;
     }
 
     // find matching port
-    this.oport = this.mgr.getPortByAddress(this.ochannel, this.oparam);
-    if (this.oport) {
-      this.oport.connect(this.port);
-      this.mgr.needsRedraw = true;
-      return true;
+    if (this.onode == this.mgr.nodeId) {
+      this.oport = this.mgr.getPortByAddress(this.ochannel, this.oparam);
+      if (this.oport) {
+        this.oport.connect(this.port);
+        this.mgr.needsRedraw = true;
+        return true;
+      }
     }
     return false;
   }

@@ -67,6 +67,7 @@ export default class GraphManager {
       if (!hitBlock) {
         for (var i=0; i<this.blocks.length; i++) {
           var b = this.blocks[i];
+          if (!b) continue;
           //console.log('hit', b);
           if (b.hit(x1,y1)) {
             console.log('hit',b);
@@ -128,6 +129,7 @@ export default class GraphManager {
         if (!this.hoverBlock) {
           for (var i=0; i<this.blocks.length; i++) {
             var b = this.blocks[i];
+            if (!b) continue;
             if (b.hit(x1,y1)) {
               this.hoverBlock = b;
               b.hover();
@@ -194,7 +196,7 @@ export default class GraphManager {
   resolveAddresses() {
     for (var i=0; i<this.blocks.length; i++) {
       var b = this.blocks[i];
-      b.resolveAddresses(); 
+      if (b) b.resolveAddresses(); 
     }
   }
 
@@ -202,7 +204,7 @@ export default class GraphManager {
     // search for a block (module) based on name
     for (var i=0; i<this.blocks.length; i++) {
       var b = this.blocks[i];
-      if (b.name == name) {
+      if (b && b.name == name) {
         return b;
       }
     }
@@ -213,7 +215,7 @@ export default class GraphManager {
     // search for a block (module) based on id
     for (var i=0; i<this.blocks.length; i++) {
       var b = this.blocks[i];
-      if (b.channel == id) {
+      if (b && b.channel == id) {
         return b;
       }
     }
@@ -227,6 +229,17 @@ export default class GraphManager {
       if (b.ports[param]) return b.ports[param];
     }     
     return null;
+  }
+
+  removeBlock(block) {
+    if (block.channel == 0) return;  // can't delete Node block
+
+    block.disconnectAll();
+
+    delete this.blocks[block.channel];
+
+    // check for disconnected addresses
+    this.resolveAddresses();
   }
 
   resize() {
@@ -272,11 +285,13 @@ export default class GraphManager {
 
     // draw wires
     for (var i=0; i<this.blocks.length; i++) {
+      if (!this.blocks[i]) continue;
       this.blocks[i].drawWires();
     }
 
     // draw all blocks
     for (var i=0; i<this.blocks.length; i++) {
+      if (!this.blocks[i]) continue;
       this.blocks[i].draw();
     }
 
@@ -305,6 +320,7 @@ export default class GraphManager {
     // reset accel vectors
     for (var i=0; i<this.blocks.length; i++) {
       var b = this.blocks[i];
+      if (!b) continue;
       b.av.x = 0;
       b.av.y = 0;
     }
@@ -312,6 +328,7 @@ export default class GraphManager {
     // update accelerations
     for (var i=0; i<this.blocks.length; i++) {
       var b = this.blocks[i];
+      if (!b) continue;
 
       // check wiring
       for (const [key, port] of Object.entries(b.ports)) {
@@ -341,6 +358,7 @@ export default class GraphManager {
       for (var j=0; j<this.blocks.length; j++) {
         if (j != i) {
           var ob = this.blocks[j];
+          if (!ob) continue;
 
           // see if blocks are colliding, allow for padding
           // overlap is a vector in direction of minimum overlap
@@ -382,6 +400,7 @@ export default class GraphManager {
     // apply accelerations
     for (var i=0; i<this.blocks.length; i++) {
       var b = this.blocks[i];
+      if (!b) continue;
 
       if (b.hovering) {
         b.velocity.x = 0;
@@ -408,6 +427,7 @@ export default class GraphManager {
     // update wires
     for (var i=0; i<this.blocks.length; i++) {
       var b = this.blocks[i];
+      if (!b) continue;
       b.updateWirePositions();
     }
   }
@@ -422,12 +442,13 @@ export default class GraphManager {
     var str = '';
 
     // export node id from dummy block
-    str += 'node = ' + this.getBlockById(0).ports[0].param.values[0] + '\n';
+    str += 'node = ' + this.nodeId + '\n';
     str += '\n';
 
     // then generate the rest
     for (var i=0; i<this.blocks.length; i++) {
       var b = this.blocks[i];
+      if (!b) continue;
       if (b.channel != 0) {
         str += b.generateConfig();
       }

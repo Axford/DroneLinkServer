@@ -131,7 +131,7 @@ export default class GraphEditor {
           description: "Node ID",
           name: "node",
           numValues: 1,
-          values: [this.config.id],
+          values: [this.config.id.toString()],
           published: false,
           type: "u8",
           writeable: true,

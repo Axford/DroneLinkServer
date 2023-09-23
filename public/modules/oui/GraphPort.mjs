@@ -134,6 +134,13 @@ export default class GraphPort {
     if (!this.connected) this.cellsNeedUpdate = true;
   }
 
+  disconnectWire() {
+    // clear addresses on wire
+    if (this.param.type == 'addr') {
+      this.wire.updateAddress(255,255,255);
+    }
+  }
+
   resolveAddress() {
     if (!this.isAddr) return false;
     this.connected = false;
@@ -186,14 +193,13 @@ export default class GraphPort {
         //console.log(this.addr);
 
         // try to locate matching block using numeric address
-        if (this.addr[0] == this.mgr.nodeId) {
-          if (this.wire) {
-            this.wire.updateAddress(n,m,p);
-          } else {
-            this.wire = new GraphWire(this.mgr, this, n,m,p);
-          }
-          this.connected = this.wire.isConnected();
+        if (this.wire) {
+          this.wire.updateAddress(n,m,p);
+        } else {
+          this.wire = new GraphWire(this.mgr, this, n,m,p);
         }
+        this.connected = this.wire.isConnected();
+      
       }
     }
     return this.connected;
@@ -319,10 +325,25 @@ export default class GraphPort {
             // check for max input length
             if (this.inputCells[this.selectedInputCell].length < maxInputLengthMap[this.param.type]) {
               this.inputCells[this.selectedInputCell] += e.key;
-              this.cellsNeedUpdate = true;
             }
               
           }    
+        }
+
+        this.cellsNeedUpdate = true;
+
+        // is this the module name?
+        if (this.name == 'name') {
+          this.block.updateName(this.inputCells[this.selectedInputCell]);
+        }
+
+        // is this the node address? 
+        if (this.name == 'node' && this.block.channel == 0) {
+          // update the internal node address value
+          this.mgr.nodeId = parseInt(this.inputCells[this.selectedInputCell]);
+
+          // update all addresses
+          this.mgr.resolveAddresses();
         }
   
         this.inputCellValid[this.selectedInputCell] = this.checkInputIsValid(this.inputCells[this.selectedInputCell]);

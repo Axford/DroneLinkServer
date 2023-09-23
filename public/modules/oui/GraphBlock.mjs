@@ -120,9 +120,23 @@ export default class GraphBlock {
     this.mgr.needsRedraw = true;
   }
 
+  updateName(str) {
+    this.name = str;
+    this.needsPortResize = true;
+
+    // ask all subscribers to recheck their addresses
+    this.mgr.resolveAddresses();
+  }
+
   resolveAddresses() {
     for (const [key, port] of Object.entries(this.ports)) {
       port.resolveAddress();
+    }
+  }
+
+  disconnectAll() {
+    for (const [key, port] of Object.entries(this.ports)) {
+      port.disconnectWire();
     }
   }
 
@@ -168,6 +182,12 @@ export default class GraphBlock {
   mousedown(x,y) {
     // x,y should already have been hit tested and fall within our bounds
     // should return true if this causes an interaction
+
+    // see if it's the close button
+    if ( x > this.x2 -20 && y < this.y1 + 20) {
+      this.mgr.removeBlock(this);
+      return true;
+    }
 
     // update selection
     if (this.selectedPort) {
@@ -307,7 +327,7 @@ export default class GraphBlock {
     });
 
     // sense check vs title width
-    var extraForTitle = this.minTitleWidth - (this.width - 8);
+    var extraForTitle = this.minTitleWidth - (this.width - this.columns[0] - 8 - 18); // allow room for padding and delete icon
     if (extraForTitle > 0) {
       this.width += extraForTitle;
       console.log(this.name, this.columns);
@@ -360,6 +380,14 @@ export default class GraphBlock {
     ctx.font = '10px ' + this.mgr.baseFont;
     ctx.fillStyle = '#111';
     ctx.fillText(this.module.type , px + this.x1 + this.columns[0] + 4, py + this.y1 + this.headerHeight - 5);
+
+    // draw delete button
+    if (this.channel > 0) {
+      ctx.font = '12px fontawesome';
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#555';
+      ctx.fillText('\uf2ed' , px + this.x2 - 6, py + this.y1 + 18);
+    }
 
     // draw ports
     for (const [key, port] of Object.entries(this.ports)) {
