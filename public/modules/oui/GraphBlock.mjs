@@ -79,7 +79,7 @@ export default class GraphBlock {
 
     this.fillStyle = "hsl(" + hue + ',' +
              '100%,' +
-             (65 ) + '%)';
+             (75 ) + '%)';
 
     var c = this.mgr.canvas[0];
     var ctx = c.getContext("2d");
@@ -266,17 +266,17 @@ export default class GraphBlock {
       if (port.connected) this.numConnectedPorts++;
 
       // update column widths
-      for (var j=0; j<port.cellMinWidths.length; j++) {
+      for (var j=0; j<port.cellWidths.length; j++) {
         if (j >= this.columns.length) {
-          this.columns.push(port.cellMinWidths[j]);
+          this.columns.push(port.cellWidths[j]);
         } else {
-          if (this.columns[j] < port.cellMinWidths[j]) this.columns[j] = port.cellMinWidths[j];
+          if (this.columns[j] < port.cellWidths[j]) this.columns[j] = port.cellWidths[j];
         }
       }
     }
     this.height = y;
 
-    // recalc width
+    // recalc width and reset cell widths for ports
     this.width = 0;
     this.columns.forEach((c)=>{
       this.width += c;
@@ -297,6 +297,11 @@ export default class GraphBlock {
     }
 
     this.updateCorners();
+
+    // let ports know that overall sizing is complete
+    for (const [key, port] of Object.entries(this.ports)) {
+      port.updateColumnWidths();
+    }
 
     this.needsPortResize = false;
     this.mgr.needsRedraw = true;

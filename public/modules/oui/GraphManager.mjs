@@ -346,7 +346,7 @@ export default class GraphManager {
 
       if (b.numConnectedPorts == 0) {
         // put unconnected blocks below the centreline
-        var ol = (cv.y + padding/2) - b.y1;
+        var ol = (cv.y + padding/2 + 5) - b.y1;
         if (ol > 0) {
           b.av.y += 5 * ol;
         } else {
@@ -355,7 +355,7 @@ export default class GraphManager {
 
       } else {
         // put connected blocks above the centreline
-        var ol = b.y2 - (cv.y - padding/2);
+        var ol = b.y2 - (cv.y - padding/2 - 5);
         if (ol > 0) { 
           b.av.y -= 5 * ol;
         } else {

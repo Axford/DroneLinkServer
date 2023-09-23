@@ -33,6 +33,8 @@ export default class GraphPort {
     this.wire = null;
     this.numOutputs = 0;
     this.outputs = [];
+    
+    this.inputType = param.type;
 
     this.font = '10px '+this.mgr.baseFont;
     this.padding = [4,2];
@@ -42,7 +44,31 @@ export default class GraphPort {
     // cells in the ui table
     this.cellFixedWidth = [];  // 0 for dynamic, or a fixed value
     this.cells = []; // strings for each cell
-    this.cellMinWidths = [ ];
+    this.cellWidths = [ ];
+
+    // input cells
+    this.inputCells = []; // strings for each input cell
+    this.inputCellWidths = [];
+
+    // populate input cells
+    if (this.param.values) {
+      if (this.param.type == 'c') {
+        this.inputCells.push(this.param.values[0]);
+      } else {
+        this.param.values.forEach((v)=>{
+          this.inputCells.push(v);
+        });
+      }
+    } else {
+      // define defaults
+      if (this.param.type == 'c') {
+          this.inputCells.push('');  // TODO - use defaults
+      } else {
+        for (var i=0; i<this.param.numValues; i++) {
+          this.inputCells.push('0'); // TODO - use defaults
+        }
+      }
+    }
 
     // input area
     this.inputMinWidth = 0;
@@ -251,26 +277,38 @@ export default class GraphPort {
     ];
 
     var totalWidth = 0;
-    this.cellMinWidths = [];
+    this.cellWidths = [];
     
-    // calc widths
+    // calc widths - for header
     for (var i=0; i<this.cells.length; i++) {
       if (this.cellFixedWidth[i] == 0) {
         var tm = ctx.measureText(this.cells[i]);
-        this.cellMinWidths.push(tm.width + 2*this.padding[0]);
+        this.cellWidths.push(tm.width + 2*this.padding[0]);
       } else {
-        this.cellMinWidths.push(this.cellFixedWidth[i]);
+        this.cellWidths.push(this.cellFixedWidth[i]);
       }
-      totalWidth += this.cellMinWidths[i];
+      totalWidth += this.cellWidths[i];
+    }
+
+    // calc widths for input area
+    this.inputCellWidths = [];
+    this.inputMinWidth = 0;
+    if (this.param.configured) {
+      for (var i=0; i<this.inputCells.length; i++) {
+        var tm = ctx.measureText(this.inputCells[i]);
+        this.inputCellWidths.push(tm.width + 2*this.padding[0]);
+        this.inputMinWidth += this.inputCellWidths[i];
+      }
     }
 
     // sense check vs inputarea
-    var extraForInput = this.inputMinWidth - (totalWidth - this.cellMinWidths[0]);
+    var extraForInput = this.inputMinWidth - (totalWidth - this.cellWidths[0]);
     if (extraForInput > 0 ) {
       // add extra to "name" cell
-      this.cellMinWidths[1] += extraForInput;
-    }
+      this.cellWidths[1] += extraForInput;
 
+      console.log(this.name, extraForInput);
+    } 
 
     // calc height
     this.height = this.param.configured ? 16 + 20 : 16;
@@ -278,6 +316,27 @@ export default class GraphPort {
     this.cellsNeedUpdate = false;
     this.block.needsPortResize = true;
     this.mgr.needsRedraw = true;
+  }
+
+
+  updateColumnWidths() {
+    // parent block has finished resizing, we should now adapt our cell widths to match
+    for (var i=0; i<this.cells.length; i++) {
+      this.cellWidths[i] = this.block.columns[i];
+    }
+
+    // update inputs
+    if (this.param.configured) {
+      // spare space available... distribute over all input cells
+      var extraForInput = (this.block.width - this.cellWidths[0]) - this.inputMinWidth;
+      if (extraForInput > 0) {
+        var ew = extraForInput / this.inputCells.length;
+        for (var i=0; i<this.inputCells.length; i++) {
+          this.inputCellWidths[i] += ew;
+        }
+        this.inputMinWidth += extraForInput;
+      }
+    }
   }
 
   updateWirePosition() {
@@ -426,26 +485,20 @@ export default class GraphPort {
       var x2 = px + x1 + this.block.columns[0];
       var w1 = w - this.block.columns[0];
 
-      var numValues = this.param.type != 'c' ? this.param.numValues : 1;
-
-      var wi = w1 / numValues;
-
       // for each value
       var x3 = x2;
-      for (var i=0; i<numValues; i++) {
+      for (var i=0; i<this.inputCells.length; i++) {
         // background
         ctx.fillStyle = '#555';
-        ctx.fillRect(x3, py + y1 + h1 + 2, wi-2, h2-4);
+        ctx.fillRect(x3, py + y1 + h1 + 2, this.inputCellWidths[i]-2, h2-4);
 
         // values
         ctx.fillStyle = '#fff';
         ctx.font = this.font;
         ctx.textAlign = 'left';
-        if (this.param.values && this.param.values.length > i) {
-          ctx.fillText(this.param.values[i], x3 + this.padding[0], py + y1 + h - 6);
-        }
+        ctx.fillText(this.inputCells[i], x3 + this.padding[0], py + y1 + h - 6);
 
-        x3 += wi;
+        x3 += this.inputCellWidths[i];
       }
     }
 
