@@ -62,6 +62,8 @@ export default class GraphPort {
 
     this.cellsNeedUpdate = true;
 
+    this.nubbinHover = false; // true if hovering over nubbin
+
     // populate values if missing
     if (!this.param.values) {
       this.param.values = [];
@@ -226,8 +228,9 @@ export default class GraphPort {
     if (this.param.configured) {
       // do nothing
     } else {
-      if (this.enabled && (!this.param.published || this.param.alwaysPublished )) this.shrink = 0; //0;
+      if (this.enabled && (!this.param.published || this.param.alwaysPublished )) this.shrink = 1; //0;
     }
+    this.nubbinHover = false;
   }
 
   hit(x,y) {
@@ -299,6 +302,15 @@ export default class GraphPort {
     }
 
     return true;
+  }
+
+  mousemove(x,y) {
+    var y2 = this.block.y1 + this.y;
+    var hovering =  (this.isAddr && x < this.block.x1 && y >= y2 && y < y2 + 16);
+    if (hovering != this.nubbinHover) {
+      this.nubbinHover = hovering
+      this.mgr.needsRedraw = true;
+    }
   }
 
 
@@ -586,7 +598,7 @@ export default class GraphPort {
       // draw input nubbin
       ctx.beginPath();
       var r = 6;
-      ctx.fillStyle = '#555';
+      ctx.fillStyle = this.nubbinHover ? '#5f5' : '#555';
       ctx.arc(px + x1 - r, py + y1 + this.titleHeight/2, r, 0, 2 * Math.PI);
       ctx.fill();
       ctx.strokeStyle = bkc;

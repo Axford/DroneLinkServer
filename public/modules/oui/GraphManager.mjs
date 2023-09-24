@@ -139,6 +139,8 @@ export default class GraphManager {
             }
           }
         }
+
+        if (this.hoverBlock) this.hoverBlock.mousemove(x1,y1);
       }
 
     });

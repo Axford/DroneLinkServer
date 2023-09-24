@@ -213,12 +213,22 @@ export default class GraphBlock {
     return false;
   }
 
+  mousemove(x,y) {
+    // scan for possible hover over subscription nubbin
+    
+    for (const [key, port] of Object.entries(this.ports)) {
+       port.mousemove(x,y);
+    }
+    
+  } 
+
   keydown(e) {
     if (this.selectedPort) this.selectedPort.keydown(e)
   }
 
   hit(x,y) {
-    return (x > this.x1 && x < this.x2 &&
+    // expand x1 to allow for possible subscription nubbins
+    return (x > this.x1-16 && x < this.x2 &&
             y > this.y1 && y < this.y2);
   }
 
