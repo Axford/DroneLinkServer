@@ -231,6 +231,14 @@ export default class GraphManager {
     return null;
   }
 
+  getNextBlockId() {
+    // return the next free block id
+    for (var i =0; i<255; i++) {
+      var b = this.getBlockById(i);
+      if (!b) return i;
+    }
+  }
+
   removeBlock(block) {
     if (block.channel == 0) return;  // can't delete Node block
 

@@ -62,6 +62,18 @@ export default class GraphPort {
 
     this.cellsNeedUpdate = true;
 
+    // populate values if missing
+    if (!this.param.values) {
+      this.param.values = [];
+      if (this.param.type == 'c') {
+        this.param.values.push('');
+      } else {
+        for (var i=0; i<this.param.numValues; i++) {
+          this.param.values.push('0'); 
+        }
+      }
+    }
+
     // cells in the ui table
     this.cellFixedWidth = [];  // 0 for dynamic, or a fixed value
     this.cells = []; // strings for each cell

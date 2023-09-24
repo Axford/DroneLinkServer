@@ -73,9 +73,18 @@ export default class GraphEditor {
     this.ui.navbar = $('<div class="mb-2"></div>');
     this.ui.panel.append(this.ui.navbar);
 
+    // add flyout button
+    this.ui.flyoutBtn = $(
+        '<button type="button" class="btn btn-primary mr-3"><i class="fas fa-plus-circle"></i> Module</button>'
+      );
+      this.ui.flyoutBtn.on("click", () => {
+        this.ui.flyoutContainer.toggle();
+      });
+      this.ui.navbar.append(this.ui.flyoutBtn);
+
     // add a generate button
     this.ui.generateBtn = $(
-      '<button type="button" class="btn btn-primary">Generate Config</button>'
+      '<button type="button" class="btn btn-success">Generate Config</button>'
     );
     this.ui.generateBtn.on("click", () => {
       // generate config script
@@ -85,6 +94,15 @@ export default class GraphEditor {
       this.trigger('generate', str);
     });
     this.ui.navbar.append(this.ui.generateBtn);
+
+    // add a flyout container for new modules
+    this.ui.flyoutContainer = $(
+        '<div class="graphEditorFlyout" style="height:calc(100% - 100px);"></div>'
+    );
+    this.ui.flyoutContainer.hide();
+    this.ui.panel.append(this.ui.flyoutContainer);
+
+    this.buildFlyout();
 
     // add a container for the graph canvas
     this.ui.container = $(
@@ -147,5 +165,31 @@ export default class GraphEditor {
 
     // now resolve addreses
     this.gm.resolveAddresses();
+  }
+
+
+  buildFlyout() {
+    var me = this;
+    // populate module list
+    for (const [key, obj] of Object.entries(moduleInfo)) {
+        var ele = $('<a class="graphEditorNode"><h2>'+obj.type+'</h2><div class="graphEditorNodeDescription">'+obj.description+'</div></a>');
+
+        ele.on('click', ()=>{
+            var id = me.gm.getNextBlockId();
+
+            // use the parser to flesh out a skeletal block
+            var newConfig = this.parser.parse('[' + obj.type + '=' + id + ']\n  name = "'+obj.type+'"');
+
+            console.log(id, newConfig);
+
+            // merge new config into existing
+            _.merge(this.config, newConfig);
+
+            // add a block
+            this.gm.addBlock(this.config.modules[id]);
+        });
+
+        this.ui.flyoutContainer.append(ele);
+    }
   }
 }
