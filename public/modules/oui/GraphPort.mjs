@@ -226,7 +226,7 @@ export default class GraphPort {
     if (this.param.configured) {
       // do nothing
     } else {
-      if (this.enabled && (!this.param.published || this.param.alwaysPublished )) this.shrink = 1; //0;
+      if (this.enabled && (!this.param.published || this.param.alwaysPublished )) this.shrink = 0; //0;
     }
   }
 

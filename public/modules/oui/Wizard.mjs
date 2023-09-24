@@ -197,7 +197,7 @@ class InputWizard {
 
         // attempt to fetch latest i2c scan info
         //console.log(me.mgr.mgr.node);
-        var node = me.mgr.mgr.node;
+        var node = me.mgr.mgr.configPanel.node;
         if (!node.ipAddress) {
             $(btn).notify(
                 "IP address unknown",
@@ -294,7 +294,7 @@ class InputWizard {
 
         // attempt to fetch latest pin info
         //console.log(me.mgr.mgr.node);
-        var node = me.mgr.mgr.node;
+        var node = me.mgr.mgr.configPanel.node;
         if (!node.ipAddress) {
             $(btn).notify(
                 "IP address unknown",
