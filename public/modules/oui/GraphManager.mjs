@@ -376,6 +376,7 @@ export default class GraphManager {
     // adjust positions of all blocks
     var loopTime = Date.now();
     var dt = (loopTime - this.lastUpdate) / 1000;  // in seconds
+    if (dt > 0.1) dt = 0.1;
     this.lastUpdate = loopTime;
 
     var c = this.canvas[0];
@@ -487,7 +488,7 @@ export default class GraphManager {
         b.velocity.capLength(1000);
 
         // apply drag
-        b.velocity.multiply(0.99);
+        b.velocity.multiply(0.97);
 
         // correct for fraction of time
         b.velocity.multiply(dt);

@@ -105,6 +105,7 @@ export default class GraphWire {
     // calc forces on each point along the wire and iterate to move them
     var loopTime = Date.now();
     var dt = (loopTime - this.lastUpdate) / 1000;  // in seconds
+    if (dt > 0.1) dt = 0.1;
     this.lastUpdate = loopTime;
 
     // calc vector from start to end
