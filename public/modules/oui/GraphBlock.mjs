@@ -183,7 +183,7 @@ export default class GraphBlock {
     // x,y should already have been hit tested and fall within our bounds
     // should return true if this causes an interaction
 
-    // see if it's the close button
+    // see if it's the delete button
     if ( x > this.x2 -20 && y < this.y1 + 20) {
       this.mgr.removeBlock(this);
       return true;

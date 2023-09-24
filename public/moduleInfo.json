@@ -83,6 +83,9 @@
         "inherits": [
             "Drone"
         ],
+        "category": [
+            "Input"
+        ],
         "description": [
             "Manages a simple Analog sensor connected to an analog input pin"
         ],
@@ -137,6 +140,9 @@
         "inherits": [
             "Drone"
         ],
+        "category": [
+            "Input"
+        ],
         "description": [
             "Manages an Anemometer."
         ],
@@ -174,6 +180,9 @@
         ],
         "inherits": [
             "Drone"
+        ],
+        "category": [
+            "Logic"
         ],
         "description": [
             "Sail polar calibration module"
@@ -279,6 +288,9 @@
         "inherits": [
             "I2CBase"
         ],
+        "category": [
+            "Input"
+        ],
         "description": [
             "Manages a BME280 I2c temp, humidty and pressure sensor"
         ],
@@ -332,6 +344,9 @@
         ],
         "inherits": [
             "I2CBase"
+        ],
+        "category": [
+            "Input"
         ],
         "description": [
             "Manages a CMPS12 I2C Compass"
@@ -397,6 +412,9 @@
         "inherits": [
             "Drone"
         ],
+        "category": [
+            "Output"
+        ],
         "description": [
             "Manage a strip of NEOPixels (WS2812B) - originally created for the Kit speedboat"
         ],
@@ -446,6 +464,9 @@
         ],
         "inherits": [
             "Drone"
+        ],
+        "category": [
+            "Input"
         ],
         "description": [
             "Manages a simple Depth sensor (sonar transducer) controlled via Trigger and Echo pins"
@@ -527,6 +548,9 @@
         "inherits": [
             "I2CBaseModule"
         ],
+        "category": [
+            "Output"
+        ],
         "description": [
             "Manages a Diagnostic 128x64 I2C display (1306 driver)"
         ],
@@ -547,6 +571,9 @@
         "inherits": [
             "I2CCompass"
         ],
+        "category": [
+            "Input"
+        ],
         "description": [
             "Manages a HMC5883L I2C Compass"
         ],
@@ -566,6 +593,9 @@
         ],
         "inherits": [
             "I2CBase"
+        ],
+        "category": [
+            "Output"
         ],
         "description": [
             "Manages a HT16K33 7 segment display to show uptime"
@@ -736,6 +766,9 @@
         "inherits": [
             "I2CBase"
         ],
+        "category": [
+            "Input"
+        ],
         "description": [
             "Manages an INA219 I2C power monitoring module"
         ],
@@ -838,6 +871,9 @@
         "inherits": [
             "I2CBase"
         ],
+        "category": [
+            "Input"
+        ],
         "description": [
             "Manages a 3-channel INA3221 I2C power monitoring module"
         ],
@@ -932,6 +968,9 @@
         "inherits": [
             "I2CBaseModule"
         ],
+        "category": [
+            "Input"
+        ],
         "description": [
             "Manages a LSM9DS1 I2C Compass"
         ],
@@ -1020,6 +1059,9 @@
         ],
         "inherits": [
             "I2CBase"
+        ],
+        "category": [
+            "Input"
         ],
         "description": [
             "Manages a MPU6050 I2c gyro/accel sensor"
@@ -1139,8 +1181,11 @@
         "inherits": [
             "Drone"
         ],
+        "category": [
+            "Core"
+        ],
         "description": [
-            "Provides overall system management and a pub/sub interface to the DroneModuleManager"
+            "Overall system management"
         ],
         "config": [
             "[ Management = 1 ]\n  name = Management\n  interval = 1000\n  hostname = Dreamer\n  discovery = 1\n  publish = hostname, build, IP, uptime, save"
@@ -1262,6 +1307,9 @@
         "inherits": [
             "Drone"
         ],
+        "category": [
+            "Output"
+        ],
         "description": [
             "Manages a Motor via an H Bridge module using PWM"
         ],
@@ -1338,6 +1386,9 @@
         ],
         "inherits": [
             "Drone"
+        ],
+        "category": [
+            "Input"
         ],
         "description": [
             "Manages a serial NMEA GPS device"
@@ -1456,8 +1507,11 @@
         "inherits": [
             "Drone"
         ],
+        "category": [
+            "Logic"
+        ],
         "description": [
-            "Managen navigation between waypoints accounting for crosswind drift"
+            "Navigation between waypoints accounting for crosswind drift"
         ],
         "guide": [
             "Target waypoints are defined in terms of Lon Lat and target Radius in meters."
@@ -1611,6 +1665,9 @@
         "inherits": [
             "Drone"
         ],
+        "category": [
+            "Output"
+        ],
         "description": [
             "Manages an ODrive module via serial"
         ],
@@ -1723,6 +1780,12 @@
         "type": [
             "PanTilt"
         ],
+        "inherit": [
+            "Drone"
+        ],
+        "category": [
+            "Output"
+        ],
         "description": [
             "Generate servo commands for a pan/tilt head to track a target (e.g. for camera or antenna trackers)"
         ],
@@ -1779,6 +1842,9 @@
         ],
         "inherits": [
             "Drone"
+        ],
+        "category": [
+            "Logic"
         ],
         "description": [
             "Sail polar calibration module"
@@ -1900,6 +1966,9 @@
         "inherits": [
             "I2CCompass"
         ],
+        "category": [
+            "Input"
+        ],
         "description": [
             "Manages a QMC5883L I2C Compass"
         ],
@@ -1919,6 +1988,9 @@
         ],
         "inherits": [
             "Drone"
+        ],
+        "category": [
+            "Networking"
         ],
         "description": [
             "Manages DroneLink telemetry using an RFM69HW radio module"
@@ -1986,6 +2058,9 @@
         ],
         "inherits": [
             "Drone"
+        ],
+        "category": [
+            "Input"
         ],
         "description": [
             "Reads up to 4 PWM channels from an RC receiver"
@@ -2130,6 +2205,9 @@
         ],
         "inherits": [
             "Drone"
+        ],
+        "category": [
+            "Logic"
         ],
         "description": [
             "Control a typical sailing boat"
@@ -2280,6 +2358,12 @@
         "type": [
             "SerialTelemetry"
         ],
+        "inherit": [
+            "NetworkInterface"
+        ],
+        "category": [
+            "Networking"
+        ],
         "description": [
             "Manages DroneLink telemetry over a serial port, optionally via a transparent telemetry module"
         ],
@@ -2363,6 +2447,9 @@
         "inherits": [
             "Drone"
         ],
+        "category": [
+            "Output"
+        ],
         "description": [
             "Manages a PWM servo channel"
         ],
@@ -2432,6 +2519,9 @@
         "inherits": [
             "Drone"
         ],
+        "category": [
+            "Logic"
+        ],
         "description": [
             "Convert a distance value (meters) into a speed control value (0..1)"
         ],
@@ -2484,6 +2574,9 @@
         ],
         "inherits": [
             "Drone"
+        ],
+        "category": [
+            "Output"
         ],
         "description": [
             "Monitors up to four parameters and publishes a corresponding status scene to a Neopixel module"
@@ -2574,6 +2667,9 @@
         ],
         "inherits": [
             "Drone"
+        ],
+        "category": [
+            "Logic"
         ],
         "description": [
             "Generate left and right motor speeds from target course, current heading and distance to target"
@@ -2690,6 +2786,9 @@
         "inherits": [
             "Drone"
         ],
+        "category": [
+            "Logic"
+        ],
         "description": [
             "Generate a turnRate command based on target vs current heading using a PID controller"
         ],
@@ -2767,6 +2866,9 @@
         "type": [
             "UDPTelemetry"
         ],
+        "category": [
+            "Networking"
+        ],
         "description": [
             "Manages DroneLink telemetry using UDP broadcast over WiFi"
         ],
@@ -2814,15 +2916,18 @@
             "../DroneNode/src/droneModules/UDPTelemetryModule.h"
         ]
     },
-    "CVL53L0X": {
+    "VL53L0X": {
         "type": [
-            "CVL53L0X"
+            "VL53L0X"
         ],
         "inherits": [
             "I2CBase"
         ],
+        "category": [
+            "Input"
+        ],
         "description": [
-            "Manages a VL53L0X laser distance sensor"
+            "I2C VL53L0X laser distance sensor"
         ],
         "config": [
             "[VL53L0X = 8]\n  name= \"Laser\"\n  bus= 3\n  publish = distance"
@@ -2850,6 +2955,9 @@
         ],
         "inherits": [
             "Drone"
+        ],
+        "category": [
+            "Input"
         ],
         "description": [
             "Manages a simple Water sensor connected to a pair of pins"
@@ -2904,6 +3012,9 @@
         ],
         "inherits": [
             "Drone"
+        ],
+        "category": [
+            "Logic"
         ],
         "description": [
             "Load and manage a series of waypoints from a CSV file"
@@ -2993,6 +3104,9 @@
         "inherits": [
             "Drone"
         ],
+        "category": [
+            "Logic"
+        ],
         "description": [
             "Estimate Wind Direction from Wing Compass and Tail position"
         ],
@@ -3056,6 +3170,9 @@
         ],
         "inherits": [
             "I2CBase"
+        ],
+        "category": [
+            "Input"
         ],
         "description": [
             "Manages a Wind speed and direction sensor."

@@ -28,13 +28,23 @@
     box-shadow: 3px 3px 5px rgba(0,0,0,0.5);
     min-width: 200px;
     padding: 8px 8px;
-    display: grid;
-    grid-template-columns: 10vw 10vw;
-    grid-gap: 6px;
     overflow-y:scroll;
 }
 
-.graphEditorFlyout .graphEditorNode {
+.grahpEditorCategoryTitle {
+    font-size:1.2em;
+    color:white;
+    margin-top: 8px;
+    margin-bottom:4px;
+}
+
+.graphEditorCategoryContents {
+    display: grid;
+    grid-template-columns: 10vw 10vw;
+    grid-gap: 6px;
+}
+
+.graphEditorNode {
     background-color: #aaa;
     color:black;
     padding: 6px 6px;
@@ -43,22 +53,22 @@
     cursor:pointer;
 }
 
-.graphEditorFlyout .graphEditorNode:hover {
+.graphEditorNode:hover {
     background-color: #007bff;
     color:white;
 }
 
-.graphEditorFlyout h2 {
+.graphEditorNode h2 {
     font-size: 1em;
     font-weight: bold;
     margin-bottom:0;
 }
 
-.graphEditorFlyout .graphEditorNodeDescription {
+.graphEditorNodeDescription {
     font-size: 0.9em;
     color:#555;
 }
 
-.graphEditorFlyout .graphEditorNode:hover .graphEditorNodeDescription {
+.graphEditorNode:hover .graphEditorNodeDescription {
     color: #ccf;
 }

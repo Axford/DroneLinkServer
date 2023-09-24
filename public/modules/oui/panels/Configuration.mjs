@@ -830,7 +830,7 @@ export default class Configuration extends Panel {
 
     this.wizard = new Wizard(this, node.storage);
 
-    this.graphEditor = new GraphEditor();
+    this.graphEditor = new GraphEditor(node);
     this.graphEditor.on('generate', (str)=>{
       this.setEditorContents(str, '/config.ini');
     });

@@ -166,7 +166,7 @@ export default class GraphPort {
         var n = this.param.values[0].substring(0,gPos);
         var m = this.param.values[0].substring(gPos+1,pPos);
         var p = this.param.values[0].substring(pPos+1, this.param.values[0].length);
-        console.log(this.param.values[0], n,m,p);
+        //console.log(this.param.values[0], n,m,p);
 
         // convert to numeric values
         if (n == '@') {
@@ -373,6 +373,17 @@ export default class GraphPort {
     }
 
     this.mgr.needsRedraw = true;
+  }
+
+  updateValues(v) {
+    this.param.configured = true;
+    this.shrink = 1;
+
+    // update with new values, e.g. from I2C detection in graph manager
+    for (var i=0; i<this.inputCells.length; i++) {
+      if (i<v.length) this.inputCells[i] = v[i];
+    }
+    this.cellsNeedUpdate = true;
   }
 
 

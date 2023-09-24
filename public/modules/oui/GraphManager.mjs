@@ -12,7 +12,8 @@ function constrain(v, minV, maxV) {
 }
 
 export default class GraphManager {
-  constructor(uiRoot) {
+  constructor(editor, uiRoot) {
+    this.editor = editor;
     this.uiRoot = uiRoot;
 
     this.needsRedraw = true;
@@ -222,6 +223,17 @@ export default class GraphManager {
     return null;
   }
 
+  getBlocksByType(type) {
+    var res = [];
+    for (var i=0; i<this.blocks.length; i++) {
+      var b = this.blocks[i];
+      if (b && b.module.type == type) {
+        res.push(b);
+      }
+    }
+    return res;
+  }
+
   getPortByAddress(channel, param) {
     var b = this.getBlockById(channel);
     if (b) {
@@ -244,10 +256,14 @@ export default class GraphManager {
 
     block.disconnectAll();
 
-    delete this.blocks[block.channel];
+    // delete block from array
+    _.pull(this.blocks, block);
 
     // check for disconnected addresses
     this.resolveAddresses();
+
+    // also remove from config
+    this.editor.removeBlock(block);
   }
 
   resize() {
