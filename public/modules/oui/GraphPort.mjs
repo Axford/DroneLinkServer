@@ -64,6 +64,7 @@ export default class GraphPort {
     this.cellsNeedUpdate = true;
 
     this.nubbinHover = false; // true if hovering over nubbin
+    this.hovering = false; // for help popup
 
     this.rewiring = false;
 
@@ -239,6 +240,7 @@ export default class GraphPort {
       if (this.enabled && (!this.param.published || this.param.alwaysPublished )) this.shrink = 1; //0;
     }
     this.nubbinHover = false;
+    this.hovering = false;
   }
 
   startRewire() {
@@ -349,9 +351,16 @@ export default class GraphPort {
 
   mousemove(x,y) {
     var y2 = this.block.y1 + this.y;
-    var hovering =  (this.isAddr && x < this.block.x1 && y >= y2 && y < y2 + 16);
-    if (hovering != this.nubbinHover) {
-      this.nubbinHover = hovering
+    var nubbinHover =  (this.isAddr && x < this.block.x1 && y >= y2 && y < y2 + 16);
+    if (nubbinHover != this.nubbinHover) {
+      this.nubbinHover = nubbinHover;
+      this.mgr.needsRedraw = true;
+    }
+
+    // general hovering
+    var hover = (x > this.block.x1 && x < this.block.x2 && y >= this.block.y1 + this.y && y <= this.block.y1+this.y+this.height);
+    if (hover != this.hovering) {
+      this.hovering = hover;
       this.mgr.needsRedraw = true;
     }
   }
@@ -740,6 +749,37 @@ export default class GraphPort {
       }
     }
 
+
+    // render help tooltip
+    if (this.hovering && this.param.description) {
+      ctx.font = '11px '+this.mgr.baseFont;
+
+      var ts = this.param.description;
+      var tm = ctx.measureText(ts);
+      var tw = tm.width + 2*this.padding[0];
+      var th = tm.fontBoundingBoxAscent + tm.fontBoundingBoxDescent + 2*this.padding[0];
+
+      var tmx = px + this.block.x2 + 10;
+      var x2 = px + this.block.x2;
+      var tmy = py + y1;
+
+      ctx.fillStyle = '#F5F5DC';
+
+      // little triangle
+      ctx.beginPath();
+      ctx.moveTo(x2-2, tmy + this.titleHeight/2);
+      ctx.lineTo(tmx+1, tmy + this.titleHeight-2);
+      ctx.lineTo(tmx+1, tmy+2);
+      ctx.fill();
+
+
+      ctx.fillRect(tmx, tmy, tw, th);
+
+
+      ctx.fillStyle = '#000';
+      ctx.textAlign = 'left';
+      ctx.fillText(ts, tmx + this.padding[0], tmy + th - this.padding[0] - tm.fontBoundingBoxDescent);
+    }
   }
 
   drawWire() {

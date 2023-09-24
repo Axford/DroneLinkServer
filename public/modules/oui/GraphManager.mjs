@@ -356,11 +356,12 @@ export default class GraphManager {
       this.blocks[i].drawWires();
     }
 
-    // draw all blocks
+    // draw all blocks, except hoverBlock
     for (var i=0; i<this.blocks.length; i++) {
       if (!this.blocks[i]) continue;
-      this.blocks[i].draw();
+      if (this.blocks[i] != this.hoverBlock) this.blocks[i].draw();
     }
+    if (this.hoverBlock) this.hoverBlock.draw();
 
     // draw rewiring wire
     if (this.rewiring) this.rewiring.drawWire();
