@@ -37,6 +37,7 @@ export default class GraphPort {
     this.mgr = mgr;
     this.block = block;
     this.param = param;
+    this.subParam = null;
     this.name = param.name;
     this.subName;  //  same as name but without the $ sign
     this.isAddr = false;
@@ -63,6 +64,8 @@ export default class GraphPort {
     this.cellsNeedUpdate = true;
 
     this.nubbinHover = false; // true if hovering over nubbin
+
+    this.rewiring = false;
 
     // populate values if missing
     if (!this.param.values) {
@@ -124,6 +127,9 @@ export default class GraphPort {
       this.isAddr = true;
       this.subName = this.name.substring(1, this.name.length);
 
+      // init wire
+      this.wire = new GraphWire(this.mgr, this, 0,0,0);
+
       this.findAndHideSub();
     }
 
@@ -155,67 +161,70 @@ export default class GraphPort {
     }
   }
 
+  getAddress() {
+    // return address in friendly syntax
+    var str = '@>' + this.block.name + '.' + this.name;
+    return str;
+  }
+
   resolveAddress() {
     if (!this.isAddr) return false;
     this.connected = false;
 
-    // parse and resolve address
-    this.addr = [0,0,0];
-    if (this.param.values && this.param.values.length > 0) {
-      var gPos = this.param.values[0].indexOf('>');
-      var pPos = this.param.values[0].indexOf('.');
-      if (gPos > -1 && pPos > -1) {
-        var n = this.param.values[0].substring(0,gPos);
-        var m = this.param.values[0].substring(gPos+1,pPos);
-        var p = this.param.values[0].substring(pPos+1, this.param.values[0].length);
-        //console.log(this.param.values[0], n,m,p);
+    var n = 0;
+    var m = 0;
+    var p = 0;
+  
+    var gPos = this.inputCells[0].indexOf('>');
+    var pPos = this.inputCells[0].indexOf('.');
+    if (gPos > -1 && pPos > -1) {
+      n = this.inputCells[0].substring(0,gPos);
+      m = this.inputCells[0].substring(gPos+1,pPos);
+      p = this.inputCells[0].substring(pPos+1, this.inputCells[0].length);
+      //console.log(this.param.values[0], n,m,p);
 
-        // convert to numeric values
-        if (n == '@') {
-          n = this.mgr.nodeId;
-        } else {
-          n = parseInt(n);
+      // convert to numeric values
+      if (n == '@') {
+        n = this.mgr.nodeId;
+      } else {
+        n = parseInt(n);
+      }
+
+      var mv = parseInt(m);
+      if (!isNaN(mv)) {
+        m = mv;
+      } else {
+        // attempt to resolve module name
+        var b = this.mgr.getBlockByName(m);
+        if (b) {
+          m = b.channel;
         }
+      }
 
-        var mv = parseInt(m);
-        if (!isNaN(mv)) {
-          m = mv;
-        } else {
-          // attempt to resolve module name
-          var b = this.mgr.getBlockByName(m);
-          if (b) {
-            m = b.channel;
+      var pv = parseInt(p);
+      if (!isNaN(pv)) {
+        p = pv;
+      } else {
+        // attempt to resolve param name
+        // first get block by id
+        var b = this.mgr.getBlockById(m);
+        if (b) {
+          var port = b.getPortByName(p);
+          if (port) {
+            p = port.param.address;
           }
         }
-
-        var pv = parseInt(p);
-        if (!isNaN(pv)) {
-          p = pv;
-        } else {
-          // attempt to resolve param name
-          // first get block by id
-          var b = this.mgr.getBlockById(m);
-          if (b) {
-            var port = b.getPortByName(p);
-            if (port) {
-              p = port.param.address;
-            }
-          }
-        }
-
-        this.addr = [n,m,p];
-        //console.log(this.addr);
-
-        // try to locate matching block using numeric address
-        if (this.wire) {
-          this.wire.updateAddress(n,m,p);
-        } else {
-          this.wire = new GraphWire(this.mgr, this, n,m,p);
-        }
-        this.connected = this.wire.isConnected();
-      
       }
     }
+
+    this.addr = [n,m,p];
+    
+    // try to locate matching block using numeric address
+    if (this.wire) {
+      this.wire.updateAddress(n,m,p);
+    }
+    this.connected = this.wire.isConnected();
+
     return this.connected;
   }
 
@@ -233,15 +242,47 @@ export default class GraphPort {
     this.nubbinHover = false;
   }
 
+  startRewire() {
+    this.rewiring = true;
+
+    this.wire.startRewire();
+
+    this.mgr.startRewire(this);
+  }
+
+  moveRewire(x,y) {
+    // move end of wire to follow cursor
+    this.wire.moveRewire(x,y);
+  }
+
+  endRewire(destPort) {
+    if (destPort) {
+      this.inputCells[0] = destPort.getAddress();
+      this.resolveAddress();
+      this.param.configured = true;
+      this.inputCellValid[0] = true;
+      this.cellsNeedUpdate = true;
+      this.shrink = 1;
+    }
+    this.wire.endRewire();
+    this.rewiring = false;
+  }
+
+  isSuitableRewireSource() {
+    return (this.mgr.rewiring != this) && 
+           (this.mgr.rewiring.subParam.type == this.param.type) &&
+           (this.param.numValues <= this.mgr.rewiring.subParam.numValues);
+  }
+
   hit(x,y) {
     if (!this.enabled) return false;
-    var x1 = this.block.x1;
+    var x1 = this.block.x1;  
     var y1 = this.block.y1 + this.y;
-    var w = this.block.width;
+    var w = this.block.width + ((this.numOutputs > 0) ? 16 : 0); // allow for output nubbin
     var h = this.height;
 
-    return (x > x1 && x < x1+w &&
-      y > y1 && y < y1 + h*this.shrink);
+    return (x > (x1 - (this.isAddr ? 16 : 0)) && x < x1+w &&  
+      y > y1 && y < y1 + h*this.shrink);  // allow for input nubbin
   }
 
   mousedown(x,y) {
@@ -258,10 +299,13 @@ export default class GraphPort {
     var x1 = this.block.x1;
     var y1 = this.block.y1 + this.y;
 
-    console.log(this.name);
+    // check nubbin
+    if (this.isAddr && x < x1 && y >= y1 && y < y1 + 16) {
+      // initiate re-wiring
+      this.startRewire();
 
-    // check title area
-    if (y <= y1 + this.titleHeight) {
+    } else if (y <= y1 + this.titleHeight) {
+      // check title area
       var x2 = 0;
       for(var i=0; i<this.cells.length; i++) {
 
@@ -427,6 +471,9 @@ export default class GraphPort {
         if (port != this && this.subName == port.name) {
           port.enabled = false;
           port.shrink = 0;
+          // store params for wiring
+          this.subParam = port.param;
+
           this.block.updatePortPositions();
         }
       }
@@ -569,7 +616,14 @@ export default class GraphPort {
 
     ctx.beginPath();
     var bkc;
-    if (this.block.selectedPort == this) {
+    if (this.mgr.rewiring) {
+      if (this.isSuitableRewireSource()) {
+        // do the param names match? 
+        bkc = (this.param.name == this.mgr.rewiring.subParam.name) ? '#0f0' : '#995';
+      } else {
+        bkc =  '#606060';
+      }
+    } else if (this.block.selectedPort == this) {
       bkc = '#c4ccd0';
     } else if (dim) {
       bkc= '#606060';
@@ -598,7 +652,7 @@ export default class GraphPort {
       // draw input nubbin
       ctx.beginPath();
       var r = 6;
-      ctx.fillStyle = this.nubbinHover ? '#5f5' : '#555';
+      ctx.fillStyle = (this.nubbinHover || this.rewiring) ? '#5f5' : '#555';
       ctx.arc(px + x1 - r, py + y1 + this.titleHeight/2, r, 0, 2 * Math.PI);
       ctx.fill();
       ctx.strokeStyle = bkc;

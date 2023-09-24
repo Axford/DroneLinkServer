@@ -34,6 +34,8 @@ export default class GraphManager {
     this.dragBlockPos = new Vector(0,0);  // starting pos
     this.hoverBlock = null;
 
+    this.rewiring = null; // port we are rewiring
+
     // create canvas
     this.canvas = $('<canvas tabindex=1 />');
     this.uiRoot.append(this.canvas);
@@ -65,6 +67,7 @@ export default class GraphManager {
         }
       }
 
+      // if we aren't over the hoverBlock, search everything else
       if (!hitBlock) {
         for (var i=0; i<this.blocks.length; i++) {
           var b = this.blocks[i];
@@ -78,20 +81,37 @@ export default class GraphManager {
         }
       }
 
+      // if we've hit a block...
       if (hitBlock) {
-        // pass the hit onto the block to see if it interacts with a control
-        if (hitBlock.mousedown(x1,y1)) {
-          this.needsRedraw = true;  // in case something changed
+        if (this.rewiring) {
+          // get port at hit location
+          var p = hitBlock.getPortAtLocation(x1,y1);
+          if (p && p.isSuitableRewireSource()) {
+            // complete rewire
+            this.endRewire(p);
+          }
+
         } else {
-          this.dragBlock = hitBlock;
-          this.dragBlockPos.set(hitBlock.position);
+          // pass the hit onto the block to see if it interacts with a control
+          if (hitBlock.mousedown(x1,y1)) {
+            this.needsRedraw = true;  // in case something changed
+          } else {
+            // if it's not interacting with a block control, then we must be dragging the block header
+            this.dragBlock = hitBlock;
+            this.dragBlockPos.set(hitBlock.position);
+          }
         }
       } else if (!this.dragBlock) {
-        // otherwise its a pan
-        this.panStart.x = this.panPosition.x;
-        this.panStart.y = this.panPosition.y;
+        if (this.rewiring) {
+          // we've clicked in free space, so end the wiring attempt
+          this.endRewire(null);
+        } else {
+          // otherwise its a pan
+          this.panStart.x = this.panPosition.x;
+          this.panStart.y = this.panPosition.y;
 
-        this.pan = true;
+          this.pan = true;
+        }
       }
 
     });
@@ -108,7 +128,11 @@ export default class GraphManager {
       var x1 = (e.pageX - offsetX) - this.panPosition.x;
       var y1 = (e.pageY - offsetY) - this.panPosition.y;
 
-      if (this.dragBlock) {
+      if (this.rewiring) {
+        // pass movement to wire
+        this.rewiring.moveRewire(x1,y1);
+
+      } else if (this.dragBlock) {
         var newPos = this.dragBlockPos.clone();
         newPos.x += dx;
         newPos.y += dy;
@@ -163,11 +187,19 @@ export default class GraphManager {
       }
     });
 
-
-
     this.resize(); // will trigger a redraw
 
     this.update();
+  }
+
+
+  startRewire(port) {
+    this.rewiring = port;
+  }
+
+  endRewire(port) {
+    if (this.rewiring) this.rewiring.endRewire(port);
+    this.rewiring = null;
   }
 
 
@@ -302,6 +334,7 @@ export default class GraphManager {
 
     // draw cross hairs
     ctx.strokeStyle = '#555';
+    ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(0, this.panPosition.y + cy);
     ctx.lineTo(w, this.panPosition.y + cy);
@@ -309,7 +342,7 @@ export default class GraphManager {
     ctx.lineTo(this.panPosition.x + cx, h);
     ctx.stroke();
 
-    // draw wires
+    // draw wires, except rewiring wire
     for (var i=0; i<this.blocks.length; i++) {
       if (!this.blocks[i]) continue;
       this.blocks[i].drawWires();
@@ -320,6 +353,9 @@ export default class GraphManager {
       if (!this.blocks[i]) continue;
       this.blocks[i].draw();
     }
+
+    // draw rewiring wire
+    if (this.rewiring) this.rewiring.drawWire();
 
     // frame counter
     ctx.fillStyle = '#5F5';

@@ -734,7 +734,7 @@
                 "address": 16,
                 "addrAddress": 17,
                 "type": "f",
-                "numValues": 2,
+                "numValues": 3,
                 "name": "location",
                 "description": "Current location from GPS"
             },

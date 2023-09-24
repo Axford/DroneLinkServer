@@ -10,6 +10,7 @@ export default class GraphWire {
     this.ochannel = ochannel;
     this.oparam = oparam;
     this.mass = 1;
+    this.rewiring = false;
 
     this.points = [];
     for (var i = 0; i < 8; i++) {
@@ -53,6 +54,20 @@ export default class GraphWire {
       }
     }
     return false;
+  }
+
+  startRewire() {
+    this.rewiring = true;
+  }
+
+  moveRewire(x,y) {
+    // update end point of wire
+    this.points[this.points.length - 1].p.x = x;
+    this.points[this.points.length - 1].p.y = y;
+  }
+
+  endRewire() {
+    this.rewiring = false;
   }
 
   rebuildPoints() {
@@ -210,7 +225,7 @@ export default class GraphWire {
       if (op && op.block == this.mgr.hoverBlock) dim = false;
     }
 
-    ctx.strokeStyle = dim ? "#606060" : (this.oport ? this.oport.block.fillStyle : '#606060');
+    ctx.strokeStyle = dim ? "#606060" : (this.oport ? this.oport.block.fillStyle : ( this.rewiring ? '#00ff00' : '#606060'));
     ctx.lineWidth = dim ? 1 : 6;
 
     var x1 = p.block.x1 - 8;
@@ -224,13 +239,15 @@ export default class GraphWire {
     this.points[0].p.y = y1;
 
     // dest node (op)
-    this.points[this.points.length - 1].p.x = x2;
-    this.points[this.points.length - 1].p.y = y2;
+    if (!this.rewiring) {
+      this.points[this.points.length - 1].p.x = x2;
+      this.points[this.points.length - 1].p.y = y2;
+    }
 
     this.buildPoints();
 
     // draw a stubby handle if not connected
-    if (!op) {
+    if (!op && !this.rewiring) {
       var hsize = op && p.block == op.block ? 50 : 20;
 
       ctx.beginPath();

@@ -227,9 +227,18 @@ export default class GraphBlock {
   }
 
   hit(x,y) {
-    // expand x1 to allow for possible subscription nubbins
-    return (x > this.x1-16 && x < this.x2 &&
+    // expand x1 to allow for possible subscription nubbins or output nubbins
+    return (x > this.x1-16 && x < this.x2+16 &&
             y > this.y1 && y < this.y2);
+  }
+
+  getPortAtLocation(x,y) {
+    for (const [key, port] of Object.entries(this.ports)) {
+      if (port.hit(x,y)) {
+        return port;
+      }
+    }
+    return null;
   }
 
   collidingWithPoint(p, padding) {
@@ -408,7 +417,7 @@ export default class GraphBlock {
   drawWires() {
     // draw ports
     for (const [key, port] of Object.entries(this.ports)) {
-      port.drawWire();
+      if (!port.rewiring) port.drawWire();
     }
   }
 

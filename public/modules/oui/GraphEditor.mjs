@@ -327,6 +327,9 @@ export default class GraphEditor {
 
           // add a block
           this.gm.addBlock(this.config.modules[id]);
+
+          // check for default wiring and initialise wire objects
+          this.gm.resolveAddresses();
         });
 
         contents.append(ele);
