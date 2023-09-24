@@ -367,6 +367,22 @@ export default class DroneConfigParser {
           }
         }
 
+        // enrich config with defaults
+        for (const [key, obj] of Object.entries(this.config.modules)) {
+            if (moduleInfo.hasOwnProperty(obj.type)) {
+                var m = moduleInfo[obj.type];
+                if (m.hasOwnProperty('default')) {
+                    // transfer defaults across to config
+                    m.default.forEach((def)=>{
+                        var p = this.getParamByName(obj, def.param);
+                        if (p) {
+                            p.defaultValues = def.values;
+                        }
+                    });
+                }
+            }
+        }
+
         return this.config;
       }
 }

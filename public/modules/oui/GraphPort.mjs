@@ -71,11 +71,21 @@ export default class GraphPort {
     if (!this.param.values) {
       this.param.values = [];
       if (this.param.type == 'c') {
-        this.param.values.push('');
+        if (this.param.defaultValues) {
+          this.param.values.push(this.param.defaultValues[0]);
+        } else 
+          this.param.values.push('');
       } else {
-        for (var i=0; i<this.param.numValues; i++) {
-          this.param.values.push('0'); 
+        if (this.param.defaultValues) {
+          for (var i=0; i<this.param.defaultValues.length; i++) {
+            this.param.values.push( this.param.defaultValues[i] ); 
+          }
+        } else {
+          for (var i=0; i<this.param.numValues; i++) {
+            this.param.values.push('0'); 
+          }
         }
+        
       }
     }
 
@@ -91,25 +101,14 @@ export default class GraphPort {
     this.selectedInputCell = -1;
 
     // populate input cells
-    if (this.param.values) {
-      if (this.param.type == 'c') {
-        this.inputCells.push(this.param.values[0]);
-      } else {
-        this.param.values.forEach((v)=>{
-          this.inputCells.push(v);
-        });
-      }
+    if (this.param.type == 'c') {
+      this.inputCells.push(this.param.values[0]);
     } else {
-      // define defaults
-      if (this.param.type == 'c') {
-          this.inputCells.push('');  // TODO - use defaults
-      } else {
-        for (var i=0; i<this.param.numValues; i++) {
-          this.inputCells.push('0'); // TODO - use defaults
-        }
-      }
+      this.param.values.forEach((v)=>{
+        this.inputCells.push(v);
+      });
     }
-
+  
     // populate inputCellValid
     this.inputCells.forEach((c)=>{
       this.inputCellValid.push( this.checkInputIsValid(c) );
