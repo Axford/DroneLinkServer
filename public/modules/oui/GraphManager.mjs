@@ -18,6 +18,7 @@ export default class GraphManager {
 
     this.needsRedraw = true;
     this.frame = 0;
+    this.lastUpdate = Date.now();
     this.visible = false;
 
     this.blocks = [];
@@ -188,6 +189,13 @@ export default class GraphManager {
     });
 
     this.resize(); // will trigger a redraw
+
+    // start physics loop
+    /*
+    setInterval(()=>{
+      if (this.visible) this.updatePositions();
+    }, 1000/60);
+    */
 
     this.update();
   }
@@ -366,6 +374,9 @@ export default class GraphManager {
 
   updatePositions() {
     // adjust positions of all blocks
+    var loopTime = Date.now();
+    var dt = (loopTime - this.lastUpdate) / 1000;  // in seconds
+    this.lastUpdate = loopTime;
 
     var c = this.canvas[0];
     var ctx = c.getContext("2d");
@@ -435,7 +446,7 @@ export default class GraphManager {
 
       // pull blocks gently towards the centre in x
       var olx = constrain(b.position.x - cv.x, -10, 10);
-      b.av.x -= 2 * olx;
+      b.av.x -= 10 * olx;
       
 
       if (b.numConnectedPorts == 0) {
@@ -444,7 +455,7 @@ export default class GraphManager {
         if (ol > 0) {
           b.av.y += 5 * ol;
         } else {
-          b.av.y += ol/10;
+          b.av.y += ol/2;
         }
 
       } else {
@@ -453,7 +464,7 @@ export default class GraphManager {
         if (ol > 0) { 
           b.av.y -= 5 * ol;
         } else {
-          b.av.y -= ol/10;
+          b.av.y -= ol/2;
         }
       }
 
@@ -469,14 +480,17 @@ export default class GraphManager {
         b.velocity.y = 0;
       } else {
         // accelerate in net direction
-        b.av.multiply(0.01);
+        b.av.multiply(1);
         b.velocity.add(b.av);
 
         // clamp velocity
-        b.velocity.capLength(30);
+        b.velocity.capLength(1000);
 
         // apply drag
-        b.velocity.multiply(0.8);
+        b.velocity.multiply(0.99);
+
+        // correct for fraction of time
+        b.velocity.multiply(dt);
 
         // update position
         b.addToPosition(b.velocity);

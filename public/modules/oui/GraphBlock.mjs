@@ -204,7 +204,8 @@ export default class GraphBlock {
     if (!this.selectedPort) {
       for (const [key, port] of Object.entries(this.ports)) {
         if (port.hit(x,y)) {
-          this.selectedPort = port;
+          // only select configured ports
+          if (port.param.configured) this.selectedPort = port;
           return port.mousedown(x,y);
         }
       };

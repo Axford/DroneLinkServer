@@ -57,16 +57,22 @@ export default class GraphEditor {
     // script editor block
     this.ui.panel = $('<div class="graphEditorPanel"></div>');
 
+    // watch for resizing
+    let resizeObserver = new ResizeObserver(() => {
+        this.gm.resize();
+    });
+    resizeObserver.observe(this.ui.panel[0]);
+
     // append to body for absolute positioning
     $(document.body).prepend(this.ui.panel);
 
     this.ui.panel
       .resizable({
         resize: () => {
-          this.gm.resize();
+          //this.gm.resize();
         },
         stop: () => {
-          this.gm.resize();
+          //this.gm.resize();
         },
       })
       .draggable({ handle: ".graphEditorTitle" });

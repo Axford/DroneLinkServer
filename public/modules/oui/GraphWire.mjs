@@ -11,6 +11,7 @@ export default class GraphWire {
     this.oparam = oparam;
     this.mass = 1;
     this.rewiring = false;
+    this.lastUpdate = Date.now();
 
     this.points = [];
     for (var i = 0; i < 8; i++) {
@@ -102,6 +103,9 @@ export default class GraphWire {
   updatePosition() {
     // update wire points based on physics model
     // calc forces on each point along the wire and iterate to move them
+    var loopTime = Date.now();
+    var dt = (loopTime - this.lastUpdate) / 1000;  // in seconds
+    this.lastUpdate = loopTime;
 
     // calc vector from start to end
     var v = this.points[this.points.length - 1].p.clone();
@@ -118,7 +122,7 @@ export default class GraphWire {
     }
 
     var padding = 20;
-    var g = new Vector(0, 0.003 * this.mass);
+    var g = new Vector(0, 0.03 * this.mass);
 
     // for each point, calc the forces acted on by its neighbours
     for (var i = 1; i < this.points.length-1; i++) {
@@ -129,15 +133,15 @@ export default class GraphWire {
       // n1
       var f = n1.p.clone();
       f.subtract(p.p);
-      f.capLength(200);
-      f.multiply(0.1);
+      f.capLength(500);
+      f.multiply(2);
       p.av.add(f);
 
       // n2
       f = n2.p.clone();
       f.subtract(p.p);
-      f.capLength(200);
-      f.multiply(0.1);
+      f.capLength(500);
+      f.multiply(2);
       p.av.add(f);
 
       // apply gravity
@@ -179,14 +183,17 @@ export default class GraphWire {
     for (var i = 1; i < this.points.length - 1; i++) {
       var p = this.points[i];
 
-      p.av.multiply(0.1);
+      p.av.multiply(10);
       p.v.add(p.av);
 
       // clamp velocity
-      p.v.capLength(100);
+      p.v.capLength(1500);
 
       // apply drag
-      p.v.multiply(0.8);
+      p.v.multiply(0.99);
+
+      // apply time delta
+      p.v.multiply(dt);
 
       // update position
       p.p.add(p.v);
