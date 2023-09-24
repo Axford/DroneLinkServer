@@ -107,12 +107,17 @@ function parseModule(fn) {
       // parse default
       if (tagName == 'default') {
         // of form: <param name>=<comma delimited list of values>
+        console.log('  def: ' + tagValue);
         var tagValues = tagValue.split('=');
         if (tagValues.length == 2) {
           tagValue = {
-            param: tagValues[0],
+            param: tagValues[0].trim(),
             values: tagValues[1].split(',')
           };
+          // trim values
+          tagValue.values.forEach((val, j)=>{
+            tagValue.values[j] = val.trim();
+          });
         } else {
           console.log('  Error: invalid number of tag values');
         }
@@ -132,7 +137,23 @@ function parseModule(fn) {
     // store tags into overall modules map
     tags.filename = [ fn ];
     if (moduleInfo.hasOwnProperty( tags.type[0] )) {
-      _.merge( moduleInfo[ tags.type[0] ], tags);
+      var m = moduleInfo[ tags.type[0] ];
+
+      //_.merge( moduleInfo[ tags.type[0] ], tags);
+      // append tags onto existing set
+      for (const [key, value] of Object.entries(tags)) {
+        if (key != 'type') {
+          if (m.hasOwnProperty(key)) {
+            // append 
+            value.forEach((val)=>{
+              m[key].push(val);
+            });
+          } else {
+            // add
+            m[key] = value;
+          }
+        }
+      }
     } else {
       moduleInfo[ tags.type[0] ] = tags;
     }

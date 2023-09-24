@@ -22,6 +22,10 @@
                 ]
             }
         ],
+        "ui": [
+            "enum; status; disabled, enabled, waiting for valid inputs",
+            "enum; error; no error, error"
+        ],
         "pub": [
             {
                 "address": 1,
@@ -178,6 +182,25 @@
         "type": [
             "Avoid"
         ],
+        "default": [
+            {
+                "param": "interval",
+                "values": [
+                    "1000"
+                ]
+            },
+            {
+                "param": "threshold",
+                "values": [
+                    "10000",
+                    "50"
+                ]
+            }
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/AvoidModule.cpp",
+            "../DroneNode/src/droneModules/AvoidModule.h"
+        ],
         "inherits": [
             "Drone"
         ],
@@ -276,9 +299,6 @@
                 "name": "course",
                 "description": "Course from Nav"
             }
-        ],
-        "filename": [
-            "../DroneNode/src/droneModules/AvoidModule.h"
         ]
     },
     "BME280": {
@@ -299,6 +319,14 @@
         ],
         "I2CAddress": [
             "0x76"
+        ],
+        "default": [
+            {
+                "param": "addr",
+                "values": [
+                    "118"
+                ]
+            }
         ],
         "pub": [
             {
@@ -357,6 +385,14 @@
         "I2CAddress": [
             "0x60"
         ],
+        "default": [
+            {
+                "param": "addr",
+                "values": [
+                    "96"
+                ]
+            }
+        ],
         "pub": [
             {
                 "address": 10,
@@ -409,6 +445,18 @@
         "type": [
             "Cylon"
         ],
+        "default": [
+            {
+                "param": "numPixels",
+                "values": [
+                    "16"
+                ]
+            }
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/CylonModule.cpp",
+            "../DroneNode/src/droneModules/CylonModule.h"
+        ],
         "inherits": [
             "Drone"
         ],
@@ -453,14 +501,36 @@
                 "name": "right",
                 "description": "Right motor speed"
             }
-        ],
-        "filename": [
-            "../DroneNode/src/droneModules/CylonModule.h"
         ]
     },
     "Depth": {
         "type": [
             "Depth"
+        ],
+        "default": [
+            {
+                "param": "interval",
+                "values": [
+                    "1000"
+                ]
+            },
+            {
+                "param": "speed",
+                "values": [
+                    "1480"
+                ]
+            },
+            {
+                "param": "limits",
+                "values": [
+                    "0.25",
+                    "10"
+                ]
+            }
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/DepthModule.cpp",
+            "../DroneNode/src/droneModules/DepthModule.h"
         ],
         "inherits": [
             "Drone"
@@ -536,14 +606,15 @@
                 "name": "location",
                 "description": "Current location from GPS"
             }
-        ],
-        "filename": [
-            "../DroneNode/src/droneModules/DepthModule.h"
         ]
     },
     "Diagnostic": {
         "type": [
             "Diagnostic"
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/DiagnosticModule.cpp",
+            "../DroneNode/src/droneModules/DiagnosticModule.h"
         ],
         "inherits": [
             "I2CBaseModule"
@@ -560,8 +631,13 @@
         "I2CAddress": [
             "0x3C"
         ],
-        "filename": [
-            "../DroneNode/src/droneModules/DiagnosticModule.h"
+        "default": [
+            {
+                "param": "addr",
+                "values": [
+                    "60"
+                ]
+            }
         ]
     },
     "HMC5883L": {
@@ -582,6 +658,14 @@
         ],
         "I2CAddress": [
             "0x1E"
+        ],
+        "default": [
+            {
+                "param": "addr",
+                "values": [
+                    "30"
+                ]
+            }
         ],
         "filename": [
             "../DroneNode/src/droneModules/HMC5883LModule.h"
@@ -605,6 +689,14 @@
         ],
         "I2CAddress": [
             "0x70"
+        ],
+        "default": [
+            {
+                "param": "addr",
+                "values": [
+                    "112"
+                ]
+            }
         ],
         "filename": [
             "../DroneNode/src/droneModules/HT16K33Module.h"
@@ -729,6 +821,9 @@
                 "description": "Raw magnetic field vector"
             }
         ],
+        "ui": [
+            "enum; mode; online calibration, fixed calibration, reset calibration, store calibration"
+        ],
         "sub": [
             {
                 "address": 16,
@@ -762,6 +857,30 @@
     "INA219": {
         "type": [
             "INA219"
+        ],
+        "default": [
+            {
+                "param": "cells",
+                "values": [
+                    "3"
+                ]
+            },
+            {
+                "param": "threshold",
+                "values": [
+                    "11.2"
+                ]
+            },
+            {
+                "param": "addr",
+                "values": [
+                    "64"
+                ]
+            }
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/INA219Module.cpp",
+            "../DroneNode/src/droneModules/INA219Module.h"
         ],
         "inherits": [
             "I2CBase"
@@ -859,14 +978,47 @@
                 "name": "usage",
                 "description": "Cumulative usage in Amp hours"
             }
-        ],
-        "filename": [
-            "../DroneNode/src/droneModules/INA219Module.h"
         ]
     },
     "INA3221": {
         "type": [
             "INA3221"
+        ],
+        "default": [
+            {
+                "param": "cells",
+                "values": [
+                    "3",
+                    "3",
+                    "3"
+                ]
+            },
+            {
+                "param": "threshold",
+                "values": [
+                    "11.2",
+                    "11.2",
+                    "11.2"
+                ]
+            },
+            {
+                "param": "shunt",
+                "values": [
+                    "100",
+                    "100",
+                    "100"
+                ]
+            },
+            {
+                "param": "addr",
+                "values": [
+                    "64"
+                ]
+            }
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/INA3221Module.cpp",
+            "../DroneNode/src/droneModules/INA3221Module.h"
         ],
         "inherits": [
             "I2CBase"
@@ -956,9 +1108,6 @@
                 "name": "usage",
                 "description": "Cumulative usage in Amp hours"
             }
-        ],
-        "filename": [
-            "../DroneNode/src/droneModules/INA3221Module.h"
         ]
     },
     "LSM9DS1": {
@@ -980,6 +1129,14 @@
         "I2CAddress": [
             "0x1E",
             "0x6B"
+        ],
+        "default": [
+            {
+                "param": "addr",
+                "values": [
+                    "30"
+                ]
+            }
         ],
         "pub": [
             {
@@ -1056,6 +1213,24 @@
     "MPU6050": {
         "type": [
             "MPU6050"
+        ],
+        "default": [
+            {
+                "param": "interval",
+                "values": [
+                    "5"
+                ]
+            },
+            {
+                "param": "addr",
+                "values": [
+                    "104"
+                ]
+            }
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/MPU6050Module.cpp",
+            "../DroneNode/src/droneModules/MPU6050Module.h"
         ],
         "inherits": [
             "I2CBase"
@@ -1170,13 +1345,43 @@
                 "description": "Pitch and roll trims [pitch, roll]"
             }
         ],
-        "filename": [
-            "../DroneNode/src/droneModules/MPU6050Module.h"
+        "ui": [
+            "enum; mode; online calibration, fixed calibration, reset calibration, store calibration"
         ]
     },
     "Management": {
         "type": [
             "Management"
+        ],
+        "default": [
+            {
+                "param": "interval",
+                "values": [
+                    "30000"
+                ]
+            },
+            {
+                "param": "discovery",
+                "values": [
+                    "1"
+                ]
+            },
+            {
+                "param": "wifi",
+                "values": [
+                    "1"
+                ]
+            },
+            {
+                "param": "CPU",
+                "values": [
+                    "240"
+                ]
+            }
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/ManagementModule.cpp",
+            "../DroneNode/src/droneModules/ManagementModule.h"
         ],
         "inherits": [
             "Drone"
@@ -1295,14 +1500,36 @@
                 "name": "CPU",
                 "description": "CPU freq in MHz, valid values 240, 160, 80"
             }
-        ],
-        "filename": [
-            "../DroneNode/src/droneModules/ManagementModule.h"
         ]
     },
     "Motor": {
         "type": [
             "Motor"
+        ],
+        "default": [
+            {
+                "param": "PWMChannel",
+                "values": [
+                    "15"
+                ]
+            },
+            {
+                "param": "limits",
+                "values": [
+                    "-1",
+                    "1"
+                ]
+            },
+            {
+                "param": "deadband",
+                "values": [
+                    "0.3"
+                ]
+            }
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/MotorModule.cpp",
+            "../DroneNode/src/droneModules/MotorModule.h"
         ],
         "inherits": [
             "Drone"
@@ -1375,14 +1602,44 @@
                 "name": "speed",
                 "description": "Desired Motor speed in range -1 to 1"
             }
-        ],
-        "filename": [
-            "../DroneNode/src/droneModules/MotorModule.h"
         ]
     },
     "NMEA": {
         "type": [
             "NMEA"
+        ],
+        "default": [
+            {
+                "param": "interval",
+                "values": [
+                    "1000"
+                ]
+            },
+            {
+                "param": "port",
+                "values": [
+                    "1",
+                    "255"
+                ]
+            },
+            {
+                "param": "baud",
+                "values": [
+                    "9600"
+                ]
+            },
+            {
+                "param": "followMe",
+                "values": [
+                    "0",
+                    "0",
+                    "5"
+                ]
+            }
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/NMEAModule.cpp",
+            "../DroneNode/src/droneModules/NMEAModule.h"
         ],
         "inherits": [
             "Drone"
@@ -1486,6 +1743,9 @@
                 "description": "Current GPS location of secondary GPS module (inc altitude)"
             }
         ],
+        "ui": [
+            "serialPort;port"
+        ],
         "sub": [
             {
                 "address": 20,
@@ -1495,14 +1755,42 @@
                 "name": "correction",
                 "description": "If fix location is set then this is the difference between live GPS and known location, for other nodes to subscribe to.  If no fix location, then this can be subbed to a base station correction param."
             }
-        ],
-        "filename": [
-            "../DroneNode/src/droneModules/NMEAModule.h"
         ]
     },
     "Nav": {
         "type": [
             "Nav"
+        ],
+        "default": [
+            {
+                "param": "interval",
+                "values": [
+                    "1000"
+                ]
+            },
+            {
+                "param": "correction",
+                "values": [
+                    "20"
+                ]
+            },
+            {
+                "param": "crosswind",
+                "values": [
+                    "0.5"
+                ]
+            },
+            {
+                "param": "limits",
+                "values": [
+                    "-25",
+                    "10"
+                ]
+            }
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/NavModule.cpp",
+            "../DroneNode/src/droneModules/NavModule.h"
         ],
         "inherits": [
             "Drone"
@@ -1643,8 +1931,24 @@
                 "description": "Pitch limits (min, max)"
             }
         ],
+        "ui": [
+            "enum; mode; idle, goto, follow, absolute course, relative course, backaway, orbit"
+        ]
+    },
+    "Neopixel": {
+        "type": [
+            "Neopixel"
+        ],
+        "default": [
+            {
+                "param": "numPixels",
+                "values": [
+                    "4"
+                ]
+            }
+        ],
         "filename": [
-            "../DroneNode/src/droneModules/NavModule.h"
+            "../DroneNode/src/droneModules/NeopixelModule.cpp"
         ]
     },
     "NetworkInterface": {
@@ -1661,6 +1965,25 @@
     "ODrive": {
         "type": [
             "ODrive"
+        ],
+        "default": [
+            {
+                "param": "limits",
+                "values": [
+                    "-1",
+                    "1"
+                ]
+            },
+            {
+                "param": "port",
+                "values": [
+                    "2"
+                ]
+            }
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/ODriveModule.cpp",
+            "../DroneNode/src/droneModules/ODriveModule.h"
         ],
         "inherits": [
             "Drone"
@@ -1725,9 +2048,6 @@
                 "name": "right",
                 "description": "Desired right motor speed in range -1 to 1"
             }
-        ],
-        "filename": [
-            "../DroneNode/src/droneModules/ODriveModule.h"
         ]
     },
     "PanSerial": {
@@ -1839,6 +2159,25 @@
     "Polar": {
         "type": [
             "Polar"
+        ],
+        "default": [
+            {
+                "param": "interval",
+                "values": [
+                    "1000"
+                ]
+            },
+            {
+                "param": "threshold",
+                "values": [
+                    "1",
+                    "10"
+                ]
+            }
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/PolarModule.cpp",
+            "../DroneNode/src/droneModules/PolarModule.h"
         ],
         "inherits": [
             "Drone"
@@ -1954,9 +2293,6 @@
                 "name": "heading",
                 "description": "Target heading from Sailor"
             }
-        ],
-        "filename": [
-            "../DroneNode/src/droneModules/PolarModule.h"
         ]
     },
     "QMC5883L": {
@@ -1978,6 +2314,14 @@
         "I2CAddress": [
             "0x0D"
         ],
+        "default": [
+            {
+                "param": "addr",
+                "values": [
+                    "13"
+                ]
+            }
+        ],
         "filename": [
             "../DroneNode/src/droneModules/QMC5883LModule.h"
         ]
@@ -1985,6 +2329,24 @@
     "RFM69Telemetry": {
         "type": [
             "RFM69Telemetry"
+        ],
+        "default": [
+            {
+                "param": "power",
+                "values": [
+                    "20"
+                ]
+            },
+            {
+                "param": "frequency",
+                "values": [
+                    "915"
+                ]
+            }
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/RFM69TelemetryModule.cpp",
+            "../DroneNode/src/droneModules/RFM69TelemetryModule.h"
         ],
         "inherits": [
             "Drone"
@@ -2047,14 +2409,30 @@
                 "name": "threshold",
                 "description": "Priority threshold, only packets with this or higher priority will be transmitted (default: 0, i.e. all priorities are transmitted)"
             }
-        ],
-        "filename": [
-            "../DroneNode/src/droneModules/RFM69TelemetryModule.h"
         ]
     },
     "Receiver": {
         "type": [
             "Receiver"
+        ],
+        "default": [
+            {
+                "param": "limits",
+                "values": [
+                    "1000",
+                    "2000"
+                ]
+            },
+            {
+                "param": "mode",
+                "values": [
+                    "1"
+                ]
+            }
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/ReceiverModule.cpp",
+            "../DroneNode/src/droneModules/ReceiverModule.h"
         ],
         "inherits": [
             "Drone"
@@ -2194,14 +2572,37 @@
                 "name": "switch",
                 "description": "Mode control value - passthrough if less than 0.5, otherwise active (defaults to active)"
             }
-        ],
-        "filename": [
-            "../DroneNode/src/droneModules/ReceiverModule.h"
         ]
     },
     "Sailor": {
         "type": [
             "Sailor"
+        ],
+        "default": [
+            {
+                "param": "PID",
+                "values": [
+                    "0.05",
+                    "0",
+                    "0"
+                ]
+            },
+            {
+                "param": "threshold",
+                "values": [
+                    "20"
+                ]
+            },
+            {
+                "param": "timeout",
+                "values": [
+                    "10"
+                ]
+            }
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/SailorModule.cpp",
+            "../DroneNode/src/droneModules/SailorModule.h"
         ],
         "inherits": [
             "Drone"
@@ -2349,14 +2750,23 @@
                 "name": "mode",
                 "description": "Mode (0=normal, 1=gybe only)"
             }
-        ],
-        "filename": [
-            "../DroneNode/src/droneModules/SailorModule.h"
         ]
     },
     "SerialTelemetry": {
         "type": [
             "SerialTelemetry"
+        ],
+        "default": [
+            {
+                "param": "baud",
+                "values": [
+                    "115200"
+                ]
+            }
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/SerialTelemetryModule.cpp",
+            "../DroneNode/src/droneModules/SerialTelemetryModule.h"
         ],
         "inherit": [
             "NetworkInterface"
@@ -2403,9 +2813,6 @@
                 "name": "baud",
                 "description": "Baud rate (default: 115200)"
             }
-        ],
-        "filename": [
-            "../DroneNode/src/droneModules/SerialTelemetryModule.h"
         ]
     },
     "Servo": {
@@ -2442,6 +2849,7 @@
             }
         ],
         "filename": [
+            "../DroneNode/src/droneModules/ServoModule.cpp",
             "../DroneNode/src/droneModules/ServoModule.h"
         ],
         "inherits": [
@@ -2516,6 +2924,25 @@
         "type": [
             "SpeedControl"
         ],
+        "default": [
+            {
+                "param": "limits",
+                "values": [
+                    "0.2",
+                    "1"
+                ]
+            },
+            {
+                "param": "threshold",
+                "values": [
+                    "3"
+                ]
+            }
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/SpeedControlModule.cpp",
+            "../DroneNode/src/droneModules/SpeedControlModule.h"
+        ],
         "inherits": [
             "Drone"
         ],
@@ -2563,9 +2990,6 @@
                 "name": "speed",
                 "description": "Output speed"
             }
-        ],
-        "filename": [
-            "../DroneNode/src/droneModules/SpeedControlModule.h"
         ]
     },
     "Status": {
@@ -2665,6 +3089,20 @@
         "type": [
             "TankSteer"
         ],
+        "default": [
+            {
+                "param": "PID",
+                "values": [
+                    "0.01",
+                    "0",
+                    "0"
+                ]
+            }
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/TankSteerModule.cpp",
+            "../DroneNode/src/droneModules/TankSteerModule.h"
+        ],
         "inherits": [
             "Drone"
         ],
@@ -2763,9 +3201,6 @@
                 "name": "distance",
                 "description": "Distance to target, typically Nav.distance"
             }
-        ],
-        "filename": [
-            "../DroneNode/src/droneModules/TankSteerModule.h"
         ]
     },
     "Timer": {
@@ -2782,6 +3217,24 @@
     "TurnRate": {
         "type": [
             "TurnRate"
+        ],
+        "default": [
+            {
+                "param": "threshold",
+                "values": [
+                    "20"
+                ]
+            },
+            {
+                "param": "timeout",
+                "values": [
+                    "10"
+                ]
+            }
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/TurnRateModule.cpp",
+            "../DroneNode/src/droneModules/TurnRateModule.h"
         ],
         "inherits": [
             "Drone"
@@ -2857,14 +3310,32 @@
                 "name": "mode",
                 "description": "Mode (0=normal, 1=potential gybe, 2=gybe)"
             }
-        ],
-        "filename": [
-            "../DroneNode/src/droneModules/TurnRateModule.h"
         ]
     },
     "UDPTelemetry": {
         "type": [
             "UDPTelemetry"
+        ],
+        "default": [
+            {
+                "param": "port",
+                "values": [
+                    "8007"
+                ]
+            },
+            {
+                "param": "broadcast",
+                "values": [
+                    "255",
+                    "255",
+                    "255",
+                    "255"
+                ]
+            }
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/UDPTelemetryModule.cpp",
+            "../DroneNode/src/droneModules/UDPTelemetryModule.h"
         ],
         "category": [
             "Networking"
@@ -2911,9 +3382,6 @@
                 "name": "speed",
                 "description": "Packet rates per second for sent, received and rejected"
             }
-        ],
-        "filename": [
-            "../DroneNode/src/droneModules/UDPTelemetryModule.h"
         ]
     },
     "VL53L0X": {
@@ -2934,6 +3402,14 @@
         ],
         "I2CAddress": [
             "0x29"
+        ],
+        "default": [
+            {
+                "param": "addr",
+                "values": [
+                    "41"
+                ]
+            }
         ],
         "pub": [
             {
@@ -3101,6 +3577,24 @@
         "type": [
             "WindFromWing"
         ],
+        "default": [
+            {
+                "param": "AOA",
+                "values": [
+                    "15"
+                ]
+            },
+            {
+                "param": "samples",
+                "values": [
+                    "10"
+                ]
+            }
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/WindFromWingModule.cpp",
+            "../DroneNode/src/droneModules/WindFromWingModule.h"
+        ],
         "inherits": [
             "Drone"
         ],
@@ -3159,14 +3653,29 @@
                 "name": "samples",
                 "description": "Sample depth for moving average, 1 per interval (default 10)"
             }
-        ],
-        "filename": [
-            "../DroneNode/src/droneModules/WindFromWingModule.h"
         ]
     },
     "Wind": {
         "type": [
             "Wind"
+        ],
+        "default": [
+            {
+                "param": "samples",
+                "values": [
+                    "1"
+                ]
+            },
+            {
+                "param": "addr",
+                "values": [
+                    "54"
+                ]
+            }
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/WindModule.cpp",
+            "../DroneNode/src/droneModules/WindModule.h"
         ],
         "inherits": [
             "I2CBase"
@@ -3261,9 +3770,6 @@
                 "name": "heading",
                 "description": "Sub to compass heading to work out world wind direction"
             }
-        ],
-        "filename": [
-            "../DroneNode/src/droneModules/WindModule.h"
         ]
     }
 }
