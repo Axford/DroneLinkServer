@@ -570,7 +570,7 @@ export default class GraphPort {
     ctx.beginPath();
     var bkc;
     if (this.block.selectedPort == this) {
-      bkc = '#000';
+      bkc = '#c4ccd0';
     } else if (dim) {
       bkc= '#606060';
     } else if (this.wire && this.wire.oport) {
@@ -583,7 +583,7 @@ export default class GraphPort {
       bkc = this.block.fillStyle;
       //bkc = '#fff';
     } else {
-      bkc = '#a4aab0';
+      bkc = (this.param.configured || this.param.published || this.param.alwaysPublished) ? '#a4b7b0' : '#8a8890';
     }
 
     ctx.fillStyle = bkc;
@@ -649,7 +649,7 @@ export default class GraphPort {
         }
       } else {
         if (this.block.selectedPort == this) {
-          ctx.fillStyle = (i == 2 || i == 0) ? '#aaa' : '#fff';
+          ctx.fillStyle = (i == 2 || i == 0) ? '#555' : '#000';
         } else 
           ctx.fillStyle = (i == 2 || i == 0) ? '#444' : '#000';
         ctx.font = this.font + (i==1 ? ' bold' : '');
