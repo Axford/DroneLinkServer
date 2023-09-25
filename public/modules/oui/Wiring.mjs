@@ -273,16 +273,14 @@ class ModuleBlock {
     var w2 = w / 2;
     var h = this.height;
     var h2 = h / 2;
-    //var px = this.mgr.panPosition.x;
-    //var py = this.mgr.panPosition.y;
-    var px = 0;
-    var py = 0;
-
+    var px = this.mgr.panPosition.x;
+    var py = this.mgr.panPosition.y;
+    
     ctx.fillStyle = this.fillStyle;
     roundRect(
       ctx,
-      this.x1,
-      this.y1,
+      px + this.x1,
+      py + this.y1,
       this.width,
       this.height,
       6,
@@ -293,8 +291,8 @@ class ModuleBlock {
     var s = this.name + " (" + this.typeName + ")";
     this.drawTextScaled(
       s,
-      this.x1,
-      this.y1,
+      px + this.x1,
+      py + this.y1,
       this.width,
       30,
       "#000",
@@ -304,8 +302,8 @@ class ModuleBlock {
     if (this.pinLabel > '') {
         this.drawTextScaled(
         this.pinLabel,
-        this.x1,
-        this.y1 + 35,
+        px + this.x1,
+        py + this.y1 + 35,
         this.width,
         15,
         "#000",
@@ -321,6 +319,8 @@ class ModuleBlock {
     if (this.pins.length > 0) {
       var cx = this.position.x;
       var cy = this.position.y;
+      var px = this.mgr.panPosition.x;
+      var py = this.mgr.panPosition.y;
 
       // draw pin wires
       ctx.strokeStyle = this.fillStyle;
@@ -334,8 +334,8 @@ class ModuleBlock {
           v.multiply((v.length() - r) / v.length());
 
           ctx.beginPath();
-          ctx.moveTo(cx, cy);
-          ctx.lineTo(cx + v.x, cy + v.y);
+          ctx.moveTo(px + cx, py + cy);
+          ctx.lineTo(px + cx + v.x, py + cy + v.y);
           ctx.stroke();
         }
       });
@@ -364,6 +364,9 @@ export default class Wiring {
 
     this.ui = {};
 
+    this.pan = false;
+    this.panPosition = new Vector(0,0);
+    this.panStart = new Vector(0,0);
     this.dragStart = new Vector(0, 0);
     this.dragBlock = null;
     this.dragBlockPos = new Vector(0, 0); // starting pos
@@ -428,8 +431,9 @@ export default class Wiring {
       this.dragStart.y = e.pageY - offsetY;
 
       // check if we're clicking on a block...
-      var x1 = this.dragStart.x;
-      var y1 = this.dragStart.y;
+      // calc un-panned coordinates
+      var x1 = this.dragStart.x - this.panPosition.x;
+      var y1 = this.dragStart.y - this.panPosition.y;
 
       this.dragBlock = null;
       //console.log('hit', x1, y1);
@@ -443,6 +447,14 @@ export default class Wiring {
           continue;
         }
       }
+
+      if (!this.dragBlock) {
+        // must be a pan
+        this.panStart.x = this.panPosition.x;
+        this.panStart.y = this.panPosition.y;
+
+        this.pan = true;
+      }
     });
 
     this.ui.canvas.on("mousemove", (e) => {
@@ -454,17 +466,25 @@ export default class Wiring {
       var dx = e.pageX - offsetX - this.dragStart.x;
       var dy = e.pageY - offsetY - this.dragStart.y;
 
+      var x1 = (e.pageX - offsetX) - this.panPosition.x;
+      var y1 = (e.pageY - offsetY) - this.panPosition.y;
+
       if (this.dragBlock) {
         var newPos = this.dragBlockPos.clone();
         newPos.x += dx;
         newPos.y += dy;
         this.dragBlock.updatePosition(newPos);
         this.needsRedraw = true;
+      } else if (this.pan) {
+        this.panPosition.x = this.panStart.x + dx;
+        this.panPosition.y = this.panStart.y + dy;
+        this.needsRedraw = true;
       }
     });
 
     this.ui.canvas.on("mouseup", (e) => {
       this.dragBlock = null;
+      this.pan = false;
     });
 
     // reference image
@@ -567,14 +587,18 @@ export default class Wiring {
     var h = this.ui.panel.height() - 67;
     ctx.canvas.height = h;
 
+    // pan shortcuts
+    var px = this.panPosition.x;
+    var py = this.panPosition.y;
+
     ctx.fillStyle = "#343a40";
     ctx.fillRect(0, 0, w, h);
 
     ctx.globalAlpha = 0.5;
     ctx.drawImage(
       this.ui.image,
-      this.x1,
-      this.y1,
+      px + this.x1,
+      py + this.y1,
       this.x2 - this.x1,
       this.y2 - this.y1
     );
@@ -589,7 +613,7 @@ export default class Wiring {
         var connected = this.connectedPins[pin];
         if (pin.startsWith("i")) {
           ctx.beginPath();
-          ctx.arc(p.x, p.y, 20, 0, 2 * Math.PI);
+          ctx.arc(px + p.x, py + p.y, 20, 0, 2 * Math.PI);
           ctx.fillStyle = connected ? connected.module.fillStyle : "#000";
           ctx.fill();
 
@@ -602,13 +626,13 @@ export default class Wiring {
           // pin label
           ctx.font = "11px serif";
           ctx.fillStyle = connected ? "#000" : "#fff";
-          ctx.fillText("I2C", p.x, p.y - 5);
+          ctx.fillText("I2C", px + p.x, py + p.y - 5);
 
           ctx.font = "17px serif";
-          ctx.fillText(pin.substring(1, 10), p.x, p.y + 12);
+          ctx.fillText(pin.substring(1, 10), px + p.x, py + p.y + 12);
         } else {
           ctx.beginPath();
-          ctx.arc(p.x, p.y, 10, 0, 2 * Math.PI);
+          ctx.arc(px + p.x, py + p.y, 10, 0, 2 * Math.PI);
           ctx.fillStyle = connected ? connected.module.fillStyle : "#000";
           ctx.fill();
           if (connected) {
@@ -622,8 +646,8 @@ export default class Wiring {
           ctx.fillStyle = connected ? "#000" : "#fff";
           ctx.fillText(
             connected && connected.label > "" ? connected.label : pin,
-            p.x,
-            p.y + 5
+            px + p.x,
+            py + p.y + 5
           );
         }
       }

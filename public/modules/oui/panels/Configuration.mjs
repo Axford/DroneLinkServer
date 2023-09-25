@@ -993,28 +993,28 @@ export default class Configuration extends Panel {
     this.cuiEditorNav.append(this.cuiEditorTitle);
 
     // save to server button
-    this.cuiEditorSaveToServerBut = $('<button class="btn btn-sm btn-primary mr-2" >Save to Server</button>');
+    this.cuiEditorSaveToServerBut = $('<button class="btn btn-sm btn-primary mr-2" ><i class="fas fa-save"></i> Server</button>');
     this.cuiEditorSaveToServerBut.on('click',()=>{
       me.saveFileToServer();
     });
     this.cuiEditorNav.append(this.cuiEditorSaveToServerBut);
 
     // save to node button
-    this.cuiEditorSaveToNodeBut = $('<button class="btn btn-sm btn-primary mr-3" >Save to Node</button>');
+    this.cuiEditorSaveToNodeBut = $('<button class="btn btn-sm btn-primary mr-2" ><i class="fas fa-save"></i> Node</button>');
     this.cuiEditorSaveToNodeBut.on('click',()=>{
       me.saveFileToNode();
     });
     this.cuiEditorNav.append(this.cuiEditorSaveToNodeBut);
 
     // cancel save to node button
-    this.cuiEditorCancelSaveToNodeBut = $('<button class="btn btn-sm btn-danger mr-3" style="display:none" >Cancel Save to Node</button>');
+    this.cuiEditorCancelSaveToNodeBut = $('<button class="btn btn-sm btn-danger mr-2" style="display:none" >Cancel Save to Node</button>');
     this.cuiEditorCancelSaveToNodeBut.on('click',()=>{
       me.cancelSaveFileToNode();
     });
     this.cuiEditorNav.append(this.cuiEditorCancelSaveToNodeBut);
 
     // wizard
-    this.uiGraphBut = $('<button class="btn btn-sm btn-info mr-3"><i class="fas fa-project-diagram"></i> Configure</button>');
+    this.uiGraphBut = $('<button class="btn btn-sm btn-info mr-2"><i class="fas fa-project-diagram"></i> Configure</button>');
 		this.uiGraphBut.on('click', ()=>{
       // display configuration graph editor
       me.graphEditor.show();
@@ -1023,7 +1023,7 @@ export default class Configuration extends Panel {
     this.cuiEditorNav.append(this.uiGraphBut);
 
     // wizard
-    this.uiWizardBut = $('<button class="btn btn-sm btn-info mr-3"><i class="fas fa-birthday-cake"></i> Recipes</button>');
+    this.uiWizardBut = $('<button class="btn btn-sm btn-info mr-2"><i class="fas fa-birthday-cake"></i> Recipes</button>');
 		this.uiWizardBut.on('click', ()=>{
       // display configuration wizard
       this.wizard.show();
