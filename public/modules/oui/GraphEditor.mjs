@@ -35,6 +35,10 @@ export default class GraphEditor {
 
     this.ui = {};
     this.callbacks = {}; // each key is an event type, values are an array of callback functions
+
+    // object to hold catories + node types, supporting flyOut UI and instance counting
+    this.categories = {};
+    this.moduleTypes = {};
   }
 
   on(name, cb) {
@@ -170,6 +174,35 @@ export default class GraphEditor {
     delete this.config.modules[block.channel];
   }
 
+  updateInstanceCounts() {
+    // reset instance counts
+    for (const [key, mt] of Object.entries(this.moduleTypes)) {
+        mt.instanceCount = 0;
+    }
+
+    // update from gm
+    this.gm.blocks.forEach((b)=>{
+        if (this.moduleTypes.hasOwnProperty(b.module.type)) {
+            this.moduleTypes[b.module.type].instanceCount++;
+        }
+    });
+
+    // update ui
+    for (const [key, mt] of Object.entries(this.moduleTypes)) {
+        if (mt.uiInstanceCounter) {
+            mt.uiInstanceCounter.html(mt.instanceCount);
+            if (mt.instanceCount > 0) {
+                mt.uiNode.addClass('nonZero');
+            } else {
+                mt.uiNode.removeClass('nonZero');
+            }
+        }
+    }
+
+    console.log(this.moduleTypes);
+
+  }
+
   parseConfig(str) {
     this.config = this.parser.parse(str);
 
@@ -205,6 +238,8 @@ export default class GraphEditor {
 
     // now resolve addreses
     this.gm.resolveAddresses();
+
+    this.updateInstanceCounts();
   }
 
   detectI2CDevices() {
@@ -284,6 +319,8 @@ export default class GraphEditor {
         );
 
         me.gm.resolveAddresses();
+
+        me.updateInstanceCounts();
       });
     });
   }
@@ -291,18 +328,24 @@ export default class GraphEditor {
   buildFlyout() {
     var me = this;
     // populate module list, first place modules into categories
-    var categories = {};
 
     for (const [key, obj] of Object.entries(moduleInfo)) {
       var cat = obj.category && obj.category.length > 0 ? obj.category[0] : "";
       if (cat > "") {
-        if (!categories.hasOwnProperty(cat)) categories[cat] = [];
-        categories[cat].push(obj);
+        if (!this.categories.hasOwnProperty(cat)) this.categories[cat] = [];
+        this.categories[cat].push(obj);
+        if (!this.moduleTypes.hasOwnProperty(obj.type)) {
+            this.moduleTypes[obj.type] = { 
+                instanceCount: 0,
+                uiInstanceCounter: null,
+                category: cat
+            };
+        }
       }
     }
 
     // then build UI from the categories
-    for (const [key, cat] of Object.entries(categories)) {
+    for (const [key, cat] of Object.entries(this.categories)) {
       var container = $(
         '<div><div class="grahpEditorCategoryTitle">' + key + "</div></div>"
       );
@@ -311,7 +354,7 @@ export default class GraphEditor {
       this.ui.flyoutContainer.append(container);
 
       cat.forEach((m) => {
-        var ele = $(
+        this.moduleTypes[m.type].uiNode = $(
           '<a class="graphEditorNode"><h2>' +
             m.type +
             '</h2><div class="graphEditorNodeDescription">' +
@@ -319,7 +362,11 @@ export default class GraphEditor {
             "</div></a>"
         );
 
-        ele.on("click", () => {
+        // add badge
+        this.moduleTypes[m.type].uiInstanceCounter = $('<div class="graphEditorNodeCounter">'+this.moduleTypes[m.type].instanceCount+'</div>');
+        this.moduleTypes[m.type].uiNode.append(this.moduleTypes[m.type].uiInstanceCounter);
+
+        this.moduleTypes[m.type].uiNode.on("click", () => {
           var id = me.gm.getNextBlockId();
 
           // use the parser to flesh out a skeletal block
@@ -337,9 +384,12 @@ export default class GraphEditor {
 
           // check for default wiring and initialise wire objects
           this.gm.resolveAddresses();
+
+          // update instance counts
+          this.updateInstanceCounts();
         });
 
-        contents.append(ele);
+        contents.append(this.moduleTypes[m.type].uiNode);
       });
     }
 

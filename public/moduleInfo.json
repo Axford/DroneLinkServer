@@ -145,10 +145,10 @@
             "Drone"
         ],
         "category": [
-            "Input"
+            "Input.Wind"
         ],
         "description": [
-            "Manages an Anemometer."
+            "Manages an Anemometer based on a pulse per rotation"
         ],
         "guide": [
             "- Anemometer speed from cup anemometor on an digital input with internal pullup\n- Uses internal 5sec moving average on samples\n- Conversion is 1.25 revs per m/s"
@@ -208,7 +208,7 @@
             "Logic"
         ],
         "description": [
-            "Sail polar calibration module"
+            "Avoid other vessels detected via AIS"
         ],
         "guide": [
             ""
@@ -374,7 +374,7 @@
             "I2CBase"
         ],
         "category": [
-            "Input"
+            "Input.Compass"
         ],
         "description": [
             "Manages a CMPS12 I2C Compass"
@@ -461,7 +461,7 @@
             "Drone"
         ],
         "category": [
-            "Output"
+            "Output.LED"
         ],
         "description": [
             "Manage a strip of NEOPixels (WS2812B) - originally created for the Kit speedboat"
@@ -620,7 +620,7 @@
             "I2CBase"
         ],
         "category": [
-            "Output"
+            "Output.Display"
         ],
         "description": [
             "Manages a Diagnostic 128x64 I2C display (1306 driver)"
@@ -648,7 +648,7 @@
             "I2CCompass"
         ],
         "category": [
-            "Input"
+            "Input.Compass"
         ],
         "description": [
             "Manages a HMC5883L I2C Compass"
@@ -679,7 +679,7 @@
             "I2CBase"
         ],
         "category": [
-            "Output"
+            "Output.Display"
         ],
         "description": [
             "Manages a HT16K33 7 segment display to show uptime"
@@ -886,7 +886,7 @@
             "I2CBase"
         ],
         "category": [
-            "Input"
+            "Input.Power"
         ],
         "description": [
             "Manages an INA219 I2C power monitoring module"
@@ -1024,7 +1024,7 @@
             "I2CBase"
         ],
         "category": [
-            "Input"
+            "Input.Power"
         ],
         "description": [
             "Manages a 3-channel INA3221 I2C power monitoring module"
@@ -1118,7 +1118,7 @@
             "I2CBaseModule"
         ],
         "category": [
-            "Input"
+            "Input.Compass"
         ],
         "description": [
             "Manages a LSM9DS1 I2C Compass"
@@ -1236,7 +1236,7 @@
             "I2CBase"
         ],
         "category": [
-            "Input"
+            "Input.IMU"
         ],
         "description": [
             "Manages a MPU6050 I2c gyro/accel sensor"
@@ -1955,7 +1955,7 @@
             "Drone"
         ],
         "category": [
-            "Output"
+            "Output.LED"
         ],
         "description": [
             "Manage a strip of NEOPixels (WS2812B)"
@@ -2341,7 +2341,7 @@
             "I2CCompass"
         ],
         "category": [
-            "Input"
+            "Input.Compass"
         ],
         "description": [
             "Manages a QMC5883L I2C Compass"
@@ -3038,7 +3038,7 @@
             "Drone"
         ],
         "category": [
-            "Output"
+            "Output.LED"
         ],
         "description": [
             "Monitors up to four parameters and publishes a corresponding status scene to a Neopixel module"
@@ -3719,10 +3719,10 @@
             "I2CBase"
         ],
         "category": [
-            "Input"
+            "Input.Wind"
         ],
         "description": [
-            "Manages a Wind speed and direction sensor."
+            "Manages a Wind speed (pulse count) and direction sensor (I2C AS5600)"
         ],
         "guide": [
             "- Wind direction using I2C AS5600 sensor\n- Wind speed from cup anemometor on an digital input with internal pullup\n- Optional moving average with adjustable sample depth, 1 per interval"

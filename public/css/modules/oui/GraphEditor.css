@@ -45,6 +45,7 @@
 }
 
 .graphEditorNode {
+    position:relative;
     background-color: #aaa;
     color:black;
     padding: 6px 6px;
@@ -53,11 +54,32 @@
     cursor:pointer;
 }
 
+.graphEditorNode.nonZero {
+    background-color: #aca;
+}
+
 .graphEditorNode:hover {
     background-color: #007bff;
     color:white;
     text-decoration: none;
     box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+}
+
+.graphEditorNodeCounter {
+    position:absolute;
+    font-size: 0.9em;
+    top:3px;
+    right:3px;
+    padding:0px 3px;
+    background-color: white;
+    color:black;
+    border-radius: 3px;
+}
+
+.nonZero .graphEditorNodeCounter {
+    color:black;
+    font-weight:bold;
+    background-color: #5f5;
 }
 
 .graphEditorNode h2 {
