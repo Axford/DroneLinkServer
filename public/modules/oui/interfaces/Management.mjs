@@ -4,7 +4,8 @@ import * as DLM from "../../droneLinkMsg.mjs";
 
 loadStylesheet("./css/modules/oui/interfaces/Management.css");
 
-import moduleInfo from "/moduleInfo.json" assert { type: "json" };
+//import moduleInfo from "/moduleInfo.json" assert { type: "json" };
+const { default: moduleInfo } = await import("/moduleInfo.json", { assert: { type: "json" } });
 
 function decimalToHex(d, padding) {
   var hex = Number(d).toString(16);

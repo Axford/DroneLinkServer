@@ -1,4 +1,5 @@
-import moduleInfo from "/moduleInfo.json" assert { type: "json" };
+//import moduleInfo from "/moduleInfo.json" assert { type: "json" };
+const { default: moduleInfo } = await import("/moduleInfo.json", { assert: { type: "json" } });
 
 export default class DroneConfigParser {
   constructor() {

@@ -21,7 +21,11 @@ export default class SparkLine {
         this.samples.push(v);
         if (this.samples.length > this.options.depth) this.samples.shift();
 
-        if (v > this.maxSample) this.maxSample = v;
+        // update max
+        this.maxSample = 0;
+        this.samples.forEach((s)=>{
+            if (s > this.maxSample) this.maxSample = s;
+        });
 
         this.draw();
     }

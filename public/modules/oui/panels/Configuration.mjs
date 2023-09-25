@@ -7,7 +7,8 @@ import { getFirestore,  collection, doc, setDoc, addDoc, getDocs, deleteDoc, que
 import { DRONE_MESH_MSG_TYPE_LINK_CHECK_REQUEST } from '../../DroneMeshMsg.mjs';
 //import { bgBlue } from 'colors/index.js';
 
-import moduleInfo from "/moduleInfo.json" assert { type: "json" };
+//import moduleInfo from "/moduleInfo.json" assert { type: "json" };
+const { default: moduleInfo } = await import("/moduleInfo.json", { assert: { type: "json" } });
 
 import {calculateDistanceBetweenCoordinates} from "../../navMath.mjs";
 

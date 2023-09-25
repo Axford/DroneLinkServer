@@ -3,7 +3,8 @@ import * as DLM from "../droneLinkMsg.mjs";
 
 loadStylesheet("./css/modules/oui/Wizard.css");
 
-import moduleInfo from "/moduleInfo.json" assert { type: "json" };
+//import moduleInfo from "/moduleInfo.json" assert { type: "json" };
+const { default: moduleInfo } = await import("/moduleInfo.json", { assert: { type: "json" } });
 
 import {
   getStorage,

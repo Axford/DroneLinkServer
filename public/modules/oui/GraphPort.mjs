@@ -2,7 +2,8 @@ import * as DLM from '../droneLinkMsg.mjs';
 import Vector from '../Vector.mjs';
 import GraphWire from './GraphWire.mjs';
 
-import moduleInfo from "/moduleInfo.json" assert { type: "json" };
+//import moduleInfo from "/moduleInfo.json" assert { type: "json" };
+const { default: moduleInfo } = await import("/moduleInfo.json", { assert: { type: "json" } });
 
 /*
 
