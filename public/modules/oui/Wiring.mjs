@@ -1,7 +1,7 @@
 import Vector from "../Vector.mjs";
 import loadStylesheet from "../loadStylesheet.js";
 
-loadStylesheet("./css/modules/oui/wiring.css");
+loadStylesheet("./css/modules/oui/Wiring.css");
 
 // position of pins map
 
