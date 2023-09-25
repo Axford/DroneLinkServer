@@ -306,6 +306,9 @@ export default class GraphManager {
 
     // also remove from config
     this.editor.removeBlock(block);
+
+    // ensure we redraw
+    this.needsRedraw = true;
   }
 
   resize() {
