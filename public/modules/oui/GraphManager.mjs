@@ -296,6 +296,9 @@ export default class GraphManager {
   removeBlock(block) {
     if (block.channel == 0) return;  // can't delete Node block
 
+    this.hoverBlock = null;
+    this.dragBlock = null;
+
     block.disconnectAll();
 
     // delete block from array
