@@ -617,7 +617,7 @@
             "../DroneNode/src/droneModules/DiagnosticModule.h"
         ],
         "inherits": [
-            "I2CBaseModule"
+            "I2CBase"
         ],
         "category": [
             "Output"
@@ -1948,7 +1948,45 @@
             }
         ],
         "filename": [
-            "../DroneNode/src/droneModules/NeopixelModule.cpp"
+            "../DroneNode/src/droneModules/NeopixelModule.cpp",
+            "../DroneNode/src/droneModules/NeopixelModule.h"
+        ],
+        "inherits": [
+            "Drone"
+        ],
+        "category": [
+            "Output"
+        ],
+        "description": [
+            "Manage a strip of NEOPixels (WS2812B)"
+        ],
+        "pub": [
+            {
+                "address": 12,
+                "type": "u8",
+                "numValues": 1,
+                "writeable": true,
+                "name": "pins",
+                "description": "Output pin for Neopixel strip"
+            },
+            {
+                "address": 13,
+                "type": "u8",
+                "numValues": 1,
+                "writeable": true,
+                "name": "numPixels",
+                "description": "Number of pixels in strip"
+            }
+        ],
+        "sub": [
+            {
+                "address": 8,
+                "addrAddress": 9,
+                "type": "u8",
+                "numValues": 16,
+                "name": "scene",
+                "description": "Pixel components and effects for the scene"
+            }
         ]
     },
     "NetworkInterface": {
