@@ -5,7 +5,8 @@ export default class SparkLine {
         this.container = container;
         this.options = { 
             depth: 60,
-            label: ''
+            label: '',
+            precision:0
         };
         _.merge(this.options, options);
 
@@ -72,7 +73,7 @@ export default class SparkLine {
         // draw latest value bottom-right
         ctx.fillStyle = '#8f8';
         ctx.font = '12px serif';
-        ctx.fillText(this.samples[this.samples.length-1].toFixed(0), w-2, h);
+        ctx.fillText(this.samples[this.samples.length-1].toFixed(this.options.precision), w-2, h);
     }
 
 

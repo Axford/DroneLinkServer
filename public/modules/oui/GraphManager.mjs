@@ -2,6 +2,7 @@ import loadStylesheet from '../loadStylesheet.js';
 import * as DLM from '../droneLinkMsg.mjs';
 import GraphBlock from './GraphBlock.mjs';
 import Vector from '../Vector.mjs';
+import SparkLine from '../SparkLine.mjs';
 
 loadStylesheet('./css/modules/oui/GraphManager.css');
 
@@ -36,6 +37,15 @@ export default class GraphManager {
     this.hoverBlock = null;
 
     this.rewiring = null; // port we are rewiring
+
+    // create sparklines
+    var d1 = $('<div style="width:60px; height:25px; position:absolute; top:80px; left:8px;"></div>');
+    this.uiRoot.append(d1);
+    var d2 = $('<div style="width:60px; height:25px; position:absolute; top:110px; left:8px;"></div>');
+    this.uiRoot.append(d2);
+    
+    this.updatePositionsSpark = new SparkLine(d1, { label: 'Up', precision:1});
+    this.drawSpark = new SparkLine(d2, { label: 'Dr', precision:1});
 
     // create canvas
     this.canvas = $('<canvas tabindex=1 />');
@@ -190,13 +200,6 @@ export default class GraphManager {
 
     this.resize(); // will trigger a redraw
 
-    // start physics loop
-    /*
-    setInterval(()=>{
-      if (this.visible) this.updatePositions();
-    }, 1000/60);
-    */
-
     this.update();
   }
 
@@ -218,6 +221,13 @@ export default class GraphManager {
 
   show() {
     this.visible = true;
+    this.frame = 0;
+    this.drawn = 0;
+    this.drawTime = 0;
+    this.updatePositionsTime = 0;
+    this.startTime = Date.now();
+    this.sparkTimer = Date.now();
+    
     this.resize();
     this.update();
   }
@@ -229,8 +239,31 @@ export default class GraphManager {
 
   update() {
     if (this.visible) {
+      this.frame++;
+      var loopTime = Date.now();
+      this.fps = this.frame / ((loopTime - this.startTime) / 1000);
+
+      var t1 = performance.now();
+      
       this.updatePositions();
-      this.draw();
+      var t2 = performance.now();
+      var dt1 = (t2 - t1);
+      this.updatePositionsTime = (9*this.updatePositionsTime + dt1)/10;
+
+      if (this.draw()) {
+        this.drawn++;
+        var t3 = performance.now();
+        var dt2 = (t3 - t2);
+        this.drawTime = (9*this.drawTime + dt2)/10;
+      }
+
+      if (loopTime > this.sparkTimer + 1000) {
+        this.updatePositionsSpark.addSample(this.updatePositionsTime);
+        this.drawSpark.addSample(this.drawTime);
+
+        this.sparkTimer = loopTime;
+      }
+      
     }
     
     window.requestAnimationFrame(this.update.bind(this));
@@ -329,10 +362,8 @@ export default class GraphManager {
   }
 
   draw() {
-    if (!this.needsRedraw) return;
+    if (!this.needsRedraw) return false;
     this.needsRedraw = false;
-
-    this.frame++;
 
     var c = this.canvas[0];
     var ctx = c.getContext("2d");
@@ -373,10 +404,23 @@ export default class GraphManager {
     if (this.rewiring) this.rewiring.drawWire();
 
     // frame counter
+    var fy = 70;
     ctx.fillStyle = '#5F5';
     ctx.font = '10px ' + this.baseFont;
 		ctx.textAlign = 'left';
-    ctx.fillText(this.frame, 5, 10);
+    ctx.fillText('F: '+this.frame + ', D: ' + (100*this.drawn / this.frame).toFixed(0) +'%', 5, fy + 10);
+
+    // FPS
+    ctx.fillText('FPS: '+this.fps.toFixed(1), 5, fy + 25);
+
+    // update time
+    ctx.fillText('UpT: '+this.updatePositionsTime.toFixed(1) + 'ms', 5, fy + 40);
+
+    // draw time
+    ctx.fillText('DrT: '+this.drawTime.toFixed(1)+'ms', 5, fy + 55);
+
+
+    return true;
   }
 
   updatePositions() {
