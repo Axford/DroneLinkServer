@@ -12,6 +12,7 @@ export default class GraphWire {
     this.mass = 1;
     this.rewiring = false;
     this.lastUpdate = Date.now();
+    this.lastCheckTime = Date.now();
 
     this.points = [];
     for (var i = 0; i < 8; i++) {
@@ -214,8 +215,12 @@ export default class GraphWire {
     var p = this.port;
 
     if (this.oport == null) {
-      // attempt to locate port info
-      this.updateOtherPort();
+      // attempt to locate port info, but not all the time as the process is slow
+      var t = Date.now();
+      if (t > this.lastCheckTime + 1000) {
+        this.updateOtherPort();
+        this.lastCheckTime = t;
+      }
     }
 
     var op = this.oport;
@@ -252,6 +257,7 @@ export default class GraphWire {
       this.points[this.points.length - 1].p.y = y2;
     }
 
+    // will only do anyhting when needed
     this.buildPoints();
 
     // draw a stubby handle if not connected
