@@ -103,7 +103,7 @@ export default class GraphBlock {
     var tm = this.ctx.measureText(this.title);
     this.minTitleWidth = tm.width;
 
-    this.position = new Vector(100 * Math.random(), 100 * Math.random());
+    this.position = new Vector(0,0);
     this.velocity = new Vector(0,0);
     this.av = new Vector(0,0);
     this.updatePosition(this.position);

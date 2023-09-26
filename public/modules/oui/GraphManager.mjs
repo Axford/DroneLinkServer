@@ -584,6 +584,24 @@ export default class GraphManager {
   addBlock(data) {
     // add a new block representing a module
     var b = new GraphBlock(this, data);
+
+    // calc x bounds of existing blocks
+    var cx = this.ctx.canvas.width/2;
+    var cy = this.ctx.canvas.height/2;
+    var xMin = cx;
+    var xMax = xMin;
+
+    this.blocks.forEach((b)=>{
+      if (b.x1 < xMin) xMin = b.x1;
+      if (b.x2 > xMax) xMax = b.x2;
+    });
+
+    var cg = (xMin + xMax) / 2;
+
+    // set initial position
+    var newPos = new Vector(((cg > cx) ? (xMin - 200) : (xMax + 200)) , cy);
+    b.updatePosition(newPos);
+
     this.blocks.push( b );
   }
 
