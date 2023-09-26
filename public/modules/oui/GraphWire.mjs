@@ -278,9 +278,9 @@ export default class GraphWire {
     } else {
       // draw line segments
       ctx.beginPath();
-      ctx.moveTo(Math.floor(px + this.points[0].p.x), Math.floor(py + this.points[0].p.y));
+      ctx.moveTo((px + this.points[0].p.x), (py + this.points[0].p.y));
       for (var i = 1; i < this.points.length; i++) {
-        ctx.lineTo(Math.floor(px + this.points[i].p.x), Math.floor(py + this.points[i].p.y));
+        ctx.lineTo((px + this.points[i].p.x), (py + this.points[i].p.y));
 
         //ctx.arc(px + this.points[i].p.x, py + this.points[i].p.y, 4, 0, 2*Math.PI);
       }

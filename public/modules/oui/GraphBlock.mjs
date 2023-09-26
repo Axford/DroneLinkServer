@@ -476,7 +476,7 @@ export default class GraphBlock {
     var px = this.mgr.panPosition.x;
     var py = this.mgr.panPosition.y;
 
-    ctx.drawImage(this.canvas, Math.floor(px + this.x1 - this.leftGutter), Math.floor(py + this.y1));
+    ctx.drawImage(this.canvas, (px + this.x1 - this.leftGutter), (py + this.y1));
 
     // draw tooltip
     if (this.hovering) {

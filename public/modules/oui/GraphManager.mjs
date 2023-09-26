@@ -51,6 +51,8 @@ export default class GraphManager {
     this.canvas = $('<canvas tabindex=1 />');
     this.uiRoot.append(this.canvas);
 
+    this.ctx = this.canvas[0].getContext('2d', { alpha: false });
+
     // event handlers
     this.canvas.on('mousedown', (e)=>{
 
@@ -374,14 +376,12 @@ export default class GraphManager {
   }
 
   resize() {
-    var c = this.canvas[0];
-    var ctx = c.getContext("2d");
-
+    
     // keep width updated
     var w = this.uiRoot.width();
-    ctx.canvas.width = w;
+    this.ctx.canvas.width = w;
     var h = this.uiRoot.height();
-    ctx.canvas.height = h;
+    this.ctx.canvas.height = h;
 
     this.needsRedraw = true;
     //this.draw();
@@ -391,27 +391,24 @@ export default class GraphManager {
     if (!this.needsRedraw) return false;
     this.needsRedraw = false;
 
-    var c = this.canvas[0];
-    var ctx = c.getContext("2d");
-
-    var w = ctx.canvas.width;
+    var w = this.ctx.canvas.width;
     var cx = w/2;
 
-    var h = ctx.canvas.height;
+    var h = this.ctx.canvas.height;
     var cy = h/2;
 
-    ctx.fillStyle = '#343a40';
-    ctx.fillRect(0,0,w,h);
+    this.ctx.fillStyle = '#343a40';
+    this.ctx.fillRect(0,0,w,h);
 
     // draw cross hairs
-    ctx.strokeStyle = '#555';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(0, this.panPosition.y + cy);
-    ctx.lineTo(w, this.panPosition.y + cy);
-    ctx.moveTo(this.panPosition.x + cx, 0);
-    ctx.lineTo(this.panPosition.x + cx, h);
-    ctx.stroke();
+    this.ctx.strokeStyle = '#555';
+    this.ctx.lineWidth = 1;
+    this.ctx.beginPath();
+    this.ctx.moveTo(0, this.panPosition.y + cy);
+    this.ctx.lineTo(w, this.panPosition.y + cy);
+    this.ctx.moveTo(this.panPosition.x + cx, 0);
+    this.ctx.lineTo(this.panPosition.x + cx, h);
+    this.ctx.stroke();
 
     // draw wires, except rewiring wire
     for (var i=0; i<this.blocks.length; i++) {
@@ -431,19 +428,19 @@ export default class GraphManager {
 
     // frame counter
     var fy = 70;
-    ctx.fillStyle = '#5F5';
-    ctx.font = '10px ' + this.baseFont;
-		ctx.textAlign = 'left';
-    ctx.fillText('F: '+this.frame + ', D: ' + (100*this.drawn / this.frame).toFixed(0) +'%', 5, fy + 10);
+    this.ctx.fillStyle = '#5F5';
+    this.ctx.font = '10px ' + this.baseFont;
+		this.ctx.textAlign = 'left';
+    this.ctx.fillText('F: '+this.frame + ', D: ' + (100*this.drawn / this.frame).toFixed(0) +'%', 5, fy + 10);
 
     // FPS
-    ctx.fillText('FPS: '+this.fps.toFixed(1), 5, fy + 25);
+    this.ctx.fillText('FPS: '+this.fps.toFixed(1), 5, fy + 25);
 
     // update time
-    ctx.fillText('UpT: '+this.updatePositionsTime.toFixed(2) + 'ms', 5, fy + 40);
+    this.ctx.fillText('UpT: '+this.updatePositionsTime.toFixed(2) + 'ms', 5, fy + 40);
 
     // draw time
-    ctx.fillText('DrT: '+this.drawTime.toFixed(2)+'ms', 5, fy + 55);
+    this.ctx.fillText('DrT: '+this.drawTime.toFixed(2)+'ms', 5, fy + 55);
 
 
     return true;
@@ -456,11 +453,9 @@ export default class GraphManager {
     if (dt > 1/50) dt = 1/50;
     this.lastUpdate = loopTime;
 
-    var c = this.canvas[0];
-    var ctx = c.getContext("2d");
 
-    var w = ctx.canvas.width;
-    var h = ctx.canvas.height;
+    var w = this.ctx.canvas.width;
+    var h = this.ctx.canvas.height;
     var cv = new Vector(w/2, h/2);
 
     var blockSpacing = 150;
