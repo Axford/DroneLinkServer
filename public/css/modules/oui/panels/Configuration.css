@@ -102,11 +102,9 @@
   height: 10px;
 }
 
-
-}
-
 .ConfigurationPanel .editorBlock {
   margin-top: 8px;
+  height:100%;
 }
 
 .editorBlock .editorNav {

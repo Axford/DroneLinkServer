@@ -1042,6 +1042,7 @@ export default class Configuration extends Panel {
 
     // editor
     this.cuiEditor = $('<div class="editor"></div>');
+    
 
     ace.config.setModuleUrl('ace/mode/dcode',"/modules/mode-dcode.js");
 
