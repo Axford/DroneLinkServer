@@ -189,10 +189,10 @@ export default class GraphWire {
       p.v.add(p.av);
 
       // clamp velocity
-      p.v.capLength(800);
+      p.v.capLength(1000);
 
       // apply drag
-      p.v.multiply(0.96);
+      p.v.multiply(0.97);
 
       // apply time delta
       p.v.multiply(dt);
