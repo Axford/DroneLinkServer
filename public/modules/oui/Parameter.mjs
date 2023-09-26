@@ -13,9 +13,11 @@ export default class Parameter {
     this.addr = this.channel.node.id + ">" + this.channel.channel + "." + param;
     this.title = "?";
     this.msgType = 255;
+    this.msgData = null;
     this.addrResolved = false;
     this.paramValues = [0, 0, 0, 0];
     this.writable = false;
+    this.visible = false;
 
     this.editor = null;
 
@@ -33,6 +35,18 @@ export default class Parameter {
     });
 
     this.build();
+  }
+
+  show() {
+    if (this.visible) return;
+    this.visible = true;
+    this.update();
+    this.updateValues();
+  }
+
+  hide() {
+    if (!this.visible) return;
+    this.visible = false;
   }
 
   updateIntValues(data) {
@@ -97,52 +111,63 @@ export default class Parameter {
     if (data.msgType <= DLM.DRONE_LINK_MSG_TYPE_CHAR) {
       this.paramValues = data.values;
 
-      if (this.msgType != data.msgType) {
-        this.msgType = data.msgType;
-        this.uiAddr.html(
-          this.addr +
-            " " +
-            DLM.DRONE_LINK_MSG_TYPE_NAMES[this.msgType] +
-            " p" +
-            data.priority
-        );
-        this.ui.addClass("type_" + DLM.DRONE_LINK_MSG_TYPE_NAMES[this.msgType]);
-      }
+      this.msgData = data;
 
-      // make sure we have enough value containers
-      while (
-        this.uiValues.children().length <
-        (data.msgType == DLM.DRONE_LINK_MSG_TYPE_ADDR ? 1 : data.values.length)
-      ) {
-        this.uiValues.append('<div class="value">?</div>');
-      }
-
-      // update values
-      switch (data.msgType) {
-        case DLM.DRONE_LINK_MSG_TYPE_UINT8_T:
-        case DLM.DRONE_LINK_MSG_TYPE_UINT32_T:
-          this.updateIntValues(data);
-          break;
-
-        case DLM.DRONE_LINK_MSG_TYPE_ADDR:
-          this.updateAddrValues(data);
-          break;
-
-        case DLM.DRONE_LINK_MSG_TYPE_FLOAT:
-          this.updateFloatValues(data);
-          break;
-
-        case DLM.DRONE_LINK_MSG_TYPE_CHAR:
-          this.uiValues.children().eq(0).html(data.values[0]);
-          break;
-      }
+      if (this.visible) this.updateValues();
     }
 
     this.update();
   }
 
+
+  updateValues() {
+    if (!this.msgData) return;
+
+    if (this.msgType != this.msgData.msgType) {
+      if (this.msgType < 255) this.ui.removeClass("type_" + DLM.DRONE_LINK_MSG_TYPE_NAMES[this.msgType]);
+
+      this.msgType = this.msgData.msgType;
+      this.uiAddr.html(
+        this.addr +
+          " " +
+          DLM.DRONE_LINK_MSG_TYPE_NAMES[this.msgType] +
+          " p" +
+          this.msgData.priority
+      );
+      this.ui.addClass("type_" + DLM.DRONE_LINK_MSG_TYPE_NAMES[this.msgType]);
+    }
+
+    // make sure we have enough value containers
+    while (
+      this.uiValues.children().length <
+      (this.msgData.msgType == DLM.DRONE_LINK_MSG_TYPE_ADDR ? 1 : this.msgData.values.length)
+    ) {
+      this.uiValues.append('<div class="value">?</div>');
+    }
+
+    // update values
+    switch (this.msgData.msgType) {
+      case DLM.DRONE_LINK_MSG_TYPE_UINT8_T:
+      case DLM.DRONE_LINK_MSG_TYPE_UINT32_T:
+        this.updateIntValues(this.msgData);
+        break;
+
+      case DLM.DRONE_LINK_MSG_TYPE_ADDR:
+        this.updateAddrValues(this.msgData);
+        break;
+
+      case DLM.DRONE_LINK_MSG_TYPE_FLOAT:
+        this.updateFloatValues(this.msgData);
+        break;
+
+      case DLM.DRONE_LINK_MSG_TYPE_CHAR:
+        this.uiValues.children().eq(0).html(this.msgData.values[0]);
+        break;
+    }
+  }
+
   update() {
-    if (!this.built) return;
+    if (!this.built || !this.visible) return;
 
     var obj = this.state.getParamObj(
       this.channel.node.id,
@@ -312,7 +337,6 @@ export default class Parameter {
     // fetch values from editor dialog
     for (var i = 0; i < this.eBody.children().length; i++) {
       var v = this.eBody.children().eq(i).val();
-      console.log(i, v);
       // convert to appropriate data type
       switch (this.msgType) {
         case DLM.DRONE_LINK_MSG_TYPE_UINT8_T:
@@ -362,7 +386,7 @@ export default class Parameter {
         qm.setString(this.paramValues[0]);
         break;
     }
-    console.log("Sending: " + qm.asString());
+    //console.log("Sending: " + qm.asString());
     this.state.send(qm);
 
     // now send an immediate query for the new value

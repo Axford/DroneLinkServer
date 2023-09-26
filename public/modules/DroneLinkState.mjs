@@ -136,13 +136,13 @@ export default class DroneLinkState {
     Object.keys(nodeState.channels).forEach(channelKey => {
       var channel = nodeState.channels[channelKey]; 
 
-      console.log('channel: ' + channelKey);
+      //console.log('channel: ' + channelKey);
     
       // for each param  
       Object.keys(channel.params).forEach(paramKey => {
         var param = channel.params[paramKey];
 
-        console.log('param: ' + paramKey + ', ', param.values);
+        //console.log('param: ' + paramKey + ', ', param.values);
 
         // generate the value message
         qm.node = nodeState.id;
@@ -154,7 +154,7 @@ export default class DroneLinkState {
           case DLM.DRONE_LINK_MSG_TYPE_UINT32_T: qm.setUint32(param.values); break;
           case DLM.DRONE_LINK_MSG_TYPE_FLOAT: qm.setFloat(param.values); break;
           case DLM.DRONE_LINK_MSG_TYPE_CHAR: qm.setString(param.values[0]); break;
-          case DLM.DRONE_LINK_MSG_TYPE_ADDR: qm.setAddr(param.values); console.log('ADDR:', qm); break;
+          case DLM.DRONE_LINK_MSG_TYPE_ADDR: qm.setAddr(param.values); break;
         }
 
         qm.writable = param.writable;
@@ -162,7 +162,7 @@ export default class DroneLinkState {
 
         // and then the "name" message
         if (param.name > '') {
-          console.log('updating name: ' + param.name);
+          //console.log('updating name: ' + param.name);
           qm.setName(param.name);
           me.handleLinkMsg(qm, false, 'firebase');
         }
@@ -272,13 +272,13 @@ export default class DroneLinkState {
         if (msg.msgType <= DLM.DRONE_LINK_MSG_TYPE_CHAR) {
           // new module type?
           if (msg.param == DLM.DRONE_MODULE_PARAM_TYPE) {
-            console.log('module.type: ' + msg.valueArray()[0]);
+            //console.log('module.type: ' + msg.valueArray()[0]);
             me.trigger('module.type', { node: msg.node, channel:msg.channel, type:msg.valueArray()[0] });
           }
 
           // new module name?
           if (msg.param == DLM.DRONE_MODULE_PARAM_NAME) {
-            console.log('module.name: ' + msg.valueArray()[0]);
+            //console.log('module.name: ' + msg.valueArray()[0]);
             me.trigger('module.name', { node: msg.node, channel:msg.channel, name:msg.valueArray()[0] });
           }
         }
@@ -314,7 +314,7 @@ export default class DroneLinkState {
 
       if (msg.msgType == DLM.DRONE_LINK_MSG_TYPE_NAME) {
         newState[msg.node].channels[msg.channel].params[msg.param].name = msg.payloadToString();
-        console.log('param name', newState[msg.node].channels[msg.channel].params[msg.param].name);
+        //console.log('param name', newState[msg.node].channels[msg.channel].params[msg.param].name);
         me.trigger('param.name', { node: msg.node, channel:msg.channel, param: msg.param, msgType: msg.msgType, name: msg.payloadToString() });
       } else {
         // update channel state

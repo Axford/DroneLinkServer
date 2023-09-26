@@ -57,7 +57,7 @@ class DroneFSEntry {
     this.path = path.substr(0, fp+1);
     this.name = path.substr(fp+1, path.length);
 
-    console.log('fs.new entry: ['+this.path+'] ['+this.name+']');
+    //console.log('fs.new entry: ['+this.path+'] ['+this.name+']');
 
     this.ui = {};
     this.ui.container = $('<div class="'+(this.isDir ? 'directory' : 'file')+'"></div>');
@@ -1042,7 +1042,7 @@ export default class Configuration extends Panel {
 
     // editor
     this.cuiEditor = $('<div class="editor"></div>');
-    
+
 
     ace.config.setModuleUrl('ace/mode/dcode',"/modules/mode-dcode.js");
 

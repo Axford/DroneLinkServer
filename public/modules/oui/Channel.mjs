@@ -147,17 +147,21 @@ export default class Channel {
     this.uiTitleContainer.append(this.uiLastHeard);
 
     setInterval( () =>{
-      // update lastHeard
-      var now = (new Date()).getTime();
-      var age = ((now - this.lastHeard)/1000);
-      this.uiLastHeard.html(age.toFixed(0) + 's');
-      if (age > 60) { this.uiLastHeard.addClass('bg-warning'); } else {
-        this.uiLastHeard.removeClass('bg-warning');
-      }
+      if (this.visible) {
+        // update lastHeard
+        var now = (new Date()).getTime();
+        var age = ((now - this.lastHeard)/1000);
+        
+        this.uiLastHeard.html(age.toFixed(0) + 's');
+        if (age > 60) { this.uiLastHeard.addClass('bg-warning'); } else {
+          this.uiLastHeard.removeClass('bg-warning');
+        }
+        
 
-      // trigger updateIfNeeded
-      if (this.interface) {
-        this.interface.updateIfNeeded();
+        // trigger updateIfNeeded
+        if (this.interface) {
+          this.interface.updateIfNeeded();
+        }
       }
     }, 1000);
 
@@ -410,6 +414,11 @@ export default class Channel {
           this.state.send(qm);
         }
       }
+      // inform params they're hidden
+      for (const [key, param] of Object.entries(this.params)) {
+        param.hide();
+      }
+      
     } else if (s == 'parameters') {
       this.interfaceButton.show();
       this.parametersButton.hide();
@@ -417,6 +426,10 @@ export default class Channel {
       this.parametersTab.show();
       if (this.interface && (typeof this.interface.hide === 'function')) {
         this.interface.hide();
+      }
+      // inform params they're visible
+      for (const [key, param] of Object.entries(this.params)) {
+        param.show();
       }
     }
     this.uiState = s;
@@ -457,6 +470,11 @@ export default class Channel {
     this.visible = false;
     if (this.interface) {
       this.interface.hide();
+    }
+
+    // inform params they're hidden
+    for (const [key, param] of Object.entries(this.params)) {
+      param.hide();
     }
   }
 }
