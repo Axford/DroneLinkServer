@@ -562,10 +562,10 @@ export default class GraphManager {
         b.velocity.add(b.av);
 
         // clamp velocity
-        b.velocity.capLength(1000);
+        b.velocity.capLength(800);
 
         // apply drag
-        b.velocity.multiply(0.97);
+        b.velocity.multiply(0.96);
 
         // correct for fraction of time
         b.velocity.multiply(dt);
