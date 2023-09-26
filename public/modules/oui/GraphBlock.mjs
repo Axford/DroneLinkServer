@@ -69,6 +69,9 @@ export default class GraphBlock {
 
     this.hovering = false;
 
+    this.needsRedraw = false;
+    this.dimmed = false;
+
     this.numPorts = 0;
     this.numConnectedPorts = 0;
     this.ports = {};
@@ -83,26 +86,25 @@ export default class GraphBlock {
              '100%,' +
              (75 ) + '%)';
 
-    var c = this.mgr.canvas[0];
-    var ctx = c.getContext("2d");
-    var w = ctx.canvas.width;
-    if (w < 200) w = 200;
-    var h = ctx.canvas.height;
-
+    this.leftGutter = 16;
+    this.rightGutter = 16;
     this.headerHeight = 40;
+    this.width = 200;
+    this.height = this.headerHeight;
+
+    this.canvas = document.createElement('canvas');
+    this.resizeCanvas();
+    this.ctx = this.canvas.getContext('2d');
 
     this.title = this.channel +'. '+ this.name;
     this.titleFont = '15px bold, ' + this.mgr.baseFont;
-    console.log(this.titleFont);
-
-    ctx.font = this.titleFont;
-    var tm = ctx.measureText(this.title);
+    
+    this.ctx.font = this.titleFont;
+    var tm = this.ctx.measureText(this.title);
     this.minTitleWidth = tm.width;
 
-    this.position = new Vector(w * Math.random(), h * Math.random());
+    this.position = new Vector(100 * Math.random(), 100 * Math.random());
     this.velocity = new Vector(0,0);
-    this.width = 100;
-    this.height = this.headerHeight;
     this.av = new Vector(0,0);
     this.updatePosition(this.position);
 
@@ -118,6 +120,12 @@ export default class GraphBlock {
     this.needsPortResize = true;
 
     this.mgr.needsRedraw = true;
+  }
+
+  resizeCanvas() {
+    this.canvas.width = this.width + this.leftGutter + this.rightGutter;
+    this.canvas.height = this.height;
+    this.needsRedraw = true;
   }
 
   updateName(str) {
@@ -158,6 +166,7 @@ export default class GraphBlock {
     };
     this.needsPortResize = true;
     this.mgr.needsRedraw = true;
+    this.needsRedraw = true;
 
     this.hovering = true;
   }
@@ -175,6 +184,7 @@ export default class GraphBlock {
     this.selectedPort = null;
     this.needsPortResize = true;
     this.mgr.needsRedraw = true;
+    this.needsRedraw = true;
 
     this.hovering = false;
   }
@@ -191,9 +201,12 @@ export default class GraphBlock {
 
     // update selection
     if (this.selectedPort) {
+      this.needsRedraw = true;
       // see if hit area has changed
       if (this.selectedPort.hit(x,y)) {
-        return this.selectedPort.mousedown(x,y);
+        if (this.selectedPort.mousedown(x,y)){
+          return true;
+        }
       } else {
         this.selectedPort.selectedInputCell = -1;
         this.selectedPort = null;
@@ -205,7 +218,10 @@ export default class GraphBlock {
       for (const [key, port] of Object.entries(this.ports)) {
         if (port.hit(x,y)) {
           // only select configured ports
-          if (port.param.configured) this.selectedPort = port;
+          if (port.param.configured) {
+            this.selectedPort = port;
+          }
+          this.needsRedraw = true;
           return port.mousedown(x,y);
         }
       };
@@ -224,7 +240,10 @@ export default class GraphBlock {
   } 
 
   keydown(e) {
-    if (this.selectedPort) this.selectedPort.keydown(e)
+    if (this.selectedPort) {
+      this.needsRedraw = true;
+      this.selectedPort.keydown(e);
+    }
   }
 
   hit(x,y) {
@@ -318,6 +337,7 @@ export default class GraphBlock {
 
   updatePortPositions() {
     if (!this.needsPortResize) return;
+    this.needsPortResize = false;
 
     var y = this.headerHeight;
     var i = 0;
@@ -362,56 +382,107 @@ export default class GraphBlock {
 
     this.updateCorners();
 
+    this.resizeCanvas();
+
     // let ports know that overall sizing is complete
     for (const [key, port] of Object.entries(this.ports)) {
       port.updateColumnWidths();
     }
 
-    this.needsPortResize = false;
     this.mgr.needsRedraw = true;
+    this.needsRedraw = true;
   }
 
-  draw() {
+  dim() {
+    if (this.dimmed) return;
+    this.dimmed = true;
+    this.needsRedraw = true;
+    for (const [key, port] of Object.entries(this.ports)) {
+      port.dim();
+    }
+  }
+
+  bright() {
+    if (!this.dimmed) return;
+    this.dimmed = false;
+    this.needsRedraw = true;
+    for (const [key, port] of Object.entries(this.ports)) {
+      port.bright();
+    }
+  }
+
+  updateCanvas() {
+    if (!this.needsRedraw) return;
+    this.needsRedraw = false;
+
     this.updatePortPositions();
 
-    var c = this.mgr.canvas[0];
-    var ctx = c.getContext("2d");
+    var ctx = this.ctx;
 
     var w = this.width;
     var w2 = w/2;
     var h = this.height;
     var h2 = h/2;
-    var px = this.mgr.panPosition.x;
-    var py = this.mgr.panPosition.y;
 
-    var dim = ((this.mgr.dragBlock && this.mgr.dragBlock != this)) || (this.mgr.hoverBlock && this.mgr.hoverBlock != this);
-    ctx.fillStyle = dim ? '#505050' : this.fillStyle;
+    var px = this.leftGutter;
+    var py = 0;
+
+    // debug outer rect
+    /*
+    ctx.strokeStyle = '#f00';
+    ctx.beginPath();
+    ctx.rect(0,0,this.canvas.width, this.canvas.height);
+    ctx.stroke();
+    */
+
+    //var dim = ((this.mgr.dragBlock && this.mgr.dragBlock != this)) || (this.mgr.hoverBlock && this.mgr.hoverBlock != this);
+
+    ctx.fillStyle = this.dimmed ? '#505050' : this.fillStyle;
     ctx.strokeStyle = '#505050';
     ctx.lineWidth = 1;
-    roundRect(ctx, px + this.x1, py + this.y1, w, h, 6, true);
+    roundRect(ctx, px, py, w, h, 6, true);
 
     // title
     ctx.fillStyle = '#000';
     ctx.font = this.titleFont;
 		ctx.textAlign = 'left';
-    ctx.fillText(this.channel + '.' , px + this.x1 + 4, py + this.y1 + this.headerHeight/2);
-    ctx.fillText(this.name , px + this.x1 + this.columns[0] + 4, py + this.y1 + this.headerHeight/2);
+    ctx.fillText(this.channel + '.' , px + 4, py + this.headerHeight/2);
+    ctx.fillText(this.name , px +  this.columns[0] + 4, py + this.headerHeight/2);
 
     ctx.font = '10px ' + this.mgr.baseFont;
     ctx.fillStyle = '#111';
-    ctx.fillText(this.module.type , px + this.x1 + this.columns[0] + 4, py + this.y1 + this.headerHeight - 5);
+    ctx.fillText(this.module.type , px + this.columns[0] + 4, py + this.headerHeight - 5);
 
     // draw delete button
     if (this.channel > 0) {
       ctx.font = '12px fontawesome';
       ctx.textAlign = 'right';
       ctx.fillStyle = '#555';
-      ctx.fillText('\uf2ed' , px + this.x2 - 6, py + this.y1 + 18);
+      ctx.fillText('\uf2ed' , px + this.width - 6, py + 18);
     }
 
     // draw ports
     for (const [key, port] of Object.entries(this.ports)) {
       port.draw();
+    }
+  }
+
+  draw() {
+    this.updateCanvas();
+
+    var c = this.mgr.canvas[0];
+    var ctx = c.getContext("2d");
+
+    var px = this.mgr.panPosition.x;
+    var py = this.mgr.panPosition.y;
+
+    ctx.drawImage(this.canvas, px + this.x1 - this.leftGutter, py + this.y1);
+
+    // draw tooltip
+    if (this.hovering) {
+      for (const [key, port] of Object.entries(this.ports)) {
+        port.drawTooltip(ctx);
+      }
     }
   }
 

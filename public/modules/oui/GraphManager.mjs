@@ -100,12 +100,25 @@ export default class GraphManager {
           if (p && p.isSuitableRewireSource()) {
             // complete rewire
             this.endRewire(p);
+
+            this.blocks.forEach((b)=> { 
+              b.needsRedraw = true;
+            });
+
           }
 
         } else {
+          hitBlock.bright();
+          // dim other blocks
+          this.blocks.forEach((b)=> { 
+            if (b != hitBlock) b.dim();
+          });
           // pass the hit onto the block to see if it interacts with a control
           if (hitBlock.mousedown(x1,y1)) {
             this.needsRedraw = true;  // in case something changed
+            this.blocks.forEach((b)=> { 
+              b.needsRedraw = true;
+            });
           } else {
             // if it's not interacting with a block control, then we must be dragging the block header
             this.dragBlock = hitBlock;
@@ -175,7 +188,20 @@ export default class GraphManager {
           }
         }
 
-        if (this.hoverBlock) this.hoverBlock.mousemove(x1,y1);
+        if (this.hoverBlock) {
+          this.hoverBlock.mousemove(x1,y1);
+          this.hoverBlock.bright();
+        }
+
+        
+        // dim or bright other blocks
+        this.blocks.forEach((b)=> { 
+          if (this.hoverBlock) {
+            if (b != this.hoverBlock) b.dim();
+          } else {
+            b.bright();
+          }
+        });
       }
 
     });
@@ -414,10 +440,10 @@ export default class GraphManager {
     ctx.fillText('FPS: '+this.fps.toFixed(1), 5, fy + 25);
 
     // update time
-    ctx.fillText('UpT: '+this.updatePositionsTime.toFixed(1) + 'ms', 5, fy + 40);
+    ctx.fillText('UpT: '+this.updatePositionsTime.toFixed(2) + 'ms', 5, fy + 40);
 
     // draw time
-    ctx.fillText('DrT: '+this.drawTime.toFixed(1)+'ms', 5, fy + 55);
+    ctx.fillText('DrT: '+this.drawTime.toFixed(2)+'ms', 5, fy + 55);
 
 
     return true;

@@ -69,6 +69,8 @@ export default class GraphPort {
 
     this.rewiring = false;
 
+    this.dimmed = false;
+
     // populate values if missing
     if (!this.param.values) {
       this.param.values = [];
@@ -135,6 +137,16 @@ export default class GraphPort {
     }
 
     this.unhover();
+  }
+
+  dim() {
+    if (this.dimmed) return;
+    this.dimmed = true;
+  }
+
+  bright() {
+    if (!this.dimmed) return;
+    this.dimmed = false;
   }
 
   connect(oport) {
@@ -318,6 +330,8 @@ export default class GraphPort {
             // toggle published, assuming not alwaysPublished
             if (!this.param.alwaysPublished) {
               this.param.published = !this.param.published;
+              this.block.needsRedraw = true;
+              this.mgr.needsRedraw = true;
             }
           } else if (i == 4) {
             if (this.param.writeable) {
@@ -325,6 +339,8 @@ export default class GraphPort {
               this.param.configured = !this.param.configured;
               // update cell sizes
               this.cellsNeedUpdate = true;
+              this.block.needsRedraw = true;
+              this.mgr.needsRedraw = true;
             }
           }
         }
@@ -345,6 +361,8 @@ export default class GraphPort {
         
         x2 += this.inputCellWidths[i];
       }
+      this.mgr.needsRedraw = true;
+      this.block.needsRedraw = true;
     }
 
     return true;
@@ -355,6 +373,7 @@ export default class GraphPort {
     var nubbinHover =  (this.isAddr && x < this.block.x1 && y >= y2 && y < y2 + 16);
     if (nubbinHover != this.nubbinHover) {
       this.nubbinHover = nubbinHover;
+      this.block.needsRedraw = true;
       this.mgr.needsRedraw = true;
     }
 
@@ -362,6 +381,7 @@ export default class GraphPort {
     var hover = (x > this.block.x1 && x < this.block.x2 && y >= this.block.y1 + this.y && y <= this.block.y1+this.y+this.height);
     if (hover != this.hovering) {
       this.hovering = hover;
+      this.block.needsRedraw = true;
       this.mgr.needsRedraw = true;
     }
   }
@@ -438,6 +458,7 @@ export default class GraphPort {
     }
 
     this.mgr.needsRedraw = true;
+    this.block.needsRedraw = true;
   }
 
   updateValues(v) {
@@ -449,6 +470,8 @@ export default class GraphPort {
       if (i<v.length) this.inputCells[i] = v[i];
     }
     this.cellsNeedUpdate = true;
+    this.block.needsRedraw = true;
+
   }
 
 
@@ -492,8 +515,7 @@ export default class GraphPort {
   updateCells() {
     if (!this.cellsNeedUpdate) return;
 
-    var c = this.mgr.canvas[0];
-    var ctx = c.getContext("2d");
+    var ctx = this.block.ctx;
 
     ctx.font = this.font;
 
@@ -550,6 +572,7 @@ export default class GraphPort {
 
     this.cellsNeedUpdate = false;
     this.block.needsPortResize = true;
+    this.block.needsRedraw = true;
     this.mgr.needsRedraw = true;
   }
 
@@ -572,6 +595,9 @@ export default class GraphPort {
         this.inputMinWidth += extraForInput;
       }
     }
+
+    this.block.needsRedraw = true;
+    this.mgr.needsRedraw = true;
   }
 
   updateWirePosition() {
@@ -584,18 +610,20 @@ export default class GraphPort {
   draw() {
     if (!this.enabled || this.shrink == 0) return;
 
-    var c = this.mgr.canvas[0];
-    var ctx = c.getContext("2d");
+    var ctx = this.block.ctx;
 
     var w = this.block.width;
     var h = this.height;
 
-    var px = this.mgr.panPosition.x;
-    var py = this.mgr.panPosition.y;
+    //var px = this.mgr.panPosition.x;
+    var px = this.block.leftGutter;
+    var py = 0;
+    //var py = this.mgr.panPosition.y;
 
-    var x1 = this.block.x1;
-    var y1 = this.block.y1 + this.y;
+    var x1 = 0;
+    var y1 = this.y;
 
+    /*
     var dim = false;
     if ( this.mgr.dragBlock ) {
       dim = this.mgr.dragBlock != this.block;
@@ -618,8 +646,8 @@ export default class GraphPort {
       for (var i=0; i < this.outputs.length; i++) {
         if (this.outputs[i].block == this.mgr.hoverBlock) dim = false;
       }
-
     }
+    */
 
     this.updateCells();
 
@@ -634,7 +662,7 @@ export default class GraphPort {
       }
     } else if (this.block.selectedPort == this) {
       bkc = '#c4ccd0';
-    } else if (dim) {
+    } else if (this.dimmed) {
       bkc= '#606060';
     } else if (this.wire && this.wire.oport) {
       //bkc = this.block.fillStyle;
@@ -673,7 +701,7 @@ export default class GraphPort {
       ctx.beginPath();
       var r = 6;
       ctx.fillStyle = '#555';
-      ctx.arc(px + this.block.x2 + r, py + y1 + this.titleHeight/2, r, 0, 2 * Math.PI);
+      ctx.arc(px + this.block.width + r, py + y1 + this.titleHeight/2, r, 0, 2 * Math.PI);
       ctx.fill();
       ctx.strokeStyle = bkc;
       ctx.stroke();
@@ -685,7 +713,7 @@ export default class GraphPort {
       
       if (i == 3) {
         // draw a circle for Publish status
-        ctx.fillStyle = (this.param.published && !this.param.alwaysPublished) ? (dim ? '#5a5' : '#5f5') : '#555';
+        ctx.fillStyle = (this.param.published && !this.param.alwaysPublished) ? (this.dimmed ? '#5a5' : '#5f5') : '#555';
         ctx.beginPath();
         ctx.arc(px + x1 + x2 + this.block.columns[i]/2, py + y1 + this.titleHeight/2, this.titleHeight/2-this.padding[1], 0, 2*Math.PI);
         ctx.fill();
@@ -699,7 +727,7 @@ export default class GraphPort {
       } else if (i == 4) {
         if (this.param.writeable) {
           // draw a circle for Configured status
-          ctx.fillStyle = this.param.configured ? (dim ? '#5a5' : '#5f5') : '#555';
+          ctx.fillStyle = this.param.configured ? (this.dimmed ? '#5a5' : '#5f5') : '#555';
           ctx.beginPath();
           ctx.arc(px + x1 + x2 + this.block.columns[i]/2, py + y1 + this.titleHeight/2, this.titleHeight/2-this.padding[1], 0, 2*Math.PI);
           ctx.fill();
@@ -749,7 +777,19 @@ export default class GraphPort {
         x3 += this.inputCellWidths[i];
       }
     }
+  }
 
+  drawTooltip(ctx) {
+    if (!this.enabled || this.shrink == 0) return;
+
+    var w = this.block.width;
+    var h = this.height;
+
+    var px = this.mgr.panPosition.x;
+    var py = this.mgr.panPosition.y;
+
+    var x1 = this.block.x1;
+    var y1 = this.block.y1 + this.y;
 
     // render help tooltip
     if (this.hovering && this.param.description) {
@@ -773,9 +813,7 @@ export default class GraphPort {
       ctx.lineTo(tmx+1, tmy+2);
       ctx.fill();
 
-
       ctx.fillRect(tmx, tmy, tw, th);
-
 
       ctx.fillStyle = '#000';
       ctx.textAlign = 'left';
