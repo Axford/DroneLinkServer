@@ -467,7 +467,7 @@ export default class GraphBlock {
     }
   }
 
-  draw() {
+  draw(integerDraw) {
     this.updateCanvas();
 
     var c = this.mgr.canvas[0];
@@ -476,7 +476,11 @@ export default class GraphBlock {
     var px = this.mgr.panPosition.x;
     var py = this.mgr.panPosition.y;
 
-    ctx.drawImage(this.canvas, (px + this.x1 - this.leftGutter), (py + this.y1));
+    if (integerDraw) {
+      ctx.drawImage(this.canvas, Math.round(px + this.x1 - this.leftGutter), Math.round(py + this.y1));
+    } else {
+      ctx.drawImage(this.canvas, (px + this.x1 - this.leftGutter), (py + this.y1));
+    }
 
     // draw tooltip
     if (this.hovering) {

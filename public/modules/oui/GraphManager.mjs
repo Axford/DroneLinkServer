@@ -419,9 +419,9 @@ export default class GraphManager {
     // draw all blocks, except hoverBlock
     for (var i=0; i<this.blocks.length; i++) {
       if (!this.blocks[i]) continue;
-      if (this.blocks[i] != this.hoverBlock) this.blocks[i].draw();
+      if (this.blocks[i] != this.hoverBlock) this.blocks[i].draw(this.nearlyStable || (this.hoverBlock !== null) );
     }
-    if (this.hoverBlock) this.hoverBlock.draw();
+    if (this.hoverBlock) this.hoverBlock.draw(true);
 
     // draw rewiring wire
     if (this.rewiring) this.rewiring.drawWire();
@@ -544,6 +544,7 @@ export default class GraphManager {
     }
 
     // apply accelerations
+    var maxBvs = 0;
     for (var i=0; i<this.blocks.length; i++) {
       var b = this.blocks[i];
       if (!b) continue;
@@ -569,9 +570,13 @@ export default class GraphManager {
         b.addToPosition(b.velocity);
 
         // trigger redraw if movement is significant
-        if (b.velocity.dot(b.velocity) > 0.01) this.needsRedraw = true;
+        var bvs = b.velocity.dot(b.velocity);
+        if (bvs > maxBvs) maxBvs = bvs;
       }
     }
+
+    if (maxBvs < 0.02) this.nearlyStable = true;
+    if (maxBvs > 0.01) this.needsRedraw = true;
 
     // update wires
     for (var i=0; i<this.blocks.length; i++) {
