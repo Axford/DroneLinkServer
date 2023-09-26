@@ -15,7 +15,7 @@ export default class GraphWire {
     this.lastCheckTime = Date.now();
 
     this.points = [];
-    for (var i = 0; i < 8; i++) {
+    for (var i = 0; i < 4; i++) {
       this.points.push({
         p: new Vector(0, 0),
         v: new Vector(0, 0),
@@ -124,7 +124,7 @@ export default class GraphWire {
     }
 
     var padding = 20;
-    var g = new Vector(0, 0.03 * this.mass);
+    var g = new Vector(0, 0.3 * this.mass);
 
     // for each point, calc the forces acted on by its neighbours
     for (var i = 1; i < this.points.length-1; i++) {
@@ -276,15 +276,38 @@ export default class GraphWire {
       );
       ctx.stroke();
     } else {
+      
       // draw line segments
       ctx.beginPath();
+      
+      var bx1 = (px + this.points[0].p.x)
+      ctx.moveTo(bx1, (py + this.points[0].p.y));
+
+      // ensure first handle can't be behind the block
+      var bx2 = (px + this.points[1].p.x);
+      if (bx2 > bx1-30) bx2 = bx1-30;
+
+      // ensure second handle also isn't behind the block
+      var bx3 = (px + this.points[2].p.x);
+      var bx4 = (px + this.points[3].p.x);
+      if (bx3 < bx4+30) bx3 = bx4+30;
+
+      ctx.bezierCurveTo(
+        bx2, (py + this.points[1].p.y),
+        bx3, (py + this.points[2].p.y),
+        bx4, (py + this.points[3].p.y)
+      );
+
+      /*
       ctx.moveTo((px + this.points[0].p.x), (py + this.points[0].p.y));
       for (var i = 1; i < this.points.length; i++) {
         ctx.lineTo((px + this.points[i].p.x), (py + this.points[i].p.y));
 
         //ctx.arc(px + this.points[i].p.x, py + this.points[i].p.y, 4, 0, 2*Math.PI);
       }
+      */
       ctx.stroke();
+
     }
   }
 }
