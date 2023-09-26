@@ -148,8 +148,8 @@ export default class NodeUI {
     titleContainer.append(this.uiTitle);
 
     // add network priority pie widget
-    this.uiPriorityPie = $('<canvas width=20 height=20 class="priorityPie"></canvas>');
-    titleContainer.append(this.uiPriorityPie);
+    //this.uiPriorityPie = $('<canvas width=20 height=20 class="priorityPie"></canvas>');
+    //titleContainer.append(this.uiPriorityPie);
 
     // add rebuild button to right panel
     this.uiRebuildBut = $('<button class="btn btn-sm btn-dark rebuildModules">Rebuild</button>');
@@ -375,7 +375,7 @@ export default class NodeUI {
     }
 
     // also update network Priority Pie 
-    this.updatePriorityPie();
+    //this.updatePriorityPie();
   }
 
 
@@ -619,7 +619,7 @@ export default class NodeUI {
         var c = parseInt(binding.substr(gp+1,pp-1));
         var p = parseInt(binding.substr(pp+1));
 
-        console.log('Gamepad: ',n,c,p);
+        //console.log('Gamepad: ',n,c,p);
 
         var av = (i % 2 == 1 ? -1 : 1) * g.axes[i];
 
@@ -1023,12 +1023,12 @@ export default class NodeUI {
     // convert to 3-part array for compatibility with mapbox markers
     target = target.slice(0,3);
     this.target = target;
-    console.log('new target');
+    //console.log('new target');
 
 
     //if (this.gotLocation) {
       if (!this.gotTarget) {
-        console.log('Adding target', target);
+        //console.log('Adding target', target);
         this.gotTarget = true;
 
         // -- target marker --
