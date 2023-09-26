@@ -238,9 +238,6 @@ export default class GraphWire {
       if (op && op.block == this.mgr.hoverBlock) dim = false;
     }
 
-    ctx.strokeStyle = dim ? "#606060" : (this.oport ? this.oport.block.fillStyle : ( this.rewiring ? '#00ff00' : '#606060'));
-    ctx.lineWidth = dim ? 1 : 6;
-
     var x1 = p.block.x1 - 8;
     var y1 = p.block.y1 + p.y + 8;
     var x2 = op ? op.block.x2 + 8 : x1 - 20;
@@ -276,12 +273,9 @@ export default class GraphWire {
       );
       ctx.stroke();
     } else {
-      
-      // draw line segments
-      ctx.beginPath();
+    
       
       var bx1 = (px + this.points[0].p.x)
-      ctx.moveTo(bx1, (py + this.points[0].p.y));
 
       // ensure first handle can't be behind the block
       var bx2 = (px + this.points[1].p.x);
@@ -292,21 +286,35 @@ export default class GraphWire {
       var bx4 = (px + this.points[3].p.x);
       if (bx3 < bx4+30) bx3 = bx4+30;
 
+      // draw shadow line
+      if (!dim) {
+        ctx.strokeStyle = '#222';
+        ctx.lineWidth = 7;
+
+        // draw line segments
+        ctx.beginPath();
+        ctx.moveTo(bx1, (py + this.points[0].p.y));
+        ctx.bezierCurveTo(
+          bx2, (py + this.points[1].p.y),
+          bx3, (py + this.points[2].p.y),
+          bx4, (py + this.points[3].p.y)
+        );
+        ctx.stroke();
+      }
+
+      ctx.strokeStyle = dim ? "#606060" : (this.oport ? this.oport.block.fillStyle : ( this.rewiring ? '#00ff00' : '#606060'));
+      ctx.lineWidth = dim ? 1 : 6;
+
+      // draw line segments
+      ctx.beginPath();
+      ctx.moveTo(bx1, (py + this.points[0].p.y));
       ctx.bezierCurveTo(
         bx2, (py + this.points[1].p.y),
         bx3, (py + this.points[2].p.y),
         bx4, (py + this.points[3].p.y)
       );
-
-      /*
-      ctx.moveTo((px + this.points[0].p.x), (py + this.points[0].p.y));
-      for (var i = 1; i < this.points.length; i++) {
-        ctx.lineTo((px + this.points[i].p.x), (py + this.points[i].p.y));
-
-        //ctx.arc(px + this.points[i].p.x, py + this.points[i].p.y, 4, 0, 2*Math.PI);
-      }
-      */
       ctx.stroke();
+      
 
     }
   }
