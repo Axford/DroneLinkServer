@@ -106,7 +106,7 @@ export default class GraphWire {
     // calc forces on each point along the wire and iterate to move them
     var loopTime = Date.now();
     var dt = (loopTime - this.lastUpdate) / 1000;  // in seconds
-    if (dt > 0.1) dt = 0.1;
+    if (dt > 1/50) dt = 1/50;
     this.lastUpdate = loopTime;
 
     // calc vector from start to end
@@ -189,7 +189,7 @@ export default class GraphWire {
       p.v.add(p.av);
 
       // clamp velocity
-      p.v.capLength(1000);
+      p.v.capLength(1200);
 
       // apply drag
       p.v.multiply(0.97);
@@ -278,9 +278,9 @@ export default class GraphWire {
     } else {
       // draw line segments
       ctx.beginPath();
-      ctx.moveTo(px + this.points[0].p.x, py + this.points[0].p.y);
+      ctx.moveTo(Math.floor(px + this.points[0].p.x), Math.floor(py + this.points[0].p.y));
       for (var i = 1; i < this.points.length; i++) {
-        ctx.lineTo(px + this.points[i].p.x, py + this.points[i].p.y);
+        ctx.lineTo(Math.floor(px + this.points[i].p.x), Math.floor(py + this.points[i].p.y));
 
         //ctx.arc(px + this.points[i].p.x, py + this.points[i].p.y, 4, 0, 2*Math.PI);
       }

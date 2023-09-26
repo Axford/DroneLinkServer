@@ -785,11 +785,11 @@ export default class GraphPort {
     var w = this.block.width;
     var h = this.height;
 
-    var px = this.mgr.panPosition.x;
-    var py = this.mgr.panPosition.y;
+    var px = Math.floor(this.mgr.panPosition.x);
+    var py = Math.floor(this.mgr.panPosition.y);
 
-    var x1 = this.block.x1;
-    var y1 = this.block.y1 + this.y;
+    var x1 = Math.floor(this.block.x1);
+    var y1 = Math.floor(this.block.y1 + this.y);
 
     // render help tooltip
     if (this.hovering && this.param.description) {
@@ -798,9 +798,9 @@ export default class GraphPort {
       var ts = this.param.description;
       var tm = ctx.measureText(ts);
       var tw = tm.width + 2*this.padding[0];
-      var th = tm.fontBoundingBoxAscent + tm.fontBoundingBoxDescent + 2*this.padding[0];
+      var th = Math.round(tm.fontBoundingBoxAscent + tm.fontBoundingBoxDescent + 2*this.padding[0]);
 
-      var tmx = px + this.block.x2 + 10;
+      var tmx = Math.floor(px + this.block.x2 + 10);
       var x2 = px + this.block.x2;
       var tmy = py + y1;
 

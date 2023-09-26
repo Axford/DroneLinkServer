@@ -453,7 +453,7 @@ export default class GraphManager {
     // adjust positions of all blocks
     var loopTime = Date.now();
     var dt = (loopTime - this.lastUpdate) / 1000;  // in seconds
-    if (dt > 0.05) dt = 0.05;
+    if (dt > 1/50) dt = 1/50;
     this.lastUpdate = loopTime;
 
     var c = this.canvas[0];
@@ -516,7 +516,7 @@ export default class GraphManager {
           var overlap = b.collidingWith(ob, padding);
           if (overlap.length() > 0) {
             overlap.capLength(100);
-            overlap.multiply(15);
+            overlap.multiply(10);
             b.av.add(overlap);
           }
         }
@@ -562,7 +562,7 @@ export default class GraphManager {
         b.velocity.add(b.av);
 
         // clamp velocity
-        b.velocity.capLength(600);
+        b.velocity.capLength(1200);
 
         // apply drag
         b.velocity.multiply(0.97);
