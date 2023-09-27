@@ -667,6 +667,54 @@ io.on('connection', (socket) => {
     dlm.emitAllRoutes();
   });
 
+  // setVSCIP
+  socket.on('setVSCIP', (msg)=>{
+    clog('Received IP for VSC: ' + msg);
+
+    // locate platformio.ini file
+    var fn = '../DroneNode/platformio.ini';
+    try {  
+      var data = fs.readFileSync(fn, 'utf8');
+      var fstr = data.toString();
+      var lines = fstr.split('\n');
+      var found = false;
+
+      fstr = '';
+      lines.forEach((line)=>{
+        // find the upload_port line
+        var epos = line.indexOf('=');
+        clog('line: ' + line + ', ' + epos);
+        if (epos > 0) {
+          var pn = line.substring(0,epos).trim();
+          clog('pn: ' + pn);
+          if (pn == 'upload_port') {
+            line = 'upload_port = ' + msg;
+            found = true;
+            
+          }
+        }
+
+        fstr += line + '\n';
+      });
+
+      if (found) {
+        fs.writeFileSync(fn, fstr);
+
+        clog('  Platformio updated');
+        socket.emit('VSCIPUpdated', fstr);
+      } else {
+        socket.emit('VSCIPError', 'upload_port parameter not found');
+      }
+
+
+  } catch(e) {
+      clog('Error:', e.stack);
+      socket.emit('VSCIPError', e.stack);
+  }
+
+
+  });
+
   // generate a RouteEntry request
   socket.on('getRoutesFor', (msg)=>{
 

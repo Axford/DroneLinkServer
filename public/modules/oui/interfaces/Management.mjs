@@ -79,6 +79,8 @@ export default class Management extends ModuleInterface {
     super(channel, state);
 
     this.lastUptime = 0;
+
+    this.hasRequestedCSVIP = false;
   }
 
   update() {
@@ -741,7 +743,45 @@ export default class Management extends ModuleInterface {
       this.state.send(qm);
     });
     this.ui.append(this.saveConfigBut);
+
+    /*
+    --------------  Set VSCode IP ----------------------------------
+    */
+    this.setVSCIPBut = $(
+      '<button class="btn btn-sm btn-secondary mb-2 mr-3">Set VSC IP</button>'
+    );
+    this.setVSCIPBut.on("click", () => {
+      this.hasRequestedCSVIP = true;
+      this.channel.node.socket.emit('setVSCIP', this.getIpString());
+    });
+    this.ui.append(this.setVSCIPBut);
     
+
+    this.channel.node.socket.on('VSCIPUpdated', (msg)=>{
+      this.hasRequestedCSVIP = false;
+      this.setVSCIPBut.notify(
+        "VSC IP updated: " + msg,
+        {
+          className: "success",
+          autoHide: true,
+          arrowShow: true,
+          position: 'left'
+        }
+      );
+    });
+    
+    this.channel.node.socket.on('VSCIPError', (msg)=>{
+      this.hasRequestedCSVIP = false;
+      this.setVSCIPBut.notify(
+        "Error updating VSC IP: " + msg,
+        {
+          className: "error",
+          autoHide: true,
+          arrowShow: true,
+          position: 'left'
+        }
+      );
+    });
 
     /*
     ------------------------------------------------------------
