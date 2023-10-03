@@ -230,6 +230,17 @@ export default class AnalysisManager {
 
   }
 
+  show() {
+    this.visible = true;
+    this.ui.show();
+    this.needsRedraw = true;
+  }
+
+  hide() {
+    this.visible = false;
+    this.ui.hide();
+  }
+
 
   reset() {
 

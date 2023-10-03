@@ -59,6 +59,7 @@ import { controllers, initGamepads } from './modules/gamepads.js';
 import UploadManager from './modules/UploadManager.mjs';
 import LogManager from './modules/LogManager.mjs';
 import SparkLine from './modules/SparkLine.mjs';
+import Tabs from './modules/oui/Tabs.mjs';
 
 import AisTracker from './modules/oui/AisTracker.mjs';
 var tracker = new AisTracker();
@@ -83,6 +84,9 @@ var networkGraph;
 
 import AnalysisManager from './modules/oui/AnalysisManager.mjs';
 var analyser;
+
+import ExportManager from './modules/oui/ExportManager.mjs';
+var exportManager;
 
 var uploadManager, logManager;
 
@@ -331,6 +335,63 @@ function init() {
     if (resumeLogPlayback) logger.play();
   });
 
+  networkGraph = new NetManager(socket, $('#networkPanel'));
+  networkGraph.localAddress = state.localAddress;
+  networkGraph.on('focus', (id)=>{
+    // TODO - focus node
+    var node = nodes[id];
+    if (node) {
+      node.focus();
+    }
+  });
+
+  analyser = new AnalysisManager($('#analysisOutput'), state);
+
+  $('#analysisResetButton').on('click', ()=>{
+    analyser.reset();
+  });
+
+  exportManager = new ExportManager($('#exportManager'), state);
+
+
+  // tab manager
+  var topTabs = new Tabs($('#topTabs'));
+
+  topTabs.add('map', 'Map', '<i class="fas fa-map-marked"></i>', 'nav-link');
+  topTabs.on('map', ()=>{
+    networkGraph.hide();
+    analyser.hide();
+    exportManager.hide();
+    $('#mapPanel').show();
+    map.resize();
+  });
+
+  topTabs.add('network', 'Network', '<i class="fas fa-project-diagram"></i>', 'nav-link');
+  topTabs.on('network', ()=>{
+    analyser.hide();
+    $('#mapPanel').hide();
+    exportManager.hide();
+    networkGraph.show();
+  });
+
+  topTabs.add('analysis', 'Analysis', '<i class="fas fa-chart-bar"></i>', 'nav-link');
+  topTabs.on('analysis', ()=>{
+    $('#mapPanel').hide();
+    networkGraph.hide();
+    exportManager.hide();
+    analyser.show();
+  });
+
+  topTabs.add('export', 'Export', '<i class="fas fa-table"></i>', 'nav-link');
+  topTabs.on('export', ()=>{
+    $('#mapPanel').hide();
+    networkGraph.hide();
+    analyser.hide();
+    exportManager.show();
+  });
+
+
+/*
   // view controls
   $('#viewMapButton').on('click', ()=>{
     $('#mapPanel').show();
@@ -348,16 +409,6 @@ function init() {
     $('#viewAnalysisButton').addClass('inactive');
 
     map.resize();
-  });
-
-  networkGraph = new NetManager(socket, $('#networkPanel'));
-  networkGraph.localAddress = state.localAddress;
-  networkGraph.on('focus', (id)=>{
-    // TODO - focus node
-    var node = nodes[id];
-    if (node) {
-      node.focus();
-    }
   });
 
   $('#viewNetworkButton').on('click', ()=>{
@@ -393,12 +444,7 @@ function init() {
     $('#viewNetworkButton').addClass('inactive');
     $('#viewAnalysisButton').addClass('active');
   });
-
-  analyser = new AnalysisManager($('#analysisOutput'), state);
-
-  $('#analysisResetButton').on('click', ()=>{
-    analyser.reset();
-  });
+  */
 
 
   // configure logger
@@ -636,6 +682,9 @@ function init() {
 
     // show body
     document.body.style.visibility = 'visible';
+
+    // select map tab
+  topTabs.selectTab('map');
   });
 
   // init gamepads

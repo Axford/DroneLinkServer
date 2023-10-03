@@ -27,12 +27,13 @@ export default class Tabs {
   }
 
 
-  add(name, title, content) {
+  add(name, title, content, customStyle) {
     var me = this;
+    customStyle = customStyle ? customStyle : '';
     //add('NodeSettings', 'UI Settings', '<i class="fas fa-cog"></i>');
 
     var style = 'inactive';
-    var tab = $('<a class="tab '+style+'" title="'+title+'">'+content+'</a>');
+    var tab = $('<a class="tab '+style+' ' +customStyle+'" title="'+title+'">'+content+'</a>');
     tab.data('tab',name);
 
     this.uiParent.append(tab);
@@ -60,6 +61,7 @@ export default class Tabs {
     });
 
     this.trigger('select', tabName);
+    this.trigger(tabName, 'active');
   }
 
 }

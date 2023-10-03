@@ -324,6 +324,17 @@ export default class NetManager {
     //this.draw();
   }
 
+  show() {
+    this.visible = true;
+    this.uiRoot.show();
+    this.resize();
+  }
+
+  hide() {
+    this.visible = false;
+    this.uiRoot.hide();
+  }
+
   draw() {
     var loopTime = Date.now();
     if (loopTime - this.lastDraw > 1000) this.needsRedraw = true;
