@@ -249,6 +249,22 @@ export default class Parameter {
     });
     this.ui.append(this.uiQuery);
 
+
+    // export button
+    this.uiExport = $('<button class="btn btn-sm btn-light" style="position:absolute; bottom:2px; right:26px;"><i class="fas fa-file-csv"></i></button>');
+    this.uiExport.on('click', ()=>{
+      this.channel.node.exportManager.addColumn(
+        this.channel.node,
+        this.channel,
+        this,
+        this.paramValues
+      );
+      event.stopPropagation();
+    });
+    this.ui.append(this.uiExport);
+
+
+
     this.channel.parametersTab.append(this.ui);
 
     this.built = true;

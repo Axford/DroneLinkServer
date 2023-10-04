@@ -348,7 +348,7 @@ function init() {
 
   analyser = new AnalysisManager($('#analysisPanel'), state);
 
-  exportManager = new ExportManager($('#exportManager'), state);
+  exportManager = new ExportManager($('#exportPanel'), state);
 
 
   // tab manager
@@ -379,69 +379,13 @@ function init() {
     analyser.show();
   });
 
-  topTabs.add('export', 'Export', '<i class="fas fa-table"></i>', 'nav-link');
+  topTabs.add('export', 'Export', '<i class="fas fa-file-csv"></i>', 'nav-link');
   topTabs.on('export', ()=>{
     $('#mapPanel').hide();
     networkGraph.hide();
     analyser.hide();
     exportManager.show();
   });
-
-
-/*
-  // view controls
-  $('#viewMapButton').on('click', ()=>{
-    $('#mapPanel').show();
-    $('#networkPanel').hide();
-    $('#analysisPanel').hide();
-    networkGraph.visible = false;
-    analyser.visible = false;
-
-    $('#viewMapButton').removeClass('inactive');
-    $('#viewNetworkButton').removeClass('active');
-    $('#viewAnalysisButton').removeClass('active');
-
-    $('#viewMapButton').addClass('active');
-    $('#viewNetworkButton').addClass('inactive');
-    $('#viewAnalysisButton').addClass('inactive');
-
-    map.resize();
-  });
-
-  $('#viewNetworkButton').on('click', ()=>{
-    $('#mapPanel').hide();
-    $('#networkPanel').show();
-    $('#analysisPanel').hide();
-    networkGraph.visible = true;
-    analyser.visible = false;
-
-    $('#viewMapButton').removeClass('active');
-    $('#viewNetworkButton').removeClass('inactive');
-    $('#viewAnalysisButton').removeClass('active');
-
-    $('#viewMapButton').addClass('inactive');
-    $('#viewNetworkButton').addClass('active');
-    $('#viewAnalysisButton').addClass('inactive');
-
-    networkGraph.resize();
-  });
-
-  $('#viewAnalysisButton').on('click', ()=>{
-    $('#mapPanel').hide();
-    $('#networkPanel').hide();
-    $('#analysisPanel').show();
-    networkGraph.visible = false;
-    analyser.visible = true;
-
-    $('#viewMapButton').removeClass('active');
-    $('#viewNetworkButton').removeClass('active');
-    $('#viewAnalysisButton').removeClass('inactive');
-
-    $('#viewMapButton').addClass('inactive');
-    $('#viewNetworkButton').addClass('inactive');
-    $('#viewAnalysisButton').addClass('active');
-  });
-  */
 
 
   // configure logger
@@ -638,7 +582,7 @@ function init() {
       console.log('node.new:' + id);
 
       // create new node entry
-      var node = new NodeUI(id, state, map, uiManager, db, storage, socket);
+      var node = new NodeUI(id, state, map, uiManager, db, storage, socket, exportManager);
       node.setLatestFirmwareVersion(latestFirmwareVersion);
       nodes[id] = node;
       numNodes++;
