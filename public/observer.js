@@ -346,11 +346,7 @@ function init() {
     }
   });
 
-  analyser = new AnalysisManager($('#analysisOutput'), state);
-
-  $('#analysisResetButton').on('click', ()=>{
-    analyser.reset();
-  });
+  analyser = new AnalysisManager($('#analysisPanel'), state);
 
   exportManager = new ExportManager($('#exportManager'), state);
 

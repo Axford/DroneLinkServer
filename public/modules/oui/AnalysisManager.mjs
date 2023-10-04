@@ -2,8 +2,20 @@
 
 export default class AnalysisManager {
 
-  constructor(ui, state) {
-    this.ui = ui;
+  constructor(uiRoot, state) {
+    var me = this;
+    this.uiRoot = uiRoot;
+
+    this.resetButton = $('<button class="btn btn-sm btn-danger mb-2">Reset</button>');
+    this.resetButton.on('click', ()=>{
+      me.reset();
+    });
+    this.uiRoot.append(this.resetButton);
+
+
+    this.ui = $('<div id="analysisOutput"></div>');
+    this.uiRoot.append (this.ui);
+    
     this.state = state;
     this.visible = false;
 
@@ -13,6 +25,7 @@ export default class AnalysisManager {
     this.numPackets = 0;
     this.maxPackets = 0;
     this.startTime = Date.now();
+
 
     // node.new
     state.on('node.new', (node)=>{
@@ -232,13 +245,13 @@ export default class AnalysisManager {
 
   show() {
     this.visible = true;
-    this.ui.show();
+    this.uiRoot.show();
     this.needsRedraw = true;
   }
 
   hide() {
     this.visible = false;
-    this.ui.hide();
+    this.uiRoot.hide();
   }
 
 
