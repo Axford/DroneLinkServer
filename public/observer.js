@@ -274,6 +274,7 @@ function fetchFirmwareVersion() {
 }
 
 
+
 function init() {
   // install showHelp on window object
   window.showHelp = showHelp;

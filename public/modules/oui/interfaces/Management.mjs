@@ -80,7 +80,8 @@ export default class Management extends ModuleInterface {
 
     this.lastUptime = 0;
 
-    this.hasRequestedCSVIP = false;
+    this.hasRequestedVSCIP = false;
+    this.hasRequestedVSCUpload = false;
   }
 
   update() {
@@ -752,13 +753,13 @@ export default class Management extends ModuleInterface {
     );
     this.setVSCIPBut.on("click", () => {
       this.hasRequestedCSVIP = true;
-      this.channel.node.socket.emit('setVSCIP', this.getIpString());
+      this.channel.node.socket.emit('setVSCIP', JSON.stringify({ ip: this.getIpString(), upload:false }) );
     });
     this.ui.append(this.setVSCIPBut);
     
 
     this.channel.node.socket.on('VSCIPUpdated', (msg)=>{
-      this.hasRequestedCSVIP = false;
+      this.hasRequestedVSCIP = false;
       this.setVSCIPBut.notify(
         "VSC IP updated: " + msg,
         {
@@ -771,7 +772,7 @@ export default class Management extends ModuleInterface {
     });
     
     this.channel.node.socket.on('VSCIPError', (msg)=>{
-      this.hasRequestedCSVIP = false;
+      this.hasRequestedVSCIP = false;
       this.setVSCIPBut.notify(
         "Error updating VSC IP: " + msg,
         {
@@ -781,6 +782,22 @@ export default class Management extends ModuleInterface {
           position: 'left'
         }
       );
+    });
+
+    this.uploadVSCBut = $(
+      '<button class="btn btn-sm btn-secondary mb-2 mr-3" style="display:none">VSC Upload</button>'
+    );
+    this.uploadVSCBut.on("click", () => {
+      this.hasRequestedVSCIP = true;
+      this.hasRequestedVSCUpload = true;
+      this.channel.node.socket.emit('setVSCIP', JSON.stringify({ ip: this.getIpString(), upload:true }) ); 
+    }); 
+    this.ui.append(this.uploadVSCBut);
+
+    this.channel.node.socket.on('VSCUpload', (msg)=>{
+      this.hasRequestedVSCUpload = false;
+      var obj = JSON.parse(msg);
+      console.log(obj);
     });
 
     /*
