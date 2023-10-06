@@ -14,6 +14,8 @@ export default class ExportManager {
     this.state = state;
     this.visible = false;
 
+    this.active = true;
+
     this.lastRowTime = Date.now();
 
     this.columns = [{
@@ -55,7 +57,6 @@ export default class ExportManager {
       if (loopTime > me.lastRowTime + 1000) {
         console.log('adding row');
         me.addRow();
-        me.lastRowTime = loopTime;
       }
     });
   }
@@ -134,6 +135,7 @@ export default class ExportManager {
   }
 
   addRow() {
+    if (!this.active) return;
 
     // update time entry
     this.last[0] = Date.now();
@@ -168,6 +170,8 @@ export default class ExportManager {
     });
 
     this.ui.tbody.append(tr);
+
+    this.lastRowTime = Date.now();
   }
 
   addColumn(node, channel, param, paramValues) {
@@ -221,23 +225,38 @@ export default class ExportManager {
     var topNav = $('<div class="mb-3"></div>');
     this.uiRoot.append(topNav);
 
-    this.ui.exportButton = $('<button class="btn btn-success mr-5">Export CSV</button>');
-    this.ui.exportButton.on('click', ()=>{
-      me.export();
+    this.ui.pauseButton = $('<button class="btn btn-primary mr-5"><i class="fas fa-pause mr-2"></i> Pause</button>');
+    this.ui.pauseButton.on('click', ()=>{
+      me.active = !me.active;
+      if (me.active) {
+        this.ui.pauseButton.html('<i class="fas fa-pause"></i> Pause');
+        this.ui.pauseButton.addClass('btn-primary');
+        this.ui.pauseButton.removeClass('btn-success');
+      } else {
+        this.ui.pauseButton.html('<i class="fas fa-play"></i> Capture');
+        this.ui.pauseButton.removeClass('btn-danger');
+        this.ui.pauseButton.addClass('btn-success');
+      }
     });
-    topNav.append(this.ui.exportButton);
+    topNav.append(this.ui.pauseButton);
 
-    this.ui.clearButton = $('<button class="btn btn-warning mr-3">Clear</button>');
+    this.ui.clearButton = $('<button class="btn btn-warning mr-3"><i class="fas fa-eraser mr-2"></i> Clear</button>');
     this.ui.clearButton.on('click', ()=>{
       me.clear();
     });
     topNav.append(this.ui.clearButton);
 
-    this.ui.resetButton = $('<button class="btn btn-danger">Reset</button>');
+    this.ui.resetButton = $('<button class="btn btn-danger mr-5"><i class="fas fa-trash mr-2"></i> Reset</button>');
     this.ui.resetButton.on('click', ()=>{
       me.reset();
     });
     topNav.append(this.ui.resetButton);
+
+    this.ui.exportButton = $('<button class="btn btn-primary"><i class="fas fa-file-csv mr-2"></i> Export CSV</button>');
+    this.ui.exportButton.on('click', ()=>{
+      me.export();
+    });
+    topNav.append(this.ui.exportButton);
 
 
     // hidden download link
