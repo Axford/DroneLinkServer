@@ -69,6 +69,29 @@ export default class ExportManager {
     this.visible = false; 
   }
 
+  reset() {
+    this.clear();
+
+    // remove columns
+    this.columns = this.columns.slice(0,1);
+
+    // remove table headings elements
+    this.ui.tableHeader.children('th').remove('.dataColumn');
+
+    // clear last
+    this.last = this.last.slice(0,1);
+  }
+
+  clear() {
+    // remove rows
+    this.rows = [];
+    this.ui.tbody.empty();
+  }
+
+  export() {
+
+  }
+
   addRow() {
 
     // update time entry
@@ -119,16 +142,20 @@ export default class ExportManager {
 
     if (f) return;
 
-    // get additional info
-
-
     // add new column
+    var title = '';
+    title += (node.name != '') ? node.name : node.id;
+    title += ' &gt;<br>';
+    title += (channel.name != '?') ? channel.name : channel.channel;
+    title += '.';
+    title += (param.title != '?') ? param.title : param.param;
+
     var newCol = {
       index: this.columns.length,
       node:node.id,
       channel:channel.channel,
       param:param.param,
-      title: node.name + ' &gt;<br>' + channel.name + '.' + param.title,
+      title: title,
       ui: null
     };
     this.columns.push(newCol);
@@ -137,7 +164,7 @@ export default class ExportManager {
     this.last.push(paramValues);
 
     // add column to table header
-    newCol.ui = $('<th>'+ newCol.title +'</th>');
+    newCol.ui = $('<th class="dataColumn">'+ newCol.title +'</th>');
     this.ui.tableHeader.append(newCol.ui);
 
     this.addRow();
@@ -145,11 +172,36 @@ export default class ExportManager {
 
 
   build() {
+    var me = this;
     this.ui = {};
     
-    this.ui.rightPanel = $('<div class=""></div>');
-    this.uiRoot.append(this.ui.rightPanel);
+    // Nav
+    // -----------------------------------------------------------------------
+    var topNav = $('<div class="mb-3"></div>');
+    this.uiRoot.append(topNav);
 
+    this.ui.exportButton = $('<button class="btn btn-success mr-5">Export CSV</button>');
+    this.ui.exportButton.on('click', ()=>{
+      me.export();
+    });
+    topNav.append(this.ui.exportButton);
+
+    this.ui.clearButton = $('<button class="btn btn-warning mr-3">Clear</button>');
+    this.ui.clearButton.on('click', ()=>{
+      me.clear();
+    });
+    topNav.append(this.ui.clearButton);
+
+    this.ui.resetButton = $('<button class="btn btn-danger">Reset</button>');
+    this.ui.resetButton.on('click', ()=>{
+      me.reset();
+    });
+    topNav.append(this.ui.resetButton);
+
+
+
+    // Table
+    // -----------------------------------------------------------------------
     var t = $('<table class="table table-sm table-dark"></table>');
 
     var th = $('<thead></thead>');
@@ -163,7 +215,7 @@ export default class ExportManager {
     this.ui.tbody = $('<tbody></tbody>');
     t.append(this.ui.tbody);
 
-    this.ui.rightPanel.append(t);
+    this.uiRoot.append(t);
 
   }
 } // end of class
