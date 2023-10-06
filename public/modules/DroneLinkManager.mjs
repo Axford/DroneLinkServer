@@ -286,7 +286,7 @@ export default class DroneLinkManager {
         if (b.netInterface &&
             b.netInterface.sendPacket(b.msg, interfaceAddress)) {
           if (this.logOptions.Transmit)
-            this.clog(('Send by '+b.netInterface.typeName+': ' + b.msg.toString()).yellow);
+            this.clog(('Send by '+b.netInterface.typeName+', '+interfaceAddress+': ' + b.msg.toString()).yellow);
 
           this.packetsSent++;
 

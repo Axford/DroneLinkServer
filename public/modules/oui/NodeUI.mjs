@@ -16,6 +16,8 @@ import GraphPanel from './panels/Graph.mjs';
 import NodeSettingsPanel from './panels/NodeSettings.mjs';
 import VisualisationPanel from './panels/Visualisation.mjs';
 
+import SparkLine from '../SparkLine.mjs';
+
 import {calculateDestinationFromDistanceAndBearing, calculateInitialBearingBetweenCoordinates} from '../navMath.mjs';
 
 loadStylesheet('./css/modules/oui/NodeUI.css');
@@ -60,6 +62,9 @@ export default class NodeUI {
 
     this.settingsChanged = false;
     this.navMappingStyle = 'full';
+
+    this.receiveSpark = null;
+    this.received = 0;
 
     // used to track mappable params like location or heading
     this.mapParams = {};
@@ -171,6 +176,11 @@ export default class NodeUI {
 		});
     titleContainer.append(this.uiRebuildBut);
 
+    // add Rx sparkline
+    var receiveSparkContainer = $('<div style="width:60px; height:24px; display: inline-block;"></div>');
+    titleContainer.append(receiveSparkContainer);
+    this.receiveSpark = new SparkLine(receiveSparkContainer, { depth:60, label:'Rx' });
+
     // container for tabs
     this.puiNav = $('<div class="panelNav"></div>');
     this.pui.append(this.puiNav);
@@ -241,6 +251,8 @@ export default class NodeUI {
     this.state.on('param.value', (data)=>{
       if (data.node != this.id) return;
 
+      this.received++;
+
       // listen for hostname
       if (data.channel == 1 && data.param == 8 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_CHAR) {
         if (data.values[0]) {
@@ -278,6 +290,10 @@ export default class NodeUI {
       this.checkIfActive(); 
 
       this.checkIfSettingsChanged();
+
+      // update spark
+      this.receiveSpark.addSample(this.received);
+      this.received = 0;
 
     }, 1000);
 
