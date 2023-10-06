@@ -27,7 +27,7 @@ export default class UDPInterface extends NetworkInterface {
 
     // emits on new datagram msg
     this.server.on('message', (msg,info)=>{
-      //this.clog('UDP Received %d bytes from %s:%d\n',msg.length, info.address, info.port);
+      this.clog('UDP Received '+msg.length+' bytes from ' + info.address + ':' + info.port + '\n');
 
       var newMsg = new DMM.DroneMeshMsg(msg);
 
