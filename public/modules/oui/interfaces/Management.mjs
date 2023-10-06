@@ -379,13 +379,26 @@ export default class Management extends ModuleInterface {
 
       // count up params across all modules
       var totalParams = 0;
+      var publishedParams = 0;
+      
       data.forEach((module) => {
         totalParams += module.mgmt.length;
         totalParams += module.params.length;
         totalParams += module.subs.length;
+
+        // calc published quantity
+        module.mgmt.forEach((p)=>{ 
+          if (p.publish) publishedParams++;
+        });
+        module.params.forEach((p)=>{ 
+          if (p.publish) publishedParams++;
+        });
+        module.subs.forEach((p)=>{ 
+          if (p.publish) publishedParams++;
+        });
       });
 
-      s += '<h1>' + data[0].params[0].value +': ' +data.length+' <span class="text-muted font-weight-light"> Modules, </span> ' +totalParams+'<span class="text-muted font-weight-light"> Parameters</span> </h1>';
+      s += '<h1>' + data[0].params[0].value +': ' +data.length+' <span class="text-muted font-weight-light"> Modules, </span> ' +totalParams+'<span class="text-muted font-weight-light"> Parameters,</span> ' +publishedParams+'<span class="text-muted font-weight-light"> Published</span></h1>';
 
 
 
