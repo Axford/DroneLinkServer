@@ -89,6 +89,46 @@ export default class ExportManager {
   }
 
   export() {
+    var s = '';
+
+    // add column headings
+    this.columns.forEach((c, index)=>{
+      if (index > 0) s += ',';
+      s += '"' + c.title + '"';
+    });
+    s += '\n';
+
+    // add rows
+    this.rows.forEach((r, index)=>{
+      if (index > 0) s += '\n';
+      
+      // for each value
+      r.forEach((v, i2)=>{
+        var vs = i2 > 0 ? ',' : '';
+        if (i2 == 0) {
+          // format as date time
+          vs = format(new Date(v), 'dd/mm/yyyy HH:mm:ss');
+        } else {
+          // is it an array?
+          if (Array.isArray(v)) {
+            v.forEach((vp, i3)=>{
+              if (i3 > 0) vs += ';';
+              vs += _.isNumber(vp) ? vp.toFixed(1) : vp;  
+            });
+          } else
+            vs = _.isNumber(v) ? v.toFixed(1) : v;
+        }
+        s += vs;
+      });
+    });
+
+    var src = URL.createObjectURL(new Blob([s], {type: "text/csv" }));
+
+    // also set it on a link for easy downloading
+    this.ui.downloadLink.attr('href', src);
+    this.ui.downloadLink.attr('download', 'export.csv');
+    this.ui.downloadLink.attr('target', '_blank');
+    this.ui.downloadLink[0].click();
 
   }
 
@@ -198,6 +238,10 @@ export default class ExportManager {
     });
     topNav.append(this.ui.resetButton);
 
+
+    // hidden download link
+    this.ui.downloadLink = $('<a class="hidden"></a>');
+    this.uiRoot.append(this.ui.downloadLink);
 
 
     // Table
