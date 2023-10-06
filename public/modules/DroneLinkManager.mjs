@@ -366,6 +366,35 @@ export default class DroneLinkManager {
       }
     }
 
+    // also generate unicast hello for active UDP nodes on a remote address
+    for (const [node, nodeInfo] of Object.entries(this.routeMap)) {
+      // if directly connected (i.e. has a helloInterface) and it's UDP
+      if (nodeInfo.heard && 
+          nodeInfo.helloInterface && 
+          nodeInfo.helloInterface.typeCode == 0) {
+
+        // see if remote address is in a different subnet to our local address
+        // compare first this elements of the address
+        var partsA = nodeInfo.interfaceAddress.split('.');
+        var partsB = nodeInfo.helloInterface.localAddress.split('.');
+
+        if (partsA.length == 4 && partsB.length == 4) {
+          var match = true;
+          for (var i=0; i<3; i++) {
+            match = match && (partsA[i] == partsB[i]);
+          }
+
+          if (!match && nodeInfo.helloInterface.state) {
+            // remote is in different subnet
+            this.clog(('Generating unicast UDP hello for: '+ nodeInfo.interfaceAddress).purple);
+            this.generateHello(nodeInfo.helloInterface, this.node, this.helloSeq, 0, loopTime - this.bootTime, nodeInfo.node);
+          }
+        } else {
+          // can't compare
+        }
+      }
+    }
+
     // generate a new hello seq number every now and again
     if (loopTime > this.seqTimer + DRONE_LINK_MANAGER_SEQ_INTERVAL) {
       this.helloSeq++;
@@ -374,7 +403,7 @@ export default class DroneLinkManager {
   }
 
 
-  generateHello(ni, src, seq, metric, uptime) {
+  generateHello(ni, src, seq, metric, uptime, dest=0) {
     var buffer = this.getTransmitBuffer(ni, DMM.DRONE_MESH_MSG_PRIORITY_CRITICAL);
 
     if (buffer) {
@@ -384,8 +413,8 @@ export default class DroneLinkManager {
       msg.typeGuaranteeSize =  DMM.DRONE_MESH_MSG_NOT_GUARANTEED | (5-1) ;  // payload is 1 byte... sent as n-1
       msg.txNode = this.node;
       msg.srcNode = src;
-      msg.nextNode = 0;
-      msg.destNode = 0;
+      msg.nextNode = dest;
+      msg.destNode = dest;
       msg.seq = seq;
       msg.setPriorityAndType(DMM.DRONE_MESH_MSG_PRIORITY_CRITICAL, DMM.DRONE_MESH_MSG_TYPE_HELLO);
       msg.uint8_tPayload[0] = metric;
@@ -813,6 +842,7 @@ export default class DroneLinkManager {
         // so a fresh sub is requested if this route becomes available again
         nodeInfo.subState = SUB_STATE_PENDING;
         nodeInfo.metric = 255;
+        nodeInfo.gSequencer.clear();
       }
 
       if (this.io) this.io.emit('route.removed', nodeInfo.encode());

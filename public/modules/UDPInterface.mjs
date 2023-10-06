@@ -11,6 +11,8 @@ export default class UDPInterface extends NetworkInterface {
     this.typeName = 'UDP';
     this.typeCode = 0;
 
+    this.localAddress = '0.0.0.0';
+
     // register self with dlm
     dlm.registerInterface(this);
 
@@ -63,6 +65,7 @@ export default class UDPInterface extends NetworkInterface {
       var port = address.port;
       var family = address.family;
       var ipaddr = address.address;
+      this.localAddress = address.address;
       this.clog('UDP server is listening on '+ipaddr+':' + port);
       this.state = true;
     });
