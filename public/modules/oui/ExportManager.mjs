@@ -21,6 +21,7 @@ export default class ExportManager {
       node:0,
       channel:0,
       param:0,
+      title:'Time',
       ui: $('<th>Time</th>')
     }];
 
