@@ -77,10 +77,14 @@ export default class TurnRate extends ModuleInterface {
 		ctx.fill();
 
 		// turn rate arc
+		var turnRateCapped = turnRate;
+		if (turnRateCapped > 6) turnRateCapped = 6
+		if (turnRateCapped < -6) turnRateCapped = -6;
+
 		ctx.beginPath();
-		ctx.arc(cx, 100, 80, h2, h2 + turnRate, turnRate < 0);
-		ctx.lineTo(cx + 65*Math.cos(h2+1.1*turnRate), 100 + 65*Math.sin(h2+1.1*turnRate));
-		ctx.arc(cx, 100, 50, h2 + turnRate, h2, turnRate > 0);
+		ctx.arc(cx, 100, 80, h2, h2 + turnRateCapped, turnRateCapped < 0);
+		ctx.lineTo(cx + 65*Math.cos(h2+1.1*turnRateCapped), 100 + 65*Math.sin(h2+1.1*turnRateCapped));
+		ctx.arc(cx, 100, 50, h2 + turnRateCapped, h2, turnRateCapped > 0);
 		ctx.fillStyle = mode == 2 ? '#c55' : '#0a0';
 		ctx.fill();
 
