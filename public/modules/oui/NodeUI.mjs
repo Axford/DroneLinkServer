@@ -313,6 +313,14 @@ export default class NodeUI {
 
     // fade out map widgets
     this.mapLayerIDs.forEach((id)=>{
+
+      this.map.setLayoutProperty(
+        id,
+        'visibility',
+        'none'
+      );
+
+      /*
       this.mapLayerOpacities[id] = this.map.getPaintProperty(id, 'line-opacity');
 
       this.map.setPaintProperty(
@@ -320,10 +328,12 @@ export default class NodeUI {
         'line-opacity',
         0.2 * this.mapLayerOpacities[id]
       );
+      */
     });
 
     this.mapElements.forEach((ele)=>{
-      ele.style.opacity = 0.3;
+      ele.style.display = 'none';
+      //ele.style.opacity = 0.3;
     });
   }
 
@@ -338,15 +348,23 @@ export default class NodeUI {
 
     // bring back map widgets
     this.mapLayerIDs.forEach((id)=>{
+      this.map.setLayoutProperty(
+        id,
+        'visibility',
+        'visible'
+      );
+      /*
       this.map.setPaintProperty(
         id,
         'line-opacity',
         this.mapLayerOpacities[id]
       );
+      */
     });
 
     this.mapElements.forEach((ele)=>{
-      ele.style.opacity = 1;
+      ele.style.display = 'block';
+      //ele.style.opacity = 1;
     });
   }
 
