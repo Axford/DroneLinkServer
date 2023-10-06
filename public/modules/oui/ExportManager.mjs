@@ -108,7 +108,7 @@ export default class ExportManager {
         var vs = i2 > 0 ? ',' : '';
         if (i2 == 0) {
           // format as date time
-          vs = format(new Date(v), 'dd/mm/yyyy HH:mm:ss');
+          vs = format(new Date(v), 'dd/MM/yyyy HH:mm:ss');
         } else {
           // is it an array?
           if (Array.isArray(v)) {
