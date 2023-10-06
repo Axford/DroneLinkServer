@@ -931,6 +931,8 @@ export default class NodeUI {
   updateLocation(newLoc) {
     var loopTime = (new Date()).getTime();
 
+    if (newLoc[0] == 0) return;
+
     //console.log(newLoc);
     this.location = newLoc;
     // update snailTrail
@@ -1051,7 +1053,7 @@ export default class NodeUI {
   }
 
   updateTarget(target) {
-    if (target == undefined || target.length <3) {
+    if (target == undefined || target.length <3 || target[0] == 0) {
       console.error('invalid target: ', target);
       return;
     }
