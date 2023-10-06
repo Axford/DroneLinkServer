@@ -95,7 +95,7 @@ export default class ExportManager {
     // add column headings
     this.columns.forEach((c, index)=>{
       if (index > 0) s += ',';
-      s += '"' + c.title + '"';
+      s += '"' + c.title.replace('&gt;<br>', '>') + '"';
     });
     s += '\n';
 
@@ -114,10 +114,10 @@ export default class ExportManager {
           if (Array.isArray(v)) {
             v.forEach((vp, i3)=>{
               if (i3 > 0) vs += ';';
-              vs += _.isNumber(vp) ? vp.toFixed(1) : vp;  
+              vs += _.isNumber(vp) ? vp.toFixed(4) : vp;  
             });
           } else
-            vs = _.isNumber(v) ? v.toFixed(1) : v;
+            vs = _.isNumber(v) ? v.toFixed(4) : v;
         }
         s += vs;
       });
