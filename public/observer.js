@@ -606,10 +606,27 @@ function init() {
         openPanel();
       }
 
+      node.onStateChange = () => {
+        // resort nodes in overlay
+        var c = $('#nodes').children().sort((a,b)=>{
+          try {
+            var av = ($(a).data('isActive') ? 0 : 255) + $(a).data('id');
+            var bv = ($(b).data('isActive') ? 0 : 255) + $(b).data('id');
+            return av - bv;
+          } catch (e) {
+          }
+          return 0;
+        });
+        $('#nodes').append(c);
+      }
+
       if (numNodes == 1) {
         node.focus();
         // hide status
-        $('.status').hide();
+        $('.status').remove();
+
+        // sort list
+        node.onStateChange();
       }
 
       // is this the last selected node?

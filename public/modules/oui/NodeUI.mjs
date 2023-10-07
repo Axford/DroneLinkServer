@@ -77,6 +77,8 @@ export default class NodeUI {
     // create overlay UI
     this.ui = document.createElement('div');
     this.ui.className = 'nodeOverlay';
+    $(this.ui).data('id', id);
+    $(this.ui).data('isActive', true);
     this.ui.node = this;
 
     this.uiLabel = document.createElement('span');
@@ -351,6 +353,10 @@ export default class NodeUI {
       ele.style.display = 'none';
       //ele.style.opacity = 0.3;
     });
+
+    // update observer
+    $(this.ui).data('isActive', false);
+    if (this.onStateChange) this.onStateChange();
   }
 
 
@@ -382,6 +388,10 @@ export default class NodeUI {
       ele.style.display = 'block';
       //ele.style.opacity = 1;
     });
+
+    // update observer
+    $(this.ui).data('isActive', true);
+    if (this.onStateChange) this.onStateChange();
   }
 
   checkIfActive() {
@@ -1054,7 +1064,7 @@ export default class NodeUI {
 
   updateTarget(target) {
     if (target == undefined || target.length <3 || target[0] == 0) {
-      console.error('invalid target: ', target);
+      //console.error('invalid target: ', target);
       return;
     }
 
