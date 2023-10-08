@@ -6,12 +6,33 @@ import { degreesToRadians } from "../../navMath.mjs";
 export default class Joystick extends ModuleInterface {
   constructor(channel, state) {
     super(channel, state);
+
+    this.xAxis = 0;
+    this.yAxis = 0;
+    this.zAxis = 0;
+    this.button = 0;
   }
 
   onParamValue(data) {
     if (!this.built) return;
 
-    this.updateNeeded = true;
+    if (data.param == 10 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
+        this.xAxis = parseFloat(data.values[0]);
+    }
+
+    if (data.param == 11 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
+        this.yAxis = parseFloat(data.values[0]);
+    }
+
+    if (data.param == 12 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
+        this.zAxis = parseFloat(data.values[0]);
+    }
+
+    if (data.param == 13 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
+        this.button = parseFloat(data.values[0]);
+    }
+
+    this.update(); // draw immediately
   }
 
   update() {
@@ -32,10 +53,12 @@ export default class Joystick extends ModuleInterface {
     var h1 = Math.max(ctx.canvas.height, 200);
 
     // fetch params
+    /*
     var xAxis = this.state.getParamValues(node, channel, 10, [0])[0];
     var yAxis = this.state.getParamValues(node, channel, 11, [0])[0];
     var zAxis = this.state.getParamValues(node, channel, 12, [0])[0];
     var button = this.state.getParamValues(node, channel, 13, [0])[0];
+    */
 
     // render vector view
     // -------------------------------------------------------------------------
@@ -74,8 +97,8 @@ export default class Joystick extends ModuleInterface {
     ctx.stroke();
 
 
-    var bx = cx + xAxis * bl;
-    var by = cy - yAxis * bl;
+    var bx = cx + this.xAxis * bl;
+    var by = cy - this.yAxis * bl;
 
 
     // draw line to button
@@ -87,7 +110,7 @@ export default class Joystick extends ModuleInterface {
     ctx.fill();
 
     // draw button, positive value indicates pressed
-    ctx.fillStyle = button > 0 ? '#8f8' : '#555';
+    ctx.fillStyle = this.button > 0 ? '#8f8' : '#555';
     ctx.strokeStyle = '#888';
     ctx.lineWidth = 5;
     ctx.beginPath();
@@ -99,7 +122,7 @@ export default class Joystick extends ModuleInterface {
     ctx.strokeStyle = '#8f8';
     ctx.lineWidth = 5;
     ctx.beginPath();
-    ctx.arc(bx, by, r1, -Math.PI/2, -Math.PI/2 + zAxis * Math.PI, zAxis < 0 ? true : false);
+    ctx.arc(bx, by, r1, -Math.PI/2, -Math.PI/2 + this.zAxis * Math.PI, this.zAxis < 0 ? true : false);
     ctx.fill();
     ctx.stroke();
   }
