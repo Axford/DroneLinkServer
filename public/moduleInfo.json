@@ -3419,6 +3419,14 @@
                 "writeable": false,
                 "name": "speed",
                 "description": "Packet rates per second for sent, received and rejected"
+            },
+            {
+                "address": 12,
+                "type": "c",
+                "numValues": 15,
+                "writeable": true,
+                "name": "URL",
+                "description": "URL for a remote server"
             }
         ]
     },
