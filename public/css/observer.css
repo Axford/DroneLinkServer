@@ -424,23 +424,33 @@ main {
 
 #nodes .nodeOverlay {
   background-color: rgba(255,255,255,0.8);
-  min-width:120px;
+  min-width:150px;
   padding: 4px 4px;
   border-radius: 4px;
   margin-bottom:8px;
   cursor:pointer;
   font-weight:bold;
+  position:relative;
   box-shadow: 2px 2px 6px 1px rgba(0,0,0,0.4);
+  left:0px;
+  transition:left 0.5s;
 }
 
 #nodes .nodeOverlay.focus {
   border-right: 8px solid #007bff;
   margin-right:-8px;
+  left:0px !important;
+  transition:left 0.5s;
 }
 
 #nodes .nodeOverlay.faded {
   background-color: rgba(255,255,255,0.3);
   color:white;
+  left:-130px;
+}
+
+#nodes .nodeOverlay.faded:hover {
+  left:0px;
 }
 
 #nodes .nodeOverlay i {
