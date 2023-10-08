@@ -343,7 +343,7 @@ export default class ModuleInterface {
 
     // check to see if ui has been initialised
 
-    if (this.ui.width() < 1) return;
+    if (this.ui.width() < 1) return false;
 
     this.updateNeeded = false;
 

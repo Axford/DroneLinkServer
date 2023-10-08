@@ -10,6 +10,7 @@ import Depth from './interfaces/Depth.mjs';
 import HMC5883L from './interfaces/HMC5883L.mjs';
 import INA219 from './interfaces/INA219.mjs';
 import INA3221 from './interfaces/INA3221.mjs';
+import Joystick from './interfaces/Joystick.mjs';
 import LSM9DS1 from './interfaces/LSM9DS1.mjs';
 import Management from './interfaces/Management.mjs';
 import MPU6050 from './interfaces/MPU6050.mjs';
@@ -216,7 +217,9 @@ export default class Channel {
         this.interface = new INA219(this, state);
       } else if (data.type == 'INA3221') {
         this.interface = new INA3221(this, state);
-      } else if (data.type == 'LSM9DS1') {
+      } else if (data.type == 'Joystick') {
+        this.interface = new Joystick(this, state);
+      }  else if (data.type == 'LSM9DS1') {
         this.interface = new LSM9DS1(this, state);
       } else if (data.type == 'Management') {
         this.interface = new Management(this, state);
