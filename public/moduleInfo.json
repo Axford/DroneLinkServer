@@ -441,6 +441,37 @@
             "../DroneNode/src/droneModules/CMPS12Module.h"
         ]
     },
+    "Controller": {
+        "type": [
+            "Controller"
+        ],
+        "inherits": [
+            "I2CBase"
+        ],
+        "category": [
+            "Logic"
+        ],
+        "description": [
+            "Manage a universal remote control using an SSD1306 display as UI"
+        ],
+        "config": [
+            "[Controller= 10]\n  name= \"Controller\"\n  bus= 0"
+        ],
+        "I2CAddress": [
+            "0x3c"
+        ],
+        "default": [
+            {
+                "param": "addr",
+                "values": [
+                    "60"
+                ]
+            }
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/ControllerModule.h"
+        ]
+    },
     "Cylon": {
         "type": [
             "Cylon"
@@ -876,26 +907,38 @@
                 "values": [
                     "64"
                 ]
+            },
+            {
+                "param": "addr",
+                "values": [
+                    "8"
+                ]
             }
         ],
         "filename": [
             "../DroneNode/src/droneModules/INA219Module.cpp",
-            "../DroneNode/src/droneModules/INA219Module.h"
+            "../DroneNode/src/droneModules/INA219Module.h",
+            "../DroneNode/src/droneModules/JoystickModule.h"
         ],
         "inherits": [
+            "I2CBase",
             "I2CBase"
         ],
         "category": [
-            "Input.Power"
+            "Input.Power",
+            "Input"
         ],
         "description": [
-            "Manages an INA219 I2C power monitoring module"
+            "Manages an INA219 I2C power monitoring module",
+            "Manages I2C joystick using DroneJoystick firmware"
         ],
         "config": [
-            "[INA219= 4]\n  name= \"Power\"\n  bus= 1\n  addr= 64\n  interval= 1000\n  cells= 2\n  threshold= 6.4\n  status= 1\n  publish =current, power, loadV, alarm, shuntV, busV, cellV"
+            "[INA219= 4]\n  name= \"Power\"\n  bus= 1\n  addr= 64\n  interval= 1000\n  cells= 2\n  threshold= 6.4\n  status= 1\n  publish =current, power, loadV, alarm, shuntV, busV, cellV",
+            "[Joystick= 4]\n  name= \"LeftJoy\"\n  bus= 1\n  invert=0\n  publish = x,y,z,button,invert"
         ],
         "I2CAddress": [
-            "0x40"
+            "0x40",
+            "0x08"
         ],
         "pub": [
             {
@@ -977,6 +1020,46 @@
                 "writeable": false,
                 "name": "usage",
                 "description": "Cumulative usage in Amp hours"
+            },
+            {
+                "address": 10,
+                "type": "f",
+                "numValues": 1,
+                "writeable": false,
+                "name": "xAxis",
+                "description": "X axis value"
+            },
+            {
+                "address": 11,
+                "type": "f",
+                "numValues": 1,
+                "writeable": false,
+                "name": "yAxis",
+                "description": "Y axis value"
+            },
+            {
+                "address": 12,
+                "type": "f",
+                "numValues": 1,
+                "writeable": false,
+                "name": "zAxis",
+                "description": "Z axis value"
+            },
+            {
+                "address": 13,
+                "type": "f",
+                "numValues": 1,
+                "writeable": false,
+                "name": "button",
+                "description": "Button value"
+            },
+            {
+                "address": 14,
+                "type": "u8",
+                "numValues": 4,
+                "writeable": true,
+                "name": "invert",
+                "description": "Invert flags for each axis [x,y,z,button]"
             }
         ]
     },
@@ -3369,6 +3452,15 @@
                     "255",
                     "255"
                 ]
+            },
+            {
+                "param": "server",
+                "values": [
+                    "0",
+                    "0",
+                    "0",
+                    "0"
+                ]
             }
         ],
         "filename": [
@@ -3422,11 +3514,19 @@
             },
             {
                 "address": 12,
+                "type": "u8",
+                "numValues": 4,
+                "writeable": true,
+                "name": "server",
+                "description": "Unicast server address (for remote servers)"
+            },
+            {
+                "address": 13,
                 "type": "c",
                 "numValues": 15,
                 "writeable": true,
                 "name": "URL",
-                "description": "URL for a remote server"
+                "description": "URL for a remote server (will resolve and populate the server parameter)"
             }
         ]
     },

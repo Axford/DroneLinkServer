@@ -5,8 +5,8 @@
 <div><a href="index.html">&lt; Help Index</a></div>
 
 <h1>INA219</h1>
-<p>Base class: <i><a href="I2CBase.html">I2CBase</a></i></p>
-<p>Manages an INA219 I2C power monitoring module</p>
+<p>Base class: <i><a href="I2CBase,I2CBase.html">I2CBase,I2CBase</a></i></p>
+<p>Manages an INA219 I2C power monitoring module,Manages I2C joystick using DroneJoystick firmware</p>
 
 
 <h2>Example Configuration</h2>
@@ -18,7 +18,25 @@
   cells= 2
   threshold= 6.4
   status= 1
-  publish =current, power, loadV, alarm, shuntV, busV, cellV</pre>
+  publish =current, power, loadV, alarm, shuntV, busV, cellV,[Joystick= 4]
+  name= "LeftJoy"
+  bus= 1
+  invert=0
+  publish = x,y,z,button,invert</pre>
+<h2>Example Configuration</h2>
+<pre>[INA219= 4]
+  name= "Power"
+  bus= 1
+  addr= 64
+  interval= 1000
+  cells= 2
+  threshold= 6.4
+  status= 1
+  publish =current, power, loadV, alarm, shuntV, busV, cellV,[Joystick= 4]
+  name= "LeftJoy"
+  bus= 1
+  invert=0
+  publish = x,y,z,button,invert</pre>
 
 <h2>Subs (inputs)</h2>
 <table>
@@ -110,6 +128,41 @@
     <td>f</td>
     <td>1</td>
     <td>Cumulative usage in Amp hours</td>
+  </tr>
+  <tr>
+    <td>10</td>
+    <td>xAxis</td>
+    <td>f</td>
+    <td>1</td>
+    <td>X axis value</td>
+  </tr>
+  <tr>
+    <td>11</td>
+    <td>yAxis</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Y axis value</td>
+  </tr>
+  <tr>
+    <td>12</td>
+    <td>zAxis</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Z axis value</td>
+  </tr>
+  <tr>
+    <td>13</td>
+    <td>button</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Button value</td>
+  </tr>
+  <tr>
+    <td>14</td>
+    <td>invert</td>
+    <td>u8</td>
+    <td>4</td>
+    <td>Invert flags for each axis [x,y,z,button]</td>
   </tr>
 </table>
 
