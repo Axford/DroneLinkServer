@@ -281,6 +281,7 @@ export default class Management extends ModuleInterface {
       s += "<th>Avg Tx</th>";
       s += "<th>Avg Ack</th>";
       s += "<th>Given Up</th>";
+      s += "<th>Transport Address</th>";
       s += "</tr>";
       s += '</thead>';
       data.routes.forEach((obj) => {
@@ -298,6 +299,9 @@ export default class Management extends ModuleInterface {
         s += "<td>" + obj.avgTx + " ms</td>";
         s += "<td>" + obj.avgAck + " ms</td>";
         s += "<td>" + obj.gU + "</td>";
+        if (obj.transAddr) {
+          s += "<td>" + obj.transAddr[0] +'.'+ obj.transAddr[1] +'.'+ obj.transAddr[2] +'.'+ obj.transAddr[3] + "</td>";
+        }
         s += "</tr>";
       });
       s += "</table>";
