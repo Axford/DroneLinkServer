@@ -1,0 +1,64 @@
+<link rel="stylesheet" href="../css/help.css">
+
+<div class="helpContent">
+
+<div><a href="index.html">&lt; Help Index</a></div>
+
+<h1>Digital</h1>
+<p>Base class: <i><a href="Drone.html">Drone</a></i></p>
+<p>Manages a simple digital IO input on a specified pin</p>
+
+<h2>Usage Guide</h2>
+Reads a digital value on specified pin and maps into the values specified in limits[low, high]
+
+<h2>Example Configuration</h2>
+<pre>[Digital = 5]
+  pins = 32
+  limits = 0, 1
+  publish = input</pre>
+
+<h2>Subs (inputs)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Addr Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+</table>
+
+<h2>Pubs (outputs / config)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>10</td>
+    <td>pins</td>
+    <td>u8</td>
+    <td>1</td>
+    <td>Pin for the digital input</td>
+  </tr>
+  <tr>
+    <td>12</td>
+    <td>limits</td>
+    <td>f</td>
+    <td>2</td>
+    <td>Min and max values to map the digital value to (low maps to [0], high maps to [1])</td>
+  </tr>
+  <tr>
+    <td>13</td>
+    <td>input</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Digital input value after remapping based on limits</td>
+  </tr>
+</table>
+
+</div>

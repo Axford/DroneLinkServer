@@ -374,12 +374,15 @@ export default class Management extends ModuleInterface {
 
   showModuleInfo() {
     var me = this;
+    var url = "http://" + me.getIpString() + "/modules";
     me.vTitle.html("Loaded Modules");
-    me.vBody.html('Loading...');
+    me.vBody.html('Loading: ' + url);
 
-    $.getJSON("http://" + me.getIpString() + "/modules", function (data) {
+    $.getJSON(url, function (data) {
       //var s = JSON.stringify(data);
       var s = "";
+
+      console.log(data);
 
       // count up params across all modules
       var totalParams = 0;
@@ -468,7 +471,10 @@ export default class Management extends ModuleInterface {
       });
 
       me.vBody.html(s);
-    });
+    }).fail(function( jqxhr, textStatus, error ) {
+      var err = textStatus + ", " + error;
+      console.log( "Request Failed: " + err );
+    })
   }
 
 
