@@ -5,6 +5,7 @@ import * as DLM from '../droneLinkMsg.mjs';
 import Parameter from './Parameter.mjs';
 
 // interfaces
+import Anemometer from './interfaces/Anemometer.mjs';
 import CMPS12 from './interfaces/CMPS12.mjs';
 import Depth from './interfaces/Depth.mjs';
 import HMC5883L from './interfaces/HMC5883L.mjs';
@@ -13,6 +14,7 @@ import INA3221 from './interfaces/INA3221.mjs';
 import Joystick from './interfaces/Joystick.mjs';
 import LSM9DS1 from './interfaces/LSM9DS1.mjs';
 import Management from './interfaces/Management.mjs';
+import Motor from './interfaces/Motor.mjs';
 import MPU6050 from './interfaces/MPU6050.mjs';
 import Nav from './interfaces/Nav.mjs';
 import Neopixel from './interfaces/Neopixel.mjs';
@@ -207,7 +209,9 @@ export default class Channel {
       //console.log(data);
 
       // instance an interface if available
-      if (data.type == 'CMPS12') {
+      if (data.type == 'Anemometer') {
+        this.interface = new Anemometer(this, state);
+      } else if (data.type == 'CMPS12') {
         this.interface = new CMPS12(this, state);
       } else if (data.type == 'Depth') {
         this.interface = new Depth(this, state);
@@ -223,6 +227,8 @@ export default class Channel {
         this.interface = new LSM9DS1(this, state);
       } else if (data.type == 'Management') {
         this.interface = new Management(this, state);
+      } else if (data.type == 'Motor') {
+        this.interface = new Motor(this, state);
       } else if (data.type == 'MPU6050') {
         this.interface = new MPU6050(this, state);
       } else if (data.type == 'Nav') {

@@ -80,9 +80,9 @@ export default class MPU6050 extends ModuleInterface {
 
     this.drawArtificialHorizon(pitch, roll, 0, 0, w, h);
 
-    this.drawValue(10,10,'Pitch',pitch.toFixed(0), '#5f5');
-    this.drawValue(10,60,'Roll',roll.toFixed(0), '#5f5');
-    this.drawValue(10,110,'Temp',temp.toFixed(1) + '°', '#5f5');
+    this.drawValue(10,10,'Pitch',pitch.toFixed(0), '#8f8');
+    this.drawValue(10,60,'Roll',roll.toFixed(0), '#8f8');
+    this.drawValue(10,110,'Temp',temp.toFixed(1) + '°', '#8f8');
 
     // 3D Vis
 
