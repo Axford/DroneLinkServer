@@ -6,6 +6,7 @@ import * as DMFS from '../../DroneMeshFS.mjs';
 import { getFirestore,  collection, doc, setDoc, addDoc, getDocs, deleteDoc, query, onSnapshot, where } from "https://www.gstatic.com/firebasejs/9.14.0/firebase-firestore.js";
 import { DRONE_MESH_MSG_TYPE_LINK_CHECK_REQUEST } from '../../DroneMeshMsg.mjs';
 //import { bgBlue } from 'colors/index.js';
+import * as DLM from "../../droneLinkMsg.mjs";
 
 //import moduleInfo from "/moduleInfo.json" assert { type: "json" };
 const { default: moduleInfo } = await import("/moduleInfo.json", { assert: { type: "json" } });
@@ -971,6 +972,20 @@ export default class Configuration extends Panel {
       me.deleteFileOnNode();
      });
     this.cuiFilesOnNodeNav.append(this.cuiDeleteNodeFileBut);
+
+    this.cuiResetNode = $(
+      '<button class="btn btn-sm btn-danger ml-3">Reset Node</button>'
+    );
+    this.cuiResetNode.on("click", () => {
+      var qm = new DLM.DroneLinkMsg();
+      qm.source = this.node.state.localAddress;
+      qm.node = this.node.id;
+      qm.channel = 1;
+      qm.param = 10;
+      qm.setUint8([1]);
+      this.node.state.send(qm);
+    });
+    this.cuiFilesOnNodeNav.append(this.cuiResetNode);
 
 
     // upload management
