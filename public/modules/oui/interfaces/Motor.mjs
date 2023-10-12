@@ -59,7 +59,7 @@ export default class Motor extends ModuleInterface {
     ctx.stroke();
 
     // current speed
-    ctx.fillStyle = "#8f8";
+    ctx.fillStyle = Math.abs(speed) < deadband ? '#885' : '#8f8';
     var w2 = Math.abs(w1*speed/range);
     if (speed > 0) {
         ctx.fillRect(clx, padding+1, w2, h1-2);

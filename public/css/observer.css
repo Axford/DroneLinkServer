@@ -432,25 +432,36 @@ main {
   font-weight:bold;
   position:relative;
   box-shadow: 2px 2px 6px 1px rgba(0,0,0,0.4);
-  left:0px;
-  transition:left 0.5s;
+  
 }
 
 #nodes .nodeOverlay.focus {
   border-right: 8px solid #007bff;
   margin-right:-8px;
-  left:0px !important;
-  transition:left 0.5s;
+
 }
 
 #nodes .nodeOverlay.faded {
+  background-color: rgba(255,255,255,0.1);
+  color:rgba(255,255,255,0.3);
+  font-weight: normal;
+  box-shadow: none;
+}
+
+#nodes .nodeOverlay.faded .uiIcons {
+  display:none;
+}
+
+#nodes .nodeOverlay.faded.focus {
   background-color: rgba(255,255,255,0.3);
   color:white;
-  left:-130px;
+  box-shadow: 2px 2px 6px 1px rgba(0,0,0,0.2);
 }
 
 #nodes .nodeOverlay.faded:hover {
-  left:0px;
+  background-color: rgba(255,255,255,0.3);
+  color:white;
+  box-shadow: 2px 2px 6px 1px rgba(0,0,0,0.2);
 }
 
 #nodes .nodeOverlay i {
