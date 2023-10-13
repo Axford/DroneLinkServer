@@ -717,3 +717,11 @@ main {
   height:100vh;
   overflow-y:scroll;
 }
+
+#chartPanel {
+  padding: 1em 1em;
+  background-color: #242a30;
+  color:white;
+  height:100vh;
+  overflow-y:scroll;
+}

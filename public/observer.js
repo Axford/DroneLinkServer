@@ -88,6 +88,9 @@ var analyser;
 import ExportManager from './modules/oui/ExportManager.mjs';
 var exportManager;
 
+import ChartManager from './modules/oui/ChartManager.mjs';
+var chartManager;
+
 var uploadManager, logManager;
 
 var liveMode = true;
@@ -350,6 +353,8 @@ function init() {
 
   exportManager = new ExportManager($('#exportPanel'), state);
 
+  chartManager = new ChartManager($('#chartPanel'), state);
+
 
   // tab manager
   var topTabs = new Tabs($('#topTabs'));
@@ -359,6 +364,7 @@ function init() {
     networkGraph.hide();
     analyser.hide();
     exportManager.hide();
+    chartManager.hide();
     $('#mapPanel').show();
     map.resize();
   });
@@ -368,6 +374,7 @@ function init() {
     analyser.hide();
     $('#mapPanel').hide();
     exportManager.hide();
+    chartManager.hide();
     networkGraph.show();
   });
 
@@ -376,6 +383,7 @@ function init() {
     $('#mapPanel').hide();
     networkGraph.hide();
     exportManager.hide();
+    chartManager.hide();
     analyser.show();
   });
 
@@ -384,7 +392,17 @@ function init() {
     $('#mapPanel').hide();
     networkGraph.hide();
     analyser.hide();
+    chartManager.hide();
     exportManager.show();
+  });
+
+  topTabs.add('chart', 'Chart', '<i class="far fa-chart-bar"></i>', 'nav-link');
+  topTabs.on('chart', ()=>{
+    $('#mapPanel').hide();
+    networkGraph.hide();
+    analyser.hide();
+    exportManager.hide();
+    chartManager.show();
   });
 
 

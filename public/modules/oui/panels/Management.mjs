@@ -33,7 +33,7 @@ export default class Management extends Panel {
     // set UI to be sortable
     this.ui.panel.sortable({
       containment: 'parent',
-      cancel:'a,button,canvas,select'
+      cancel:'a,button,canvas,select,.card'
     });
     this.ui.panel.on('sortstop', ()=>{
       var orderData = me.ui.panel.sortable('toArray');

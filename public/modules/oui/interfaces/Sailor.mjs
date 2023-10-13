@@ -177,7 +177,7 @@ export default class Sailor extends ModuleInterface {
     this.drawValue(5, 150, 'Helm', gybeStrings[flags[2]]);
 
     var crossWindStrings = ['No', 'Yes'];
-    //this.drawValue(w-100, 150, 'Cross Wind?', crossWindStrings[flags[4]]);
+    this.drawValue(w-100, 150, 'Cross Wind?', crossWindStrings[flags[4]]);
 
   }
 

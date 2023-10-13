@@ -302,10 +302,12 @@ export default class DroneLinkState {
       interface: interfaceName,
       lastHeard: interfaceName == 'firebase' ? now - 240*1000: now,
       visualisation:'',
-      visScriptLoaded:false
+      visScriptLoaded:false,
+      id: msg.node
     }
     newState[msg.node].channels[msg.channel] = {
       params: {},
+      channel: msg.channel,
       lastHeard: interfaceName == 'firebase' ? now - 240*1000: now,
     }
 
@@ -323,6 +325,7 @@ export default class DroneLinkState {
         newState[msg.node].channels[msg.channel].params[msg.param].numValues = msg.numValues();
         newState[msg.node].channels[msg.channel].params[msg.param].values = Array.from(msg.valueArray());
         newState[msg.node].channels[msg.channel].params[msg.param].writable = msg.writable;
+        newState[msg.node].channels[msg.channel].params[msg.param].param = msg.param;
 
         // is this a module name?
         if (msg.msgType == DLM.DRONE_LINK_MSG_TYPE_CHAR && msg.param == 2) {

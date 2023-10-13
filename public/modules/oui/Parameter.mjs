@@ -212,15 +212,23 @@ export default class Parameter {
 
     this.ui = $('<div class="card Parameter"></div>');
     this.ui.data("addr", this.addr);
+    this.ui.data("node", this.channel.node.id);
+    this.ui.data("channel", this.channel.channel);
     this.ui.data("param", this.param);
-    this.ui.on("click", () => {
-      //if (this.writable) {
-      this.showEditor();
-      //}
+    this.ui.draggable({
+      revert:true,
+      revertDuration:0,
+      helper:'clone',
+      appendTo:'body'
     });
 
     // Title
     this.uiTitle = $('<div class="card-title"></div>');
+    this.uiTitle.on("click", () => {
+      //if (this.writable) {
+      this.showEditor();
+      //}
+    });
     this.ui.append(this.uiTitle);
 
     // paramName
