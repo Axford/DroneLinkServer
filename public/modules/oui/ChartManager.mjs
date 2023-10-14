@@ -74,7 +74,9 @@ export default class ChartManager {
   }
 
   clear() {
+    // clear datasets
     
+
   }
 
   addRows() {
