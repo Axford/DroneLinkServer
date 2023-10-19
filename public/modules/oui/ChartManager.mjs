@@ -17,7 +17,7 @@ export default class ChartManager {
 
     this.active = true;
 
-    this.lastRowTime = Date.now();
+    this.lastRowTime = 0;
 
     this.charts = [];
 
@@ -26,7 +26,7 @@ export default class ChartManager {
 
     // param.value
     state.on("param.value", (data) => {
-      //{ node: msg.node, channel:msg.channel, param: msg.param, msgType: msg.msgType, values:Array.from(msg.valueArray()) });
+      //{ node: msg.node, channel:msg.channel, param: msg.param, msgType: msg.msgType, values:Array.from(msg.valueArray()), timestamp });
 
       // if a numeric value
       if (!(data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT || data.msgType == DLM.DRONE_LINK_MSG_TYPE_UINT32_T || data.msgType == DLM.DRONE_LINK_MSG_TYPE_UINT8_T)) return;
@@ -50,9 +50,10 @@ export default class ChartManager {
       });
 
       // if enough time has passed... add a row to all charts
-      var loopTime = Date.now();
+      //var loopTime = Date.now();
+      var loopTime = data.timestamp;
       if (f && loopTime >= me.lastRowTime + 1000) {
-        me.addRows();
+        me.addRows(data.timestamp);
       }
     });
   }
@@ -75,24 +76,24 @@ export default class ChartManager {
 
   clear() {
     // clear datasets
-    
+
 
   }
 
-  addRows() {
+  addRows(timestamp) {
     var me = this;
     me.charts.forEach((c)=>{
-        me.addRow(c);
+        me.addRow(c, timestamp);
     });
 
-    this.lastRowTime = Date.now();
+    this.lastRowTime = timestamp;
   }
 
-  addRow(chart) {
+  addRow(chart, timestamp) {
     if (!this.active) return;
 
     // update time entry
-    chart.last[0] = Date.now();
+    chart.last[0] = timestamp;
 
     // copy .last to create new row
     var newRow = _.clone(chart.last);

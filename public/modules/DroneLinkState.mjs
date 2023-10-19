@@ -291,7 +291,7 @@ export default class DroneLinkState {
       if (newParam ||
           !arraysEqual(me.state[msg.node].channels[msg.channel].params[msg.param].values, Array.from(msg.valueArray()) )) {
         //console.log('param.value: ' + msg.node + '>' + msg.channel + '.' + msg.param, msg[msg.node].channels[msg.channel].params[msg.param].values);
-        me.trigger('param.value', { node: msg.node, channel:msg.channel, param: msg.param, msgType: msg.msgType, values:Array.from(msg.valueArray()), priority: msg.priority });
+        me.trigger('param.value', { node: msg.node, channel:msg.channel, param: msg.param, msgType: msg.msgType, values:Array.from(msg.valueArray()), priority: msg.priority, timestamp: msg.timestamp ? msg.timestamp : now });
       }
     }
 
