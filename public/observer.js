@@ -133,6 +133,7 @@ function setPanelSize(w) {
   map.resize();
 
   networkGraph.resize();
+  chartManager.resize();
 
   // let nodes know they should also resize
   for (const [key, n] of Object.entries(nodes)) {
@@ -396,7 +397,7 @@ function init() {
     exportManager.show();
   });
 
-  topTabs.add('chart', 'Chart', '<i class="far fa-chart-bar"></i>', 'nav-link');
+  topTabs.add('chart', 'Chart', '<i class="fas fa-chart-line"></i>', 'nav-link');
   topTabs.on('chart', ()=>{
     $('#mapPanel').hide();
     networkGraph.hide();
