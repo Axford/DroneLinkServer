@@ -6,8 +6,9 @@ Manage a UI for charting param values
 
 import { format } from "https://cdn.skypack.dev/date-fns";
 import * as DLM from "../droneLinkMsg.mjs";
-import Vector from '../Vector.mjs';
-import roundRect from '../RoundedRect.mjs';
+import Vector from "../Vector.mjs";
+import roundRect from "../RoundedRect.mjs";
+import { clamp } from "../navMath.mjs";
 
 export default class ChartManager {
   constructor(uiRoot, state) {
@@ -29,7 +30,7 @@ export default class ChartManager {
     this.endTime = 0;
     this.selectedStartTime = 0;
     this.selectedEndTime = 0;
-    this.timeSelectHandle = '';
+    this.timeSelectHandle = "";
     this.autoTrack = true; // move selected timeframe automatically
 
     this.haveData = false;
@@ -38,6 +39,9 @@ export default class ChartManager {
     this.fps = 0;
     this.drawTime = 0;
     this.needsRedraw = true;
+
+    this.mx = 0; // last mouse position
+    this.my = 0;
 
     this.chartSpacing = 10;
     this.legendSpacing = 10;
@@ -49,9 +53,9 @@ export default class ChartManager {
     this.legendWidth = 160;
     this.legendLabelHeight = 40;
 
-    this.mouseInteractionHandler = null;  // assigned by individual UI elements when interaction starts
+    this.mouseInteractionHandler = null; // assigned by individual UI elements when interaction starts
 
-    this.seperatorDragStart = new Vector(0,0);
+    this.seperatorDragStart = new Vector(0, 0);
 
     this.baseFont =
       '-apple-system, "system-ui", "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"';
@@ -66,7 +70,7 @@ export default class ChartManager {
       if (!me.active) return;
 
       // check it's not in the past!
-      if (data.timestamp < me.endTime) return;
+      if (data.timestamp < me.endTime && me.haveData) return;
 
       // if a numeric value
       if (
@@ -160,21 +164,21 @@ export default class ChartManager {
   trim() {
     // delete paramData outside selected time frame
     for (const [key, pd] of Object.entries(this.paramData)) {
-        console.log('before', key, pd.data.length);
-        //pd.data = [];
-        var startIndex = 0;
-        var endIndex = pd.data.length-1;
-        for (var i=0; i<pd.data.length; i++) {
-            if (pd.data[i].t < this.selectedStartTime) {
-                startIndex = i;
-            } else if (pd.data[i].t > this.selectedEndTime) {
-                endIndex = i+1;
-                break;
-            }
+      console.log("before", key, pd.data.length);
+      //pd.data = [];
+      var startIndex = 0;
+      var endIndex = pd.data.length - 1;
+      for (var i = 0; i < pd.data.length; i++) {
+        if (pd.data[i].t < this.selectedStartTime) {
+          startIndex = i;
+        } else if (pd.data[i].t > this.selectedEndTime) {
+          endIndex = i + 1;
+          break;
         }
-        pd.data = pd.data.slice(startIndex, endIndex);
+      }
+      pd.data = pd.data.slice(startIndex, endIndex);
 
-        console.log('after', key, pd.data.length);
+      console.log("after", key, pd.data.length);
     }
 
     // reset time markers
@@ -238,12 +242,16 @@ export default class ChartManager {
       var hue = (chart.numColumns * 67) % 360;
 
       chart.columns[addr] = {
+        chart: chart,
         title: paramData.title,
         addr: addr,
-        style: "hsl(" + hue + "," + "100%," + 75 + "%)",
-        position: (chart.numColumns-1) * (this.legendLabelHeight + this.legendSpacing),
+        style: "hsl(" + hue + "," + "100%, 75%)",
+        dimStyle: "hsla(" + hue + "," + "100%, 75%, 30%)",
+        position:
+          (chart.numColumns - 1) *
+          (this.legendLabelHeight + this.legendSpacing),
         velocity: 0,
-        av: 0
+        av: 0,
       };
     }
 
@@ -268,80 +276,92 @@ export default class ChartManager {
     this.needsRedraw = true;
   }
 
-  getSeperatorAt(x,y) {
+  getChartAt(x, y) {
     var match = null;
     this.charts.forEach((c) => {
       var h1 = c.height - this.axesHeight; // chart area`
 
-      if (y >= c.y + c.height && y <= c.y + c.height+this.chartSpacing) {
+      if (y >= c.y && y <= c.y + c.height) {
         match = c;
       }
     });
     return match;
   }
 
-  seperatorMouseHover(x,y) {
-    this.hoverSeperator = this.getSeperatorAt(x,y);
+  getSeperatorAt(x, y) {
+    var match = null;
+    this.charts.forEach((c) => {
+      var h1 = c.height - this.axesHeight; // chart area`
+
+      if (y >= c.y + c.height && y <= c.y + c.height + this.chartSpacing) {
+        match = c;
+      }
+    });
+    return match;
   }
 
-  seperatorMouseDown(x,y) {
-    var match = this.getSeperatorAt(x,y);
+  seperatorMouseHover(x, y) {
+    this.hoverSeperator = this.getSeperatorAt(x, y);
+  }
+
+  seperatorMouseDown(x, y) {
+    var match = this.getSeperatorAt(x, y);
 
     if (match) {
-        this.dragSeperator = match;
-        //console.log('sep start', this.dragSeperator);
+      this.dragSeperator = match;
+      //console.log('sep start', this.dragSeperator);
 
-        this.seperatorDragStart.x = x;
-        this.seperatorDragStart.y = y;
-        this.seperatorStartHeight = match.height;
+      this.seperatorDragStart.x = x;
+      this.seperatorDragStart.y = y;
+      this.seperatorStartHeight = match.height;
 
-        // set cursor
-        this.ui.canvas.css('cursor', 'ns-resize');
+      // set cursor
+      this.ui.canvas.css("cursor", "ns-resize");
 
-        return this.seperatorInteractionHandler;
+      return this.seperatorInteractionHandler;
     }
     return null;
   }
 
   seperatorInteractionHandler(type, x, y) {
-    if (type == 'move' && this.dragSeperator) {
-        var h1 = (y-this.seperatorDragStart.y) + this.seperatorStartHeight;
-        h1 = Math.max(h1, 50);
-        this.dragSeperator.height = h1;
-        
-    } else if (type == 'up') {
-        this.dragSeperator = null;
-        this.ui.canvas.css('cursor', 'pointer');
+    if (type == "move" && this.dragSeperator) {
+      var h1 = y - this.seperatorDragStart.y + this.seperatorStartHeight;
+      h1 = Math.max(h1, 50);
+      this.dragSeperator.height = h1;
+    } else if (type == "up") {
+      this.dragSeperator = null;
+      this.ui.canvas.css("cursor", "pointer");
     }
   }
 
-
-  timeSelectMouseDown(x,y) {
+  timeSelectMouseDown(x, y) {
     var w = this.ctx.canvas.width;
     var x1 = this.axesWidth;
     var cw = w - this.legendWidth - x1; // chart area
 
     var timeOuterRange = this.endTime - this.startTime;
     if (timeOuterRange == 0) timeOuterRange = 1;
-    
+
     var th1 = 20;
-    
+
     // draw selected region
-    var sx1 = x1 + (cw * (this.selectedStartTime - this.startTime)) / timeOuterRange;
-    var sx2 = x1 + (cw * (this.selectedEndTime - this.startTime)) / timeOuterRange;
-    
+    var sx1 =
+      x1 + (cw * (this.selectedStartTime - this.startTime)) / timeOuterRange;
+    var sx2 =
+      x1 + (cw * (this.selectedEndTime - this.startTime)) / timeOuterRange;
+
     if (y < th1) {
-        // left handle
-        if (x >= sx1 - this.chartSpacing && x <= sx1 ) {
-            this.timeSelectHandle = 'start';
-            return this.timeSelectInteractionHandler;
-        } else if (x >= sx2 && x <= sx2 + this.chartSpacing ) {
-            this.timeSelectHandle = 'end';
-            this.autoTrack = false;
-            return this.timeSelectInteractionHandler;
-        }
+      // left handle
+      if (x >= sx1 - this.chartSpacing && x <= sx1) {
+        this.timeSelectHandle = "start";
+        return this.timeSelectInteractionHandler;
+      } else if (x >= sx2 && x <= sx2 + this.chartSpacing) {
+        this.timeSelectHandle = "end";
+        this.autoTrack = false;
+        return this.timeSelectInteractionHandler;
+      }
     }
-    this.timeSelectHandle = '';
+    this.timeSelectHandle = "";
     return null;
   }
 
@@ -350,37 +370,112 @@ export default class ChartManager {
     var x1 = this.axesWidth;
     var cw = w - this.legendWidth - x1; // chart area
 
-    if (type == 'move') {
-        var timeOuterRange = this.endTime - this.startTime;
-        if (timeOuterRange == 0) timeOuterRange = 1;
-        
-        var th1 = 20;
-        
-        // draw selected region
-        var sx1 = x1 + (cw * (this.selectedStartTime - this.startTime)) / timeOuterRange;
-        var sx2 = x1 + (cw * (this.selectedEndTime - this.startTime)) / timeOuterRange;
-        
-        if (this.timeSelectHandle == 'start') {
-            var v = this.startTime + ((x - x1) * timeOuterRange) / cw;
-            if (v < this.startTime) v = this.startTime;
-            if (v > this.selectedEndTime) v = this.selectedEndTime-1;
-            this.selectedStartTime = v;
-        } else if (this.timeSelectHandle == 'end') {
-            var v = this.startTime + ((x - x1) * timeOuterRange) / cw;
-            if (v < this.selectedStartTime) v = this.selectedStartTime+1;
-            if (v >= this.endTime) {
-                v = this.endTime;
-            }
-            this.selectedEndTime = v;
+    if (type == "move") {
+      var timeOuterRange = this.endTime - this.startTime;
+      if (timeOuterRange == 0) timeOuterRange = 1;
 
+      var th1 = 20;
+
+      // draw selected region
+      var sx1 =
+        x1 + (cw * (this.selectedStartTime - this.startTime)) / timeOuterRange;
+      var sx2 =
+        x1 + (cw * (this.selectedEndTime - this.startTime)) / timeOuterRange;
+
+      if (this.timeSelectHandle == "start") {
+        var v = this.startTime + ((x - x1) * timeOuterRange) / cw;
+        if (v < this.startTime) v = this.startTime;
+        if (v > this.selectedEndTime) v = this.selectedEndTime - 1;
+        this.selectedStartTime = v;
+      } else if (this.timeSelectHandle == "end") {
+        var v = this.startTime + ((x - x1) * timeOuterRange) / cw;
+        if (v < this.selectedStartTime) v = this.selectedStartTime + 1;
+        if (v >= this.endTime) {
+          v = this.endTime;
         }
-    } else if (type == 'up') {
-        console.log(x);
-        // enable autotrack?
-        if (x >= x1 + cw) {
-            this.autoTrack = true;
-            console.log('autoTrack');
+        this.selectedEndTime = v;
+      }
+    } else if (type == "up") {
+      console.log(x);
+      // enable autotrack?
+      if (x >= x1 + cw) {
+        this.autoTrack = true;
+        console.log("autoTrack");
+      }
+    }
+  }
+
+  getLabelAt(x, y) {
+    var w = this.ctx.canvas.width;
+    var x1 = this.axesWidth;
+    var cw = w - this.legendWidth - x1; // chart area
+
+    if (x < w - this.legendWidth + 40) return null;
+
+    var match = null;
+    this.charts.forEach((c) => {
+      for (const [key, col] of Object.entries(c.columns)) {
+        var y2 = c.y + col.position;
+
+        if (y >= y2 && y <= y2 + this.legendLabelHeight) {
+          match = col;
         }
+      }
+    });
+    return match;
+  }
+
+  labelMouseHover(x, y) {
+    this.hoverLabel = this.getLabelAt(x, y);
+  }
+
+  labelMouseDown(x, y) {
+    var match = this.getLabelAt(x, y);
+
+    if (match) {
+      this.dragLabel = match;
+      //console.log('sep start', this.dragSeperator);
+
+      this.labelDragStart = y;
+      this.labelDragOffset = y - match.chart.y - match.position;
+
+      // set cursor
+      this.ui.canvas.css("cursor", "grab");
+
+      return this.labelInteractionHandler;
+    }
+    return null;
+  }
+
+  labelInteractionHandler(type, x, y) {
+    if (type == "move" && this.dragLabel) {
+      this.dragLabel.position =
+        y - this.labelDragOffset - this.dragLabel.chart.y;
+
+      //var h1 = y - this.seperatorDragStart.y + this.seperatorStartHeight;
+      //h1 = Math.max(h1, 50);
+      //this.dragLabel.height = h1;
+    } else if (type == "up" && this.dragLabel) {
+      // have we been dragged over a different chart?
+      var c = this.getChartAt(x, y);
+      if (c && c != this.dragLabel.chart) {
+        // remove from old chart
+        delete this.dragLabel.chart.columns[this.dragLabel.addr];
+        //this.dragLabel.chart.numColumns--;
+
+        // add to new chart
+        c.columns[this.dragLabel.addr] = this.dragLabel;
+        this.dragLabel.chart = c;
+        c.numColumns++;
+      } else if (c == null) {
+        // or even outside the valid chart areas?
+        // remove this col from the source chart
+        delete this.dragLabel.chart.columns[this.dragLabel.addr];
+        //this.dragLabel.chart.numColumns--;
+      }
+
+      this.dragLabel = null;
+      this.ui.canvas.css("cursor", "pointer");
     }
   }
 
@@ -419,12 +514,12 @@ export default class ChartManager {
     topNav.append(this.ui.pauseButton);
 
     this.ui.trimButton = $(
-        '<button class="btn btn-warning mr-1"><i class="fas fa-cut"></i> Trim</button>'
-      );
-      this.ui.trimButton.on("click", () => {
-        me.trim();
-      });
-      topNav.append(this.ui.trimButton);
+      '<button class="btn btn-warning mr-1"><i class="fas fa-cut"></i> Trim</button>'
+    );
+    this.ui.trimButton.on("click", () => {
+      me.trim();
+    });
+    topNav.append(this.ui.trimButton);
 
     this.ui.clearButton = $(
       '<button class="btn btn-warning mr-1"><i class="fas fa-eraser mr-2"></i> Clear</button>'
@@ -468,7 +563,10 @@ export default class ChartManager {
           var h1 = c.height;
 
           if (offsetY > y1 && offsetY < y1 + h1) {
-            me.addColumn(c, obj.node, obj.channel, obj.param, 0);
+            // for each value
+            for (var j = 0; j < obj.param.values.length; j++) {
+              me.addColumn(c, obj.node, obj.channel, obj.param, j);
+            }
           }
 
           y1 += c.height + me.chartSpacing;
@@ -487,10 +585,12 @@ export default class ChartManager {
       var x1 = e.pageX - offsetX;
       var y1 = e.pageY - offsetY;
 
-      me.mouseInteractionHandler = me.seperatorMouseDown(x1,y1);
-      if (!me.mouseInteractionHandler) 
-        me.mouseInteractionHandler = me.timeSelectMouseDown(x1,y1);
-      
+      me.mouseInteractionHandler = me.seperatorMouseDown(x1, y1);
+      if (!me.mouseInteractionHandler)
+        me.mouseInteractionHandler = me.timeSelectMouseDown(x1, y1);
+      if (!me.mouseInteractionHandler)
+        me.mouseInteractionHandler = me.labelMouseDown(x1, y1);
+
       me.needsRedraw = true;
     });
 
@@ -503,32 +603,35 @@ export default class ChartManager {
       var x1 = e.pageX - offsetX;
       var y1 = e.pageY - offsetY;
 
+      this.mx = x1;
+      this.my = y1;
+
       if (me.mouseInteractionHandler) {
-        me.mouseInteractionHandler('move', x1, y1);
+        me.mouseInteractionHandler("move", x1, y1);
       } else {
-        me.seperatorMouseHover(x1,y1);
+        me.seperatorMouseHover(x1, y1);
+        me.labelMouseHover(x1, y1);
       }
 
       me.needsRedraw = true;
     });
 
     this.ui.canvas.on("mouseup", (e) => {
+      var offsetX = $(e.target).offset().left;
+      var offsetY = $(e.target).offset().top;
+      var w = $(e.target).innerWidth();
+      var h = $(e.target).innerHeight();
 
-        var offsetX = $(e.target).offset().left;
-        var offsetY = $(e.target).offset().top;
-        var w = $(e.target).innerWidth();
-        var h = $(e.target).innerHeight();
+      var x1 = e.pageX - offsetX;
+      var y1 = e.pageY - offsetY;
 
-        var x1 = e.pageX - offsetX;
-        var y1 = e.pageY - offsetY;
-        
-        if (me.mouseInteractionHandler) {
-            me.mouseInteractionHandler('up', x1, y1);
+      if (me.mouseInteractionHandler) {
+        me.mouseInteractionHandler("up", x1, y1);
 
-            me.mouseInteractionHandler = null;
-        }
-        
-        me.needsRedraw = true;
+        me.mouseInteractionHandler = null;
+      }
+
+      me.needsRedraw = true;
     });
 
     this.uiRoot.append(this.ui.canvas);
@@ -575,14 +678,14 @@ export default class ChartManager {
   legendOverlap(b, ob, padding) {
     var v = 0;
     // overlap values will be positive if overlapping
-    var yo1 = (ob.position + this.legendLabelHeight + padding) - b.position;
-    var yo2 = (b.position + + this.legendLabelHeight + padding) - ob.position;
-    if (yo1 > 0 && yo2 > 0) {    
-        if (yo1 < yo2) {
-            v = yo1;
-        } else {
-            v = -yo2;
-        }
+    var yo1 = ob.position + this.legendLabelHeight + padding - b.position;
+    var yo2 = b.position + +this.legendLabelHeight + padding - ob.position;
+    if (yo1 > 0 && yo2 > 0) {
+      if (yo1 < yo2) {
+        v = yo1;
+      } else {
+        v = -yo2;
+      }
     }
     return v;
   }
@@ -592,68 +695,74 @@ export default class ChartManager {
 
     // adjust positions of all blocks
     var loopTime = Date.now();
-    var dt = (loopTime - this.lastUpdate) / 1000;  // in seconds
-    if (dt > 1/50) dt = 1/50;
+    var dt = (loopTime - this.lastUpdate) / 1000; // in seconds
+    if (dt > 1 / 50) dt = 1 / 50;
     this.lastUpdate = loopTime;
 
     this.charts.forEach((c) => {
-        var h1 = c.height;
+      var h1 = c.height;
 
-        if (c.y !== undefined) {
-            for (const [key, col] of Object.entries(c.columns)) {
-                
-                if (col.lastY !== undefined) {
-                    var err = col.lastY - (col.position + this.legendLabelHeight/2);
-                    col.av = err * 10;
-                }
+      if (c.y !== undefined) {
+        for (const [key, col] of Object.entries(c.columns)) {
+          if (col.lastY !== undefined) {
+            var err = col.lastY - (col.position + this.legendLabelHeight / 2);
+            col.av = err * 1;
+          }
 
-                for (const [okey, otherCol] of Object.entries(c.columns)) {
-                    if (otherCol != col) {
-                        var overlap = this.legendOverlap(col, otherCol, this.legendSpacing);
-                        if (Math.abs(overlap) > 0) {
-                            if (overlap > 5) overlap = 5;
-                            if (overlap < -5) overlap = -5;
-                            overlap *= 15;
-                            col.av += overlap;
-                        }
-                    }
-                }
+          for (const [okey, otherCol] of Object.entries(c.columns)) {
+            if (otherCol != col) {
+              var overlap = this.legendOverlap(
+                col,
+                otherCol,
+                this.legendSpacing
+              );
+              if (Math.abs(overlap) > 0) {
+                //if (Math.abs(overlap) > 10) overlap = overlap * 0.01;
+                //if (overlap > 5) overlap = 5;
+                //if (overlap < -5) overlap = -5;
+                overlap *= 30;
+                col.av += overlap;
+              }
             }
+          }
         }
+      }
     });
-
 
     // apply accelerations
     var maxBvs = 0;
     this.charts.forEach((c) => {
-        var h1 = c.height;
+      var h1 = c.height;
 
-        if (c.y !== undefined) {
-            for (const [key, col] of Object.entries(c.columns)) {
-                // accelerate in net direction
-                col.velocity += col.av;
+      if (c.y !== undefined) {
+        for (const [key, col] of Object.entries(c.columns)) {
+          if (col != this.dragLabel) {
+            // accelerate in net direction
+            col.velocity += col.av;
 
-                // clamp velocity
-                if (col.velocity > 20) col.velocity = 20;
+            // clamp velocity
+            if (col.velocity > 20) col.velocity = 20;
 
-                // apply drag
-                col.velocity *= 0.97;
+            // apply drag
+            col.velocity *= 0.97;
 
-                // correct for fraction of time
-                col.velocity *= dt;
+            // correct for fraction of time
+            col.velocity *= dt;
 
-                // update position
-                col.position += col.velocity;
+            // update position
+            col.position += col.velocity;
 
-                // clamp position
-                if (col.position < 0) col.position = 0;
-                if (col.position > h1 - this.legendLabelHeight) col.position = h1 - this.legendLabelHeight; 
+            // clamp position
+            if (col.position < 0) col.position = 0;
+            if (col.position > h1 - this.legendLabelHeight)
+              col.position = h1 - this.legendLabelHeight;
 
-                // trigger redraw if movement is significant
-                var bvs = col.velocity;
-                if (bvs > maxBvs) maxBvs = bvs;
-            }
+            // trigger redraw if movement is significant
+            var bvs = col.velocity;
+            if (bvs > maxBvs) maxBvs = bvs;
+          }
         }
+      }
     });
 
     if (maxBvs > 0.1) this.needsRedraw = true;
@@ -692,8 +801,10 @@ export default class ChartManager {
     this.ctx.fillRect(x1, 0, cw, this.timeHeight);
 
     // draw selected region
-    var sx1 = x1 + (cw * (this.selectedStartTime - this.startTime)) / timeOuterRange;
-    var sx2 = x1 + (cw * (this.selectedEndTime - this.startTime)) / timeOuterRange;
+    var sx1 =
+      x1 + (cw * (this.selectedStartTime - this.startTime)) / timeOuterRange;
+    var sx2 =
+      x1 + (cw * (this.selectedEndTime - this.startTime)) / timeOuterRange;
     this.ctx.fillStyle = "#242a40";
     this.ctx.fillRect(sx1, 0, sx2 - sx1, th1);
 
@@ -709,8 +820,8 @@ export default class ChartManager {
 
     // drag handles
     this.ctx.fillStyle = "#888";
-    this.ctx.fillRect(sx1-this.chartSpacing, 0, this.chartSpacing, th1);
-    this.ctx.fillStyle = this.autoTrack ? '#007bff' : "#888";
+    this.ctx.fillRect(sx1 - this.chartSpacing, 0, this.chartSpacing, th1);
+    this.ctx.fillStyle = this.autoTrack ? "#007bff" : "#888";
     this.ctx.fillRect(sx2, 0, this.chartSpacing, th1);
 
     // label Y Axis
@@ -720,23 +831,29 @@ export default class ChartManager {
 
     // start
     this.ctx.textAlign = "right";
-    this.ctx.fillText(format(this.startTime, "HH:mm:ss"), x1-this.chartSpacing-2, 10);
+    this.ctx.fillText(
+      format(this.startTime, "HH:mm:ss"),
+      x1 - this.chartSpacing - 2,
+      10
+    );
     // end
     this.ctx.textAlign = "left";
-    this.ctx.fillText(format(this.endTime, "HH:mm:ss"), x1 + cw + this.chartSpacing + 2, 10);
+    this.ctx.fillText(
+      format(this.endTime, "HH:mm:ss"),
+      x1 + cw + this.chartSpacing + 2,
+      10
+    );
 
     this.ctx.textAlign = "right";
     // selection start
-    this.ctx.fillText(format(this.selectedStartTime, "HH:mm:ss"), x1-2, ty);
+    this.ctx.fillText(format(this.selectedStartTime, "HH:mm:ss"), x1 - 2, ty);
     // selection end
     this.ctx.textAlign = "left";
     this.ctx.fillText(
       format(this.selectedEndTime, "HH:mm:ss"),
-      w - this.legendWidth+2,
+      w - this.legendWidth + 2,
       ty
     );
-
-    // draw start handle
 
     // draw charts
     // ------------------------------------------------------------
@@ -751,7 +868,10 @@ export default class ChartManager {
       this.ctx.fillRect(0, y1, w - this.legendWidth, h1 + this.axesHeight);
 
       // draw separator (at bottom)
-      this.ctx.fillStyle = (c == this.dragSeperator || c == this.hoverSeperator) ? '#aaa' : "#242a30";
+      this.ctx.fillStyle =
+        c == this.dragSeperator || c == this.hoverSeperator
+          ? "#aaa"
+          : "#242a30";
       this.ctx.fillRect(0, y1 + c.height, w, this.chartSpacing);
 
       // calc axes
@@ -792,58 +912,62 @@ export default class ChartManager {
       this.ctx.fillText(maxV.toFixed(0), x1 - 2, y1 + 10);
       this.ctx.fillText(minV.toFixed(0), x1 - 2, y1 + h1);
 
-      // set clip region 
+      // set clip region
       this.ctx.save();
 
       this.ctx.beginPath();
-      this.ctx.rect(x1, y1, w-this.legendWidth-x1, h1+this.axesHeight);
+      this.ctx.rect(x1, y1, w - this.legendWidth - x1, h1 + this.axesHeight);
       this.ctx.clip();
 
       // draw data!
       for (const [key, col] of Object.entries(c.columns)) {
         var pd = this.paramData[col.addr];
 
-        this.ctx.strokeStyle = col.style;
+        if (this.dragLabel || this.hoverLabel) {
+          this.ctx.strokeStyle =
+            col == this.dragLabel || col == this.hoverLabel
+              ? col.style
+              : col.dimStyle;
+        } else this.ctx.strokeStyle = col.style;
         this.ctx.beginPath();
 
         // find range to draw
         var i = 0;
         var startIndex = 0;
-        var endIndex = pd.data.length-1;
-        
-        pd.data.forEach((pde, pi) => {
-            if (pde.t < this.selectedStartTime) startIndex = pi;
+        var endIndex = pd.data.length - 1;
 
-            if ( pde.t <= this.selectedEndTime) endIndex = pi+1;
+        pd.data.forEach((pde, pi) => {
+          if (pde.t < this.selectedStartTime) startIndex = pi;
+
+          if (pde.t <= this.selectedEndTime) endIndex = pi + 1;
         });
-        if (endIndex > pd.data.length-1) endIndex = pd.data.length-1;
+        if (endIndex > pd.data.length - 1) endIndex = pd.data.length - 1;
 
         if (pd.data.length > 0) {
-            var lpy = 0;
-            var lpx = 0;
-            var lt = 0;
-            for (var i= startIndex; i<endIndex+1; i++) {
-                var pde = pd.data[i];
-                var px = x1 + (cw * (pde.t - this.selectedStartTime)) / timeRange;
-                col.lastY = h1 - (h1 * (pde.v - minV)) / vRange;
-                var py = y1 + col.lastY; // invert y drawing
+          var lpy = 0;
+          var lpx = 0;
+          var lt = 0;
+          for (var i = startIndex; i < endIndex + 1; i++) {
+            var pde = pd.data[i];
+            var px = x1 + (cw * (pde.t - this.selectedStartTime)) / timeRange;
+            col.lastY = h1 - (h1 * (pde.v - minV)) / vRange;
+            var py = y1 + col.lastY; // invert y drawing
 
-                var td = pde.t - lt;
-    
-                if (i == startIndex) {
-                  this.ctx.moveTo(px, py);
-                } else {
-                  if (td > 1000*10) this.ctx.lineTo(px,lpy);
-                  this.ctx.lineTo(px, py);
-                }
-                lpx = px;
-                lpy = py;
-                lt = pde.t;
+            var td = pde.t - lt;
+
+            if (i == startIndex) {
+              this.ctx.moveTo(px, py);
+            } else {
+              if (td > 1000 * 10) this.ctx.lineTo(px, lpy);
+              this.ctx.lineTo(px, py);
             }
-            // was the last sample ages ago?
-            if (lpx < x1+cw-1 ) this.ctx.lineTo(x1+cw ,lpy);
+            lpx = px;
+            lpy = py;
+            lt = pde.t;
+          }
+          // was the last sample ages ago?
+          if (lpx < x1 + cw - 1) this.ctx.lineTo(x1 + cw, lpy);
         }
-        
 
         this.ctx.stroke();
       }
@@ -851,39 +975,98 @@ export default class ChartManager {
       this.ctx.restore();
 
       // draw legend
+      // -----------
       var y2 = y1 + 12;
       var w3 = 40;
       var x2 = w - this.legendWidth + w3;
       var h2 = this.legendLabelHeight;
-      var w2 = this.legendWidth-w3;
+      var w2 = this.legendWidth - w3;
       for (const [key, col] of Object.entries(c.columns)) {
         var pd = this.paramData[col.addr];
 
         var y2 = y1 + col.position;
-        
+
+        if (this.dragLabel || this.hoverLabel) {
+          this.ctx.fillStyle =
+            col == this.dragLabel || col == this.hoverLabel
+              ? col.style
+              : col.dimStyle;
+        } else this.ctx.fillStyle = col.style;
+
         if (col.lastY !== undefined) {
-            // draw arrow thing
-            this.ctx.fillStyle = col.style;
-            this.ctx.beginPath();
-            this.ctx.moveTo(w-this.legendWidth, y1 + col.lastY);
-            this.ctx.lineTo(x2,y2);   
-            this.ctx.lineTo(x2,y2+h2);   
-            this.ctx.fill();    
+          // draw arrow thing
+          this.ctx.beginPath();
+          this.ctx.moveTo(w - this.legendWidth, y1 + col.lastY);
+          this.ctx.lineTo(x2, y2);
+          this.ctx.lineTo(x2, y2 + h2);
+          this.ctx.fill();
         }
 
         // draw label
-        this.ctx.fillStyle = col.style;
         this.ctx.fillRect(x2, y2, w2, h2);
 
-        this.ctx.fillStyle = '#000';
+        this.ctx.fillStyle = "#000";
         this.ctx.font = "10px normal, " + this.baseFont;
         this.ctx.textAlign = "left";
-        this.ctx.fillText(pd.nodeObj.name, x2+5, y2+15);
+        this.ctx.fillText(pd.nodeObj.name, x2 + 5, y2 + 15);
         this.ctx.font = "12px bold, " + this.baseFont;
-        this.ctx.fillText(pd.channelObj.name + '.' + pd.paramObj.name, x2+5, y2+32);
+        this.ctx.fillText(
+          pd.channelObj.name + "." + pd.paramObj.name + "." + pd.valueIndex,
+          x2 + 5,
+          y2 + 32
+        );
+      }
+
+      // draw horizontal cross-hair
+      if (this.mx < x1+cw && this.my > c.y && this.my < c.y + c.height) {
+        this.ctx.strokeStyle = "#fff";
+        this.ctx.beginPath();
+        this.ctx.moveTo(x1, this.my);
+        this.ctx.lineTo( x1 + cw, this.my );
+        this.ctx.stroke();
+
+        // draw y value
+        /*
+        var py = y1 + h1 - (h1 * (pde.v - minV)) / vRange;
+        */
+
+        var v = minV + (-(this.my - y1 - h1) * vRange) / h1;
+        
+        this.ctx.fillStyle = "#fff";
+        this.ctx.font = this.font;
+        this.ctx.textAlign = "right";
+        this.ctx.fillText(v.toFixed(1), x1-4, this.my);
+        
       }
 
       y1 += c.height + this.chartSpacing;
     });
+
+    // draw vertical cross-hair
+    if (this.mx > x1 && this.mx < x1 + cw) {
+      this.ctx.strokeStyle = "#fff";
+      this.ctx.beginPath();
+      this.ctx.moveTo(this.mx, this.timeHeight);
+      this.ctx.lineTo(
+        this.mx,
+        this.charts[this.charts.length - 1].y +
+          this.charts[this.charts.length - 1].height
+      );
+      this.ctx.stroke();
+
+      // draw time value
+      var tv = this.selectedStartTime + ((this.mx - x1) * timeRange) / cw;
+      this.ctx.fillStyle = "#fff";
+      this.ctx.font = this.font;
+      this.ctx.textAlign = "left";
+      var ty = clamp(
+        this.my - 5,
+        this.timeHeight,
+        this.charts[this.charts.length - 1].y +
+          this.charts[this.charts.length - 1].height
+      );
+
+      this.ctx.fillText(format(tv, "HH:mm:ss"), this.mx + 4, ty);
+    }
   }
 } // end of class

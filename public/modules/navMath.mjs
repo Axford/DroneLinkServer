@@ -5,6 +5,12 @@ Nav math from: https://www.movable-type.co.uk/scripts/latlong.html
 export const RADIUS_OF_EARTH = 6371e3;
 export const π = Math.PI;
 
+export function clamp(v, minV, maxV) {
+  if (v > maxV) return maxV;
+  if (v < minV) return minV;
+  return v;
+}
+
 export function calculateDistanceBetweenCoordinates( p1, p2) {
   var lon1 = p1[0],  lat1=p1[1],  lon2=p2[0],  lat2=p2[1];
   var R = RADIUS_OF_EARTH; // metres
