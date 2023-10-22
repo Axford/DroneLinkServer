@@ -21,6 +21,12 @@ export default class ChartScale {
     this.zoomMax = 1;
   }
 
+  reset() {
+    this.minV = 0;
+    this.maxV = 1;
+    this.calculate();
+  }
+
   updateMinMax(minV, maxV) {
     this.minV = Math.min(minV, this.minV);
     this.maxV = Math.max(maxV, this.maxV);
@@ -74,8 +80,24 @@ export default class ChartScale {
     return this.zoomed ? (this.zoomMax - this.zoomMin) : this.range;
   }
 
-  zoomExtents() {
+  pixelToValue(p, pixRange) {
+    return this.getMin() + (p / pixRange) * this.getRange();
+  }
 
+  valueToPixel(v, pixRange) {
+    return pixRange * (v - this.getMin()) / this.getRange();
+  }
+
+  zoomTo(minV, maxV) {
+    this.zoomed = true;
+    this.zoomMin = minV;
+    this.zoomMax = maxV;
+
+    console.log('zooming to ', minV, maxV, this);
+  }
+
+  zoomExtents() {
+    this.zoomed = false;
   }
 
 
