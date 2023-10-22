@@ -130,7 +130,6 @@ export default class PolarChart extends Chart {
 
     // use Y axis as basis for timing
     var i = xi.start;
-
     var j = yi.start;
     while (i <= xi.end && j <= yi.end) {
         var ang = degreesToRadians(pdx.data[i].v);
@@ -152,28 +151,6 @@ export default class PolarChart extends Chart {
             j++;
         }
     }
-
-    /*
-    for (var j = yi.start; j < yi.end + 1; j++) {
-        // do we need to advance through x axis to keep time in sync with y axis item
-        while (i < xi.end && (pdx.data[i].t < pdy.data[j].t)) {
-            i++;
-            ang = degreesToRadians(pdx.data[i].v);
-        }
-
-        // ignore negative y values, as illogical for polar plots
-        if (pdy.data[j].v >= 0) {
-            var r1 = (r * pdy.data[j].v) / this.axes.y.scale.range;
-
-            var px = cx + r1 * Math.cos(ang-90);
-            var py = cy + r1 * Math.sin(ang-90);
-        
-            this.ctx.beginPath();
-            this.ctx.arc(px, py, 2, 0, 2*Math.PI);
-            this.ctx.fill();
-        }
-    }
-    */
   
     this.ctx.restore();
   }

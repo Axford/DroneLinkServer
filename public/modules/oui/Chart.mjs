@@ -223,6 +223,76 @@ export default class Chart {
     }
   }
 
+  drawHorizontalTicks() {
+    var y1 = this.y;
+    var h1 = this.height - this.axesHeight; // chart area`
+    var w = this.ctx.canvas.width;
+    var h = this.ctx.canvas.height;
+
+    var x1 = this.axesWidth;
+    var cw = w - this.legendWidth - x1; // chart area
+    
+    // draw horizontal ticks
+    this.ctx.fillStyle = "#888";
+    this.ctx.font = this.parent.font;
+    this.ctx.textAlign = "right";
+    var v = this.axes.y.scale.niceMin;
+    while (v <= this.axes.y.scale.niceMax) {
+        var y2 = y1 + h1 - (h1 * (v - this.axes.y.scale.niceMin)) / this.axes.y.scale.range;
+
+        this.ctx.lineWidth = (v == 0) ? 2: 1;
+        this.ctx.strokeStyle = (v == 0) ? '#555' : "#333";
+
+        this.ctx.beginPath();
+        this.ctx.moveTo(x1, y2);
+        this.ctx.lineTo(x1 + cw, y2);
+        this.ctx.stroke();
+
+        var y3 = y2 + 5;
+        if (v == this.axes.y.scale.niceMin) y3 = y2;
+        if (v >= this.axes.y.scale.niceMax) y3 = y2+10;
+
+        this.ctx.fillText(v.toFixed(this.axes.y.scale.tickPrecision), x1 - 2, y3);
+
+        v += this.axes.y.scale.tickSpacing;
+        v = Math.round((v + Number.EPSILON) * 100) / 100;
+    }
+    this.ctx.lineWidth = 1;
+  }
+
+  drawVerticalTicks() {
+    var y1 = this.y;
+    var h1 = this.height - this.axesHeight; // chart area`
+    var w = this.ctx.canvas.width;
+    var h = this.ctx.canvas.height;
+
+    var x1 = this.axesWidth;
+    var cw = w - this.legendWidth - x1; // chart area
+    
+    // draw vertical ticks
+    this.ctx.fillStyle = "#888";
+    this.ctx.font = this.parent.font;
+    this.ctx.textAlign = "center";
+    var v = this.axes.x.scale.niceMin;
+    while (v <= this.axes.x.scale.niceMax) {
+        var x2 = x1 + (cw * (v - this.axes.x.scale.niceMin)) / this.axes.x.scale.range;
+
+        this.ctx.lineWidth = (v == 0) ? 2: 1;
+        this.ctx.strokeStyle = (v == 0) ? '#555' : "#333";
+
+        this.ctx.beginPath();
+        this.ctx.moveTo(x2, y1);
+        this.ctx.lineTo(x2, y1 + h1);
+        this.ctx.stroke();
+
+        this.ctx.fillText(v.toFixed(this.axes.x.scale.tickPrecision), x2, y1 + h1 + 12);
+
+        v += this.axes.x.scale.tickSpacing;
+        v = Math.round((v + Number.EPSILON) * 100) / 100;
+    }
+    this.ctx.lineWidth = 1;
+  }
+
   draw() {
     this.updateAxes();
 

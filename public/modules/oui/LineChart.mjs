@@ -62,21 +62,7 @@ export default class LineChart extends Chart {
         this.ctx.lineTo(x1, y1 + h1);
         this.ctx.stroke();
     
-        // draw zero
-        this.ctx.strokeStyle = "#666";
-        this.ctx.beginPath();
-        // X
-        var y2 = y1 + h1 - (h1 * (0 - this.axes.y.scale.minV)) / this.axes.y.scale.range;
-        this.ctx.moveTo(x1, y2);
-        this.ctx.lineTo(x1 + cw, y2);
-        this.ctx.stroke();
-    
-        // label Y Axis
-        this.ctx.fillStyle = "#888";
-        this.ctx.font = this.parent.font;
-        this.ctx.textAlign = "right";
-        this.ctx.fillText(this.axes.y.scale.maxV.toFixed(0), x1 - 2, y1 + 10);
-        this.ctx.fillText(this.axes.y.scale.minV.toFixed(0), x1 - 2, y1 + h1);
+        this.drawHorizontalTicks();
     
         // set clip region
         this.ctx.save();
@@ -116,7 +102,7 @@ export default class LineChart extends Chart {
             for (var i = startIndex; i < endIndex + 1; i++) {
               var pde = pd.data[i];
               var px = x1 + (cw * (pde.t - this.parent.selectedStartTime)) / timeRange;
-              col.lastY = h1 - (h1 * (pde.v - this.axes.y.scale.minV)) / this.axes.y.scale.range;
+              col.lastY = h1 - (h1 * (pde.v - this.axes.y.scale.niceMin)) / this.axes.y.scale.range;
               var py = y1 + col.lastY; // invert y drawing
     
               var td = pde.t - lt;
@@ -150,7 +136,7 @@ export default class LineChart extends Chart {
           this.ctx.stroke();
     
           // draw y value
-          var v = this.axes.y.scale.minV + (-(this.parent.my - y1 - h1) * this.axes.y.scale.range) / h1;
+          var v = this.axes.y.scale.niceMin + (-(this.parent.my - y1 - h1) * this.axes.y.scale.range) / h1;
     
           this.ctx.fillStyle = "#fff";
           this.ctx.font = this.parent.font;

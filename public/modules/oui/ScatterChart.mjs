@@ -13,9 +13,9 @@ export default class ScatterChart extends Chart {
   constructor(parent, y) {
     super(parent, "scatter", y);
 
-    this.axesHeight = 20;
+    this.axesHeight = 30;
 
-    this.configurableAxes = 2;
+    this.configurableAxes = 3;
 
     this.axes.x = {
       title:'X',
@@ -31,6 +31,13 @@ export default class ScatterChart extends Chart {
       scale: new ChartScale("linear"),
       params: {},
     };
+    this.axes.colour = {
+        title:'Colour',
+        numParams: 0,
+        maxParams:1,
+        scale: new ChartScale("linear"),
+        params: {},
+      };
 
     this.resize();
   }
@@ -58,27 +65,7 @@ export default class ScatterChart extends Chart {
     this.ctx.lineTo(x1 + cw, y1 + h1);
     this.ctx.stroke();
 
-    // label X Axis
-    this.ctx.fillStyle = "#888";
-    this.ctx.font = this.parent.font;
-    this.ctx.textAlign = "left";
-    this.ctx.fillText(this.axes.x.scale.minV.toFixed(0), x1, y1 + h1+10);
-    this.ctx.textAlign = "right";
-    this.ctx.fillText(this.axes.x.scale.maxV.toFixed(0), x1 + cw, y1 + h1+10);
-
-    // draw zero
-    this.ctx.strokeStyle = "#666";
-    this.ctx.beginPath();
-    // X
-    var y2 = y1 + h1 - (h1 * (0 - this.axes.y.scale.minV)) / this.axes.y.scale.range;
-    this.ctx.moveTo(x1, y2);
-    this.ctx.lineTo(x1 + cw, y2);
-    this.ctx.stroke();
-    // Y
-    var x2 = x1 + (cw * (0 - this.axes.x.scale.minV)) / this.axes.x.scale.range;
-    this.ctx.moveTo(x2, y1);
-    this.ctx.lineTo(x2, y1 + h1);
-    this.ctx.stroke();
+    this.drawVerticalTicks();
     
     // draw Y axis
     this.ctx.strokeStyle = "#888";
@@ -87,12 +74,9 @@ export default class ScatterChart extends Chart {
     this.ctx.lineTo(x1, y1 + h1);
     this.ctx.stroke();
 
-    // label Y Axis
-    this.ctx.fillStyle = "#888";
-    this.ctx.font = this.parent.font;
-    this.ctx.textAlign = "right";
-    this.ctx.fillText(this.axes.y.scale.maxV.toFixed(0), x1 - 2, y1 + 10);
-    this.ctx.fillText(this.axes.y.scale.minV.toFixed(0), x1 - 2, y1 + h1);
+    this.drawHorizontalTicks();
+
+
 
     // dont bother trying to draw unless we have both x and y params set
     if (this.axes.x.numParams == 0 || this.axes.y.numParams == 0) {
@@ -102,16 +86,39 @@ export default class ScatterChart extends Chart {
     }
 
     // determine params to use for axes
-    var xAxis, yAxis;
+    var xAxis, yAxis, colourAxis = null;
     for (const [key, col] of Object.entries(this.axes.x.params)) {
         xAxis = col;
     }
     for (const [key, col] of Object.entries(this.axes.y.params)) {
         yAxis = col;
     }
+    for (const [key, col] of Object.entries(this.axes.colour.params)) {
+        colourAxis = col;
+    }
 
     var pdx = this.parent.paramData[xAxis.addr];
     var pdy = this.parent.paramData[yAxis.addr];
+
+    var pdc;
+    if (colourAxis) pdc = this.parent.paramData[colourAxis.addr];
+
+    // title X axis
+    this.ctx.fillStyle = "#888";
+    this.ctx.font = this.parent.font;
+    this.ctx.textAlign = "center";
+    this.ctx.fillText(xAxis.title, x1 + cw/2, y1 + this.height-5);
+
+    // title Y axis
+    this.ctx.fillStyle = "#888";
+    this.ctx.font = this.parent.font;
+    this.ctx.textAlign = "center";
+    this.ctx.save();
+    this.ctx.translate(15, y1 + h1/2);
+    this.ctx.rotate(-Math.PI/2);
+    this.ctx.fillText(yAxis.title, 0, 0);
+    this.ctx.restore();
+
 
     // ensure we have data to draw with!
     if (pdx.data.length == 0 || pdy.data.length == 0) {
@@ -125,6 +132,11 @@ export default class ScatterChart extends Chart {
 
     var yi = this.getIndicesForTimeRange(pdy, this.parent.selectedStartTime, this.parent.selectedEndTime);
 
+    var ci;
+    if (colourAxis) {
+        ci = this.getIndicesForTimeRange(pdc, this.parent.selectedStartTime, this.parent.selectedEndTime);
+    }
+
     // set clip region
     this.ctx.save();
 
@@ -133,29 +145,75 @@ export default class ScatterChart extends Chart {
     this.ctx.clip();
 
     // draw data
-
-    this.ctx.fillStyle = 'rgba(0,255,0,0.2)';
+    // set default fill style
+    this.ctx.fillStyle = 'hsla(0, 0%, 100%, 0.2)';
 
     // use Y axis as basis for timing
     var i = xi.start;
-    var px = x1 + (cw * (pdx.data[i].v - this.axes.x.scale.minV)) / this.axes.x.scale.range;
-
-    for (var j = yi.start; j < yi.end + 1; j++) {
-        // do we need to advance through x axis to keep time in sync with y axis item
-        while (i < xi.end && (pdx.data[i].t < pdy.data[j].t)) {
-            i++;
-            px = x1 + (cw * (pdx.data[i].v - this.axes.x.scale.minV)) / this.axes.x.scale.range;
-        }
-
-        var py = y1 + h1 - (h1 * (pdy.data[j].v - this.axes.y.scale.minV)) / this.axes.y.scale.range; // invert y drawing
+    var j = yi.start;
+    var k = (colourAxis) ? ci.start : 0;
+    while (i <= xi.end && j <= yi.end) {
+        var px = x1 + (cw * (pdx.data[i].v - this.axes.x.scale.minV)) / this.axes.x.scale.range;
         
+        var py = y1 + h1 - (h1 * (pdy.data[j].v - this.axes.y.scale.niceMin)) / this.axes.y.scale.range; // invert y drawing
+
+        if (colourAxis && (k < pdc.data.length)) {
+            var hue =  240 + 120 * (pdc.data[k].v - this.axes.colour.scale.niceMin) / this.axes.colour.scale.range;
+            this.ctx.fillStyle = 'hsla('+hue.toFixed(0)+', 100%, 60%, 0.3)';
+        }
+    
         this.ctx.beginPath();
         this.ctx.arc(px, py, 2, 0, 2*Math.PI);
         this.ctx.fill();
-    }
-  
+    
+        // advance colour
+        if (colourAxis) {
+            while (k < pdc.data.length-1 && pdc.data[k].t < pdy.data[j].t) {
+                k++;
+            }
+        }
 
+        if (pdx.data[i].t < pdy.data[j].t) {
+            i++;
+        } else {
+            j++;
+        }
+    }
 
     this.ctx.restore();
+
+    // draw horizontal cross-hair
+    if (this.parent.mx < x1 + cw && this.parent.my > this.y && this.parent.my < this.y + this.height) {
+        this.ctx.strokeStyle = "#fff";
+        this.ctx.beginPath();
+        this.ctx.moveTo(x1, this.parent.my);
+        this.ctx.lineTo(x1 + cw, this.parent.my);
+        this.ctx.stroke();
+  
+        // draw y value
+        var v = this.axes.y.scale.niceMin + (-(this.parent.my - y1 - h1) * this.axes.y.scale.range) / h1;
+  
+        this.ctx.fillStyle = "#fff";
+        this.ctx.font = this.parent.font;
+        this.ctx.textAlign = "right";
+        this.ctx.fillText(v.toFixed(1), x1 - 4, this.parent.my);
+      }
+
+    // draw vertical cross-hair
+    if (this.parent.mx > x1 && this.parent.mx < x1 + cw && this.parent.my > this.y && this.parent.my < this.y + this.height) {
+        this.ctx.strokeStyle = "#fff";
+        this.ctx.beginPath();
+        this.ctx.moveTo(this.parent.mx, this.y);
+        this.ctx.lineTo(this.parent.mx, this.y + h1);
+        this.ctx.stroke();
+  
+        // draw x value
+        var v = this.axes.x.scale.minV + ((this.parent.mx - x1) * this.axes.x.scale.range) / cw;
+  
+        this.ctx.fillStyle = "#fff";
+        this.ctx.font = this.parent.font;
+        this.ctx.textAlign = "right";
+        this.ctx.fillText(v.toFixed(1), this.parent.mx, this.y + h1 + 15);
+      }
   }
 }
