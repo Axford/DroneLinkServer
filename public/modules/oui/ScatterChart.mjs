@@ -153,12 +153,12 @@ export default class ScatterChart extends Chart {
     var j = yi.start;
     var k = (colourAxis) ? ci.start : 0;
     while (i <= xi.end && j <= yi.end) {
-        var px = x1 + (cw * (pdx.data[i].v - this.axes.x.scale.minV)) / this.axes.x.scale.range;
+        var px = x1 + (cw * (pdx.data[i].v - this.axes.x.scale.minV)) / this.axes.x.scale.getRange();
         
-        var py = y1 + h1 - (h1 * (pdy.data[j].v - this.axes.y.scale.niceMin)) / this.axes.y.scale.range; // invert y drawing
+        var py = y1 + h1 - (h1 * (pdy.data[j].v - this.axes.y.scale.getMin())) / this.axes.y.scale.getRange(); // invert y drawing
 
         if (colourAxis && (k < pdc.data.length)) {
-            var hue =  240 + 120 * (pdc.data[k].v - this.axes.colour.scale.niceMin) / this.axes.colour.scale.range;
+            var hue =  240 + 120 * (pdc.data[k].v - this.axes.colour.scale.getMin()) / this.axes.colour.scale.getRange();
             this.ctx.fillStyle = 'hsla('+hue.toFixed(0)+', 100%, 60%, 0.3)';
         }
     
@@ -191,7 +191,7 @@ export default class ScatterChart extends Chart {
         this.ctx.stroke();
   
         // draw y value
-        var v = this.axes.y.scale.niceMin + (-(this.parent.my - y1 - h1) * this.axes.y.scale.range) / h1;
+        var v = this.axes.y.scale.getMin() + (-(this.parent.my - y1 - h1) * this.axes.y.scale.getRange()) / h1;
   
         this.ctx.fillStyle = "#fff";
         this.ctx.font = this.parent.font;
@@ -208,7 +208,7 @@ export default class ScatterChart extends Chart {
         this.ctx.stroke();
   
         // draw x value
-        var v = this.axes.x.scale.minV + ((this.parent.mx - x1) * this.axes.x.scale.range) / cw;
+        var v = this.axes.x.scale.getMin() + ((this.parent.mx - x1) * this.axes.x.scale.getRange()) / cw;
   
         this.ctx.fillStyle = "#fff";
         this.ctx.font = this.parent.font;

@@ -121,6 +121,22 @@ export default class Chart {
     delete param.axis.params[param.addr];
   }
 
+  zoomExtents() {
+    for (const [ak, axis] of Object.entries(this.axes)) {
+        axis.scale.zoomExtents();
+    }
+  }
+
+  onMousedown(x,y) {
+
+    return null;
+  }
+
+  onContextmenu(x,y) {
+    // reset zoom
+    this.zoomExtents();
+  }
+
 
   legendOverlap(b, ob, padding) {
     var v = 0;
@@ -236,9 +252,9 @@ export default class Chart {
     this.ctx.fillStyle = "#888";
     this.ctx.font = this.parent.font;
     this.ctx.textAlign = "right";
-    var v = this.axes.y.scale.niceMin;
-    while (v <= this.axes.y.scale.niceMax) {
-        var y2 = y1 + h1 - (h1 * (v - this.axes.y.scale.niceMin)) / this.axes.y.scale.range;
+    var v = this.axes.y.scale.getMin();
+    while (v <= this.axes.y.scale.getMax()) {
+        var y2 = y1 + h1 - (h1 * (v - this.axes.y.scale.getMin())) / this.axes.y.scale.getRange();
 
         this.ctx.lineWidth = (v == 0) ? 2: 1;
         this.ctx.strokeStyle = (v == 0) ? '#555' : "#333";
@@ -249,8 +265,8 @@ export default class Chart {
         this.ctx.stroke();
 
         var y3 = y2 + 5;
-        if (v == this.axes.y.scale.niceMin) y3 = y2;
-        if (v >= this.axes.y.scale.niceMax) y3 = y2+10;
+        if (v == this.axes.y.scale.getMin()) y3 = y2;
+        if (v >= this.axes.y.scale.getMax()) y3 = y2+10;
 
         this.ctx.fillText(v.toFixed(this.axes.y.scale.tickPrecision), x1 - 2, y3);
 
@@ -273,9 +289,9 @@ export default class Chart {
     this.ctx.fillStyle = "#888";
     this.ctx.font = this.parent.font;
     this.ctx.textAlign = "center";
-    var v = this.axes.x.scale.niceMin;
-    while (v <= this.axes.x.scale.niceMax) {
-        var x2 = x1 + (cw * (v - this.axes.x.scale.niceMin)) / this.axes.x.scale.range;
+    var v = this.axes.x.scale.getMin();
+    while (v <= this.axes.x.scale.getMax()) {
+        var x2 = x1 + (cw * (v - this.axes.x.scale.getMin())) / this.axes.x.scale.getRange();
 
         this.ctx.lineWidth = (v == 0) ? 2: 1;
         this.ctx.strokeStyle = (v == 0) ? '#555' : "#333";

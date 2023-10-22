@@ -135,7 +135,7 @@ export default class PolarChart extends Chart {
         var ang = degreesToRadians(pdx.data[i].v);
         
         if (pdy.data[j].v >= 0) {
-            var r1 = (r * pdy.data[j].v) / this.axes.y.scale.range;
+            var r1 = (r * pdy.data[j].v) / this.axes.y.scale.getRange();
 
             var px = cx + r1 * Math.cos(ang-Math.PI/2);
             var py = cy + r1 * Math.sin(ang-Math.PI/2);

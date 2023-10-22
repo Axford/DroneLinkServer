@@ -16,6 +16,9 @@ export default class ChartScale {
     this.niceMax = 1;
     this.maxTicks = 10;
     this.tickPrecision = 0;
+    this.zoomed = false;
+    this.zoomMin = 0;
+    this.zoomMax = 1;
   }
 
   updateMinMax(minV, maxV) {
@@ -57,6 +60,22 @@ export default class ChartScale {
     }
 
     return niceFraction * Math.pow(10, exponent);
+  }
+
+  getMin() {
+    return this.zoomed ? this.zoomMin : this.niceMin;
+  }
+
+  getMax() {
+    return this.zoomed ? this.zoomMax : this.niceMax;
+  }
+
+  getRange() {
+    return this.zoomed ? (this.zoomMax - this.zoomMin) : this.range;
+  }
+
+  zoomExtents() {
+
   }
 
 

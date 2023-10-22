@@ -102,7 +102,7 @@ export default class LineChart extends Chart {
             for (var i = startIndex; i < endIndex + 1; i++) {
               var pde = pd.data[i];
               var px = x1 + (cw * (pde.t - this.parent.selectedStartTime)) / timeRange;
-              col.lastY = h1 - (h1 * (pde.v - this.axes.y.scale.niceMin)) / this.axes.y.scale.range;
+              col.lastY = h1 - (h1 * (pde.v - this.axes.y.scale.getMin())) / this.axes.y.scale.getRange();
               var py = y1 + col.lastY; // invert y drawing
     
               var td = pde.t - lt;
@@ -136,7 +136,7 @@ export default class LineChart extends Chart {
           this.ctx.stroke();
     
           // draw y value
-          var v = this.axes.y.scale.niceMin + (-(this.parent.my - y1 - h1) * this.axes.y.scale.range) / h1;
+          var v = this.axes.y.scale.getMin() + (-(this.parent.my - y1 - h1) * this.axes.y.scale.getRange()) / h1;
     
           this.ctx.fillStyle = "#fff";
           this.ctx.font = this.parent.font;

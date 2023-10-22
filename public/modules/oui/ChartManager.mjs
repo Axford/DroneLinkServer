@@ -581,8 +581,37 @@ export default class ChartManager {
       if (!me.mouseInteractionHandler)
         me.mouseInteractionHandler = me.labelMouseDown(x1, y1);
 
+      // pass to chart
+      if (!me.mouseInteractionHandler) {
+        var c = this.getChartAt(x1,y1);
+        if (c) {
+            me.mouseInteractionHandler = c.onMousedown(x1, y1);
+        }
+      }
+
       me.needsRedraw = true;
     });
+
+    this.ui.canvas.on("contextmenu", (e) => {
+        var offsetX = $(e.target).offset().left;
+        var offsetY = $(e.target).offset().top;
+        var w = $(e.target).innerWidth();
+        var h = $(e.target).innerHeight();
+  
+        var x1 = e.pageX - offsetX;
+        var y1 = e.pageY - offsetY;
+  
+        // pass to chart
+        var c = this.getChartAt(x1,y1);
+        if (c) {
+            me.mouseInteractionHandler = c.onContextmenu(x1, y1);
+        }
+    
+
+        e.preventDefault();
+  
+        me.needsRedraw = true;
+      });
 
     this.ui.canvas.on("mousemove", (e) => {
       var offsetX = $(e.target).offset().left;
