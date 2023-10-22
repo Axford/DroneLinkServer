@@ -206,7 +206,7 @@ zoomInteractionHandler(type, x, y) {
     var j = yi.start;
     var k = (colourAxis) ? ci.start : 0;
     while (i <= xi.end && j <= yi.end) {
-        var px = x1 + (cw * (pdx.data[i].v - this.axes.x.scale.minV)) / this.axes.x.scale.getRange();
+        var px = x1 + (cw * (pdx.data[i].v - this.axes.x.scale.getMin())) / this.axes.x.scale.getRange();
         
         var py = y1 + h1 - (h1 * (pdy.data[j].v - this.axes.y.scale.getMin())) / this.axes.y.scale.getRange(); // invert y drawing
 
