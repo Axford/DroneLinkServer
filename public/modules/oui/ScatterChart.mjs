@@ -8,6 +8,7 @@ import Chart from "./Chart.mjs";
 import ChartScale from "./ChartScale.mjs";
 import { clamp } from "../navMath.mjs";
 import { format } from "https://cdn.skypack.dev/date-fns";
+import Vector from "../Vector.mjs";
 
 export default class ScatterChart extends Chart {
   constructor(parent, y) {
@@ -16,6 +17,10 @@ export default class ScatterChart extends Chart {
     this.axesHeight = 30;
 
     this.configurableAxes = 3;
+
+    this.zooming = false;
+    this.zoomStart = new Vector(0,0);
+    this.zoomEnd = new Vector(0,0);
 
     this.axes.x = {
       title:'X',
@@ -41,6 +46,54 @@ export default class ScatterChart extends Chart {
 
     this.resize();
   }
+
+  onMousedown(x,y) {
+    var x1 = this.axesWidth;
+    var w = this.ctx.canvas.width;
+    var cw = w - this.legendWidth - x1; // chart area
+    var h1 = this.height - this.axesHeight; // chart area
+
+    if (x > x1 && x < x1 + cw && y < this.y + h1) {
+        this.zoomStart.x = x - x1;
+        this.zoomStart.y = y - this.y;
+        this.zoomEnd.x = this.zoomStart.x;
+        this.zoomEnd.y = this.zoomStart.y;
+        this.zooming = true;
+        return this.zoomInteractionHandler.bind(this);
+    }
+    return null;
+}
+
+zoomInteractionHandler(type, x, y) {
+    var x1 = this.axesWidth;
+    var w = this.ctx.canvas.width;
+    var cw = w - this.legendWidth - x1; // chart area
+    var h1 = this.height - this.axesHeight; // chart area
+
+    var x2 = clamp(x - x1, this.zoomStart.x+1, cw);
+    var y2 = clamp(y - this.y, this.zoomStart.y+1, h1);
+
+    this.zoomEnd.x = x2;
+    this.zoomEnd.y = y2;
+
+    if (type == "move") {
+        
+    } else if (type == "up") {
+        console.log(this, 'up');
+        this.zooming = false;
+
+        // apply zoom
+        this.axes.x.scale.zoomTo(
+            this.axes.x.scale.pixelToValue(this.zoomStart.x, cw),
+            this.axes.x.scale.pixelToValue(this.zoomEnd.x, cw)
+        );
+
+        this.axes.y.scale.zoomTo(
+            this.axes.y.scale.pixelToValue(h1-this.zoomEnd.y, h1),
+            this.axes.y.scale.pixelToValue(h1-this.zoomStart.y, h1)
+        );
+    }
+}
 
   draw() {
     super.draw();
@@ -215,5 +268,14 @@ export default class ScatterChart extends Chart {
         this.ctx.textAlign = "right";
         this.ctx.fillText(v.toFixed(1), this.parent.mx, this.y + h1 + 15);
       }
+
+    // show zoom area
+    if (this.zooming) {
+        this.ctx.strokeStyle = "rgba(255,255,0,0.7)";
+        this.ctx.beginPath();
+        this.ctx.rect(x1 + this.zoomStart.x, this.y + this.zoomStart.y, 
+            this.zoomEnd.x - this.zoomStart.x, this.zoomEnd.y - this.zoomStart.y);
+        this.ctx.stroke();
+    }
   }
 }
