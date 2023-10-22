@@ -252,23 +252,26 @@ export default class Chart {
     this.ctx.fillStyle = "#888";
     this.ctx.font = this.parent.font;
     this.ctx.textAlign = "right";
-    var v = this.axes.y.scale.getMin();
-    while (v <= this.axes.y.scale.getMax()) {
-        var y2 = y1 + h1 - (h1 * (v - this.axes.y.scale.getMin())) / this.axes.y.scale.getRange();
+    // use un-zoomed values and then crop to fit the viewport
+    var v = this.axes.y.scale.niceMin;
+    while (v <= this.axes.y.scale.niceMax) {
+        var y2 = y1 + h1 - this.axes.y.scale.valueToPixel(v, h1);
 
         this.ctx.lineWidth = (v == 0) ? 2: 1;
         this.ctx.strokeStyle = (v == 0) ? '#555' : "#333";
 
-        this.ctx.beginPath();
-        this.ctx.moveTo(x1, y2);
-        this.ctx.lineTo(x1 + cw, y2);
-        this.ctx.stroke();
+        if (y2 >=y1 && y2 <= y1 + h1) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(x1, y2);
+            this.ctx.lineTo(x1 + cw, y2);
+            this.ctx.stroke();
 
-        var y3 = y2 + 5;
-        if (v == this.axes.y.scale.getMin()) y3 = y2;
-        if (v >= this.axes.y.scale.getMax()) y3 = y2+10;
+            var y3 = y2 + 5;
+            if (v == this.axes.y.scale.niceMin) y3 = y2;
+            if (v >= this.axes.y.scale.niceMax) y3 = y2+10;
 
-        this.ctx.fillText(v.toFixed(this.axes.y.scale.tickPrecision), x1 - 2, y3);
+            this.ctx.fillText(v.toFixed(this.axes.y.scale.tickPrecision), x1 - 2, y3);
+        }
 
         v += this.axes.y.scale.tickSpacing;
         v = Math.round((v + Number.EPSILON) * 100) / 100;
@@ -289,19 +292,22 @@ export default class Chart {
     this.ctx.fillStyle = "#888";
     this.ctx.font = this.parent.font;
     this.ctx.textAlign = "center";
-    var v = this.axes.x.scale.getMin();
-    while (v <= this.axes.x.scale.getMax()) {
-        var x2 = x1 + (cw * (v - this.axes.x.scale.getMin())) / this.axes.x.scale.getRange();
+    // use un-zoomed values and then crop to fit the viewport
+    var v = this.axes.x.scale.niceMin;
+    while (v <= this.axes.x.scale.niceMax) {
+        var x2 = x1 + this.axes.x.scale.valueToPixel(v, cw);
 
         this.ctx.lineWidth = (v == 0) ? 2: 1;
         this.ctx.strokeStyle = (v == 0) ? '#555' : "#333";
 
-        this.ctx.beginPath();
-        this.ctx.moveTo(x2, y1);
-        this.ctx.lineTo(x2, y1 + h1);
-        this.ctx.stroke();
+        if (x2 >= x1 && x2 <= x1+cw) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(x2, y1);
+            this.ctx.lineTo(x2, y1 + h1);
+            this.ctx.stroke();
 
-        this.ctx.fillText(v.toFixed(this.axes.x.scale.tickPrecision), x2, y1 + h1 + 12);
+            this.ctx.fillText(v.toFixed(this.axes.x.scale.tickPrecision), x2, y1 + h1 + 12);
+        }
 
         v += this.axes.x.scale.tickSpacing;
         v = Math.round((v + Number.EPSILON) * 100) / 100;
