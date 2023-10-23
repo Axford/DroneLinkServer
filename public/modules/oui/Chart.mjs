@@ -119,6 +119,8 @@ export default class Chart {
     param.axis.numParams--;
     if(param.axis.numParams < 0) param.axis.numParams = 0; // sanity
     delete param.axis.params[param.addr];
+
+    param.axis.scale.reset();
   }
 
   zoomExtents() {
@@ -315,6 +317,10 @@ export default class Chart {
     this.ctx.lineWidth = 1;
   }
 
+  drawLegendBackground(axis) {
+    // override in sub-classes
+  }
+
   draw() {
     this.updateAxes();
 
@@ -356,6 +362,8 @@ export default class Chart {
 
         if (axis.maxParams > 0) {
             y1 = this.y + axis.y;
+
+            this.drawLegendBackground(axis);
 
             // show drop region
             this.ctx.strokeStyle = (this.parent.dragLabel && axis.numParams < axis.maxParams) ? '#fc5' : '#555';

@@ -8,6 +8,8 @@ export default class ChartScale {
   constructor(type) {
     this.type = type;
 
+    this.updated = false;
+
     this.minV = 0;
     this.maxV = 1;
     this.range = 1;
@@ -24,15 +26,20 @@ export default class ChartScale {
   reset() {
     this.minV = 0;
     this.maxV = 1;
+    this.updated = false;
     this.calculate();
   }
 
   updateMinMax(minV, maxV) {
-    this.minV = Math.min(minV, this.minV);
-    this.maxV = Math.max(maxV, this.maxV);
+    if (!this.updated) {
+        this.minV = minV;
+        this.maxV = maxV;
+    } else {
+        this.minV = Math.min(minV, this.minV);
+        this.maxV = Math.max(maxV, this.maxV);
+    }
 
-    this.maxV = Math.ceil(this.maxV);
-    this.minV = Math.floor(this.minV);
+    this.updated = true;
 
     this.calculate(); // update intervals, etc
   }

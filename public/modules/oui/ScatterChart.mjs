@@ -95,7 +95,42 @@ zoomInteractionHandler(type, x, y) {
     }
 }
 
-  draw() {
+valueToHue(v) {
+    return 240 + 120 * (v - this.axes.colour.scale.getMin()) / this.axes.colour.scale.getRange();
+}
+
+drawLegendBackground(axis) {
+    if (axis == this.axes.colour && axis.numParams == 1) {
+        var y1 = this.y;
+        var h1 = this.height - this.axesHeight; // chart area`
+
+        var w = this.ctx.canvas.width;
+        var cx = w / 2;
+
+        var h = this.ctx.canvas.height;
+        var cy = h / 2;
+
+        var x1 = this.axesWidth;
+        var cw = w - this.legendWidth - x1; // chart area
+
+        // visualise colour scale
+
+        var w1 = this.legendWidth-5;
+        var steps = 20;
+        var stepWidth = w1/steps;
+        for (var i=0; i<steps; i++) {
+            var v = this.axes.colour.scale.getMin() + (i/steps) * this.axes.colour.scale.getRange();
+            var hue = this.valueToHue(v);
+            this.ctx.fillStyle = 'hsla('+hue.toFixed(0)+', 100%, 60%, 1)';
+            var x2 = (i/steps) * w1;
+
+            this.ctx.fillRect(x1+cw+5+x2, this.y + axis.y + axis.height/2, stepWidth, axis.height/2);
+        }
+    }
+}
+
+
+draw() {
     super.draw();
 
     var me = this;
@@ -211,12 +246,12 @@ zoomInteractionHandler(type, x, y) {
         var py = y1 + h1 - (h1 * (pdy.data[j].v - this.axes.y.scale.getMin())) / this.axes.y.scale.getRange(); // invert y drawing
 
         if (colourAxis && (k < pdc.data.length)) {
-            var hue =  240 + 120 * (pdc.data[k].v - this.axes.colour.scale.getMin()) / this.axes.colour.scale.getRange();
-            this.ctx.fillStyle = 'hsla('+hue.toFixed(0)+', 100%, 60%, 0.3)';
+            var hue =  this.valueToHue(pdc.data[k].v);
+            this.ctx.fillStyle = 'hsla('+hue.toFixed(0)+', 100%, 60%, 0.4)';
         }
     
         this.ctx.beginPath();
-        this.ctx.arc(px, py, 2, 0, 2*Math.PI);
+        this.ctx.arc(px, py, 3, 0, 2*Math.PI);
         this.ctx.fill();
     
         // advance colour

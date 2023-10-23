@@ -122,8 +122,14 @@ export default class ChartManager {
             }
 
             // update ranges
-            pd.minValue = Math.min(pd.minValue, v);
-            pd.maxValue = Math.max(pd.maxValue, v);
+            if (pd.data.length == 1) {
+                pd.minValue = v;
+                pd.maxValue = v;
+            } else {
+                pd.minValue = Math.min(pd.minValue, v);
+                pd.maxValue = Math.max(pd.maxValue, v);
+            }
+            
 
             me.needsRedraw = true;
           }
