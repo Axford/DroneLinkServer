@@ -125,11 +125,14 @@ export default class ViolinChart extends Chart {
         var vWidth = vSpacing * 0.8;
         var vi = 1;
 
+        this.ctx.lineWidth = 2;
+
         // draw data!
         for (const [key, col] of Object.entries(this.axes.y.params)) {
           var pd = this.parent.paramData[col.addr];
     
           this.ctx.fillStyle = col.dimStyle;
+          this.ctx.strokeStyle = col.style;
     
           // find range to draw
           var i = 0;
@@ -144,18 +147,68 @@ export default class ViolinChart extends Chart {
           if (endIndex > pd.data.length - 1) endIndex = pd.data.length - 1;
     
           if (pd.data.length > 0) {
+            var mean = 0;
+            var samples = 0;
+
+            var histoBins = 50;
+            var histo = new Array(histoBins).fill(0);
+            var histoMax = 0;
+
             for (var i = startIndex; i < endIndex + 1; i++) {
               var pde = pd.data[i];
-              var hv = pd.data[i].t % vWidth;
-              var px = x1 + (vi * vSpacing) + (hv) - (vWidth/2);
+              //var hv = pd.data[i].t % vWidth;
+              //var px = x1 + (vi * vSpacing) + (hv) - (vWidth/2);
               var py = y1 + h1 - (h1 * (pde.v - this.axes.y.scale.getMin())) / this.axes.y.scale.getRange(); // invert y drawing
 
+              mean += pde.v;
+              samples++;
+
+              var bin = Math.round(histoBins * ((py - y1) / h1));
+              if (bin >=0 && bin <= histoBins-1) {
+                histo[bin]++;
+                if (histo[bin] > histoMax) histoMax = histo[bin];
+              }
+
+              /*
               this.ctx.beginPath();
               this.ctx.arc(px, py, 3, 0, 2*Math.PI);
               this.ctx.fill();
+              */
               
             }
+
+            if (samples > 0) {
+                
+                // draw histobins
+                var bh = h1/histoBins;
+                for (var bi = 0; bi<histoBins; bi++) {
+                    var by = y1 + bi * bh;
+                    var bw = vWidth * histo[bi]/histoMax;
+                    this.ctx.beginPath();
+                    this.ctx.rect(x1 + (vi * vSpacing) - (bw/2), by, bw, bh);
+                    this.ctx.fill();
+                }
+
+                // draw mean
+                mean /= samples;
+                var py = y1 + h1 - (h1 * (mean - this.axes.y.scale.getMin())) / this.axes.y.scale.getRange(); // invert y drawing
+
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.moveTo(x1 + (vi * vSpacing) - (vWidth/2)-10, py);
+                this.ctx.lineTo(x1 + (vi * vSpacing) + (vWidth/2)+10, py);
+                this.ctx.stroke();
+                this.ctx.lineWidth = 1;
+
+                // label the mean
+                this.ctx.fillStyle = "#fff";
+                this.ctx.font = this.parent.font;
+                this.ctx.textAlign = "center";
+                this.ctx.fillText(mean.toFixed(1), x1 + (vi * vSpacing), py-4);
+            }
           }
+
+          
 
           vi++;
         }
