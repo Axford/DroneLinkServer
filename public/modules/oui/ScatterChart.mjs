@@ -126,6 +126,14 @@ drawLegendBackground(axis) {
 
             this.ctx.fillRect(x1+cw+5+x2, this.y + axis.y + axis.height/2, stepWidth, axis.height/2);
         }
+
+        // label min/max
+        this.ctx.fillStyle = "#fff";
+        this.ctx.font = this.parent.font;
+        this.ctx.textAlign = "left";
+        this.ctx.fillText(this.axes.colour.scale.getMin().toFixed(this.axes.colour.tickPrecision), x1 + cw + 10, this.y + axis.y + axis.height-10);
+        this.ctx.textAlign = "right";
+        this.ctx.fillText(this.axes.colour.scale.getMax().toFixed(this.axes.colour.tickPrecision), w-5, this.y + axis.y + axis.height-10);
     }
 }
 
