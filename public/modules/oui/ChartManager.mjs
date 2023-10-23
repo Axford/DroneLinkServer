@@ -12,6 +12,7 @@ import { clamp } from "../navMath.mjs";
 import LineChart from "./LineChart.mjs";
 import ScatterChart from "./ScatterChart.mjs";
 import PolarChart from "./PolarChart.mjs";
+import ViolinChart from "./ViolinChart.mjs";
 
 
 export default class ChartManager {
@@ -260,6 +261,8 @@ export default class ChartManager {
         this.charts.push( new ScatterChart(this, y) );
     } else if (type == 'polar') {
         this.charts.push( new PolarChart(this, y) );
+    } else if (type == 'violin') {
+        this.charts.push( new ViolinChart(this, y) );
     }
 
     this.needsRedraw = true;
@@ -490,12 +493,20 @@ export default class ChartManager {
     topNav.append(this.ui.addScatterButton);
 
     this.ui.addPolarButton = $(
-        '<button class="btn btn-primary mr-5"><i class="fas fa-plus mr-2"></i> Polar</button>'
+        '<button class="btn btn-primary mr-1"><i class="fas fa-plus mr-2"></i> Polar</button>'
       );
       this.ui.addPolarButton.on("click", () => {
         me.addChart("polar");
       });
       topNav.append(this.ui.addPolarButton);
+
+    this.ui.addViolinButton = $(
+        '<button class="btn btn-primary mr-5"><i class="fas fa-plus mr-2"></i> Violin</button>'
+      );
+      this.ui.addViolinButton.on("click", () => {
+        me.addChart("violin");
+      });
+      topNav.append(this.ui.addViolinButton);
 
     this.ui.pauseButton = $(
       '<button class="btn btn-primary mr-5"><i class="fas fa-pause mr-2"></i> Pause</button>'
