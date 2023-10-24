@@ -99,11 +99,11 @@ export default class ParamData {
     });
   }
 
-  addData(t, v) {
+  addData(t, v, protectLimits=false) {
     // called with fresh data that is within filtered time range
     
     // update ranges
-    if (this.filteredData.length == 0) {
+    if (this.filteredData.length == 0 && !protectLimits) {
       this.minValue = v;
       this.maxValue = v;
       this.filterMin = v;
@@ -228,14 +228,22 @@ export default class ParamData {
         var v = this.minValue + ((x - x1) * range) / cw;
         if (v < this.minValue) v = this.minValue;
         if (v > this.filterMax) v = this.filterMax;
-        this.filterMin = v;
+        if (v != this.filterMin) {
+          this.filterMin = v;
+          this.mgr.replay();
+        }
+
       } else if (this.filterHandle == "end") {
         var v = this.minValue + ((x - x1) * range) / cw;
         if (v < this.filterMin) v = this.filterMin;
         if (v >= this.maxValue) {
           v = this.maxValue;
         }
-        this.filterMax = v;
+        if (v != this.filterMax) {
+          this.filterMax = v;
+          this.mgr.replay();
+        }
+
       }
     } else if (type == "up") {
       // enable autotrack?
@@ -265,6 +273,12 @@ export default class ParamData {
     this.ctx.fillStyle = "#141a20";
     this.ctx.fillRect(x1, y1, cw, h1);
 
+    if (this.filtering) {
+      // show filter indicator
+      this.ctx.fillStyle = "#800";
+      this.ctx.fillRect(0, y1, 10, h1);
+    }
+
     var w3 = 40;
     var x2 = w - this.legendWidth + w3;
     var w2 = this.legendWidth - w3;
@@ -279,12 +293,6 @@ export default class ParamData {
     this.ctx.textAlign = "left";
     // node name
     this.ctx.fillText(this.nodeObj.name, x2 + 5, y1 + 15);
-
-    if (this.filtering) {
-      // show filter indicator
-      this.ctx.fillStyle = "#800";
-      this.ctx.fillRect(0, y1, 10, h1);
-    }
 
     // draw data size top right
     this.ctx.textAlign = "right";

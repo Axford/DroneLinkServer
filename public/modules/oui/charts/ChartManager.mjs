@@ -163,6 +163,22 @@ export default class ChartManager {
     }
   }
 
+  replay() {
+    // reset and replay data from new start time
+    for (const [pdk, pd] of Object.entries(this.paramData)) {
+      pd.clear();
+    }
+    // also reset filtering state
+    this.filtering = false;
+
+    // replay
+    this.data.forEach((d)=>{
+      if (d.t >= this.selectedStartTime && d.t <= this.selectedEndTime) {
+        d.pd.addData(d.t, d.v, true);
+      }
+    });
+  }
+
   updateSelectedStartTime(v) {
     if (v == this.selectedStartTime) return;
 
@@ -172,19 +188,8 @@ export default class ChartManager {
         pd.trim(v, this.selectedEndTime);
       }
     } else if (v < this.selectedStartTime) {
-      // reset and replay data from new start time
-      for (const [pdk, pd] of Object.entries(this.paramData)) {
-        pd.clear();
-      }
-      // also reset filtering state
-      this.filtering = false;
-
-      // replay
-      this.data.forEach((d)=>{
-        if (d.t >= v && d.t <= this.selectedEndTime) {
-          d.pd.addData(d.t, d.v);
-        }
-      });
+      this.selectedStartTime = v;
+      this.replay();
     }
 
     this.selectedStartTime = v;
