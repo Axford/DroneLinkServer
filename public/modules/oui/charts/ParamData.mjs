@@ -280,7 +280,11 @@ export default class ParamData {
     // node name
     this.ctx.fillText(this.nodeObj.name, x2 + 5, y1 + 15);
 
-    this.ctx.fillText(this.filtering ? 'Y' : 'N', 5, y1 + 15);
+    if (this.filtering) {
+      // show filter indicator
+      this.ctx.fillStyle = "#800";
+      this.ctx.fillRect(0, y1, 10, h1);
+    }
 
     // draw data size top right
     this.ctx.textAlign = "right";
@@ -301,12 +305,12 @@ export default class ParamData {
     this.ctx.fillStyle = "#888";
     this.ctx.font = this.font;
     this.ctx.textAlign = "right";
-    this.ctx.fillText(this.minValue.toFixed(1), x1 - 2, y1 + h1-5);
+    this.ctx.fillText(this.filterMin.toFixed(1), x1 - 2, y1 + h1-5);
 
     // max label
     this.ctx.textAlign = "left";
     this.ctx.fillText(
-      this.maxValue.toFixed(1),
+      this.filterMax.toFixed(1),
       w - this.legendWidth + 2,
       y1 + h1-5
     );

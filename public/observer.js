@@ -119,6 +119,18 @@ socket.on('AIS', (msg)=>{
   tracker.handleAIS(msg);
 });
 
+function resize() {
+  map.resize();
+
+  networkGraph.resize();
+  chartManager.resize();
+
+  // let nodes know they should also resize
+  for (const [key, n] of Object.entries(nodes)) {
+    n.resize();
+  }
+}
+
 
 function setPanelSize(w) {
   var container = $('#main'),
@@ -130,15 +142,7 @@ function setPanelSize(w) {
 
   left.css('right', w);
   right.css('width', w);
-  map.resize();
-
-  networkGraph.resize();
-  chartManager.resize();
-
-  // let nodes know they should also resize
-  for (const [key, n] of Object.entries(nodes)) {
-    n.resize();
-  }
+  resize();
 }
 
 function openPanel() {
@@ -286,6 +290,11 @@ function fetchFirmwareVersion() {
 function init() {
   // install showHelp on window object
   window.showHelp = showHelp;
+
+  // global resize
+  addEventListener("resize", (event) => {
+    resize();
+  });
 
   // load previous selection
   if (localStorage.selectedNode)

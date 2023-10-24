@@ -178,7 +178,7 @@ export default class ChartManager {
       }
       // also reset filtering state
       this.filtering = false;
-      
+
       // replay
       this.data.forEach((d)=>{
         if (d.t >= v && d.t <= this.selectedEndTime) {
@@ -848,7 +848,7 @@ export default class ChartManager {
     var cy = h / 2;
 
     // background
-    this.ctx.fillStyle = this.filtering ? "#442a30" : "#242a30";
+    this.ctx.fillStyle = "#242a30";
     this.ctx.fillRect(0, 0, w, h);
 
     var x1 = this.axesWidth;
