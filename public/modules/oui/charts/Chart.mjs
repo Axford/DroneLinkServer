@@ -411,9 +411,6 @@ export default class Chart {
                 this.ctx.textAlign = "left";
                 // node name
                 this.ctx.fillText(pd.nodeObj.name, x2 + 5, y2 + 15);
-                // draw data size top right
-                this.ctx.textAlign = "right";
-                this.ctx.fillText(pd.data.length, x2+w2-5, y2 + 15);
                 // channel / param
                 this.ctx.textAlign = "left";
                 this.ctx.font = "12px bold, " + this.parent.baseFont;

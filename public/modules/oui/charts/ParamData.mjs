@@ -19,13 +19,10 @@ export default class ParamData {
     this.channel = channel.channel;
     this.param = param.param;
     this.valueIndex = valueIndex;
-    this.data = [];
     this.filteredData = [];
     this.minValue = 0;
     this.maxValue = 0;
-    this.startTime = 0;
-    this.endTime = 0;
-
+    
     this.filterMin = 0;
     this.filterMax = 0;
     this.trackMax = true;
@@ -61,14 +58,10 @@ export default class ParamData {
   }
 
   clear() {
-    this.data = [];
     this.filteredData = [];
     this.histo = new Array(this.histoBins).fill(0);
     this.histoMax = 0;
-  }
-
-  haveData() {
-    return this.data.length > 0;
+    this.filtering = 0;
   }
 
   haveFilteredData() {
@@ -93,7 +86,7 @@ export default class ParamData {
         this.histo[b]++;
         if (this.histo[b] > this.histoMax) this.histoMax = this.histo[b];
     } else {
-        console.error('out of range', v, b);
+        console.error('out of range', v, this.minValue, this.maxValue);
     }
   }
 
@@ -101,30 +94,16 @@ export default class ParamData {
     this.histo = new Array(this.histoBins).fill(0);
     this.histoMax = 0;
 
-    this.data.forEach((pd)=>{
+    this.filteredData.forEach((pd)=>{
         this.addToHisto(pd.v);
     });
   }
 
   addData(t, v) {
-    if (!this.haveData()) {
-        // init time ranges
-        this.startTime = t;
-        this.endTime = t;
-    } else {
-        // update time ranges
-        if (t > this.endTime) {
-            this.endTime = t;
-        }
-    }
-
-    this.data.push({
-      t: t,
-      v: v,
-    });
-
+    // called with fresh data that is within filtered time range
+    
     // update ranges
-    if (this.data.length == 1) {
+    if (this.filteredData.length == 0) {
       this.minValue = v;
       this.maxValue = v;
       this.filterMin = v;
@@ -159,20 +138,37 @@ export default class ParamData {
     }
 
     // eval filters... 
-    if (t >= this.mgr.selectedStartTime && t <= this.mgr.selectedEndTime) {
-
-        if (!this.mgr.isFiltering()) {
-            this.filteredData.push({
-                t:t,
-                v:v
-            });
-        }
+    if (!this.mgr.isFiltering()) {
+        this.filteredData.push({
+            t:t,
+            v:v
+        });
     }
+
+  }
+
+  trim(start, end) {
+    var startIndex = 0;
+    var endIndex = this.filteredData.length;
+    for (var i = 0; i < this.filteredData.length; i++) {
+      if (this.filteredData[i].t < start) {
+        startIndex = i;
+      } else if (this.filteredData[i].t > end) {
+        endIndex = i + 1;
+        break;
+      }
+    }
+    this.filteredData = this.filteredData.slice(startIndex, endIndex);
+    this.rebuildHisto();
   }
 
   reset() {
     // reset filter
-    // TODO
+    this.filtering = false;
+    this.filterMax = this.maxValue;
+    this.filterMin = this.minValue;
+    this.trackMax = true;
+    this.trackMin = true;
   }
 
   onMousedown(x, y) {
@@ -288,7 +284,7 @@ export default class ParamData {
 
     // draw data size top right
     this.ctx.textAlign = "right";
-    this.ctx.fillText(this.data.length, x2+w2-5, y1 + 15);
+    this.ctx.fillText(this.filteredData.length, x2+w2-5, y1 + 15);
     // channel / param
     this.ctx.textAlign = "left";
     this.ctx.font = "12px bold, " + this.mgr.baseFont;
@@ -298,7 +294,7 @@ export default class ParamData {
         y1 + 32
     );
 
-    if (!this.haveData()) return;
+    if (!this.haveFilteredData()) return;
 
 
     // min label

@@ -128,8 +128,8 @@ export default class PolarChart extends Chart {
     while (i < pdx.filteredData.length && j < pdy.filteredData.length) {
         var ang = degreesToRadians(pdx.filteredData[i].v);
         
-        if (pdy.data[j].v >= 0) {
-            var r1 = (r * pdy.data[j].v) / this.axes.y.scale.getRange();
+        if (pdy.filteredData[j].v >= 0) {
+            var r1 = (r * pdy.filteredData[j].v) / this.axes.y.scale.getRange();
 
             var px = cx + r1 * Math.cos(ang-Math.PI/2);
             var py = cy + r1 * Math.sin(ang-Math.PI/2);

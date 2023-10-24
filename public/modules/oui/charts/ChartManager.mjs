@@ -32,6 +32,7 @@ export default class ChartManager {
 
     this.lastRowTime = 0;
 
+    this.data = []; // raw time series log data for associated params
     this.paramData = {}; // collection of ParamData objects
     this.numParams = 0;
     this.paramsHeight = 0;
@@ -127,7 +128,15 @@ export default class ChartManager {
             }
 
             // add data
-            pd.addData(data.timestamp, v);
+            this.data.push({
+              pd:pd,
+              t:data.timestamp,
+              v:v
+            });
+
+            if (data.timestamp >= this.selectedStartTime && data.timestamp <= this.selectedEndTime) {
+              pd.addData(data.timestamp, v);
+            }
 
             me.needsRedraw = true;
           }
@@ -152,6 +161,54 @@ export default class ChartManager {
     for (const [pdk, pd] of Object.entries(this.paramData)) {
       this.filtering |= pd.filtering;
     }
+  }
+
+  updateSelectedStartTime(v) {
+    if (v == this.selectedStartTime) return;
+
+    if (v > this.selectedStartTime) {
+      // trim
+      for (const [pdk, pd] of Object.entries(this.paramData)) {
+        pd.trim(v, this.selectedEndTime);
+      }
+    } else if (v < this.selectedStartTime) {
+      // reset and replay data from new start time
+      for (const [pdk, pd] of Object.entries(this.paramData)) {
+        pd.clear();
+      }
+      // also reset filtering state
+      this.filtering = false;
+      
+      // replay
+      this.data.forEach((d)=>{
+        if (d.t >= v && d.t <= this.selectedEndTime) {
+          d.pd.addData(d.t, d.v);
+        }
+      });
+    }
+
+    this.selectedStartTime = v;
+  }
+
+  updateSelectedEndTime(v) {
+    if (v == this.selectedEndTime) return;
+
+    if (v > this.selectedEndTime) {
+      // extend time
+      // feed additional data points to paramData objects
+      this.data.forEach((d)=>{
+        if (d.t > this.selectedEndTime && d.t <=v) {
+          d.pd.addData(d.t, d.v);
+        }
+      });
+
+    } else if (v < this.selectedEndTime) {
+      // trim time, remove points from paramData objects
+      for (const [pdk, pd] of Object.entries(this.paramData)) {
+        pd.trim(this.selectedStartTime, v);
+      }
+    }
+    this.selectedEndTime = v;
   }
 
   addDropZone(dz) {
@@ -185,9 +242,10 @@ export default class ChartManager {
     // clear paramData
 
     for (const [key, pd] of Object.entries(this.paramData)) {
-      pd.data = [];
+      pd.clear();
     }
 
+    this.data = [];
     this.haveData = false;
 
     this.needsRedraw = true;
@@ -195,8 +253,9 @@ export default class ChartManager {
 
   trim() {
     // delete paramData outside selected time frame
+    /*
     for (const [key, pd] of Object.entries(this.paramData)) {
-      console.log("before", key, pd.data.length);
+      //console.log("before", key, pd.data.length);
       //pd.data = [];
       var startIndex = 0;
       var endIndex = pd.data.length - 1;
@@ -210,8 +269,11 @@ export default class ChartManager {
       }
       pd.data = pd.data.slice(startIndex, endIndex);
 
-      console.log("after", key, pd.data.length);
+      //console.log("after", key, pd.data.length);
     }
+    */
+
+    // TODO
 
     // reset time markers
     this.startTime = this.selectedStartTime;
@@ -253,20 +315,6 @@ export default class ChartManager {
 
     // make sure the new/existing column is associated with the chart
     chart.addParam(y, paramData);
-
-    this.resize();
-  }
-
-  addFilter(type) {
-    var y = this.timeHeight;
-    if (this.filters.length > 0)
-        y = this.filters[this.filters.length-1].y + this.filters[this.filters.length-1].height + this.chartSpacing;
-
-    if (type == 'time') {
-
-    } else if (type == 'param') {
-        this.filters.push( new ParamChartFilter(this, y));
-    }
 
     this.resize();
   }
@@ -398,7 +446,6 @@ export default class ChartManager {
 
       var th1 = 20;
 
-      // draw selected region
       var sx1 =
         x1 + (cw * (this.selectedStartTime - this.startTime)) / timeOuterRange;
       var sx2 =
@@ -408,14 +455,15 @@ export default class ChartManager {
         var v = this.startTime + ((x - x1) * timeOuterRange) / cw;
         if (v < this.startTime) v = this.startTime;
         if (v > this.selectedEndTime) v = this.selectedEndTime - 1;
-        this.selectedStartTime = v;
+        //this.selectedStartTime = v;
+        this.updateSelectedStartTime(v);
       } else if (this.timeSelectHandle == "end") {
         var v = this.startTime + ((x - x1) * timeOuterRange) / cw;
         if (v < this.selectedStartTime) v = this.selectedStartTime + 1;
         if (v >= this.endTime) {
           v = this.endTime;
         }
-        this.selectedEndTime = v;
+        this.updateSelectedEndTime(v);
       }
     } else if (type == "up") {
       console.log(x);
