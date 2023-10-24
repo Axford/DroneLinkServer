@@ -217,20 +217,10 @@ draw() {
 
 
     // ensure we have data to draw with!
-    if (pdx.data.length == 0 || pdy.data.length == 0) {
+    if (pdx.filteredData.length == 0 || pdy.data.length == 0) {
         this.ctx.textAlign = "left";
         this.ctx.fillText('Waiting for data', x1 + 10, y1 + this.height/2);
         return;
-    }
-
-    // find ranges to draw
-    var xi = this.getIndicesForTimeRange(pdx, this.parent.selectedStartTime, this.parent.selectedEndTime);
-
-    var yi = this.getIndicesForTimeRange(pdy, this.parent.selectedStartTime, this.parent.selectedEndTime);
-
-    var ci;
-    if (colourAxis) {
-        ci = this.getIndicesForTimeRange(pdc, this.parent.selectedStartTime, this.parent.selectedEndTime);
     }
 
     // set clip region
@@ -245,16 +235,16 @@ draw() {
     this.ctx.fillStyle = 'hsla(0, 0%, 100%, 0.2)';
 
     // use Y axis as basis for timing
-    var i = xi.start;
-    var j = yi.start;
-    var k = (colourAxis) ? ci.start : 0;
-    while (i <= xi.end && j <= yi.end) {
-        var px = x1 + (cw * (pdx.data[i].v - this.axes.x.scale.getMin())) / this.axes.x.scale.getRange();
+    var i = 0;
+    var j = 0;
+    var k = 0;
+    while (i < pdx.filteredData.length && j < pdy.filteredData.length) {
+        var px = x1 + (cw * (pdx.filteredData[i].v - this.axes.x.scale.getMin())) / this.axes.x.scale.getRange();
         
-        var py = y1 + h1 - (h1 * (pdy.data[j].v - this.axes.y.scale.getMin())) / this.axes.y.scale.getRange(); // invert y drawing
+        var py = y1 + h1 - (h1 * (pdy.filteredData[j].v - this.axes.y.scale.getMin())) / this.axes.y.scale.getRange(); // invert y drawing
 
-        if (colourAxis && (k < pdc.data.length)) {
-            var hue =  this.valueToHue(pdc.data[k].v);
+        if (colourAxis && (k < pdc.filteredData.length)) {
+            var hue =  this.valueToHue(pdc.filteredData[k].v);
             this.ctx.fillStyle = 'hsla('+hue.toFixed(0)+', 100%, 60%, 0.4)';
         }
     
@@ -264,12 +254,12 @@ draw() {
     
         // advance colour
         if (colourAxis) {
-            while (k < pdc.data.length-1 && pdc.data[k].t < pdy.data[j].t) {
+            while (k < pdc.filteredData.length-1 && pdc.filteredData[k].t < pdy.data[j].t) {
                 k++;
             }
         }
 
-        if (pdx.data[i].t < pdy.data[j].t) {
+        if (pdx.filteredData[i].t < pdy.filteredData[j].t) {
             i++;
         } else {
             j++;

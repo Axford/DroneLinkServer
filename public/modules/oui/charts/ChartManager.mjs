@@ -289,11 +289,19 @@ export default class ChartManager {
     this.resize();
   }
 
+  getParamAt(x, y) {
+    var match = null;
+    for (const [pdk, pd] of Object.entries(this.paramData)) {
+      if (y >= pd.y && y <= pd.y + pd.height) {
+        match = pd;
+      }
+    };
+    return match;
+  }
+
   getChartAt(x, y) {
     var match = null;
     this.charts.forEach((c) => {
-      var h1 = c.height;
-
       if (y >= c.y && y <= c.y + c.height) {
         match = c;
       }
@@ -621,6 +629,14 @@ export default class ChartManager {
       if (!me.mouseInteractionHandler)
         me.mouseInteractionHandler = me.labelMouseDown(x1, y1);
 
+      if (!me.mouseInteractionHandler) {
+        // pass to params
+        var p = this.getParamAt(x1,y1);
+        if (p) {
+            me.mouseInteractionHandler = p.onMousedown(x1, y1);
+        }
+      }
+      
       // pass to chart
       if (!me.mouseInteractionHandler) {
         var c = this.getChartAt(x1,y1);
@@ -640,7 +656,13 @@ export default class ChartManager {
   
         var x1 = e.pageX - offsetX;
         var y1 = e.pageY - offsetY;
-  
+
+        // pass to params
+        var p = this.getParamAt(x1,y1);
+        if (p) {
+            me.mouseInteractionHandler = p.onContextmenu(x1, y1);
+        }
+
         // pass to chart
         var c = this.getChartAt(x1,y1);
         if (c) {
@@ -778,7 +800,7 @@ export default class ChartManager {
     var cy = h / 2;
 
     // background
-    this.ctx.fillStyle = "#242a30";
+    this.ctx.fillStyle = this.filtering ? "#442a30" : "#242a30";
     this.ctx.fillRect(0, 0, w, h);
 
     var x1 = this.axesWidth;

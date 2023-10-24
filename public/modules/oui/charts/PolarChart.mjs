@@ -105,16 +105,11 @@ export default class PolarChart extends Chart {
     var pdy = this.parent.paramData[yAxis.addr];
 
     // ensure we have data to draw with!
-    if (pdx.data.length == 0 || pdy.data.length == 0) {
+    if (pdx.filteredData.length == 0 || pdy.filteredData.length == 0) {
         this.ctx.textAlign = "left";
         this.ctx.fillText('Waiting for data', x1 + 10, y1 + this.height/2);
         return;
     }
-
-    // find ranges to draw
-    var xi = this.getIndicesForTimeRange(pdx, this.parent.selectedStartTime, this.parent.selectedEndTime);
-
-    var yi = this.getIndicesForTimeRange(pdy, this.parent.selectedStartTime, this.parent.selectedEndTime);
 
     // set clip region
     this.ctx.save();
@@ -128,10 +123,10 @@ export default class PolarChart extends Chart {
     this.ctx.fillStyle = 'rgba(80,255,80,0.3)';
 
     // use Y axis as basis for timing
-    var i = xi.start;
-    var j = yi.start;
-    while (i <= xi.end && j <= yi.end) {
-        var ang = degreesToRadians(pdx.data[i].v);
+    var i = 0;
+    var j = 0;
+    while (i < pdx.filteredData.length && j < pdy.filteredData.length) {
+        var ang = degreesToRadians(pdx.filteredData[i].v);
         
         if (pdy.data[j].v >= 0) {
             var r1 = (r * pdy.data[j].v) / this.axes.y.scale.getRange();
@@ -144,7 +139,7 @@ export default class PolarChart extends Chart {
             this.ctx.fill();
         }
 
-        if (pdx.data[i].t < pdy.data[j].t) {
+        if (pdx.filteredData[i].t < pdy.filteredData[j].t) {
             i++;
         } else {
             j++;

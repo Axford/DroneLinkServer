@@ -31,6 +31,8 @@ export default class ParamData {
     this.trackMax = true;
     this.trackMin = true;
 
+    this.filterHandle = '';
+
     this.filtering = false; // has last value fallen outside filter range
 
     this.y = y;
@@ -151,9 +153,9 @@ export default class ParamData {
     // see if we are filtering, update mgr
     var newF = !(v >= this.filterMin && v <= this.filterMax);
     if (newF != this.filtering) {
+        this.filtering = newF;
         if (newF) { this.mgr.filter(); }
         else { this.mgr.unfilter(); }
-        this.filtering = newF;
     }
 
     // eval filters... 
@@ -174,12 +176,80 @@ export default class ParamData {
   }
 
   onMousedown(x, y) {
-    return null;
+    return this.filterHandleMouseDown(x,y);
   }
 
   onContextmenu(x, y) {
     // reset zoom
     this.reset();
+  }
+
+  filterHandleMouseDown(x, y) {
+    var w = this.ctx.canvas.width;
+    var x1 = this.axesWidth;
+    var cw = w - this.legendWidth - x1; // chart area
+
+    var th1 = 20;
+
+    var range = this.getRange();
+    var sx1 =
+      x1 + (cw * (this.filterMin - this.minValue) / range);
+    var sx2 =
+      x1 + (cw * (this.filterMax - this.minValue) / range);
+
+    if (y < this.y + th1) {
+      // left handle
+      if (x >= sx1 - this.handleWidth && x <= sx1) {
+        this.filterHandle = "start";
+        this.trackMin = false;
+        return this.filterHandleInteractionHandler.bind(this);
+      } else if (x >= sx2 && x <= sx2 + this.handleWidth) {
+        this.filterHandle = "end";
+        this.trackMax = false;
+        return this.filterHandleInteractionHandler.bind(this);
+      }
+    }
+    this.filterHandle = "";
+    return null;
+  }
+
+  filterHandleInteractionHandler(type, x, y) {
+    var w = this.ctx.canvas.width;
+    var x1 = this.axesWidth;
+    var cw = w - this.legendWidth - x1; // chart area
+
+    if (type == "move") {
+
+      var th1 = 20;
+
+      var range = this.getRange();
+      var sx1 =
+      x1 + (cw * (this.filterMin - this.minValue) / range);
+      var sx2 =
+      x1 + (cw * (this.filterMax - this.minValue) / range);
+
+      if (this.filterHandle == "start") {
+        var v = this.minValue + ((x - x1) * range) / cw;
+        if (v < this.minValue) v = this.minValue;
+        if (v > this.filterMax) v = this.filterMax;
+        this.filterMin = v;
+      } else if (this.filterHandle == "end") {
+        var v = this.minValue + ((x - x1) * range) / cw;
+        if (v < this.filterMin) v = this.filterMin;
+        if (v >= this.maxValue) {
+          v = this.maxValue;
+        }
+        this.filterMax = v;
+      }
+    } else if (type == "up") {
+      // enable autotrack?
+      if (x <= x1) {
+        this.trackMin = true;
+      }
+      if (x >= x1 + cw) {
+        this.trackMax = true;
+      }
+    }
   }
 
   resize() {
@@ -213,6 +283,9 @@ export default class ParamData {
     this.ctx.textAlign = "left";
     // node name
     this.ctx.fillText(this.nodeObj.name, x2 + 5, y1 + 15);
+
+    this.ctx.fillText(this.filtering ? 'Y' : 'N', 5, y1 + 15);
+
     // draw data size top right
     this.ctx.textAlign = "right";
     this.ctx.fillText(this.data.length, x2+w2-5, y1 + 15);
@@ -254,7 +327,7 @@ export default class ParamData {
     // draw histo
     // draw histobins
     if (this.histoMax > 0) {
-        this.ctx.fillStyle = "#888";
+        this.ctx.fillStyle = "#555";
         var bw = cw/this.histoBins;
         for (var bi = 0; bi<this.histoBins; bi++) {
             var bx = x1 + bi * bw;
@@ -268,10 +341,10 @@ export default class ParamData {
     // drag handles
     var th1 = 20;
 
-    this.ctx.fillStyle = this.trackMin ? "#007bff" : "#888";
+    this.ctx.fillStyle = this.trackMin ? "#007bff" : "#fff";
     this.ctx.fillRect(sx1 - this.handleWidth, y1, this.handleWidth, th1);
 
-    this.ctx.fillStyle = this.trackMax ? "#007bff" : "#888";
+    this.ctx.fillStyle = this.trackMax ? "#007bff" : "#fff";
     this.ctx.fillRect(sx2, y1, this.handleWidth, th1);
 
   }

@@ -137,16 +137,9 @@ export default class ViolinChart extends Chart {
           // find range to draw
           var i = 0;
           var startIndex = 0;
-          var endIndex = pd.data.length - 1;
+          var endIndex = pd.filteredData.length - 1;
     
-          pd.data.forEach((pde, pi) => {
-            if (pde.t < this.parent.selectedStartTime) startIndex = pi;
-    
-            if (pde.t <= this.parent.selectedEndTime) endIndex = pi + 1;
-          });
-          if (endIndex > pd.data.length - 1) endIndex = pd.data.length - 1;
-    
-          if (pd.data.length > 0) {
+          if (pd.filteredData.length > 0) {
             var mean = 0;
             var samples = 0;
 
@@ -155,7 +148,7 @@ export default class ViolinChart extends Chart {
             var histoMax = 0;
 
             for (var i = startIndex; i < endIndex + 1; i++) {
-              var pde = pd.data[i];
+              var pde = pd.filteredData[i];
               //var hv = pd.data[i].t % vWidth;
               //var px = x1 + (vi * vSpacing) + (hv) - (vWidth/2);
               var py = y1 + h1 - (h1 * (pde.v - this.axes.y.scale.getMin())) / this.axes.y.scale.getRange(); // invert y drawing
