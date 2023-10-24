@@ -5,20 +5,24 @@ Manage a UI for charting param values
 */
 
 import { format } from "https://cdn.skypack.dev/date-fns";
-import * as DLM from "../droneLinkMsg.mjs";
-import Vector from "../Vector.mjs";
-import roundRect from "../RoundedRect.mjs";
-import { clamp } from "../navMath.mjs";
+import * as DLM from "../../droneLinkMsg.mjs";
+import Vector from "../../Vector.mjs";
+import roundRect from "../../RoundedRect.mjs";
+import { clamp } from "../../navMath.mjs";
 import LineChart from "./LineChart.mjs";
 import ScatterChart from "./ScatterChart.mjs";
 import PolarChart from "./PolarChart.mjs";
 import ViolinChart from "./ViolinChart.mjs";
-
+import ParamChartFilter from "./ParamChartFilter.mjs";
+import ParamData from "./ParamData.mjs";
 
 export default class ChartManager {
   constructor(uiRoot, state) {
     var me = this;
     this.uiRoot = uiRoot;
+
+    this.width = 100; // override once built
+    this.height = 100;
 
     this.state = state;
     this.visible = false;
@@ -28,8 +32,14 @@ export default class ChartManager {
 
     this.lastRowTime = 0;
 
-    this.paramData = {};
+    this.paramData = {}; // collection of ParamData objects
+    this.numParams = 0;
+    this.paramsHeight = 0;
+    this.filtering = false;
+
     this.charts = [];
+
+    this.dropZones = [];
 
     this.startTime = 0;
     this.endTime = 0;
@@ -99,13 +109,7 @@ export default class ChartManager {
 
         for (const [key, pd] of Object.entries(me.paramData)) {
           if (key == pAddr) {
-            // add data
-
-            pd.data.push({
-              t: data.timestamp,
-              v: v,
-            });
-
+            // update time filters
             if (!me.haveData) {
               me.haveData = true;
 
@@ -122,21 +126,40 @@ export default class ChartManager {
               }
             }
 
-            // update ranges
-            if (pd.data.length == 1) {
-                pd.minValue = v;
-                pd.maxValue = v;
-            } else {
-                pd.minValue = Math.min(pd.minValue, v);
-                pd.maxValue = Math.max(pd.maxValue, v);
-            }
-            
+            // add data
+            pd.addData(data.timestamp, v);
 
             me.needsRedraw = true;
           }
         }
       });
     });
+  }
+
+  isFiltering() {
+    return this.filtering;
+  }
+
+  filter() {
+    // called when a param is filtering
+    this.filtering = true;
+  }
+
+  unfilter() {
+    // called when a param stops filtering
+    // check all params to see if one is still filtering
+    this.filtering = false;
+    for (const [pdk, pd] of Object.entries(this.paramData)) {
+      this.filtering |= pd.filtering;
+    }
+  }
+
+  addDropZone(dz) {
+    this.dropZones.push(dz);
+  }
+
+  removeDropZone(dz) {
+    this.dropZones = _.remove(this.dropZones, function(d) { return d == dz; });
   }
 
   show() {
@@ -219,39 +242,37 @@ export default class ChartManager {
     }
 
     if (!f) {
-      // add new column
-      var title = "";
-      title += node.name != "" ? node.name : node.id;
-      title += ">";
-      title += channel.name != "?" ? channel.name : channel.channel;
-      title += ".";
-      title += param.title != "?" ? param.name : param.param;
 
-      paramData = {
-        addr: addr,
-        node: node.id,
-        channel: channel.channel,
-        param: param.param,
-        valueIndex: valueIndex, // which value is this param related to
-        nodeObj: node,
-        channelObj: channel,
-        paramObj: param,
-        title: title,
-        data: [],
-        minValue: 0,
-        maxValue: 0,
-      };
-      this.paramData[addr] = paramData;
+      // add new paramData object
+      var hue = (this.numParams * 67) % 360;
+      paramData = new ParamData(this, node, channel, param, valueIndex, this.paramsHeight + this.chartSpacing, hue);
+      this.paramData[paramData.addr] = paramData;
+      this.numParams++;
+      
     }
 
     // make sure the new/existing column is associated with the chart
     chart.addParam(y, paramData);
 
-    this.needsRedraw = true;
+    this.resize();
+  }
+
+  addFilter(type) {
+    var y = this.timeHeight;
+    if (this.filters.length > 0)
+        y = this.filters[this.filters.length-1].y + this.filters[this.filters.length-1].height + this.chartSpacing;
+
+    if (type == 'time') {
+
+    } else if (type == 'param') {
+        this.filters.push( new ParamChartFilter(this, y));
+    }
+
+    this.resize();
   }
 
   addChart(type) {
-    var y = this.timeHeight;
+    var y = this.timeHeight + this.paramsHeight;
     if (this.charts.length > 0)
         y = this.charts[this.charts.length-1].y + this.charts[this.charts.length-1].height + this.chartSpacing;
 
@@ -265,7 +286,7 @@ export default class ChartManager {
         this.charts.push( new ViolinChart(this, y) );
     }
 
-    this.needsRedraw = true;
+    this.resize();
   }
 
   getChartAt(x, y) {
@@ -323,6 +344,8 @@ export default class ChartManager {
       this.dragSeperator = null;
       this.ui.canvas.css("cursor", "pointer");
     }
+
+    this.resize();
   }
 
   timeSelectMouseDown(x, y) {
@@ -685,8 +708,31 @@ export default class ChartManager {
     // keep width updated
     var w = this.uiRoot.width();
     this.ctx.canvas.width = w - 20;
-    var h = this.uiRoot.height();
-    this.ctx.canvas.height = h - 80;
+
+    this.width = w-20;
+
+    // set y positions for params and charts
+    var y1 = this.timeHeight + this.chartSpacing;
+
+    // params
+    var ly = y1;
+    for (const [pdk, pd] of Object.entries(this.paramData)) {
+      pd.y = y1;
+      pd.resize();
+      y1 += pd.height + this.chartSpacing;
+    }
+    this.paramsHeight = y1-ly;
+
+    //charts
+    this.charts.forEach((c) => {
+      c.y = y1;
+      c.resize();
+      y1 += c.height + this.chartSpacing;
+    });
+
+    this.height = y1;
+    this.ctx.canvas.height = this.height + 100;
+    this.ui.canvas.height(this.height + 100);
 
     this.needsRedraw = true;
   }
@@ -807,20 +853,19 @@ export default class ChartManager {
       ty
     );
 
+    // draw params
+    // ------------------------------------------------------------
+    for (const [pdk, pd] of Object.entries(this.paramData)) {
+      pd.draw();
+    }
+
+
     // draw charts
     // ------------------------------------------------------------
-    y1 = this.timeHeight;
-
     this.charts.forEach((c) => {
-      c.y = y1;
-
       c.draw();
-
-      y1 += c.height + this.chartSpacing;
     });
   }
-
-  
 
   
 } // end of class

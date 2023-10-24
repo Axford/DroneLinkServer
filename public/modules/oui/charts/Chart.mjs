@@ -4,7 +4,7 @@ Manages a chart object
 
 */
 
-import roundRect from "../RoundedRect.mjs";
+import roundRect from "../../RoundedRect.mjs";
 
 export default class Chart {
   constructor(parent, type, y) {
@@ -96,12 +96,12 @@ export default class Chart {
     if (!axis.params.hasOwnProperty(paramData.addr)) {
       axis.numParams++;
 
-      var hue = (axis.numParams * 67) % 360;
+      var hue = paramData.hue;
 
       axis.params[paramData.addr] = {
         chart: this,
         axis:axis,
-        title: paramData.title,
+        title: paramData.getTitle(),
         addr: paramData.addr,
         style: "hsl(" + hue + "," + "100%, 75%)",
         dimStyle: "hsla(" + hue + "," + "100%, 75%, 30%)",
@@ -110,6 +110,7 @@ export default class Chart {
           (this.legendLabelHeight + this.legendSpacing),
         velocity: 0,
         av: 0,
+        lastY: null
       };
     }
     console.log(this.axes);

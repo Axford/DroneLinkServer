@@ -88,7 +88,7 @@ var analyser;
 import ExportManager from './modules/oui/ExportManager.mjs';
 var exportManager;
 
-import ChartManager from './modules/oui/ChartManager.mjs';
+import ChartManager from './modules/oui/charts/ChartManager.mjs';
 var chartManager;
 
 var uploadManager, logManager;

@@ -6,9 +6,8 @@ Manage a Scatter Chart
 
 import Chart from "./Chart.mjs";
 import ChartScale from "./ChartScale.mjs";
-import { clamp } from "../navMath.mjs";
+import { clamp, degreesToRadians } from "../../navMath.mjs";
 import { format } from "https://cdn.skypack.dev/date-fns";
-import { degreesToRadians } from "../navMath.mjs";
 
 export default class PolarChart extends Chart {
   constructor(parent, y) {
