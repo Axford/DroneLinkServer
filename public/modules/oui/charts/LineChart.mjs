@@ -7,7 +7,7 @@ Manage a LineChart
 import Chart from "./Chart.mjs";
 import ChartScale from "./ChartScale.mjs";
 import { clamp } from "../../navMath.mjs";
-import { format } from "https://cdn.skypack.dev/date-fns";
+import { format } from "https://cdn.jsdelivr.net/npm/date-fns@3.6.0/+esm";
 import Vector from "../../Vector.mjs";
 
 export default class LineChart extends Chart {

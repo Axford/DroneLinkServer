@@ -4,7 +4,7 @@ Manage a UI for exporting param values as CSV
 
 */
 
-import { format } from "https://cdn.skypack.dev/date-fns";
+import { format } from "https://cdn.jsdelivr.net/npm/date-fns@3.6.0/+esm";
 
 export default class ExportManager {
   constructor(uiRoot, state) {

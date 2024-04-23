@@ -1,6 +1,6 @@
 import loadStylesheet from "./loadStylesheet.js";
 
-import { format } from "https://cdn.skypack.dev/date-fns";
+import { format } from "https://cdn.jsdelivr.net/npm/date-fns@3.6.0/+esm";
 
 import {
   getStorage,
