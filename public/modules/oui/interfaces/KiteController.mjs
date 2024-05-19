@@ -27,20 +27,14 @@ export default class KiteController extends ModuleInterface {
     onParamValue(data) {
         if (!this.built) return;
 
-        if (data.param == 22 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
-            // yaw
-            this.lastVec[0] = data.values[0];
+        if (data.param == 14 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
+            // vector
+            this.lastVec = data.values;
             this.rawVectors.push(_.clone(this.lastVec));
-        }
 
-        if (data.param == 24 && data.msgType == DLM.DRONE_LINK_MSG_TYPE_FLOAT) {
-            // pitch
-            this.lastVec[1] = data.values[0];
-            this.rawVectors.push(_.clone(this.lastVec));
+            // if too many vectors, lose one
+            if (this.rawVectors.length > 200) this.rawVectors.shift();
         }
-
-        // if too many vectors, lose one
-        if (this.rawVectors.length > 200) this.rawVectors.shift();
 
         // mode
         if (
@@ -69,48 +63,23 @@ export default class KiteController extends ModuleInterface {
 
         // keep size updated
         var h1 = Math.max(ctx.canvas.height, 600) - 200;
+        /*
         this.renderer.setSize(w, h1);
         this.camera.updateProjectionMatrix();
         this.camera.aspect = w / h1;
+        */
 
         // fetch params
         var limits = this.state.getParamValues(node, channel, 12, [0, 0]);
-        var trim = this.state.getParamValues(node, channel, 11, [0]);
-
-        // render vector view - right hand side
-        // -------------------------------------------------------------------------
-        var w2 = w / 2;
-        var x2 = w2;
-        var cx2 = x2 + w2 / 2;
-
-        ctx.fillStyle = "#343a40";
-        ctx.fillRect(x2, 0, w2, h);
-
-
-        // draw yaw/pitch values
-        
-
-
-
-        // render info
-        // -------------------------------------------------------------------------
-        var w1 = w;
-        var cx = w1 / 2;
-        var cy = h1 / 2;
-
-        var r = Math.min(w1, h1) * 0.4;
-
-        ctx.fillStyle = "#343a40";
-        ctx.fillRect(0, 0, w1, h);
-
-        this.drawValue(5, 0, "Yaw", this.lastVec[0].toFixed(0), "#8f8");
-        this.drawValue(5, 40, "Pitch", this.lastVec[1].toFixed(0), "#8f8");
-        this.drawValue(5, 80, "Distance", this.lastVec[2].toFixed(0), "#8f8");
-        this.drawValue(5, 120, "Roll", this.lastVec[3].toFixed(0), "#8f8");
+        var trim = this.state.getParamValues(node, channel, 11, [0])[0];
+        var payoutDist = this.state.getParamValues(node, channel, 13, [0])[0];
+        var target = this.state.getParamValues(node, channel, 15, [40,30,15,3]);
 
         // X = forward
-        var yaw = degreesToRadians(this.lastVec[0]);
-        var pitch = degreesToRadians(this.lastVec[1]);
+        var yawDeg = this.lastVec[0];
+        var yaw = degreesToRadians(yawDeg);
+        var pitchDeg = this.lastVec[1];
+        var pitch = degreesToRadians(pitchDeg);
         var dist = this.lastVec[2];
 
         var d2 = dist * Math.cos(pitch); // dist in XY plane
@@ -118,6 +87,105 @@ export default class KiteController extends ModuleInterface {
         var kx = d2 * Math.cos(yaw);
         var ky = d2 * Math.sin(yaw);
         var kz = dist * Math.sin(pitch);
+
+
+
+        // render vector view - full area
+        // -------------------------------------------------------------------------
+        var w1 = w;
+        var cx = w1 / 2;
+        var cy = h1 / 2;
+
+        ctx.fillStyle = "#343a40";
+        ctx.fillRect(0, 0, w1, h);
+
+        // Draw yaw/pitch values
+        //  - Map 0-90 degree of pitch to vertical axis, map a proportional amount of yaw to x-axis, retaining squarish pixels
+
+        var pixelsPerDegree = h / 90;
+
+        // draw axes
+        // axes
+        ctx.strokeStyle = '#888';
+        ctx.lineWidth = 1;
+        // y
+        ctx.beginPath();
+        ctx.moveTo(cx, 0);
+        ctx.lineTo(cx, h);
+        ctx.stroke();
+
+        // draw target path = bowtie
+        ctx.strokeStyle = '#88f';
+
+        // define bowtie, starting top-left
+        var bowtie = [];
+        bowtie.push([ cx - pixelsPerDegree * target[1]/2, h - pixelsPerDegree * (target[0] + target[2]/2) ]);
+        bowtie.push([ cx + pixelsPerDegree * target[1]/2, h - pixelsPerDegree * (target[0] - target[2]/2) ]);
+        bowtie.push([ cx + pixelsPerDegree * target[1]/2, h - pixelsPerDegree * (target[0] + target[2]/2) ]);
+        bowtie.push([ cx - pixelsPerDegree * target[1]/2, h - pixelsPerDegree * (target[0] - target[2]/2) ]);
+
+        // render bowtie
+        ctx.beginPath();
+        ctx.moveTo(bowtie[3][0], bowtie[3][1]);
+        for (var i=0; i<bowtie.length; i++) {
+            ctx.lineTo(bowtie[i][0], bowtie[i][1]);
+        }
+        ctx.stroke();
+
+        // render target circles on each point of bowtie
+        for (var i=0; i<bowtie.length; i++) {
+            ctx.beginPath();
+            ctx.arc(bowtie[i][0], bowtie[i][1], pixelsPerDegree * target[3], 0, 2 * Math.PI);
+            ctx.stroke();
+        }
+
+
+        // draw snail trail up to last position
+        if (this.rawVectors.length > 1) {
+            var opacity = 0;
+            ctx.lineWidth = 1;
+            var lxd = this.rawVectors[0][0];
+            var lyd = this.rawVectors[0][1];
+
+            for (var j=1; j<this.rawVectors.length; j++) {
+                ctx.strokeStyle = 'rgba(255,255,128,' + opacity + ')';
+                ctx.beginPath();
+                ctx.moveTo(cx - pixelsPerDegree * lxd, h - pixelsPerDegree * lyd);
+                ctx.lineTo(cx - pixelsPerDegree * this.rawVectors[j][0], h - pixelsPerDegree * this.rawVectors[j][1]);
+                ctx.stroke();
+
+                lxd = this.rawVectors[j][0];
+                lyd = this.rawVectors[j][1];
+
+                opacity += 1 / this.rawVectors.length;
+            }
+
+            // connect snail trail to current position
+        }
+
+
+        // draw current vector position
+        ctx.strokeStyle = '#ff8';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(cx, h);
+        ctx.lineTo(cx - pixelsPerDegree * yawDeg, h - pixelsPerDegree * pitchDeg);
+        ctx.stroke();
+        
+
+
+        // overlay info
+        // -------------------------------------------------------------------------
+        
+        
+        this.drawValue(5, 0, "Yaw", this.lastVec[0].toFixed(0), "#8f8");
+        this.drawValue(5, 40, "Pitch", this.lastVec[1].toFixed(0), "#8f8");
+        this.drawValue(5, 80, "Distance", this.lastVec[2].toFixed(0), "#8f8");
+        this.drawValue(5, 120, "Roll", this.lastVec[3].toFixed(0), "#8f8");
+
+        this.drawValue(60, 0, "Trim", trim.toFixed(1), "#8f8");
+        this.drawValue(120, 0, "Payout", payoutDist.toFixed(1), "#8f8");
+
 
         // 3D
         // -------------------------------------------------------------------------
@@ -139,6 +207,7 @@ export default class KiteController extends ModuleInterface {
         sphere.position.z = kz;
         */
 
+        /*
         // update snail trail
         var tl = this.trail[this.trailIndex];
         this.trailIndex++;
@@ -178,11 +247,12 @@ export default class KiteController extends ModuleInterface {
         this.lastPos[0] = kx;
         this.lastPos[1] = ky;
         this.lastPos[2] = kz;
+        */
     }
 
     animate() {
         if (this.visible) {
-            this.renderer.render(this.scene, this.camera);
+            //this.renderer.render(this.scene, this.camera);
         }
 
         requestAnimationFrame(() => {
@@ -244,6 +314,8 @@ export default class KiteController extends ModuleInterface {
         // THREE
         var h1 = h - 200;
 
+        /*
+
         console.log("THREE", w, h1);
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color(0x343a40);
@@ -279,13 +351,6 @@ export default class KiteController extends ModuleInterface {
 
 
         this.camera.lookAt(new THREE.Vector3(30, 0, 20));
-
-        /*
-        const geometry = new THREE.BoxGeometry(1, 1, 1);
-        const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-        this.cube = new THREE.Mesh(geometry, material);
-        this.scene.add(this.cube);
-        */
 
         // kite line
         const lineMaterial = new THREE.LineBasicMaterial({
@@ -392,6 +457,7 @@ export default class KiteController extends ModuleInterface {
         this.sphereGeometry = new THREE.SphereGeometry(0.2, 6, 6);
         this.sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
         this.sphereMaterial2 = new THREE.MeshBasicMaterial({ color: 0xff00ff });
+        */
 
         // see if we already know key params
         var node = this.channel.node.id;
