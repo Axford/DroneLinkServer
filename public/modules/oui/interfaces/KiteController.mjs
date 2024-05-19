@@ -77,7 +77,7 @@ export default class KiteController extends ModuleInterface {
         var limits = this.state.getParamValues(node, channel, 12, [0, 0]);
         var trim = this.state.getParamValues(node, channel, 11, [0]);
 
-        // render vector view
+        // render vector view - right hand side
         // -------------------------------------------------------------------------
         var w2 = w / 2;
         var x2 = w2;
@@ -85,6 +85,12 @@ export default class KiteController extends ModuleInterface {
 
         ctx.fillStyle = "#343a40";
         ctx.fillRect(x2, 0, w2, h);
+
+
+        // draw yaw/pitch values
+        
+
+
 
         // render info
         // -------------------------------------------------------------------------
@@ -251,6 +257,10 @@ export default class KiteController extends ModuleInterface {
         // hide 3D by default
         this.renderer.domElement.style.display = "none";
 
+        // create a texture loader.
+        const textureLoader = new THREE.TextureLoader();
+
+        // position camera
         this.camera.position.x = -30;
         this.camera.position.y = 5;
         this.camera.position.z = 20;
@@ -263,13 +273,19 @@ export default class KiteController extends ModuleInterface {
         controls.maxDistance = 100;
         controls.maxPolarAngle = Math.PI / 2;
 
+        // add lighting
+        const directionalLight = new THREE.DirectionalLight( 0xffffff, 0.5 );
+        this.scene.add( directionalLight );
+
 
         this.camera.lookAt(new THREE.Vector3(30, 0, 20));
 
+        /*
         const geometry = new THREE.BoxGeometry(1, 1, 1);
         const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
         this.cube = new THREE.Mesh(geometry, material);
         this.scene.add(this.cube);
+        */
 
         // kite line
         const lineMaterial = new THREE.LineBasicMaterial({
@@ -303,6 +319,71 @@ export default class KiteController extends ModuleInterface {
             this.trail.push(line);
         }
 
+
+        // target path
+        const targetMaterial = new THREE.LineBasicMaterial({
+            color: 0xa0a0ff,
+            linewidth: 3,
+        });
+        const targetPoints = [];
+
+        // left circle
+        var cr = 20;
+        var cYaw = cr;
+        var cPitch = 30;
+        var steps = 20;
+        var d = 30;
+        
+        for (var i=0; i<steps; i++) {
+            var ang = Math.PI + 2 * Math.PI * i/steps;
+            var yaw = cYaw + cr * Math.cos(ang);
+            var pitch = cPitch + cr * Math.sin(ang);
+            var yr = degreesToRadians(yaw);
+            var pr = degreesToRadians(pitch);
+            
+            var d2 = d * Math.cos(pr); // dist in XY plane
+
+            var x = d2 * Math.cos(yr);
+            var y = d2 * Math.sin(yr);
+            var z = d * Math.sin(pr);
+            targetPoints.push(new THREE.Vector3(x, y, z));
+        }
+
+        // right circle
+        cYaw = -cr;
+        
+        for (var i=0; i<steps; i++) {
+            var ang = 2 * Math.PI * i/steps;
+            var yaw = cYaw + cr * Math.cos(ang);
+            var pitch = cPitch + cr * Math.sin(ang);
+            var yr = degreesToRadians(yaw);
+            var pr = degreesToRadians(pitch);
+            
+            var d2 = d * Math.cos(pr); // dist in XY plane
+
+            var x = d2 * Math.cos(yr);
+            var y = d2 * Math.sin(yr);
+            var z = d * Math.sin(pr);
+            targetPoints.push(new THREE.Vector3(x, y, z));
+        }
+
+        const targetGeometry = new THREE.BufferGeometry().setFromPoints( targetPoints );
+        this.targetLine = new THREE.Line(targetGeometry, targetMaterial);
+        this.scene.add(this.targetLine);
+
+        // ground plane
+        const grassTex = textureLoader.load( '/images/seamless_grass.jpeg' );
+        grassTex.wrapS = THREE.RepeatWrapping;
+        grassTex.wrapT = THREE.RepeatWrapping;
+        grassTex.repeat.set(10,10);
+
+        const planeGeo = new THREE.PlaneGeometry(100, 100);
+        const planeMat = new THREE.MeshBasicMaterial({
+            color: 0x308030,
+            mat: grassTex
+        });
+        const plane = new THREE.Mesh(planeGeo, planeMat);
+        this.scene.add(plane);
 
         // axis helper
         this.scene.add(new THREE.AxesHelper(10));
