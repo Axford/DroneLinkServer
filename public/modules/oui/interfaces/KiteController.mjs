@@ -75,7 +75,8 @@ export default class KiteController extends ModuleInterface {
         var limits = this.state.getParamValues(node, channel, 12, [0, 0]);
         var trim = this.state.getParamValues(node, channel, 11, [0])[0];
         var payoutDist = this.state.getParamValues(node, channel, 13, [0])[0];
-        var target = this.state.getParamValues(node, channel, 15, [40,30,15,3]);
+        var target = this.state.getParamValues(node, channel, 15, [0,0]);
+        var shape = this.state.getParamValues(node, channel, 18, [0,0]);
         var waypoint = this.state.getParamValues(node, channel, 16, [0,0,0]);
 
         // X = forward
