@@ -70,10 +70,13 @@ export default class KiteController extends ModuleInterface {
         */
 
         // fetch params
+        var left = this.state.getParamValues(node, channel, 8, [0])[0];
+        var right = this.state.getParamValues(node, channel, 9, [0])[0];
         var limits = this.state.getParamValues(node, channel, 12, [0, 0]);
         var trim = this.state.getParamValues(node, channel, 11, [0])[0];
         var payoutDist = this.state.getParamValues(node, channel, 13, [0])[0];
         var target = this.state.getParamValues(node, channel, 15, [40,30,15,3]);
+        var waypoint = this.state.getParamValues(node, channel, 16, [0,0,0]);
 
         // X = forward
         var yawDeg = this.lastVec[0];
@@ -114,31 +117,12 @@ export default class KiteController extends ModuleInterface {
         ctx.lineTo(cx, h);
         ctx.stroke();
 
-        // draw target path = bowtie
+        // draw waypoint target
         ctx.strokeStyle = '#88f';
-
-        // define bowtie, starting top-left
-        var bowtie = [];
-        bowtie.push([ cx - pixelsPerDegree * target[1]/2, h - pixelsPerDegree * (target[0] + target[2]/2) ]);
-        bowtie.push([ cx + pixelsPerDegree * target[1]/2, h - pixelsPerDegree * (target[0] - target[2]/2) ]);
-        bowtie.push([ cx + pixelsPerDegree * target[1]/2, h - pixelsPerDegree * (target[0] + target[2]/2) ]);
-        bowtie.push([ cx - pixelsPerDegree * target[1]/2, h - pixelsPerDegree * (target[0] - target[2]/2) ]);
-
-        // render bowtie
         ctx.beginPath();
-        ctx.moveTo(bowtie[3][0], bowtie[3][1]);
-        for (var i=0; i<bowtie.length; i++) {
-            ctx.lineTo(bowtie[i][0], bowtie[i][1]);
-        }
+        ctx.arc(cx - pixelsPerDegree * waypoint[0], h - pixelsPerDegree * waypoint[1], pixelsPerDegree * waypoint[2], 0, 2 * Math.PI);
         ctx.stroke();
-
-        // render target circles on each point of bowtie
-        for (var i=0; i<bowtie.length; i++) {
-            ctx.beginPath();
-            ctx.arc(bowtie[i][0], bowtie[i][1], pixelsPerDegree * target[3], 0, 2 * Math.PI);
-            ctx.stroke();
-        }
-
+        
 
         // draw snail trail up to last position
         if (this.rawVectors.length > 1) {
@@ -172,7 +156,16 @@ export default class KiteController extends ModuleInterface {
         ctx.lineTo(cx - pixelsPerDegree * yawDeg, h - pixelsPerDegree * pitchDeg);
         ctx.stroke();
         
-
+        // draw roll indicator
+        var roll = this.lastVec[3];
+        var x1 = 20 * Math.sin(degreesToRadians(roll));
+        var y1 = 20 * Math.cos(degreesToRadians(roll));
+        ctx.strokeStyle = '#8f8';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(cx - pixelsPerDegree * yawDeg, h - pixelsPerDegree * pitchDeg);
+        ctx.lineTo(cx - pixelsPerDegree * yawDeg - x1, h - pixelsPerDegree * pitchDeg - y1);
+        ctx.stroke();
 
         // overlay info
         // -------------------------------------------------------------------------
@@ -185,6 +178,8 @@ export default class KiteController extends ModuleInterface {
 
         this.drawValue(60, 0, "Trim", trim.toFixed(1), "#8f8");
         this.drawValue(120, 0, "Payout", payoutDist.toFixed(1), "#8f8");
+        this.drawValue(180, 0, "Left", left.toFixed(1), "#8f8");
+        this.drawValue(240, 0, "Right", right.toFixed(1), "#8f8");
 
 
         // 3D
