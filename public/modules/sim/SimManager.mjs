@@ -12,6 +12,7 @@ import colors from 'colors';
 import SimTankSteerBoat from './SimTankSteerBoat.mjs';
 import SimSailBoat from './SimSailBoat.mjs';
 import SimAISBoat from './SimAISBoat.mjs';
+import SimKite from './SimKite.mjs';
 
 
 export default class SimManager {
@@ -49,6 +50,11 @@ export default class SimManager {
         if (nodeConfig.type == 'TankSteerBoat') {
           // create a new instance of TankSteerBoat
           var node = new SimTankSteerBoat(nodeConfig, this);
+          this.nodes.push(node);
+
+        } else if (nodeConfig.type == 'Kite') {
+          // create a new instance of Kite
+          var node = new SimKite(nodeConfig, this);
           this.nodes.push(node);
 
         } else if (nodeConfig.type == 'SailBoat') {

@@ -17,7 +17,7 @@
     {
       "name":"dreamer",
       "type":"SailBoat",
-      "enabled":true,
+      "enabled":false,
       "discovery":true,
       "interval":500,
       "node":2,
@@ -33,7 +33,7 @@
       "name":"virtual1",
       "type":"AISBoat",
       "mmsi":235000010,
-      "enabled":true,
+      "enabled":false,
       "discovery":false,
       "interval":500,
       "targetSpeed": 9,
@@ -48,7 +48,7 @@
       "name":"virtual2",
       "type":"AISBoat",
       "mmsi":235000020,
-      "enabled":true,
+      "enabled":false,
       "discovery":false,
       "interval":500,
       "targetSpeed": 7,
@@ -58,6 +58,17 @@
         [-6.009137, 49.948244, 10],
         [-6.155367, 50.136069, 10]
       ]
+    },
+    {
+      "name":"kiteDream",
+      "type":"Kite",
+      "enabled":true,
+      "discovery":true,
+      "interval":100,
+      "node":11,
+      "module":50,
+      "left":"11>10.8",
+      "right":"11>10.9"
     }
   ]
 }
