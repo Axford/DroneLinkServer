@@ -80,6 +80,95 @@
             "../DroneNode/src/DroneModule.h"
         ]
     },
+    "ADS1015": {
+        "type": [
+            "ADS1015"
+        ],
+        "inherits": [
+            "I2CBase"
+        ],
+        "category": [
+            "Input"
+        ],
+        "description": [
+            "Manages a Adafruit ADS1015 4-channel 12-bit ADC. Gain set so that raw 4095 = 4.095V"
+        ],
+        "config": [
+            "[ ADS1015 = 14 ]\n  name = ADS1015\n  bus = 4\n  channels = 1\n  limits = 0, 0.80566\n  publish = value1, raw"
+        ],
+        "I2CAddress": [
+            "0x48"
+        ],
+        "default": [
+            {
+                "param": "addr",
+                "values": [
+                    "72"
+                ]
+            }
+        ],
+        "pub": [
+            {
+                "address": 10,
+                "type": "f",
+                "numValues": 1,
+                "writeable": true,
+                "name": "value1",
+                "description": "ADS1015 value 1"
+            },
+            {
+                "address": 11,
+                "type": "f",
+                "numValues": 1,
+                "writeable": true,
+                "name": "value2",
+                "description": "ADS1015 value 2"
+            },
+            {
+                "address": 12,
+                "type": "f",
+                "numValues": 1,
+                "writeable": true,
+                "name": "value3",
+                "description": "ADS1015 value 3"
+            },
+            {
+                "address": 13,
+                "type": "f",
+                "numValues": 1,
+                "writeable": true,
+                "name": "value4",
+                "description": "ADS1015 value 4"
+            },
+            {
+                "address": 14,
+                "type": "u8",
+                "numValues": 1,
+                "writeable": true,
+                "name": "channels",
+                "description": "Number of ADC channels to use (1-4), default:1"
+            },
+            {
+                "address": 15,
+                "type": "u32",
+                "numValues": 4,
+                "writeable": false,
+                "name": "raw",
+                "description": "Raw ADC readings 0..4095"
+            },
+            {
+                "address": 16,
+                "type": "f",
+                "numValues": 2,
+                "writeable": true,
+                "name": "limits",
+                "description": "Min and max values to map the raw readings into"
+            }
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/ADS1015Module.h"
+        ]
+    },
     "Analog": {
         "type": [
             "Analog"
@@ -131,6 +220,14 @@
                 "writeable": false,
                 "name": "analog",
                 "description": "Analog value after mapping into min/max range"
+            },
+            {
+                "address": 14,
+                "type": "u8",
+                "numValues": 1,
+                "writeable": true,
+                "name": "samples",
+                "description": "Number of samples (over-sampling)"
             }
         ],
         "filename": [
@@ -1224,6 +1321,49 @@
             }
         ]
     },
+    "Inject": {
+        "type": [
+            "Inject"
+        ],
+        "inherits": [
+            "Drone"
+        ],
+        "category": [
+            "Input"
+        ],
+        "description": [
+            "Allows a sub value to be injected into a static writable param.  Useful when wanting to dynamically control a value that doesn't support subscribing to an input."
+        ],
+        "guide": [
+            ""
+        ],
+        "config": [
+            "[Inject = 5]"
+        ],
+        "pub": [
+            {
+                "address": 10,
+                "type": "u8",
+                "numValues": 3,
+                "writeable": true,
+                "name": "target",
+                "description": "Target address of the param to modify"
+            }
+        ],
+        "sub": [
+            {
+                "address": 11,
+                "addrAddress": 12,
+                "type": "f",
+                "numValues": 1,
+                "name": "input",
+                "description": "Input value to sub to"
+            }
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/InjectModule.h"
+        ]
+    },
     "Joystick": {
         "type": [
             "Joystick"
@@ -1295,6 +1435,123 @@
         ],
         "filename": [
             "../DroneNode/src/droneModules/JoystickModule.h"
+        ]
+    },
+    "KiteController": {
+        "type": [
+            "KiteController"
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/KiteControllerModule.cpp",
+            "../DroneNode/src/droneModules/KiteControllerModule.h"
+        ],
+        "inherits": [
+            "Drone"
+        ],
+        "category": [
+            "Logic"
+        ],
+        "description": [
+            "Generate left and right motor speeds from target course, current heading and distance to target"
+        ],
+        "guide": [
+            "For MVP\n\nUse throttle input to determine relative position of the two drive motors\n\nParams:\ntrim - offset applied to motors (added to right, subtracted from left)\nlimits - applied to throttle delta to drive motor position offset, -1 to 1 throttle is scaled to limits[0] to limits[1]\n\nInputs:\nturnRate\nYaw\nPitch\n\nOutputs:\nMotor positions"
+        ],
+        "config": [
+            "[ KiteController = 8 ]\n  name = KiteController\n  mode = 1\n  trim = 0\n  limits = -1, 1\n  $turnRate = @>TurnRate.analog\n  $yaw = @>Yaw.analog\n  $pitch = @>Analog.analog\n  publish = mode, trim, limits\n  publish = turnRate, yaw, pitch\n  publish = left, right"
+        ],
+        "pub": [
+            {
+                "address": 8,
+                "type": "f",
+                "numValues": 1,
+                "writeable": false,
+                "name": "left",
+                "description": "Left motor speed output in range -1..1"
+            },
+            {
+                "address": 9,
+                "type": "f",
+                "numValues": 1,
+                "writeable": false,
+                "name": "right",
+                "description": "Right motor speed output in range -1..1"
+            },
+            {
+                "address": 10,
+                "type": "u8",
+                "numValues": 1,
+                "writeable": true,
+                "name": "mode",
+                "description": "1=Automated (attempts to fly waypoint path) or 0=Manual (can be controlled by turnRate sub)"
+            },
+            {
+                "address": 11,
+                "type": "f",
+                "numValues": 1,
+                "writeable": true,
+                "name": "trim",
+                "description": "Applied to turnRate value to correct left/right imbalance in motor power"
+            },
+            {
+                "address": 12,
+                "type": "f",
+                "numValues": 2,
+                "writeable": true,
+                "name": "limits",
+                "description": "Min and max output speed range"
+            },
+            {
+                "address": 13,
+                "type": "f",
+                "numValues": 1,
+                "writeable": true,
+                "name": "distance",
+                "description": "Payout distance"
+            },
+            {
+                "address": 14,
+                "type": "f",
+                "numValues": 4,
+                "writeable": false,
+                "name": "vector",
+                "description": "Latest state vector [yaw, pitch, distance, roll]"
+            },
+            "15;f;3;w;target;Trajectory target defined as [pitch of centre, width in degrees, height in degrees, radius of each node in the trajectory]; default: [40, 30, 15, 3]",
+            {
+                "address": 16,
+                "type": "f",
+                "numValues": 3,
+                "writeable": true,
+                "name": "waypoint",
+                "description": "Current waypoint details [yaw, pitch, radius]"
+            }
+        ],
+        "sub": [
+            {
+                "address": 20,
+                "addrAddress": 21,
+                "type": "f",
+                "numValues": 1,
+                "name": "turnRate",
+                "description": "Turn rate used to drive relative motor position and cause the kite to turn"
+            },
+            {
+                "address": 22,
+                "addrAddress": 23,
+                "type": "f",
+                "numValues": 1,
+                "name": "yaw",
+                "description": "Yaw from angle sensor"
+            },
+            {
+                "address": 24,
+                "addrAddress": 25,
+                "type": "f",
+                "numValues": 1,
+                "name": "pitch",
+                "description": "Pitch from angle sensor"
+            }
         ]
     },
     "LSM9DS1": {
@@ -2220,7 +2477,7 @@
             "Manages an ODrive module via serial"
         ],
         "config": [
-            "ODrive.new 11\n  name \"ODrive\"\n  interval 100\n  port 2\n  limits -10 10\n  invert 0\n  $left [@>10.8]\n  $right [@>10.9]\n\n  // publish\n  .publish \"left\"\n  .publish \"right\"\n.done"
+            "[ ODrive = 11]\n  name = \"ODrive\"\n  interval = 100\n  port = 2\n  limits = -10, 10\n  invert = 0\n  $left = @>10.8\n  $right = @>10.9\n  publish = left, right, limits, invert\n\n\n[ ODrive = 11]\n  name = \"ODrive\"\n  mode = 1\n  interval = 100\n  port = 2\n  limits = 1, 1\n  invert = 0\n  $left = @>10.8\n  $right = @>10.9\n  publish = left, right, limits, invert"
         ],
         "pub": [
             {
@@ -2229,7 +2486,7 @@
                 "numValues": 2,
                 "writeable": true,
                 "name": "limits",
-                "description": "Min and max speed limits in range -1 to 1 (default -1 1)"
+                "description": "In velocity mode these are Min and max speed limits in range -1 to 1 (default -1 1). In position mode these are limits for Velocity in turns/s [0] and Torque in Nm [1]"
             },
             {
                 "address": 13,
@@ -2254,6 +2511,14 @@
                 "writeable": true,
                 "name": "switch",
                 "description": "Switch axes (0=normal, 1=switched i.e. switch left and right motors)"
+            },
+            {
+                "address": 16,
+                "type": "u8",
+                "numValues": 1,
+                "writeable": true,
+                "name": "mode",
+                "description": "Mode: 0=velocity control, 1=position control (default: 0)"
             }
         ],
         "sub": [
@@ -2797,6 +3062,79 @@
                 "name": "switch",
                 "description": "Mode control value - passthrough if less than 0.5, otherwise active (defaults to active)"
             }
+        ]
+    },
+    "Rotary": {
+        "type": [
+            "Rotary"
+        ],
+        "inherits": [
+            "I2CBase"
+        ],
+        "category": [
+            "Input"
+        ],
+        "description": [
+            "Manages a Adafruit NeoRotary quad encoder input module.  Initial values can be set in config."
+        ],
+        "config": [
+            "[ ROTARY = 14 ]\n  name = ROTARY\n  bus = 4\n  map = 1, 2, 10, 0.1\n  input1 = 20\n  publish = input1, input2, input3, input4, map"
+        ],
+        "I2CAddress": [
+            "0x49"
+        ],
+        "default": [
+            {
+                "param": "addr",
+                "values": [
+                    "73"
+                ]
+            }
+        ],
+        "pub": [
+            {
+                "address": 10,
+                "type": "f",
+                "numValues": 1,
+                "writeable": true,
+                "name": "input1",
+                "description": "Rotary input 1"
+            },
+            {
+                "address": 11,
+                "type": "f",
+                "numValues": 1,
+                "writeable": true,
+                "name": "input2",
+                "description": "Rotary input 2"
+            },
+            {
+                "address": 12,
+                "type": "f",
+                "numValues": 1,
+                "writeable": true,
+                "name": "input3",
+                "description": "Rotary input 3"
+            },
+            {
+                "address": 13,
+                "type": "f",
+                "numValues": 1,
+                "writeable": true,
+                "name": "input4",
+                "description": "Rotary input 4"
+            },
+            {
+                "address": 14,
+                "type": "f",
+                "numValues": 4,
+                "writeable": true,
+                "name": "map",
+                "description": "Values to map integer rotary steps to output floats, default: [1,1,1,1]"
+            }
+        ],
+        "filename": [
+            "../DroneNode/src/droneModules/RotaryModule.h"
         ]
     },
     "Sailor": {

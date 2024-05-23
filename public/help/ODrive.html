@@ -10,19 +10,27 @@
 
 
 <h2>Example Configuration</h2>
-<pre>ODrive.new 11
-  name "ODrive"
-  interval 100
-  port 2
-  limits -10 10
-  invert 0
-  $left [@>10.8]
-  $right [@>10.9]
+<pre>[ ODrive = 11]
+  name = "ODrive"
+  interval = 100
+  port = 2
+  limits = -10, 10
+  invert = 0
+  $left = @>10.8
+  $right = @>10.9
+  publish = left, right, limits, invert
 
-  // publish
-  .publish "left"
-  .publish "right"
-.done</pre>
+
+[ ODrive = 11]
+  name = "ODrive"
+  mode = 1
+  interval = 100
+  port = 2
+  limits = 1, 1
+  invert = 0
+  $left = @>10.8
+  $right = @>10.9
+  publish = left, right, limits, invert</pre>
 
 <h2>Subs (inputs)</h2>
 <table>
@@ -66,7 +74,7 @@
     <td>limits</td>
     <td>f</td>
     <td>2</td>
-    <td>Min and max speed limits in range -1 to 1 (default -1 1)</td>
+    <td>In velocity mode these are Min and max speed limits in range -1 to 1 (default -1 1). In position mode these are limits for Velocity in turns/s [0] and Torque in Nm [1]</td>
   </tr>
   <tr>
     <td>13</td>
@@ -88,6 +96,13 @@
     <td>u8</td>
     <td>1</td>
     <td>Switch axes (0=normal, 1=switched i.e. switch left and right motors)</td>
+  </tr>
+  <tr>
+    <td>16</td>
+    <td>mode</td>
+    <td>u8</td>
+    <td>1</td>
+    <td>Mode: 0=velocity control, 1=position control (default: 0)</td>
   </tr>
 </table>
 

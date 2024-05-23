@@ -1,0 +1,92 @@
+<link rel="stylesheet" href="../css/help.css">
+
+<div class="helpContent">
+
+<div><a href="index.html">&lt; Help Index</a></div>
+
+<h1>ADS1015</h1>
+<p>Base class: <i><a href="I2CBase.html">I2CBase</a></i></p>
+<p>Manages a Adafruit ADS1015 4-channel 12-bit ADC. Gain set so that raw 4095 = 4.095V</p>
+
+
+<h2>Example Configuration</h2>
+<pre>[ ADS1015 = 14 ]
+  name = ADS1015
+  bus = 4
+  channels = 1
+  limits = 0, 0.80566
+  publish = value1, raw</pre>
+
+<h2>Subs (inputs)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Addr Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+</table>
+
+<h2>Pubs (outputs / config)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>10</td>
+    <td>value1</td>
+    <td>f</td>
+    <td>1</td>
+    <td>ADS1015 value 1</td>
+  </tr>
+  <tr>
+    <td>11</td>
+    <td>value2</td>
+    <td>f</td>
+    <td>1</td>
+    <td>ADS1015 value 2</td>
+  </tr>
+  <tr>
+    <td>12</td>
+    <td>value3</td>
+    <td>f</td>
+    <td>1</td>
+    <td>ADS1015 value 3</td>
+  </tr>
+  <tr>
+    <td>13</td>
+    <td>value4</td>
+    <td>f</td>
+    <td>1</td>
+    <td>ADS1015 value 4</td>
+  </tr>
+  <tr>
+    <td>14</td>
+    <td>channels</td>
+    <td>u8</td>
+    <td>1</td>
+    <td>Number of ADC channels to use (1-4), default:1</td>
+  </tr>
+  <tr>
+    <td>15</td>
+    <td>raw</td>
+    <td>u32</td>
+    <td>4</td>
+    <td>Raw ADC readings 0..4095</td>
+  </tr>
+  <tr>
+    <td>16</td>
+    <td>limits</td>
+    <td>f</td>
+    <td>2</td>
+    <td>Min and max values to map the raw readings into</td>
+  </tr>
+</table>
+
+</div>

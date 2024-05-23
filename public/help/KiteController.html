@@ -1,0 +1,151 @@
+<link rel="stylesheet" href="../css/help.css">
+
+<div class="helpContent">
+
+<div><a href="index.html">&lt; Help Index</a></div>
+
+<h1>KiteController</h1>
+<p>Base class: <i><a href="Drone.html">Drone</a></i></p>
+<p>Generate left and right motor speeds from target course, current heading and distance to target</p>
+
+<h2>Usage Guide</h2>
+For MVP
+
+Use throttle input to determine relative position of the two drive motors
+
+Params:
+trim - offset applied to motors (added to right, subtracted from left)
+limits - applied to throttle delta to drive motor position offset, -1 to 1 throttle is scaled to limits[0] to limits[1]
+
+Inputs:
+turnRate
+Yaw
+Pitch
+
+Outputs:
+Motor positions
+
+<h2>Example Configuration</h2>
+<pre>[ KiteController = 8 ]
+  name = KiteController
+  mode = 1
+  trim = 0
+  limits = -1, 1
+  $turnRate = @>TurnRate.analog
+  $yaw = @>Yaw.analog
+  $pitch = @>Analog.analog
+  publish = mode, trim, limits
+  publish = turnRate, yaw, pitch
+  publish = left, right</pre>
+
+<h2>Subs (inputs)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Addr Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>20</td>
+    <td>21</td>
+    <td>turnRate</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Turn rate used to drive relative motor position and cause the kite to turn</td>
+  </tr>
+  <tr>
+    <td>22</td>
+    <td>23</td>
+    <td>yaw</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Yaw from angle sensor</td>
+  </tr>
+  <tr>
+    <td>24</td>
+    <td>25</td>
+    <td>pitch</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Pitch from angle sensor</td>
+  </tr>
+</table>
+
+<h2>Pubs (outputs / config)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>8</td>
+    <td>left</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Left motor speed output in range -1..1</td>
+  </tr>
+  <tr>
+    <td>9</td>
+    <td>right</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Right motor speed output in range -1..1</td>
+  </tr>
+  <tr>
+    <td>10</td>
+    <td>mode</td>
+    <td>u8</td>
+    <td>1</td>
+    <td>1=Automated (attempts to fly waypoint path) or 0=Manual (can be controlled by turnRate sub)</td>
+  </tr>
+  <tr>
+    <td>11</td>
+    <td>trim</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Applied to turnRate value to correct left/right imbalance in motor power</td>
+  </tr>
+  <tr>
+    <td>12</td>
+    <td>limits</td>
+    <td>f</td>
+    <td>2</td>
+    <td>Min and max output speed range</td>
+  </tr>
+  <tr>
+    <td>13</td>
+    <td>distance</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Payout distance</td>
+  </tr>
+  <tr>
+    <td>14</td>
+    <td>vector</td>
+    <td>f</td>
+    <td>4</td>
+    <td>Latest state vector [yaw, pitch, distance, roll]</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td>KiteController</td>
+    <td></td>
+    <td>Generate left and right motor speeds from target course, current heading and distance to target</td>
+  </tr>
+  <tr>
+    <td>16</td>
+    <td>waypoint</td>
+    <td>f</td>
+    <td>3</td>
+    <td>Current waypoint details [yaw, pitch, radius]</td>
+  </tr>
+</table>
+
+</div>

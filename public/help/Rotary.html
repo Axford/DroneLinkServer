@@ -1,0 +1,78 @@
+<link rel="stylesheet" href="../css/help.css">
+
+<div class="helpContent">
+
+<div><a href="index.html">&lt; Help Index</a></div>
+
+<h1>Rotary</h1>
+<p>Base class: <i><a href="I2CBase.html">I2CBase</a></i></p>
+<p>Manages a Adafruit NeoRotary quad encoder input module.  Initial values can be set in config.</p>
+
+
+<h2>Example Configuration</h2>
+<pre>[ ROTARY = 14 ]
+  name = ROTARY
+  bus = 4
+  map = 1, 2, 10, 0.1
+  input1 = 20
+  publish = input1, input2, input3, input4, map</pre>
+
+<h2>Subs (inputs)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Addr Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+</table>
+
+<h2>Pubs (outputs / config)</h2>
+<table>
+  <tr>
+    <th>Address</th>
+    <th>Name</th>
+    <th>Type</th>
+    <th>#</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>10</td>
+    <td>input1</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Rotary input 1</td>
+  </tr>
+  <tr>
+    <td>11</td>
+    <td>input2</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Rotary input 2</td>
+  </tr>
+  <tr>
+    <td>12</td>
+    <td>input3</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Rotary input 3</td>
+  </tr>
+  <tr>
+    <td>13</td>
+    <td>input4</td>
+    <td>f</td>
+    <td>1</td>
+    <td>Rotary input 4</td>
+  </tr>
+  <tr>
+    <td>14</td>
+    <td>map</td>
+    <td>f</td>
+    <td>4</td>
+    <td>Values to map integer rotary steps to output floats, default: [1,1,1,1]</td>
+  </tr>
+</table>
+
+</div>
