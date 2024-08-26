@@ -9,7 +9,8 @@ import { DRONE_MESH_MSG_TYPE_LINK_CHECK_REQUEST } from '../../DroneMeshMsg.mjs';
 import * as DLM from "../../droneLinkMsg.mjs";
 
 //import moduleInfo from "/moduleInfo.json" assert { type: "json" };
-const { default: moduleInfo } = await import("/moduleInfo.json", { assert: { type: "json" } });
+//const { default: moduleInfo } = await import("/moduleInfo.json", { assert: { type: "json" } });
+import moduleInfo from "/moduleInfo.json" with { type: "json" };
 
 import {calculateDistanceBetweenCoordinates} from "../../navMath.mjs";
 
