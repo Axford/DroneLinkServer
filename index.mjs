@@ -505,6 +505,16 @@ var config = JSON.parse(fs.readFileSync("./config.json"));
 var env = hostname;
 //clog('Env: ' + env);
 
+// check for valid entry in config file
+if (!(env in config)) {
+  console.log("-----------------------------------------------------------------------------------");
+  console.log("ERROR");
+  console.log("-----------------------------------------------------------------------------------");
+  console.log("Missing config.json entry for hostname: " + env);
+  console.log("");
+  process.exit();
+}
+
 clog("Using config: ", env);
 
 // network id
