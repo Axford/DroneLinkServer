@@ -1,9 +1,7 @@
 import _ from "lodash";
 import path from "path";
 import colors from "colors";
-//import { Server } from "socket.io";
-import socket_io from "socket.io";
-const { Server } = socket_io;
+import {Server} from "socket.io";
 
 import * as DLM from "./public/modules/droneLinkMsg.mjs";
 import DroneLinkMsgQueue from "./public/modules/DroneLinkMsgQueue.mjs";
