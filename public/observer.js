@@ -524,7 +524,9 @@ function init() {
   // configure map
   map = new mapboxgl.Map({
     container: 'map',
-    style: 'mapbox://styles/mapbox/satellite-v9',
+    //style: 'mapbox://styles/mapbox/satellite-v9',
+    //style: 'mapbox://styles/mapbox/dark-v11',
+    style: 'mapbox://styles/axford/cm0bi93ot00qj01ph7m580lku',
     center: [lngLat.lng, lngLat.lat],
     zoom: zoom
   });
@@ -533,11 +535,13 @@ function init() {
 
     tracker.map = map;
 
+    /*
     map.setPaintProperty(
       'satellite',
       'raster-opacity',
       0.5
     );
+    */
 
     map.on('dblclick',(e)=>{
       e.preventDefault();
