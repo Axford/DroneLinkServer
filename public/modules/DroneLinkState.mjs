@@ -56,6 +56,11 @@ export default class DroneLinkState {
 
       me.trigger('raw', msg);
     });
+  }
+
+  init() {
+    console.log('DroneLinkState.init()');
+    var me = this;
 
     // create firestore snapshot and thereby gather an initial state 
     const q = query(collection(me.db, "nodes"), where("id", "<", 255 ));

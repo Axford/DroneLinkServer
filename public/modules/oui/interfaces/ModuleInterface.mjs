@@ -365,7 +365,11 @@ export default class ModuleInterface {
 
 
   show() {
-    if (!this.built) this.build();
+    if (this.built) {
+      if (this.renderer) this.renderer.forceContextRestore();
+    } else {
+      this.build();
+    }
     this.visible = true;
     this.update();
   }
@@ -373,5 +377,14 @@ export default class ModuleInterface {
 
   hide() {
     this.visible = false;
+    if (this.renderer) {
+      try {
+        if (this.renderer.getContext()) {
+          this.renderer.forceContextLoss(); 
+        }
+      } catch (e) {
+        //console.log('ModuleInterface.hide()', e);
+      }
+    }
   }
 }

@@ -488,7 +488,7 @@ function init() {
       $('#logStatus').html(info.packets + ' / '+ ('0000'+minutes).slice(-2) + ':' + ('0000'+seconds).slice(-2) +' ');
     }
   });
-0
+
   logger.on('playbackInfo', (info)=>{
     var t = (info.duration/1000);
     var minutes = Math.floor(t/60);
@@ -668,13 +668,14 @@ function init() {
 
     });
 
+    state.init();
     state.goLive();
 
     // show body
     document.body.style.visibility = 'visible';
 
     // select map tab
-  topTabs.selectTab('map');
+    topTabs.selectTab('map');
   });
 
   // init gamepads
@@ -702,5 +703,12 @@ function init() {
 
 }
 
-
-init();
+// wait for document to be fully loaded before initializing
+var initDone = false;
+document.addEventListener('DOMContentLoaded', () => {
+  if (!initDone) {
+    console.log('Observer.js DOMContentLoaded');
+    initDone = true;
+    init();
+  }
+});

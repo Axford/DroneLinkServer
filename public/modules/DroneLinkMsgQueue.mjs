@@ -39,7 +39,7 @@ export default class DroneLinkMsgQueue {
     if (this.queue.length > 0) {
       this.sent++;
       var msg = this.queue.shift();
-      console.log('emit ['+this.queue.length+']', msg.asString());
+      //console.log('emit ['+this.queue.length+']', msg.asString());
       socket.emit('sendMsg', msg.encodeUnframed());
     }
   }

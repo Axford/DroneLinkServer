@@ -132,18 +132,6 @@ export default class MPU6050 extends ModuleInterface {
     requestAnimationFrame( ()=>{ this.animate(); } );
   };
 
-
-  hide() {
-    super.hide();
-    this.renderer.forceContextLoss();
-  }
-
-  show() {
-    super.show();
-    this.renderer.forceContextRestore();
-  }
-
-
 	build() {
     super.build('MPU6050');
     var me = this;
