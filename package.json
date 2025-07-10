@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.mjs",
-  "type":"module",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "sim": "node -r esm sim.mjs"
@@ -20,6 +20,7 @@
     "esm": "^3.2.25",
     "express": "^4.17.1",
     "lodash": "^4.17.21",
+    "mongoose": "^8.16.2",
     "mustache": "^4.2.0",
     "neo-blessed": "^0.2.0",
     "node-fetch": "^3.0.0",

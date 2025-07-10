@@ -29,14 +29,12 @@ const ACTIVE_THRESHOLD = 10*60;  // 10 minutes
 
 export default class NodeUI {
 
-  constructor(id, state, map, uiManager, db, storage, socket, exportManager) {
+  constructor(id, state, map, uiManager, db, storage, exportManager) {
     var me = this;
     this.state = state;
     this.map = map;
     this.uiManager = uiManager;
     this.db = db;
-    this.storage = storage;
-    this.socket = socket;
     this.exportManager = exportManager;
     this.location=  [0,0];
     this.target=  [0,0,0];

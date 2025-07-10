@@ -85,6 +85,10 @@ export class DroneLinkMsg {
     return 5 + this.msgLength;
   }
 
+  getSignature() {
+    return this.node + '>' + this.channel + '.' + this.param + '_' + this.msgType;
+  }
+
 	sameSignature(msg) {
     if (msg == undefined) return false;
 

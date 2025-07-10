@@ -528,7 +528,7 @@ var logFilePath = config[env].logFilePath;
 clog("logFilePath path: " + logFilePath);
 
 // init DLM
-dlm = new DroneLinkManager(sourceId, clog);
+dlm = new DroneLinkManager(sourceId, clog, config[env].domain, config[env].apiKey);
 dlm.firmwarePath = firmwarePath;
 dlm.logFilePath = logFilePath;
 
@@ -562,6 +562,10 @@ setInterval(() => {
     s += ", " + ni.bytesReceived + " bytes";
     s += "\n";
   }
+
+  s += "\n";
+  s += "{bold}Cloud Packets Sent{/bold}\n";
+  s += dlm.cloudPacketsSent + "\n";
 
   s += "\n";
   s += "{bold}Routing table{/bold}\n";

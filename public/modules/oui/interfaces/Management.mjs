@@ -777,12 +777,12 @@ export default class Management extends ModuleInterface {
     );
     this.setVSCIPBut.on("click", () => {
       this.hasRequestedCSVIP = true;
-      this.channel.node.socket.emit('setVSCIP', JSON.stringify({ ip: this.getIpString(), upload:false }) );
+      this.channel.state.socket.emit('setVSCIP', JSON.stringify({ ip: this.getIpString(), upload:false }) );
     });
     this.ui.append(this.setVSCIPBut);
     
 
-    this.channel.node.socket.on('VSCIPUpdated', (msg)=>{
+    this.channel.state.socket.on('VSCIPUpdated', (msg)=>{
       this.hasRequestedVSCIP = false;
       this.setVSCIPBut.notify(
         "VSC IP updated: " + msg,
@@ -795,7 +795,7 @@ export default class Management extends ModuleInterface {
       );
     });
     
-    this.channel.node.socket.on('VSCIPError', (msg)=>{
+    this.channel.state.socket.on('VSCIPError', (msg)=>{
       this.hasRequestedVSCIP = false;
       this.setVSCIPBut.notify(
         "Error updating VSC IP: " + msg,
@@ -814,11 +814,11 @@ export default class Management extends ModuleInterface {
     this.uploadVSCBut.on("click", () => {
       this.hasRequestedVSCIP = true;
       this.hasRequestedVSCUpload = true;
-      this.channel.node.socket.emit('setVSCIP', JSON.stringify({ ip: this.getIpString(), upload:true }) ); 
+      this.channel.state.socket.emit('setVSCIP', JSON.stringify({ ip: this.getIpString(), upload:true }) ); 
     }); 
     this.ui.append(this.uploadVSCBut);
 
-    this.channel.node.socket.on('VSCUpload', (msg)=>{
+    this.channel.state.socket.on('VSCUpload', (msg)=>{
       this.hasRequestedVSCUpload = false;
       var obj = JSON.parse(msg);
       console.log(obj);

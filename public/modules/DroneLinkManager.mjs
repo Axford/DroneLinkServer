@@ -48,9 +48,11 @@ function getFilesizeInBytes(filename) {
 
 export default class DroneLinkManager {
 
-  constructor(node, clog) {
+  constructor(node, clog, domain, apiKey) {
     this.node = node;
     this.clog = clog;
+    this.domain = domain;
+    this.apiKey = apiKey;
 
     this.routeMap = {};
 
@@ -68,6 +70,7 @@ export default class DroneLinkManager {
     this.kicked = 0;
     this.kickRate = 0;
     this.chokeRate = 0;
+    this.cloudPacketsSent = 0;
 
     this.firmwareNodes = {};
     this.firmwarePos = 0;
@@ -97,6 +100,8 @@ export default class DroneLinkManager {
     this.logFilePath = '';
     this.logToFile = false;
     this.logStream = null;
+
+    this.cloudPacketMap = {};
 
     this.clog('DroneLinkManager started');
 
@@ -1255,12 +1260,67 @@ export default class DroneLinkManager {
         // publish dlm
         if (this.io) this.io.emit('DLM.msg', dlmMsg.encodeUnframed());
 
+        this.sendRxPacketToCloud(dlmMsg);
+
       } else {
         // pass along to next hop
         //TODO
         // hopAlong(msg)
       }
     }
+  }
+
+  sendRxPacketToCloud(dlmMsg) {
+    if (!this.domain || !this.apiKey) {
+      //this.clog('No domain or apiKey, skipping sendRxPacketToCloud');
+      return;
+    }
+
+    const unframed = dlmMsg.encodeUnframed();
+
+    // convert unframed to base64 string
+    const unframed64 = btoa(String.fromCharCode(...unframed));
+
+    // get signature to index into map
+    var signature = dlmMsg.getSignature();
+
+    if (this.cloudPacketMap[signature]) {
+      if (this.cloudPacketMap[signature] == unframed64) {
+        this.clog('Duplicate packet, skipping sendRxPacketToCloud');
+        return;
+      }
+    }
+
+    // store in map
+    this.cloudPacketMap[signature] = unframed64;
+
+    // add to cloud via cloud function: addRxPacket
+    // prepare payload
+    const payload = {
+      domain: this.domain,
+      apiKey: this.apiKey,
+      id: this.node,
+      node: dlmMsg.node,
+      channel: dlmMsg.channel,
+      param: dlmMsg.param,
+      msgType: dlmMsg.msgType,
+      packet: unframed64
+    };
+    //this.clog('payload:' + JSON.stringify(payload));
+    // post payload as json to /addRxPacket, log http response code
+    fetch('http://localhost:8003/addPacket', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload)
+    }).then(response => {
+      this.clog('HTTP response: ' + response.status + ' ' + response.statusText);
+    }).catch(error => {
+      this.clog('Error: ' + error);
+    });
+
+    this.cloudPacketsSent++;
   }
 
 

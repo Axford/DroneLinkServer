@@ -83,13 +83,15 @@ export default class UDPInterface extends NetworkInterface {
 
 
   sendPacket(msg, interfaceAddress) {
+    const self = this;
+
     //this.clog(('Send by UDP: ' + msg.toString()).yellow);
     this.packetsSent++;
     var addr = interfaceAddress ? interfaceAddress : '255.255.255.255';
     this.server.send(msg.encode(), 8007, addr, function(error){
       if(error){
         //console.error('BLERGH '+ error);
-        this.clog(('UDP error: '+error).red);
+        self.clog(('UDP error: '+error).red);
         //process.exit(0);
       }else{
         //this.clog('Data sent !!!');
