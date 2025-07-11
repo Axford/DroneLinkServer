@@ -3,12 +3,6 @@ import loadStylesheet from './modules/loadStylesheet.js';
 
 loadStylesheet('./css/observer.css');
 
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.14.0/firebase-app.js";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-import { getFirestore,  collection, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.14.0/firebase-firestore.js";
-import { getStorage, ref, uploadBytesResumable, listAll, getBytes } from "https://www.gstatic.com/firebasejs/9.14.0/firebase-storage.js";
 
 Date.prototype.yyyymmdd = function() {
   var mm = this.getMonth() + 1; // getMonth() is zero-based
@@ -20,36 +14,10 @@ Date.prototype.yyyymmdd = function() {
          ].join('');
 };
 
-// Your web app's Firebase configuration
-const firebaseConfig = {
-  //apiKey: "",
-  authDomain: "dronelink-25dbc.firebaseapp.com",
-  projectId: "dronelink-25dbc",
-  storageBucket: "dronelink-25dbc.appspot.com",
-  messagingSenderId: "722464451302",
-  appId: "1:722464451302:web:590b5f4213069c772d6927",
-  storageBucket: 'gs://dronelink-25dbc.appspot.com'
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-
-console.log('Loaded firebase');
-
-// Initialize Cloud Firestore and get a reference to the service
-const db = getFirestore(app);
-
-// Initialize Cloud Storage and get a reference to the service
-const storage = getStorage(app);
-
-
-import io from '../libs/socketio/socket.io.esm.min.mjs';
-var socket = io();
-
 
 import * as DLM from './modules/droneLinkMsg.mjs';
 import DroneLinkState from './modules/DroneLinkState.mjs';
-var state = new DroneLinkState(socket, db);
+var state = new DroneLinkState();
 
 var firmwareVersion = '', latestFirmwareVersion = '';
 
@@ -109,21 +77,12 @@ function saveMapLocation() {
   localStorage.zoom = JSON.stringify(map.getZoom());
 }
 
-socket.on('localAddress', (id)=>{
-  // set local address on state
-  state.localAddress = id;
-  if (networkGraph) networkGraph.localAddress = id;
-});
-
-socket.on('AIS', (msg)=>{
-  tracker.handleAIS(msg);
-});
 
 function resize() {
   map.resize();
 
-  networkGraph.resize();
-  chartManager.resize();
+  if (networkGraph) networkGraph.resize();
+  if (chartManager) chartManager.resize();
 
   // let nodes know they should also resize
   for (const [key, n] of Object.entries(nodes)) {
@@ -338,9 +297,10 @@ function init() {
 
 
   // configure upload manager
-  uploadManager = new UploadManager(storage, $('#uploadManager'));
+  //uploadManager = new UploadManager(storage, $('#uploadManager'));
 
   // configure logManager
+  /*
   logManager = new LogManager(storage, $('#logManager'));
   logManager.on('logLoaded', (buffer)=>{
     // pass to logger to load and playback
@@ -348,7 +308,9 @@ function init() {
 
     if (resumeLogPlayback) logger.play();
   });
+  */
 
+  /*
   networkGraph = new NetManager(socket, $('#networkPanel'));
   networkGraph.localAddress = state.localAddress;
   networkGraph.on('focus', (id)=>{
@@ -358,6 +320,7 @@ function init() {
       node.focus();
     }
   });
+  */
 
   analyser = new AnalysisManager($('#analysisPanel'), state);
 
@@ -371,39 +334,39 @@ function init() {
 
   topTabs.add('map', 'Map', '<i class="fas fa-map-marked"></i>', 'nav-link');
   topTabs.on('map', ()=>{
-    networkGraph.hide();
-    analyser.hide();
-    exportManager.hide();
-    chartManager.hide();
+    if (networkGraph) networkGraph.hide();
+    if (analyser) analyser.hide();
+    if (exportManager) exportManager.hide();
+    if (chartManager) chartManager.hide();
     $('#mapPanel').show();
     map.resize();
   });
 
   topTabs.add('network', 'Network', '<i class="fas fa-project-diagram"></i>', 'nav-link');
   topTabs.on('network', ()=>{
-    analyser.hide();
+    if (analyser) analyser.hide();
     $('#mapPanel').hide();
-    exportManager.hide();
-    chartManager.hide();
-    networkGraph.show();
+    if (exportManager) exportManager.hide();
+    if (chartManager) chartManager.hide();
+    if (networkGraph) networkGraph.show();
   });
 
   topTabs.add('analysis', 'Analysis', '<i class="fas fa-chart-bar"></i>', 'nav-link');
   topTabs.on('analysis', ()=>{
     $('#mapPanel').hide();
-    networkGraph.hide();
-    exportManager.hide();
-    chartManager.hide();
-    analyser.show();
+    if (networkGraph) networkGraph.hide();
+    if (exportManager) exportManager.hide();
+    if (chartManager) chartManager.hide();
+    if (analyser) analyser.show();
   });
 
   topTabs.add('export', 'Export', '<i class="fas fa-file-csv"></i>', 'nav-link');
   topTabs.on('export', ()=>{
     $('#mapPanel').hide();
-    networkGraph.hide();
-    analyser.hide();
-    chartManager.hide();
-    exportManager.show();
+    if (networkGraph) networkGraph.hide();
+    if (analyser) analyser.hide();
+    if (chartManager) chartManager.hide();
+    if (exportManager) exportManager.show();
   });
 
   topTabs.add('chart', 'Chart', '<i class="fas fa-chart-line"></i>', 'nav-link');
@@ -614,7 +577,7 @@ function init() {
       console.log('node.new:' + id);
 
       // create new node entry
-      var node = new NodeUI(id, state, map, uiManager, db, storage, exportManager);
+      var node = new NodeUI(id, state, map, uiManager, exportManager);
       node.setLatestFirmwareVersion(latestFirmwareVersion);
       nodes[id] = node;
       numNodes++;

@@ -8,8 +8,6 @@
 import * as DLM from './droneLinkMsg.mjs';
 import DroneLinkMsgQueue from './DroneLinkMsgQueue.mjs';
 
-import { getFirestore,  collection, doc, setDoc, query, onSnapshot, where, deleteField, updateDoc } from "https://www.gstatic.com/firebasejs/9.14.0/firebase-firestore.js";
-
 
 
 function arraysEqual(a,b) {
@@ -33,17 +31,17 @@ function arraysEqual(a,b) {
 
 export default class DroneLinkState {
 
-  constructor(socket, db) {
+  constructor() {
     var me = this;
     this.state = {};
-    this.socket = socket;
-    this.db = db;
+    
     this.localAddress = 250; // default, overriden in observer.js
     this.discoveryQueue = new DroneLinkMsgQueue();
     this.callbacks = {}; // each key is an event type, values are an array of callback functions
     this.liveMode = false;  // set to false to stop using the socket (i.e. log playback mode)
     this.received = 0; // received msg count
 
+    /*
     this.socket.on('DLM.msg',function(msgBuffer) {
       if (!me.liveMode) return;
 
@@ -56,6 +54,7 @@ export default class DroneLinkState {
 
       me.trigger('raw', msg);
     });
+    */
   }
 
   init() {
@@ -63,6 +62,7 @@ export default class DroneLinkState {
     var me = this;
 
     // create firestore snapshot and thereby gather an initial state 
+    /*
     const q = query(collection(me.db, "nodes"), where("id", "<", 255 ));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       snapshot.docChanges().forEach((change) => {
@@ -102,7 +102,7 @@ export default class DroneLinkState {
         }
       });
     });
-
+    */
 
     setInterval( ()=>{
       me.discovery();
@@ -113,7 +113,7 @@ export default class DroneLinkState {
     }, 50);
 
     setInterval( ()=>{
-      me.updateFirebase();
+      //me.updateFirebase();
     }, 1000);
   }
 

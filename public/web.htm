@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>DroneLink</title>
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+  <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js" integrity="sha256-lSjKY0/srUM9BE3dPm+c4fBo1dky2v27Gdjm2uoZaL0=" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js" integrity="sha384-LtrjvnR4Twt/qOuYxE721u19sVFLVSA4hf/rRt6PrZTmiPltdZcI7q7PXQBYTKyf" crossorigin="anonymous"></script>
+  <script src="https://kit.fontawesome.com/787f366228.js" crossorigin="anonymous"></script>
+
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.13.0/mapbox-gl.css" rel="stylesheet">
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.13.0/mapbox-gl.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.13/ace.js" integrity="sha512-OMjy8oWtPbx9rJmoprdaQdS2rRovgTetHjiBf7RL7LvRSouoMLks5aIcgqHb6vGEAduuPdBTDCoztxLR+nv45g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.13/mode-json.js" type="text/javascript"></script>
+  <script src="modules/mode-dcode.js"></script>
+  <script src="/libs/notify.min.js" type="text/javascript"></script>
+  <script src="https://unpkg.com/es-module-shims@1.3.6/dist/es-module-shims.js"></script>
+  <link href="https://gitcdn.github.io/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css" rel="stylesheet">
+  <script src="https://gitcdn.github.io/bootstrap-toggle/2.2.2/js/bootstrap-toggle.min.js"></script>
+  <!--<script src="https://cdn.anychart.com/releases/8.11.1/js/anychart-base.min.js"></script>-->
+  <script src="https://www.gstatic.com/firebasejs/ui/6.1.0/firebase-ui-auth.js"></script>
+  <link type="text/css" rel="stylesheet" href="https://www.gstatic.com/firebasejs/ui/6.1.0/firebase-ui-auth.css" />
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.164.1/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.164.1/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+
+<body scroll="no" style="visibility: hidden; background-color:#000">
+  <div class="logo">DroneLink</div>
+
+  <div class="helpContainer">
+    <div class="helpHeader">Help   <button class="btn btn-sm btn-danger float-right">X</button></div>
+    <iframe class="helpViewer" src="help/index.html"></iframe>
+  </div>
+
+  <div class="viewContainer">
+    <ul class="nav nav-tabs" id="topTabs">
+      <!-- tabs dynamically inserted here -->
+    </ul>
+  </div>
+
+  <div class="container-fluid">
+
+    <div class="row mainRow">
+
+      <div class="toolbar">
+        <div class="toolbarTab" id="firebaseui-auth-container"></div>
+
+        <div class="logContainer toolbarTab">
+          <div class="toolbarTitle">Logging</div><div class="toolbarContents">
+            <button id="logPlaybackButton" class="btn btn-sm btn-primary ml-2">Live</button>
+
+            <span class="barSep ml-2 mr-2"><i class="fas fa-caret-right"></i></span>
+
+            <span class="logRecordControls">
+              <button id="logRecordButton" class="btn btn-sm btn-danger"><i class="fas fa-circle"></i></button>
+              <button id="logSaveButton" class="btn btn-sm btn-secondary ml-2"><i class="fas fa-download"></i></button>
+              <button id="logResetButton" class="btn btn-sm btn-warning ml-2"><i class="fas fa-trash"></i></button>
+              <span id="logStatus" class="ml-2">0 / 00:00</span>
+            </span>
+
+            <span class="logPlaybackControls" style="display:none">
+              <div id="logManager" style="display:inline-block;"></div>
+              
+              <button id="logPlayButton" class="btn btn-sm btn-success ml-2"><i class="fas fa-play"></i></button>
+              <button id="logPauseButton" class="btn btn-sm btn-warning"><i class="fas fa-pause"></i></button>
+              <button id="logRewindButton" class="btn btn-sm btn-danger"><i class="fas fa-undo"></i></button>
+              <button id="logForwardButton" class="btn btn-sm btn-secondary"><i class="fas fa-fast-forward"></i></button>
+              <span id="logPlaybackStatus" class="ml-2">0 / 00:00</span>
+            </span>
+          </div>
+
+        </div>
+
+        <div id="uploadManager" class="toolbarTab"></div>
+
+        <div class="toolbarTab">
+          <div id="transmitGraph" class="mt-1 mr-1"></div>
+          <div id="receiveGraph" class="mt-1 mr-2"></div>
+        </div>
+        
+      </div>
+
+      <main id="main" role="main" class="col-md-12">
+
+        <div id="leftPanel">
+
+          <div id="mapPanel">
+            <div id="nodes"><div class="status">Waiting for nodes...<div class="loader"></div></div></div>
+            <div id="map"></div>
+            <div class="mapCoords"></div>
+            <div id="contextMenu" class="contextMenu nav flex-column">
+              
+            </div>
+          </div>
+
+          <div id="networkPanel" style="display:none;"></div>
+
+          <div id="analysisPanel" style="display:none;"></div>
+
+          <div id="exportPanel" style="display:none;"></div>
+
+          <div id="chartPanel" style="display:none;"></div>
+
+        </div>
+        <div id="rightPanel">
+            <div id="panelDrag"></div>
+            <div id="nodeManager"></div>
+        </div>
+
+
+
+      </main>
+    </div>
+  </div>
+
+  <script type="module" src="web.mjs"></script>
+</body>
+</html>
