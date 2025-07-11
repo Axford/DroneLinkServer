@@ -6,6 +6,40 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const path = require('path');
+const fs = require('fs');
+
+// Check if config.json exists, create skeleton if not
+const configPath = './config.json';
+if (!fs.existsSync(configPath)) {
+    console.error('❌ ERROR: config.json not found!');
+    console.log('📝 Creating skeleton config.json file...');
+    
+    const skeletonConfig = {
+        "mongoURI": "mongodb://username:password@host:port/database",
+        "port": 8003,
+        "googleClientID": "your-google-client-id",
+        "googleClientSecret": "your-google-client-secret", 
+        "cookieKey": "your-random-cookie-key-at-least-32-characters-long",
+        "mapboxAccessToken": "your-mapbox-access-token"
+    };
+    
+    try {
+        fs.writeFileSync(configPath, JSON.stringify(skeletonConfig, null, 4));
+        console.log('✅ Created skeleton config.json');
+        console.log('⚠️  Please edit config.json with your actual configuration values and restart the server.');
+        console.log('🔧 Required values:');
+        console.log('   - mongoURI: Your MongoDB connection string');
+        console.log('   - googleClientID: Google OAuth client ID');
+        console.log('   - googleClientSecret: Google OAuth client secret');
+        console.log('   - cookieKey: Random string for session encryption');
+        console.log('   - mapboxAccessToken: Your Mapbox access token');
+        process.exit(1);
+    } catch (error) {
+        console.error('❌ Failed to create config.json:', error.message);
+        process.exit(1);
+    }
+}
+
 const config = require('./config.json');
 const RxPacket = require('./models/RxPacket');
 const Node = require('./models/Node');
@@ -17,7 +51,7 @@ const { sendErrorResponse, asyncHandler, errorHandler } = require('./middleware/
 const app = express();
 const port = config.port;
 
-// Security middleware with custom CSP for Google profile images and Bootstrap CDN
+// Security middleware with custom CSP for Google profile images, Bootstrap CDN, and Mapbox GL JS
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
@@ -36,16 +70,35 @@ app.use(helmet({
             imgSrc: [
                 "'self'", 
                 "data:", 
+                "blob:",
                 "https://lh3.googleusercontent.com", 
                 "https://lh4.googleusercontent.com", 
                 "https://lh5.googleusercontent.com", 
-                "https://lh6.googleusercontent.com"
+                "https://lh6.googleusercontent.com",
+                "https://api.mapbox.com",
+                "https://a.tiles.mapbox.com",
+                "https://b.tiles.mapbox.com",
+                "https://c.tiles.mapbox.com",
+                "https://d.tiles.mapbox.com"
             ],
             scriptSrc: [
                 "'self'",
+                "'unsafe-eval'",
                 "https://cdn.jsdelivr.net"
             ],
-            connectSrc: ["'self'"],
+            workerSrc: [
+                "'self'",
+                "blob:"
+            ],
+            childSrc: [
+                "'self'",
+                "blob:"
+            ],
+            connectSrc: [
+                "'self'",
+                "https://api.mapbox.com",
+                "https://events.mapbox.com"
+            ],
             frameSrc: ["'none'"],
             objectSrc: ["'none'"],
             mediaSrc: ["'self'"],
@@ -214,6 +267,31 @@ app.get('/api/user', ensureAuthenticated, (req, res) => {
     res.json(req.user);
 });
 
+// Update user's map state
+app.put('/api/user/map-state', ensureAuthenticated, asyncHandler(async (req, res) => {
+    const { lng, lat, zoom } = req.body;
+    
+    // Validate input
+    if (typeof lng !== 'number' || typeof lat !== 'number' || typeof zoom !== 'number') {
+        return sendErrorResponse(res, 400, 'Invalid map state data. lng, lat, and zoom must be numbers.');
+    }
+    
+    // Validate ranges
+    if (lng < -180 || lng > 180 || lat < -90 || lat > 90 || zoom < 0 || zoom > 24) {
+        return sendErrorResponse(res, 400, 'Map state values out of valid range.');
+    }
+    
+    // Update user's map state
+    await User.findByIdAndUpdate(req.user._id, {
+        mapState: { lng, lat, zoom }
+    });
+    
+    res.json({
+        success: true,
+        message: 'Map state updated successfully'
+    });
+}));
+
 // API for user's domains with pagination
 app.get('/api/domains', ensureAuthenticated, validatePagination, asyncHandler(async (req, res) => {
     const { page, limit, skip, sort } = req.pagination;
@@ -334,6 +412,28 @@ app.post('/api/domains', ensureAuthenticated, validateDomainCreate, asyncHandler
     });
 }));
 
+// Get a single domain
+app.get('/api/domains/:id', ensureAuthenticated, asyncHandler(async (req, res) => {
+    const domain = await Domain.findById(req.params.id)
+        .populate('users', 'displayName email profilePicture')
+        .populate('createdBy', 'displayName email');
+    
+    if (!domain) {
+        return sendErrorResponse(res, 404, 'Domain not found');
+    }
+
+    // Check if user is part of the domain
+    const userIsInDomain = domain.users.some(user => user._id.toString() === req.user._id.toString());
+    if (!userIsInDomain) {
+        return sendErrorResponse(res, 403, 'You are not authorized to view this domain');
+    }
+
+    res.json({
+        success: true,
+        data: domain
+    });
+}));
+
 // Update a domain
 app.put('/api/domains/:id', ensureAuthenticated, validateDomainUpdate, asyncHandler(async (req, res) => {
     const { name } = req.body;
@@ -344,7 +444,8 @@ app.put('/api/domains/:id', ensureAuthenticated, validateDomainUpdate, asyncHand
     }
 
     // Check if user is part of the domain
-    if (!domain.users.includes(req.user._id)) {
+    const userIsInDomain = domain.users.some(user => user._id.toString() === req.user._id.toString());
+    if (!userIsInDomain) {
         return sendErrorResponse(res, 403, 'You are not authorized to edit this domain');
     }
 
@@ -383,7 +484,8 @@ app.delete('/api/domains/:id', ensureAuthenticated, asyncHandler(async (req, res
         return sendErrorResponse(res, 404, 'Domain not found');
     }
 
-    if (!domain.users.includes(req.user._id)) {
+    const userIsInDomain = domain.users.some(user => user._id.toString() === req.user._id.toString());
+    if (!userIsInDomain) {
         return sendErrorResponse(res, 403, 'You are not authorized to delete this domain');
     }
 
@@ -409,7 +511,8 @@ app.post('/api/domains/:id/regenerate-key', ensureAuthenticated, asyncHandler(as
         return sendErrorResponse(res, 404, 'Domain not found');
     }
 
-    if (!domain.users.includes(req.user._id)) {
+    const userIsInDomain = domain.users.some(user => user._id.toString() === req.user._id.toString());
+    if (!userIsInDomain) {
         return sendErrorResponse(res, 403, 'You are not authorized to regenerate this domain\'s API key');
     }
 
@@ -436,7 +539,8 @@ app.post('/api/domains/:id/regenerate-invite', ensureAuthenticated, asyncHandler
         return sendErrorResponse(res, 404, 'Domain not found');
     }
 
-    if (!domain.users.includes(req.user._id)) {
+    const userIsInDomain = domain.users.some(user => user._id.toString() === req.user._id.toString());
+    if (!userIsInDomain) {
         return sendErrorResponse(res, 403, 'You are not authorized to manage invites for this domain');
     }
 
@@ -468,7 +572,8 @@ app.post('/api/invite/:token', ensureAuthenticated, asyncHandler(async (req, res
     }
 
     // Check if user is already a member
-    if (domain.users.includes(req.user._id)) {
+    const userIsAlreadyMember = domain.users.some(user => user._id.toString() === req.user._id.toString());
+    if (userIsAlreadyMember) {
         return sendErrorResponse(res, 409, 'You are already a member of this domain');
     }
 
@@ -514,6 +619,15 @@ app.get('/api/invite/:token', asyncHandler(async (req, res) => {
     });
 }));
 
+// Get configuration values for frontend
+app.get('/api/config', ensureAuthenticated, (req, res) => {
+    res.json({
+        success: true,
+        data: {
+            mapboxAccessToken: config.mapboxAccessToken || null
+        }
+    });
+});
 
 // Profile route
 app.get('/profile', ensureAuthenticated, (req, res) => {
@@ -581,6 +695,11 @@ app.post('/addPacket', async (req, res) => {
     }
 });
 
+// Catch-all handler for private routes - serves React app for client-side routing
+// This handles routes like /private/domain/123 that don't match static files
+app.get('/private/domain/:domainId', ensureAuthenticated, (req, res) => {
+    res.sendFile(path.join(__dirname, 'private/build', 'index.html'));
+});
 
 // Add error handling middleware at the end
 app.use(errorHandler);
