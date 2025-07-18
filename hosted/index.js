@@ -619,6 +619,45 @@ app.get('/api/invite/:token', asyncHandler(async (req, res) => {
     });
 }));
 
+// Get historical messages for a domain
+app.get('/api/domains/:id/messages', ensureAuthenticated, asyncHandler(async (req, res) => {
+    const domain = await Domain.findById(req.params.id);
+    if (!domain) {
+        return sendErrorResponse(res, 404, 'Domain not found');
+    }
+
+    // Check if user is part of the domain
+    const userIsInDomain = domain.users.some(user => user._id.toString() === req.user._id.toString());
+    if (!userIsInDomain) {
+        return sendErrorResponse(res, 403, 'You are not authorized to view this domain\'s messages');
+    }
+
+    // Parse query parameters
+    const since = req.query.since ? new Date(req.query.since) : new Date(Date.now() - 60 * 60 * 1000); // Default: last hour
+    const limit = parseInt(req.query.limit) || 1000; // Default: 1000 messages
+
+    try {
+        // Fetch messages from rxPackets collection
+        const messages = await RxPacket.find({
+            domain: req.params.id,
+            time: { $gte: since }
+        })
+        .sort({ time: 1 }) // Oldest first for proper state building
+        .limit(limit)
+        .lean();
+
+        res.json({
+            success: true,
+            data: messages,
+            count: messages.length,
+            since: since.toISOString()
+        });
+    } catch (error) {
+        console.error('Error fetching historical messages:', error);
+        return sendErrorResponse(res, 500, 'Failed to fetch historical messages');
+    }
+}));
+
 // Get configuration values for frontend
 app.get('/api/config', ensureAuthenticated, (req, res) => {
     res.json({
@@ -628,6 +667,105 @@ app.get('/api/config', ensureAuthenticated, (req, res) => {
         }
     });
 });
+
+// Send DroneLink message
+app.post('/api/send', ensureAuthenticated, asyncHandler(async (req, res) => {
+    const { addr, msgType, values } = req.body;
+    
+    if (!addr || msgType === undefined || !values) {
+        return sendErrorResponse(res, 400, 'Missing required fields: addr, msgType, values');
+    }
+    
+    // TODO: Implement actual message sending to DroneLink network
+    // For now, just log the message and return success
+    console.log('DroneLink message send request:', { addr, msgType, values });
+    
+    res.json({
+        success: true,
+        message: 'Message queued for sending',
+        data: { addr, msgType, values }
+    });
+}));
+
+// Long-polling endpoint for real-time message streaming (compatible with time-series collections)
+app.get('/api/domains/:id/stream', ensureAuthenticated, asyncHandler(async (req, res) => {
+    const domain = await Domain.findById(req.params.id);
+    if (!domain) {
+        return sendErrorResponse(res, 404, 'Domain not found');
+    }
+
+    // Check if user is part of the domain
+    const userIsInDomain = domain.users.some(user => user._id.toString() === req.user._id.toString());
+    if (!userIsInDomain) {
+        return sendErrorResponse(res, 403, 'You are not authorized to stream this domain\'s messages');
+    }
+
+    // Get the 'since' parameter to know what messages to look for
+    const since = req.query.since ? new Date(req.query.since) : new Date(Date.now() - 1000); // Default: last second
+    const timeout = parseInt(req.query.timeout) || 30000; // Default: 30 seconds
+    
+    const startTime = Date.now();
+    console.log(`Long-polling: Started for domain ${req.params.id}, since ${since.toISOString()}`);
+    
+    // Long-polling: check for new messages periodically
+    const checkForNewMessages = async () => {
+        try {
+            const messages = await RxPacket.find({
+                domain: req.params.id,
+                time: { $gt: since }
+            })
+            .sort({ time: 1 })
+            .limit(100) // Limit to prevent overwhelming
+            .lean();
+
+            if (messages.length > 0) {
+                // Found new messages, return them
+                console.log(`Long-polling: Returning ${messages.length} new messages for domain ${req.params.id}`);
+                return res.json({
+                    success: true,
+                    type: 'messages',
+                    data: messages,
+                    count: messages.length
+                });
+            }
+
+            // No new messages yet, check if we should continue polling
+            const elapsed = Date.now() - startTime;
+            if (elapsed >= timeout) {
+                // Timeout reached, return empty result
+                console.log(`Long-polling: Timeout reached for domain ${req.params.id} after ${elapsed}ms`);
+                return res.json({
+                    success: true,
+                    type: 'timeout',
+                    data: [],
+                    count: 0
+                });
+            }
+
+            // Wait a bit and check again
+            setTimeout(checkForNewMessages, 1000); // Check every second
+        } catch (error) {
+            console.error('Error checking for new messages:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Failed to check for new messages'
+            });
+        }
+    };
+
+    // Handle client disconnect (normal for long-polling)
+    req.on('close', () => {
+        const elapsed = Date.now() - startTime;
+        if (elapsed < 1000) { 
+            // Disconnected very quickly - might be unexpected
+            console.log(`Long-polling: Client disconnected early after ${elapsed}ms for domain ${req.params.id}`);
+        }
+        // Normal disconnects after successful responses are expected and not logged
+    });
+
+    // Start checking for messages
+    checkForNewMessages();
+}));
 
 // Profile route
 app.get('/profile', ensureAuthenticated, (req, res) => {
