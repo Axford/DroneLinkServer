@@ -499,6 +499,12 @@ import cors from "cors";
 import http from "http";
 const httpServer = http.createServer(app);
 
+// check if config.json exists
+if (!fs.existsSync("./config.json")) {
+  // create a new config file
+  fs.writeFileSync("./config.json", JSON.stringify({}));
+}
+
 var config = JSON.parse(fs.readFileSync("./config.json"));
 //console.log(config);
 
@@ -512,7 +518,29 @@ if (!(env in config)) {
   console.log("-----------------------------------------------------------------------------------");
   console.log("Missing config.json entry for hostname: " + env);
   console.log("");
+
+  // create a new config entry for this hostname
+  config[env] = {
+    id: 254,
+    firmwarePath: "",
+    logFilePath: "",
+    telemetryPort: "",
+    domain: "",
+    apiKey: "",
+  };
+  // append to config.json
+  fs.writeFileSync("./config.json", JSON.stringify(config, null, 2));
+
   process.exit();
+}
+
+// check if the firebase entry is present in the config file
+if (!('firebase' in config)) {
+  config['firebase'] = {
+    apiKey: "",
+  };
+  // append to config.json
+  fs.writeFileSync("./config.json", JSON.stringify(config, null, 2));
 }
 
 clog("Using config: ", env);

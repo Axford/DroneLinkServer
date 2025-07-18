@@ -1,4 +1,7 @@
 {
+  "firebase":{
+    "apiKey":"AIzaSyByUVRbMJr_IbEY4b45avdQkJBpkjGCb1s"
+  },
   "josh":{
 
   },
@@ -33,9 +36,8 @@
     "id":250,
     "firmwarePath":"/Users/damianaxford/Documents/GitHub/DroneNode/.pio/build/esp32doit-devkit-v1/firmware.bin",
     "logFilePath":"/Users/damianaxford/Documents/GitHub/DroneLinkServer/mesh.log",
-    "telemetryPort":"/dev/cu.SLAB_USBtoUART",
-    "domain":"COmhxkuaBIj9RzFuV4x6",
-    "apiKey":"df15d7918a51faae"
+    "domain":"6870339f3e7654ad2955b898",
+    "apiKey":"f4f39db79101f5100053e5c305954bdd98c40153949b4972ad2b7be982ce8e85"
   },
   "Deep_Silver":{
   "id":240
