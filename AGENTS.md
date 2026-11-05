@@ -13,3 +13,7 @@ Before implementation, follow [project objectives and requirements](../DroneLink
 ## Accepted target ownership
 
 This repository is to own the runnable backend for ingress, authentication, domain administration and commands, with optional gateway tooling isolated. Current source remains as documented until the migration is executed. Read the accepted ADR-0003 and the proposed SEP implementation plan; do not confuse target acceptance with completed extraction.
+
+## Frozen baseline and first slice
+
+Use [ARCH-1.0](../DroneLinkDatastore/docs/architecture/baseline.md) and the [canonical glossary](../DroneLinkDatastore/docs/project/glossary.md). Baseline amendments require explicit acceptance; implementation details must remain within accepted boundaries. The recommended first bounded plan is [SEP-01](../DroneLinkDatastore/docs/planning/sep-01-protocol-compatibility.md), proposed and not started. Do not treat it as approval for application relocation or broader runtime extraction.

@@ -15,3 +15,7 @@ System facts and roadmap status are maintained in Datastore; this repo owns its 
 ## Project intent and accepted target boundaries
 
 Read [objectives and requirements](../../DroneLinkDatastore/docs/project/objectives.md), [traceability](../../DroneLinkDatastore/docs/project/traceability.md) and [target repository architecture](../../DroneLinkDatastore/docs/architecture/target.md). The target responsibilities are accepted; migration is not implemented; the local architecture guide describes current source.
+
+## Architecture baseline
+
+The agreed cross-repository direction is frozen as [ARCH-1.0](../../DroneLinkDatastore/docs/architecture/baseline.md). Use the [canonical glossary](../../DroneLinkDatastore/docs/project/glossary.md) for actors and terms, and [requirements](../../DroneLinkDatastore/docs/project/requirements.md) for policy. The proposed first implementation scope is [SEP-01](../../DroneLinkDatastore/docs/planning/sep-01-protocol-compatibility.md); runtime ownership has not moved.
