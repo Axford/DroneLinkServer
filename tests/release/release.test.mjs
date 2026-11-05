@@ -14,14 +14,17 @@ import DroneLinkManager from '../../public/modules/DroneLinkManager.mjs';
 
 test('actual preparation, input matching, renderer provenance, no overwrite and rollback',()=>{
  const f=fixture();try{
-  const first=f.prepare(),second=f.prepare(path.join(f.root,'second'));
-  const manifest=verifyRelease(first);assert.equal(manifest.identity,verifyRelease(second).identity);
+  const first=f.prepare();
+  archive(f.firmware,f.fw,{'firmware.bin':Buffer.from([0xe9,5,6,7]),'firmware.ver':'a'.repeat(7)});
+  const second=f.prepare(path.join(f.root,'second'));
+  const manifest=verifyRelease(first);assert.notEqual(manifest.identity,verifyRelease(second).identity);
   assert.match(fs.readFileSync(path.join(first,'help/Drone.html'),'utf8'),/Base module/);
   assert.equal(manifest.exports.firmware.manifest.metadataIdentity,manifest.exports.metadata.manifest.identity);
   assert.throws(()=>f.prepare(first));
   assert.equal(loadGatewayRelease({releaseDir:first}).status.available,true);
   assert.equal(loadGatewayRelease({releaseDir:second}).status.available,true);
   assert.equal(loadGatewayRelease({releaseDir:first}).status.identity,manifest.identity);
+  assert.deepEqual(loadGatewayRelease({releaseDir:first}).firmware.image,Buffer.from([0xe9,1,2,3]));
  }finally{f.cleanup();}
 });
 test('corruption of each prepared component disables the complete set but returns startup status',()=>{

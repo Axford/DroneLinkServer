@@ -11,6 +11,11 @@ import { serverRoot } from '../../scripts/release.mjs';
 
 test('actual gateway entrypoint starts for valid, missing and invalid release with simulated physical transports',async t=>{
  const f=fixture();t.after(f.cleanup);const release=f.prepare();
+ if(process.env.DRONELINK_RELEASE_DIR){
+  // Caller supplies a verified artifact; mutate only a private test copy.
+  fs.rmSync(release,{recursive:true,force:true});
+  fs.cpSync(path.resolve(process.env.DRONELINK_RELEASE_DIR),release,{recursive:true});
+ }
  fs.copyFileSync(path.join(serverRoot,'index.mjs'),path.join(f.project,'index.mjs'));
  fs.cpSync(path.join(serverRoot,'public/modules'),path.join(f.project,'public/modules'),{recursive:true});
  fs.mkdirSync(path.join(f.project,'public/nodes/synthetic'),{recursive:true});fs.writeFileSync(path.join(f.project,'public/nodes/synthetic/config.ini'),'node=2');
