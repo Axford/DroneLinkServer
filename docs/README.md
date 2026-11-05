@@ -1,6 +1,6 @@
 # DroneLinkServer documentation
 
-Reviewed: 2026-11-04. Role: gateway and legacy tools.
+Reviewed: 2026-11-05. Role: gateway and legacy tools.
 
 - [Local architecture](architecture.md)
 - [Local operations](operations.md)

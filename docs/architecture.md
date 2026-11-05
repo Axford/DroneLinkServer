@@ -1,6 +1,6 @@
 # DroneLinkServer architecture
 
-Status: observed source. Reviewed: 2026-11-04.
+Status: observed source. Reviewed: 2026-11-05.
 
 The existing gateway ES-module Node application starts in [index.mjs](../index.mjs), constructs a terminal diagnostic UI and reads configuration by hostname. It creates UDP and serial interfaces plus a [DroneLinkManager](../public/modules/DroneLinkManager.mjs). The manager owns mesh routes, priority/retry/ACK processing, subscriptions, file/firmware messages and telemetry forwarding.
 
