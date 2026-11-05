@@ -83,6 +83,13 @@ test('real terminal widgets persist warning/disabled state and distribution exec
  applyReleaseToTerminal({available:true,warning:''},warning,[prime,start]);screen.render();assert.equal(warning.hidden,true);assert.equal(prime.disabled,false);
  manager.firmwareRelease={image:Buffer.from([1,2,3])};manager.primeFirmwareUpdate();assert.equal(manager.firmwareSize,3);manager.startFirmwareUpdate();assert.equal(manager.firmwareSending,true);
 });
+test('renderer rejects modified template inputs hidden by Git index flags',()=>{
+ const f=fixture();try{
+  execFileSync('git',['update-index','--assume-unchanged','templates/help/module.mustache'],{cwd:f.project});
+  fs.appendFileSync(path.join(f.project,'templates/help/module.mustache'),'hidden edit');
+  assert.throws(()=>f.prepare(),/Renderer input differs from committed/);
+ }finally{f.cleanup();}
+});
 test('retired integration has no UI events/controls, source mutation or process launcher',()=>{
  const index=fs.readFileSync(path.join(serverRoot,'index.mjs'),'utf8');const management=fs.readFileSync(path.join(serverRoot,'public/modules/oui/interfaces/Management.mjs'),'utf8');
  assert.doesNotMatch(index+management,/setVSCIP|VSCIPUpdated|VSCIPError|VSCUpload|hasRequestedCSVIP|pio run -t upload|\.\.\/DroneNode/);

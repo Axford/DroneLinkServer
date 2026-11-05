@@ -124,8 +124,12 @@ export function prepareRelease({ firmware, metadata, output }) {
     const catalog = JSON.parse(fs.readFileSync(path.join(prepared, 'moduleInfo.json'), 'utf8'));
     const templateFiles = ['templates/help/index.mustache', 'templates/help/module.mustache'];
     const guides = ['firmwareSetupGuide', 'sailingBoatSetup', 'pins'];
-    const rendererInputs = [...templateFiles, ...guides.map(n => `public/help/${n}.html`), 'scripts/release.mjs', 'package.json', 'package-lock.json'];
+    const rendererInputs = [...templateFiles, ...guides.map(n => `public/help/${n}.html`), 'scripts/release.mjs', 'scripts/read-release-archive.py', 'package.json', 'package-lock.json'];
     const sourceFiles = Object.fromEntries(rendererInputs.map(p => [p, hash(fs.readFileSync(path.join(serverRoot, p)))]));
+    for (const [name, checksum] of Object.entries(sourceFiles)) {
+      const committed = execFileSync('git', ['show', `${revision}:${name}`], { cwd: serverRoot });
+      check(hash(committed) === checksum, `Renderer input differs from committed revision: ${name}`);
+    }
     const moduleTemplate = fs.readFileSync(path.join(serverRoot, templateFiles[1]), 'utf8');
     const modules = Object.keys(catalog).sort().map(name => {
       fs.writeFileSync(path.join(prepared, 'help', `${name}.html`), Mustache.render(moduleTemplate, catalog[name]));
