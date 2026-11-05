@@ -45,6 +45,8 @@ const storage = getStorage(app);
 
 import io from '../libs/socketio/socket.io.esm.min.mjs';
 var socket = io();
+import { applyGatewayStatus } from './modules/release-state.mjs';
+socket.on('release.status', applyGatewayStatus);
 
 
 import * as DLM from './modules/droneLinkMsg.mjs';

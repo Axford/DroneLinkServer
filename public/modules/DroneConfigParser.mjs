@@ -1,5 +1,4 @@
-import moduleInfo from "/moduleInfo.json" with { type: "json" };
-//const { default: moduleInfo } = await import("/moduleInfo.json", { assert: { type: "json" } });
+import moduleInfo, { metadataAvailable, unavailableMessage } from "./release-state.mjs";
 
 export default class DroneConfigParser {
   constructor() {
@@ -245,6 +244,7 @@ export default class DroneConfigParser {
   }
 
   parse(config) {
+    if (!metadataAvailable) throw new Error(unavailableMessage);
     this.rawConfig = config;
 
     // clear

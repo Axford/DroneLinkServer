@@ -10,7 +10,11 @@
     "test:protocol": "npm run protocol:check && node --test tests/*.test.mjs",
     "protocol:sync": "node scripts/sync-protocol.mjs",
     "protocol:check": "node scripts/sync-protocol.mjs --check",
-    "test:protocol:browser": "node --experimental-vm-modules scripts/check-browser-protocol.mjs"
+    "test:protocol:browser": "node --experimental-vm-modules scripts/check-browser-protocol.mjs",
+    "release:prepare": "node scripts/release.mjs prepare",
+    "release:verify": "node scripts/release.mjs verify",
+    "test:release": "node --test tests/release/*.test.mjs",
+    "test:release:browser": "node tests/release/browser.mjs"
   },
   "author": "",
   "license": "ISC",

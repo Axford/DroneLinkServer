@@ -40,12 +40,6 @@ function constrain(v, minv, maxv) {
 }
 
 
-function getFilesizeInBytes(filename) {
-    var stats = fs.statSync(filename);
-    var fileSizeInBytes = stats.size;
-    return fileSizeInBytes;
-}
-
 export default class DroneLinkManager {
 
   constructor(node, clog, domain, apiKey) {
@@ -76,6 +70,7 @@ export default class DroneLinkManager {
     this.firmwarePos = 0;
     this.firmwareSize = 0;
     this.firmwarePath = '';
+    this.firmwareRelease = null;
     this.firmwareSending = false;
     this.firmwarePacketsSent = 0;
     this.firmwareRewinds = 0;
@@ -1639,6 +1634,10 @@ export default class DroneLinkManager {
 
 
   primeFirmwareUpdate() {
+    if (!this.firmwareRelease?.image?.length) {
+      this.clog('Firmware distribution unavailable: select a valid release and restart');
+      return false;
+    }
     // send a firmware start broadcast on all interfaces
 
     this.firmwarePos = 0;
@@ -1647,12 +1646,11 @@ export default class DroneLinkManager {
     this.firmwareSending = false;
     this.firmwareNodes = {};
 
-    var filepath = this.firmwarePath;
-    this.firmwareSize = getFilesizeInBytes(filepath);
+    this.firmwareSize = this.firmwareRelease.image.length;
     var filesize = this.firmwareSize;
 
     // preload firmware into memory
-    this.firmwareBuffer = fs.readFileSync(filepath);
+    this.firmwareBuffer = Buffer.from(this.firmwareRelease.image);
 
     this.clog('Starting firmware update, size: ' + filesize);
 
@@ -1684,7 +1682,7 @@ export default class DroneLinkManager {
 
 
   startFirmwareUpdate() {
-    if (this.firmwareSize > 0) {
+    if (this.firmwareRelease?.image?.length && this.firmwareSize > 0) {
       this.firmwareSending = true;
       this.firmwareStartTime = Date.now();
       this.firmwarePacketsSent = 0;
@@ -1695,7 +1693,7 @@ export default class DroneLinkManager {
 
   transmitFirmware() {
     // called every ms
-    if (this.firmwareSending &&
+    if (this.firmwareRelease?.image?.length && this.firmwareSending &&
         this.firmwarePos < this.firmwareSize) {
 
 

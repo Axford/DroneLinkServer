@@ -10,7 +10,7 @@ import UDPInterface from "./public/modules/UDPInterface.mjs";
 import SerialInterface from "./public/modules/SerialInterface.mjs";
 import * as DMTB from "./public/modules/DroneMeshTxBuffer.mjs";
 
-import { exec } from "child_process";
+import { loadGatewayRelease, mountReleaseRoutes, applyReleaseToTerminal } from "./scripts/gateway-release.mjs";
 
 //const broadcastAddress = require('broadcast-address');
 
@@ -522,7 +522,7 @@ if (!(env in config)) {
   // create a new config entry for this hostname
   config[env] = {
     id: 254,
-    firmwarePath: "",
+    releaseDir: "",
     logFilePath: "",
     telemetryPort: "",
     domain: "",
@@ -549,15 +549,19 @@ clog("Using config: ", env);
 var sourceId = config[env].id ? config[env].id : 254;
 clog("Using server node address: " + sourceId);
 
-var firmwarePath = config[env].firmwarePath;
-clog("Firmware path: " + firmwarePath);
+const selectedRelease = loadGatewayRelease(config[env]);
+const releaseWarning = blessed.box({ parent: screen, bottom: 1, height: 3, width: "100%", tags: false, style: { fg: "black", bg: "yellow" } });
+applyReleaseToTerminal(selectedRelease.status, releaseWarning, [firmwarePrimeButton, firmwareStartButton]);
+if (selectedRelease.status.warning) clog(selectedRelease.status.warning);
+screen.render();
 
 var logFilePath = config[env].logFilePath;
 clog("logFilePath path: " + logFilePath);
 
 // init DLM
 dlm = new DroneLinkManager(sourceId, clog, config[env].domain, config[env].apiKey);
-dlm.firmwarePath = firmwarePath;
+dlm.firmwareRelease = selectedRelease.firmware;
+dlm.firmwarePath = selectedRelease.firmware?.path || "";
 dlm.logFilePath = logFilePath;
 
 // prep msgQueue
@@ -662,10 +666,7 @@ app.get("/routes", function (req, res) {
   res.json(dlm.routeMap);
 });
 
-app.get("/firmware", function (req, res) {
-  clog("Serving firmware to: " + req.ip);
-  res.sendfile(firmwarePath);
-});
+mountReleaseRoutes(app, selectedRelease);
 
 app.get("/file", (req, res) => {
   res.json(channelState);
@@ -723,6 +724,7 @@ dlm.io = io;
 
 io.on("connection", (socket) => {
   clog("Web UI client connected");
+  socket.emit("release.status", selectedRelease.status);
 
   // inform new client of our local address: sourceId
   io.emit("localAddress", sourceId);
@@ -750,66 +752,6 @@ io.on("connection", (socket) => {
   socket.on("getRoutes", (msg) => {
     // ask dlm to emit all existing routes
     dlm.emitAllRoutes();
-  });
-
-  // setVSCIP
-  socket.on("setVSCIP", (msg) => {
-    var op = JSON.parse(msg);
-    clog("Received IP for VSC: " + op.ip);
-
-    // locate platformio.ini file
-    var fn = "../DroneNode/platformio.ini";
-    try {
-      var data = fs.readFileSync(fn, "utf8");
-      var fstr = data.toString();
-      var lines = fstr.split("\n");
-      var found = false;
-
-      fstr = "";
-      lines.forEach((line) => {
-        // find the upload_port line
-        var epos = line.indexOf("=");
-        clog("line: " + line + ", " + epos);
-        if (epos > 0) {
-          var pn = line.substring(0, epos).trim();
-          clog("pn: " + pn);
-          if (pn == "upload_port") {
-            line = "upload_port = " + op.ip;
-            found = true;
-          }
-        }
-
-        fstr += line + "\n";
-      });
-
-      if (found) {
-        fs.writeFileSync(fn, fstr);
-        clog("  Platformio updated");
-        socket.emit("VSCIPUpdated", fstr);
-
-        if (op.upload) {
-          // also trigger platformio upload
-
-          // Exec output contains both stderr and stdout outputs
-          var childProcess = exec('pio run -t upload',
-            { cwd: '../DroneNode' },
-            function (error, stdout, stderr) {
-               clog('stdout: ' + stdout);
-               clog('stderr: ' + stderr);
-               if (error !== null) {
-                   clog('exec error: ' + error);
-               }
-
-               socket.emit("VSCUpload", JSON.stringify({ stdout :stdout, stderr:stderr}));
-            });
-        } 
-      } else {
-        socket.emit("VSCIPError", "upload_port parameter not found");
-      }
-    } catch (e) {
-      clog("Error:", e.stack);
-      socket.emit("VSCIPError", e.stack);
-    }
   });
 
   // generate a RouteEntry request

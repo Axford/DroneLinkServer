@@ -1,12 +1,10 @@
+import moduleInfo, { metadataRequired } from "../../release-state.mjs";
 import ModuleInterface from "./ModuleInterface.mjs";
 import loadStylesheet from "../../loadStylesheet.js";
 import * as DLM from "../../droneLinkMsg.mjs";
 
 loadStylesheet("./css/modules/oui/interfaces/Management.css");
 
-//import moduleInfo from "/moduleInfo.json" assert { type: "json" };
-//const { default: moduleInfo } = await import("/moduleInfo.json", { assert: { type: "json" } });
-import moduleInfo from "/moduleInfo.json" with { type: "json" };
 
 function decimalToHex(d, padding) {
   var hex = Number(d).toString(16);
@@ -81,8 +79,6 @@ export default class Management extends ModuleInterface {
 
     this.lastUptime = 0;
 
-    this.hasRequestedVSCIP = false;
-    this.hasRequestedVSCUpload = false;
   }
 
   update() {
@@ -666,6 +662,7 @@ export default class Management extends ModuleInterface {
     this.moduleInfoBut = $(
       '<button class="btn btn-sm btn-primary mb-2">Modules</button>'
     );
+    metadataRequired(this.moduleInfoBut);
     this.moduleInfoBut.on("click", () => {
       me.showModuleInfo();
       me.viewer.show();
@@ -768,66 +765,6 @@ export default class Management extends ModuleInterface {
       this.state.send(qm);
     });
     this.ui.append(this.saveConfigBut);
-
-    /*
-    --------------  Set VSCode IP ----------------------------------
-    */
-    this.setVSCIPBut = $(
-      '<button class="btn btn-sm btn-secondary mb-2 mr-3">Set VSC IP</button>'
-    );
-    this.setVSCIPBut.on("click", () => {
-      this.hasRequestedCSVIP = true;
-      this.channel.state.socket.emit('setVSCIP', JSON.stringify({ ip: this.getIpString(), upload:false }) );
-    });
-    this.ui.append(this.setVSCIPBut);
-    
-
-    this.channel.state.socket.on('VSCIPUpdated', (msg)=>{
-      this.hasRequestedVSCIP = false;
-      this.setVSCIPBut.notify(
-        "VSC IP updated: " + msg,
-        {
-          className: "success",
-          autoHide: true,
-          arrowShow: true,
-          position: 'left'
-        }
-      );
-    });
-    
-    this.channel.state.socket.on('VSCIPError', (msg)=>{
-      this.hasRequestedVSCIP = false;
-      this.setVSCIPBut.notify(
-        "Error updating VSC IP: " + msg,
-        {
-          className: "error",
-          autoHide: true,
-          arrowShow: true,
-          position: 'left'
-        }
-      );
-    });
-
-    this.uploadVSCBut = $(
-      '<button class="btn btn-sm btn-secondary mb-2 mr-3" style="display:none">VSC Upload</button>'
-    );
-    this.uploadVSCBut.on("click", () => {
-      this.hasRequestedVSCIP = true;
-      this.hasRequestedVSCUpload = true;
-      this.channel.state.socket.emit('setVSCIP', JSON.stringify({ ip: this.getIpString(), upload:true }) ); 
-    }); 
-    this.ui.append(this.uploadVSCBut);
-
-    this.channel.state.socket.on('VSCUpload', (msg)=>{
-      this.hasRequestedVSCUpload = false;
-      var obj = JSON.parse(msg);
-      console.log(obj);
-    });
-
-    /*
-    ------------------------------------------------------------
-    */
-
 
     // json viewer widget
     this.viewer = $('<div class="modal Management-modal" role="dialog" style="display:none;">');

@@ -10,7 +10,7 @@ Express serves legacy assets; Socket.IO exposes message/routing/file operations.
 
 `functions/` contains Firebase/Firestore ingestion from an earlier direction; Mongoose model files also remain as inactive legacy references; no current gateway import was found. They differ from the authoritative persistence schemas and are never imported by hosted code. Their presence is not proof of active deployment. Check deployment usage before removal.
 
-`parseModules.js` reads sibling DroneNode annotated module headers and generates `public/moduleInfo.json` and HTML help. DroneNode's post-build hook copies firmware/version into Server `public/firmware/`. These sibling-path dependencies need to remain explicit.
+SEP-05 replaces sibling source generation with explicit DroneNode metadata/firmware archives. Server `scripts/release.mjs` verifies matching inputs and renders help into an immutable prepared directory. `scripts/gateway-release.mjs` owns startup verification, release availability and the complete HTTP asset snapshot; independent hosted startup is unaffected. `releaseDir` replaces independent `firmwarePath` selection. Missing/invalid release warns in browser and terminal while independent gateway work continues. The legacy VSC/PlatformIO source-edit/upload action is retired; direct development remains in DroneNode. See the [shared release contract](../../DroneLinkDatastore/docs/contracts/firmware-releases.md).
 
 ## Accepted target responsibility boundary
 

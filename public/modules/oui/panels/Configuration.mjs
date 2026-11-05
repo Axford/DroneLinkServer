@@ -1,3 +1,4 @@
+import moduleInfo, { metadataAvailable, metadataRequired, unavailableMessage } from "../../release-state.mjs";
 import Panel from './Panel.mjs';
 import loadStylesheet from '../../loadStylesheet.js';
 
@@ -8,9 +9,6 @@ import { DRONE_MESH_MSG_TYPE_LINK_CHECK_REQUEST } from '../../DroneMeshMsg.mjs';
 //import { bgBlue } from 'colors/index.js';
 import * as DLM from "../../droneLinkMsg.mjs";
 
-//import moduleInfo from "/moduleInfo.json" assert { type: "json" };
-//const { default: moduleInfo } = await import("/moduleInfo.json", { assert: { type: "json" } });
-import moduleInfo from "/moduleInfo.json" with { type: "json" };
 
 import {calculateDistanceBetweenCoordinates} from "../../navMath.mjs";
 
@@ -1031,8 +1029,10 @@ export default class Configuration extends Panel {
 
     // wizard
     this.uiGraphBut = $('<button class="btn btn-sm btn-info mr-2"><i class="fas fa-project-diagram"></i> Configure</button>');
+    metadataRequired(this.uiGraphBut);
 		this.uiGraphBut.on('click', ()=>{
       // display configuration graph editor
+      if (!metadataAvailable) return;
       me.graphEditor.show();
       me.graphEditor.parseConfig( me.aceEditor.session.getValue() );
 		});
@@ -1040,6 +1040,7 @@ export default class Configuration extends Panel {
 
     // wizard
     this.uiWizardBut = $('<button class="btn btn-sm btn-info mr-2"><i class="fas fa-birthday-cake"></i> Recipes</button>');
+    metadataRequired(this.uiWizardBut);
 		this.uiWizardBut.on('click', ()=>{
       // display configuration wizard
       this.wizard.show();
@@ -1890,6 +1891,10 @@ export default class Configuration extends Panel {
 
 
   analyseINIFile() {
+    if (!metadataAvailable) {
+      this.aceEditor.session.setAnnotations([{ row: 0, column: 0, type: "warning", text: unavailableMessage }]);
+      return;
+    }
     // analyse contents of config file... check for syntax errors, etc
     var sess = this.aceEditor.session;
 

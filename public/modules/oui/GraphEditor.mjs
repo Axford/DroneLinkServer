@@ -1,11 +1,9 @@
+import moduleInfo, { metadataAvailable, unavailableMessage } from "../release-state.mjs";
 import loadStylesheet from "../loadStylesheet.js";
 import * as DLM from "../droneLinkMsg.mjs";
 
 loadStylesheet("./css/modules/oui/GraphEditor.css");
 
-//import moduleInfo from "/moduleInfo.json" assert { type: "json" };
-//const { default: moduleInfo } = await import("/moduleInfo.json", { assert: { type: "json" } });
-import moduleInfo from "/moduleInfo.json" with { type: "json" };
 
 import GraphManager from "./GraphManager.mjs";
 import DroneConfigParser from "../DroneConfigParser.mjs";
@@ -154,6 +152,7 @@ export default class GraphEditor {
   }
 
   show() {
+    if (!metadataAvailable) return;
     if (!this.built) this.build();
     if (this.visible) return;
     this.visible = true;
@@ -205,6 +204,7 @@ export default class GraphEditor {
   }
 
   parseConfig(str) {
+    if (!metadataAvailable) throw new Error(unavailableMessage);
     this.config = this.parser.parse(str);
 
     console.log(this.config);
