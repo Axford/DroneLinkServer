@@ -106,15 +106,16 @@ test('importing the application factory alone neither loads production models/co
   assert.equal(result.status,0,result.stderr); assert.match(result.stdout,/factory-import-ok/);
 });
 
-test('actual production build serves from an isolated copied artifact and can roll back to default hosting',async t=>{
-  const build=path.join(root,'private/build');
-  assert.ok(fs.existsSync(path.join(build,'asset-manifest.json')),'Run npm run build --prefix private before the artifact acceptance check');
+for (const target of ['sep02','current']) test(`${target}: supplied production release serves from an isolated copy and can roll back to the retained artifact`,async t=>{
+  assert.ok(process.env.CLIENT_BUILD_DIR,'Set CLIENT_BUILD_DIR to an explicitly verified extracted Client build');
+  const build=path.resolve(process.env.CLIENT_BUILD_DIR);
+  assert.ok(fs.existsSync(path.join(build,'asset-manifest.json')),'CLIENT_BUILD_DIR must contain the real production artifact');
   const destination=path.join(tempDir(t),'ui-release'); fs.cpSync(build,destination,{recursive:true});
   assert.equal(fs.existsSync(path.join(destination,'src')),false); assert.equal(fs.existsSync(path.join(destination,'node_modules')),false);
   const manifest=JSON.parse(fs.readFileSync(path.join(destination,'asset-manifest.json'),'utf8'));
   const fileUrls=Object.values(manifest.files).filter(value=>typeof value==='string' && value!=='/index.html');
   for(const url of fileUrls) assert.equal(fs.lstatSync(path.join(destination,url)).isSymbolicLink(),false);
-  const overrides=application('current',{config:{clientBuildDir:destination}}); const configured=(await serve(t,overrides.app))();
+  const overrides=application(target,{config:{clientBuildDir:destination}}); const configured=(await serve(t,overrides.app))();
   for(const url of ['/invite/test',...fileUrls]) {
     const response=await configured.request(url); assert.equal(response.status,200,url);
     if(url.startsWith('/invite/')) assert.equal(response.text,fs.readFileSync(path.join(destination,'index.html'),'utf8'));
@@ -125,7 +126,7 @@ test('actual production build serves from an isolated copied artifact and can ro
     const response=await configured.request(url); assert.equal(response.status,200); assert.equal(response.text,fs.readFileSync(path.join(destination,'index.html'),'utf8'));
   }
   assert.deepEqual((await configured.request('/api/config')).json(),{success:true,data:{mapboxAccessToken:'public-test-map-token'}});
-  const defaultHost=(await serve(t,application('current').app))(); await defaultHost.login();
+  const defaultHost=(await serve(t,application(target,{config:{clientBuildDir:build}}).app))(); await defaultHost.login();
   assert.equal((await defaultHost.request('/private/')).text,fs.readFileSync(path.join(build,'index.html'),'utf8'));
   // Distinguish rollback selection after the externally supplied artifact changes.
   fs.writeFileSync(path.join(destination,'index.html'),'changed-external-artifact');
@@ -141,11 +142,18 @@ test('default missing build preserves backend availability and existing missing-
   for(const item of ['app.js','middleware','lib','public']) fs.cpSync(path.join(root,item),path.join(isolated,item),{recursive:true});
   const {createApp}=require(path.join(isolated,'app.js'));
   const {testConfig,TestGoogleStrategy}=require('./support.cjs');
-  const app=createApp({config:testConfig(),models:modelFixture().models,googleStrategyFactory:(options,verify)=>new TestGoogleStrategy(options,verify)});
+  const app=createApp({config:testConfig({clientBuildDir:undefined}),models:modelFixture().models,googleStrategyFactory:(options,verify)=>new TestGoogleStrategy(options,verify)});
   const agent=(await serve(t,app))();
   assert.equal((await agent.request('/invite/token')).status,500);
   await agent.login(); assert.equal((await agent.request('/api/config')).status,200);
   assert.equal((await agent.request('/private/')).status,404);
+  // The legacy default directory remains a supported artifact installation path.
+  const supplied=process.env.CLIENT_BUILD_DIR;
+  assert.ok(supplied,'Set CLIENT_BUILD_DIR to an extracted production build');
+  fs.cpSync(path.resolve(supplied),path.join(isolated,'private/build'),{recursive:true});
+  const restored=await agent.request('/private/');
+  assert.equal(restored.status,200);
+  assert.equal(restored.text,fs.readFileSync(path.join(supplied,'index.html'),'utf8'));
 });
 
 

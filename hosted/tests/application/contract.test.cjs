@@ -1,7 +1,7 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const {application,serve,ids}=require('./support.cjs');
-const targets=process.env.APPLICATION_BASELINE_ONLY ? ['baseline'] : ['baseline','current'];
+const targets=process.env.APPLICATION_BASELINE_ONLY ? ['baseline'] : ['baseline','sep02','current'];
 for(const target of targets) {
   test(`${target}: public/login redirects and protected routes preserve current auth boundary`,async t=>{
     const {app}=application(target); const agent=(await serve(t,app))();

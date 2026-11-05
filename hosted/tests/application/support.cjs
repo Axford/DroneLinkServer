@@ -103,7 +103,7 @@ function modelFixture() {
   return {models:{User,Domain,RxPacket},users,domains,packets,writes};
 }
 
-const testConfig = overrides => ({port:0,cookieKey:'isolated-test-session-secret-at-least-32-characters',googleClientID:'test-id',googleClientSecret:'test-secret',mongoURI:'test-no-network',mapboxAccessToken:'public-test-map-token',...overrides});
+const testConfig = overrides => ({...(process.env.CLIENT_BUILD_DIR ? {clientBuildDir:path.resolve(process.env.CLIENT_BUILD_DIR)} : {}),port:0,cookieKey:'isolated-test-session-secret-at-least-32-characters',googleClientID:'test-id',googleClientSecret:'test-secret',mongoURI:'test-no-network',mapboxAccessToken:'public-test-map-token',...overrides});
 function baselineApp(config, models) {
   const localRequire=createRequire(path.join(root,'index.js'));
   const source=execFileSync('git',['show',`${baselineRevision}:index.js`],{cwd:root,encoding:'utf8'});
@@ -121,9 +121,31 @@ function baselineApp(config, models) {
   vm.runInNewContext(source,{require:name=>Object.hasOwn(replacements,name)?replacements[name]:localRequire(name),__dirname:root,console:{log(){},error(){}},process:{exit:code=>{throw Error(`Unexpected baseline exit ${code}`);}},Buffer,setTimeout,clearTimeout},{filename:'pre-sep-02-index.js'});
   return app;
 }
+// Replay the actual SEP-02 backend and its local modules, using current installed
+// external middleware and the same construction-only test adapters.
+function sep02Factory() {
+  const Module = require('node:module');
+  const loaded = new Map();
+  function load(file) {
+    if (loaded.has(file)) return loaded.get(file).exports;
+    const filename = path.join(root, file);
+    const mod = new Module(filename, module);
+    mod.filename = filename;
+    mod.paths = Module._nodeModulePaths(path.dirname(filename));
+    loaded.set(file, mod);
+    const externalRequire = createRequire(filename);
+    mod.require = name => name.startsWith('./')
+      ? load(path.posix.join(path.posix.dirname(file), name) + '.js')
+      : externalRequire(name);
+    mod._compile(execFileSync('git', ['show', `418c9d0:${file}`], {cwd:root, encoding:'utf8'}), filename);
+    return mod.exports;
+  }
+  return load('app.js').createApp;
+}
 function application(target, options={}) {
   const fixture=options.fixture || modelFixture(); const config=testConfig(options.config);
-  const app=target==='baseline' ? baselineApp(config,fixture.models) : require('../../app').createApp({config,models:fixture.models,googleStrategyFactory:(options,verify)=>new TestGoogleStrategy(options,verify)});
+  const factory=target==='sep02' ? sep02Factory() : require('../../app').createApp;
+  const app=target==='baseline' ? baselineApp(config,fixture.models) : factory({config,models:fixture.models,googleStrategyFactory:(options,verify)=>new TestGoogleStrategy(options,verify)});
   return {app,fixture};
 }
 async function serve(t, app) {
