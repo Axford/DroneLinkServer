@@ -2,21 +2,21 @@
 
 Status: observed source. Reviewed: 2026-11-04.
 
-The ES-module Node application starts in [index.mjs](../index.mjs), constructs a terminal diagnostic UI and reads configuration by hostname. It creates UDP and serial interfaces plus a [DroneLinkManager](../public/modules/DroneLinkManager.mjs). The manager owns mesh routes, priority/retry/ACK processing, subscriptions, file/firmware messages and telemetry forwarding.
+The existing gateway ES-module Node application starts in [index.mjs](../index.mjs), constructs a terminal diagnostic UI and reads configuration by hostname. It creates UDP and serial interfaces plus a [DroneLinkManager](../public/modules/DroneLinkManager.mjs). The manager owns mesh routes, priority/retry/ACK processing, subscriptions, file/firmware messages and telemetry forwarding.
 
 Express serves legacy assets; Socket.IO exposes message/routing/file operations. `public/` contains the old observer/configuration/visualisation, charts, logs/playback, AIS and specialised module interfaces. `sim.mjs` and `public/modules/sim/` provide boat/kite/AIS simulations. These are substantial migration sources; current end-to-end legacy browser operation has not been verified after state-wiring changes.
 
 `sendRxPacketToCloud` posts base64 unframed messages to Datastore. It uses a hard-coded localhost URL and caches duplicate values before upload success. The [shared HTTP baseline](../../DroneLinkDatastore/docs/contracts/http.md) and M1 own the corrective plan.
 
-`functions/` contains Firebase/Firestore ingestion from an earlier direction; Mongoose model files also remain. Their presence is not proof of active deployment. Check deployment usage before removal.
+`functions/` contains Firebase/Firestore ingestion from an earlier direction; Mongoose model files also remain as inactive legacy references; no current gateway import was found. They differ from the authoritative persistence schemas and are never imported by hosted code. Their presence is not proof of active deployment. Check deployment usage before removal.
 
 `parseModules.js` reads sibling DroneNode annotated module headers and generates `public/moduleInfo.json` and HTML help. DroneNode's post-build hook copies firmware/version into Server `public/firmware/`. These sibling-path dependencies need to remain explicit.
 
 ## Accepted target responsibility boundary
 
-See [target architecture](../../DroneLinkDatastore/docs/architecture/target.md) and [ADR-0003](../../DroneLinkDatastore/docs/decisions/0003-repository-boundaries.md) for the accepted target allocation and [SEP](../../DroneLinkDatastore/docs/planning/repository-separation.md) for review/extraction gates. No runtime relocation is implemented.
+See [target architecture](../../DroneLinkDatastore/docs/architecture/target.md) and [ADR-0003](../../DroneLinkDatastore/docs/decisions/0003-repository-boundaries.md) for the accepted target allocation and [SEP](../../DroneLinkDatastore/docs/planning/repository-separation.md) for review/extraction gates. SEP-04 adds the independent hosted runtime under `hosted/`; persistence implementation is supplied by a versioned Datastore package. Gateway source/layout remains unchanged.
 
-Accepted on 2026-11-05: this repository owns runnable backend: ingestion, authentication, domain administration and commands; optional gateway tooling remains isolated. This is target ownership; the observed source described above has not yet moved.
+Accepted on 2026-11-05: this repository owns runnable backend: ingestion, authentication, domain administration and commands; optional gateway tooling remains isolated. The hosted backend now has separate source/dependency/configuration ownership in `hosted/`; modern shared-Client workbench replacement remains future work.
 
 ## Accepted workbench gateway baseline
 
@@ -35,3 +35,11 @@ For later S1 satellite commands, accept authorised hosted-UI requests and submit
 The existing shared Node/browser codec `public/modules/droneLinkMsg.mjs` now imports firmware-derived constants from `public/modules/vendor/protocol-0.1.1.mjs` and preserves its prior exports. The dependency `@dronelink/protocol` is pinned to the checked-in archive in `vendor/` with lockfile integrity. `scripts/sync-protocol.mjs` explicitly copies the installed ESM artifact locally; check mode verifies byte equality. Browser imports remain relative and require no new bundler or Node dependencies. No gateway/application source has relocated.
 
 The approved uint32 setter fix counts four payload bytes per element. Codec fixtures and intercepted gateway replay cover the bounded non-query unframed subset; host firmware verification, limits and companion revisions are recorded in [SEP-01](../../DroneLinkDatastore/docs/planning/sep-01-protocol-compatibility.md). Query runtime changes, multi-address helpers, framing and rejection policy remain deferred. Firmware remains authoritative; generated C++ constants are comparison-only.
+
+## SEP-04 independent hosted backend
+
+[hosted](../hosted/README.md) owns its own CommonJS/Express 5 application, package/lockfile, configuration, Client hosting and HTTP/lifecycle tests. The root gateway retains ESM/Express 4, serial/UDP/terminal/legacy tooling and its existing commands/configuration. Installing hosted does not require root dependencies/files; gateway startup requires no hosted database or Google setup. Neither composition imports/starts the other.
+
+Hosted `createApp({config,store,googleStrategyFactory})` depends on plain storage operations. Authentication, domain/key/membership checks, HTTP mapping, polling limits and command policy remain here. Datastore's pinned persistence archive owns schemas, queries, connection-local models and neutral storage errors. String IDs, Dates, Buffers and plain records cross the boundary; there are no model/query/BSON/driver types in application code. Wire JSON remains compatible, including base64 packet history and optional legacy packet fields.
+
+Startup loads only hosted-root configuration, validates an explicit Client artifact, awaits storage initialization, then listens. Imports connect/read production config/start nothing. Failures clean up resources and return a nonzero exit; signal shutdown closes HTTP then the owned store. Required evidence includes old/new Client artifacts, original source replay, actual disposable MongoDB operations/HTTP, legacy-data/rollback and isolated production installation. See [SEP-04](../../DroneLinkDatastore/docs/planning/repository-separation.md#sep-04-planning-decisions--2026-11-05); no live Google/full-browser/deployment/hardware closure is implied.
