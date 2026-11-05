@@ -6,7 +6,11 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "sim": "node -r esm sim.mjs"
+    "sim": "node -r esm sim.mjs",
+    "test:protocol": "npm run protocol:check && node --test tests/*.test.mjs",
+    "protocol:sync": "node scripts/sync-protocol.mjs",
+    "protocol:check": "node scripts/sync-protocol.mjs --check",
+    "test:protocol:browser": "node --experimental-vm-modules scripts/check-browser-protocol.mjs"
   },
   "author": "",
   "license": "ISC",
@@ -26,6 +30,7 @@
     "node-fetch": "^3.0.0",
     "serialport": "^11.0.1",
     "socket.io": "^4.3.1",
-    "socket.io-client": "^4.3.2"
+    "socket.io-client": "^4.3.2",
+    "@dronelink/protocol": "file:vendor/dronelink-protocol-0.1.1.tgz"
   }
 }

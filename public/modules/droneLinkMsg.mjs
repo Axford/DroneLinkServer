@@ -1,22 +1,52 @@
+import {
+  DRONE_LINK_SOURCE_OWNER,
+  DRONE_LINK_MSG_TYPE_UINT8_T,
+  DRONE_LINK_MSG_TYPE_ADDR,
+  DRONE_LINK_MSG_TYPE_UINT32_T,
+  DRONE_LINK_MSG_TYPE_FLOAT,
+  DRONE_LINK_MSG_TYPE_CHAR,
+  DRONE_LINK_MSG_TYPE_NAME,
+  DRONE_LINK_MSG_TYPE_NAMEQUERY,
+  DRONE_LINK_MSG_TYPE_QUERY,
+  DRONE_LINK_MSG_WRITABLE,
+  DRONE_MODULE_PARAM_STATUS,
+  DRONE_MODULE_PARAM_NAME,
+  DRONE_MODULE_PARAM_ERROR,
+  DRONE_MODULE_PARAM_RESETCOUNT,
+  DRONE_MODULE_PARAM_TYPE,
+  DRONE_LINK_MSG_TYPE_SIZES,
+  DRONE_LINK_MSG_PRIORITY_LOW,
+  DRONE_LINK_MSG_PRIORITY_MEDIUM,
+  DRONE_LINK_MSG_PRIORITY_HIGH,
+  DRONE_LINK_MSG_PRIORITY_CRITICAL,
+  DRONE_LINK_MSG_MAX_PAYLOAD,
+  DRONE_LINK_MSG_HEADER_BYTES
+} from './vendor/protocol-0.1.1.mjs';
 
-export const DRONE_LINK_SOURCE_OWNER     =  0;
-
-export const DRONE_LINK_MSG_TYPE_UINT8_T =  0;
-export const DRONE_LINK_MSG_TYPE_ADDR     = 1;
-export const DRONE_LINK_MSG_TYPE_UINT32_T = 2;
-export const DRONE_LINK_MSG_TYPE_FLOAT    = 3;
-export const DRONE_LINK_MSG_TYPE_CHAR     = 4;
-export const DRONE_LINK_MSG_TYPE_NAME     = 5;   // reply with param name in char format
-export const DRONE_LINK_MSG_TYPE_NAMEQUERY = 6;  // query for the param name
-export const DRONE_LINK_MSG_TYPE_QUERY     = 7;  // to query the value of a param, payload should be empty
-
-export const DRONE_LINK_MSG_WRITABLE      = 0b10000000;  // top bit indicates if param is writable
-
-export const DRONE_MODULE_PARAM_STATUS      =1;  // 0=disabled, 1=enabled, write a value of 2 or above to trigger reset
-export const DRONE_MODULE_PARAM_NAME        =2;  // text
-export const DRONE_MODULE_PARAM_ERROR       =3;  // text or error code, module defined implementation
-export const DRONE_MODULE_PARAM_RESETCOUNT  =4;  // resetCount
-export const DRONE_MODULE_PARAM_TYPE        =5;  // module type
+export {
+  DRONE_LINK_SOURCE_OWNER,
+  DRONE_LINK_MSG_TYPE_UINT8_T,
+  DRONE_LINK_MSG_TYPE_ADDR,
+  DRONE_LINK_MSG_TYPE_UINT32_T,
+  DRONE_LINK_MSG_TYPE_FLOAT,
+  DRONE_LINK_MSG_TYPE_CHAR,
+  DRONE_LINK_MSG_TYPE_NAME,
+  DRONE_LINK_MSG_TYPE_NAMEQUERY,
+  DRONE_LINK_MSG_TYPE_QUERY,
+  DRONE_LINK_MSG_WRITABLE,
+  DRONE_MODULE_PARAM_STATUS,
+  DRONE_MODULE_PARAM_NAME,
+  DRONE_MODULE_PARAM_ERROR,
+  DRONE_MODULE_PARAM_RESETCOUNT,
+  DRONE_MODULE_PARAM_TYPE,
+  DRONE_LINK_MSG_TYPE_SIZES,
+  DRONE_LINK_MSG_PRIORITY_LOW,
+  DRONE_LINK_MSG_PRIORITY_MEDIUM,
+  DRONE_LINK_MSG_PRIORITY_HIGH,
+  DRONE_LINK_MSG_PRIORITY_CRITICAL,
+  DRONE_LINK_MSG_MAX_PAYLOAD,
+  DRONE_LINK_MSG_HEADER_BYTES
+};
 
 export const DRONE_LINK_MSG_TYPE_NAMES = [
   'u8',
@@ -28,15 +58,6 @@ export const DRONE_LINK_MSG_TYPE_NAMES = [
   'nq',
   'q'
 ];
-
-export const DRONE_LINK_MSG_TYPE_SIZES = [1,4,4,4, 1,1,1,1, 1,1,1,1, 1,1,1,1];
-
-export const DRONE_LINK_MSG_PRIORITY_LOW        = 0;
-export const DRONE_LINK_MSG_PRIORITY_MEDIUM     = 1;
-export const DRONE_LINK_MSG_PRIORITY_HIGH       = 2;
-export const DRONE_LINK_MSG_PRIORITY_CRITICAL   = 3;
-
-
 
 export function sendDroneLinkMsg(msgObj) {
 	/*
@@ -73,7 +94,7 @@ export class DroneLinkMsg {
     this.msgType = 0;
     this.msgLength = 0;
     this.writable = false;
-    this.rawPayload = new ArrayBuffer(16);
+    this.rawPayload = new ArrayBuffer(DRONE_LINK_MSG_MAX_PAYLOAD);
     this.uint8_tPayload = new Uint8Array(this.rawPayload);
     this.values = [];
     this.timestamp = Date.now();
@@ -82,7 +103,7 @@ export class DroneLinkMsg {
   }
 
   totalSize() {
-    return 5 + this.msgLength;
+    return DRONE_LINK_MSG_HEADER_BYTES + this.msgLength;
   }
 
   getSignature() {
@@ -180,7 +201,7 @@ export class DroneLinkMsg {
     }
       
 		this.msgType = DRONE_LINK_MSG_TYPE_UINT32_T;
-		this.msgLength = values.length;
+		this.msgLength = values.length * 4;
     this.writable = false;
     var vv = new Uint32Array(this.rawPayload, 0, values.length);
 		for (var i=0; i < values.length; i++) {
@@ -262,7 +283,7 @@ export class DroneLinkMsg {
 
 	encodeUnframed() {
     // return Uint8Array
-    var buffer = new Uint8Array(this.msgLength + 5);
+    var buffer = new Uint8Array(this.msgLength + DRONE_LINK_MSG_HEADER_BYTES);
     buffer[0] = this.source;
     buffer[1] = this.node;
     buffer[2] = this.channel;

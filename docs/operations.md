@@ -11,3 +11,11 @@ Status: source-derived; runtime/hardware not verified for this documentation bas
 Root `npm test` is a placeholder failure. No gateway integration suite is established. The help generator uses CommonJS despite the package's ES-module mode: invocation/compatibility needs verification before using `parseModules.js`. Firebase deployment is a separate, unverified path; do not deploy it merely because `functions/` exists.
 
 Verify docs from this repo with `python3 ../DroneLinkDatastore/tools/check_docs.py`. Runtime checks and packet/command smoke gates are defined in the central M1/M2 plans.
+
+## SEP-01 protocol checks — 2026-11-05
+
+Install from the committed lockfile and local `vendor/dronelink-protocol-0.1.1.tgz` archive. The browser ESM artifact is already checked in; a normal startup/build does not rewrite it. Use `npm run protocol:check`, `npm run test:protocol` and `npm run test:protocol:browser`. The last command uses Node's experimental VM modules to evaluate the actual browser module graph without Node globals; it is not a real-browser UI test. Gateway replay intercepts all cloud requests and disables background timers.
+
+For a deliberate version update, copy the reviewed archive, update its exact dependency/lockfile, the version-specific codec import and sync-script assertion, then run `npm run protocol:sync`. It writes only this checkout. Run equality, codec, gateway and browser checks before rollout. Use the central [release and rollback instructions](../../DroneLinkDatastore/docs/operations.md) and [SEP-01 evidence](../../DroneLinkDatastore/docs/planning/sep-01-protocol-compatibility.md). Reverting the whole pre-adoption codec also restores the known uint32 encoder bug.
+
+Clean `npm ci --ignore-scripts` and these software checks passed; native serial dependencies, physical Wi-Fi/serial and complete gateway/UI startup were not exercised. Existing firmware/module generation sibling-write tools remain unchanged.

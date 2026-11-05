@@ -84,3 +84,6 @@ public/firmware/firmware.bin
 influx.json
 package-lock.json
 config.json
+
+# Pinned portable protocol release archives are source dependencies.
+!vendor/dronelink-protocol-*.tgz

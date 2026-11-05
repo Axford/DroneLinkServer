@@ -29,3 +29,9 @@ Accepted per-node view selection: Client can show reachable nodes from this gate
 ## Iridium command target — later S1
 
 For later S1 satellite commands, accept authorised hosted-UI requests and submit to the Iridium outbound message queue. Iridium owns store-and-forward delivery; do not add a separate Server satellite delivery queue/retry loop. Server-owned persistent queues remain for HTTP polling. Provider API/packing/status/lifecycle mapping is pending.
+
+## SEP-01 portable protocol adoption — 2026-11-05
+
+The existing shared Node/browser codec `public/modules/droneLinkMsg.mjs` now imports firmware-derived constants from `public/modules/vendor/protocol-0.1.1.mjs` and preserves its prior exports. The dependency `@dronelink/protocol` is pinned to the checked-in archive in `vendor/` with lockfile integrity. `scripts/sync-protocol.mjs` explicitly copies the installed ESM artifact locally; check mode verifies byte equality. Browser imports remain relative and require no new bundler or Node dependencies. No gateway/application source has relocated.
+
+The approved uint32 setter fix counts four payload bytes per element. Codec fixtures and intercepted gateway replay cover the bounded non-query unframed subset; host firmware verification, limits and companion revisions are recorded in [SEP-01](../../DroneLinkDatastore/docs/planning/sep-01-protocol-compatibility.md). Query runtime changes, multi-address helpers, framing and rejection policy remain deferred. Firmware remains authoritative; generated C++ constants are comparison-only.

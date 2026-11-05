@@ -1,0 +1,25 @@
+// Generated from pinned DroneNode headers; package 0.1.1. Do not edit.
+export const DRONE_LINK_SOURCE_OWNER = 0;
+export const DRONE_LINK_CHANNEL_ALL = 0;
+export const DRONE_LINK_PARAM_ALL = 0;
+export const DRONE_LINK_MSG_MAX_PAYLOAD = 16;
+export const DRONE_LINK_MSG_TYPE_UINT8_T = 0;
+export const DRONE_LINK_MSG_TYPE_ADDR = 1;
+export const DRONE_LINK_MSG_TYPE_UINT32_T = 2;
+export const DRONE_LINK_MSG_TYPE_FLOAT = 3;
+export const DRONE_LINK_MSG_TYPE_CHAR = 4;
+export const DRONE_LINK_MSG_TYPE_NAME = 5;
+export const DRONE_LINK_MSG_TYPE_NAMEQUERY = 6;
+export const DRONE_LINK_MSG_TYPE_QUERY = 7;
+export const DRONE_LINK_MSG_WRITABLE = 128;
+export const DRONE_LINK_MSG_PRIORITY_LOW = 0;
+export const DRONE_LINK_MSG_PRIORITY_MEDIUM = 1;
+export const DRONE_LINK_MSG_PRIORITY_HIGH = 2;
+export const DRONE_LINK_MSG_PRIORITY_CRITICAL = 3;
+export const DRONE_MODULE_PARAM_STATUS = 1;
+export const DRONE_MODULE_PARAM_NAME = 2;
+export const DRONE_MODULE_PARAM_ERROR = 3;
+export const DRONE_MODULE_PARAM_RESETCOUNT = 4;
+export const DRONE_MODULE_PARAM_TYPE = 5;
+export const DRONE_LINK_MSG_HEADER_BYTES = 5;
+export const DRONE_LINK_MSG_TYPE_SIZES = [1, 4, 4, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
