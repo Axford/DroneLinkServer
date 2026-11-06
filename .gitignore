@@ -87,3 +87,7 @@ config.json
 
 # Pinned portable protocol release archives are source dependencies.
 !vendor/dronelink-protocol-*.tgz
+
+# Separately installed privileged M1 operator tool and immutable persistence releases.
+!hosted/tools/access-control/package-lock.json
+!hosted/vendor/dronelink-persistence-*.tgz

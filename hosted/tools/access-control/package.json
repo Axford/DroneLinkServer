@@ -1,0 +1,10 @@
+{
+  "name": "@dronelink/access-operator",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Separately installed privileged access tooling; absent from the hosted runtime",
+  "dependencies": {
+    "@dronelink/persistence": "file:../../vendor/dronelink-persistence-0.3.0.tgz"
+  },
+  "engines": { "node": ">=22" }
+}

@@ -16,7 +16,7 @@
     "legacy:archive": "python3 tools/operations/legacy.py archive",
     "legacy:verify": "python3 tools/operations/legacy.py verify",
     "legacy:cleanse": "python3 tools/operations/legacy.py cleanse",
-    "test:operations": "python3 -m unittest discover -s tests/operations -p \"test_*.py\"",
+    "test:operations": "python3 -m unittest discover -s tests/operations -p \"test_*.py\" && node --test tests/operations/*.test.cjs",
     "test:staging": "node tools/staging-check.cjs"
   },
   "keywords": [],
