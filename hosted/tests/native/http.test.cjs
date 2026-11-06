@@ -107,7 +107,7 @@ test('targeted invite preview requires matching Google identity, consumes once, 
 test('archive retains packets and current key, blocks ingress/edits/live wait, and restore does not replay', t => fixture(t, async ({ agent, factories }) => {
     const admin = await agent('admin'); const viewer = await agent('viewer'); const fleet = await domain(admin); await join(admin, viewer, fleet._id, 'viewer', 'viewer'); const path = '/api/domains/' + fleet._id;
     const key = (await admin.request(path + '/key')).json().data.apiKey;
-    const packet = { packet: 'AQIDBAU=', id: 1, node: 2, channel: 3, param: 4, msgType: 5, domain: fleet._id, apiKey: key };
+    const packet = { packet: 'AAIDBFBO' , id: 1, node: 2, channel: 3, param: 4, msgType: 5, domain: fleet._id, apiKey: key };
     const ingress = body => factories[1]().request('/addPacket', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     assert.equal((await ingress(packet)).status, 202);
     await new Promise(resolve => setTimeout(resolve, 40));
@@ -142,7 +142,7 @@ test('pre-archive admitted ingress may finish late, while later gates reject and
     const key = (await admin.request(path + '/key')).json().data.apiKey;
     let reached; let release; const atGate = new Promise(resolve => { reached = resolve; }); const pause = new Promise(resolve => { release = resolve; });
     const enqueue = one.packets.enqueue; one.packets.enqueue = async data => { reached(); await pause; return enqueue(data); };
-    const received = factories[0]().request('/addPacket', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ packet: 'AQIDBAU=', id: 1, node: 2, channel: 3, param: 4, msgType: 5, domain: fleet._id, apiKey: key }) });
+    const received = factories[0]().request('/addPacket', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ packet: 'AAIDBFBO' , id: 1, node: 2, channel: 3, param: 4, msgType: 5, domain: fleet._id, apiKey: key }) });
     await atGate; const row = await current(admin, fleet._id); await admin.mutate(path + '/archive', { revision: row.revision }); release();
     assert.equal((await received).status, 202); one.packets.enqueue = enqueue;
     await new Promise(resolve => setTimeout(resolve, 40)); assert.equal((await admin.request(path + '/messages')).json().data.length, 1);
@@ -219,4 +219,56 @@ test('complete domain route role matrix uses real native transactions and inspec
     }
     let row = await current(admin, fleet._id); assert.equal((await owner.mutate(path + '/members/' + targetUser._id, { revision: row.revision }, 'DELETE')).status, 200);
     assert.equal((await owner.mutate(path + '/invitations/' + pending.invitation._id, { revision: invitationRevision }, 'DELETE')).status, 200);
+}));
+
+test('strict wire validation precedes discovery/history; only owner publications discover carried nodes', t => fixture(t, async ({ agent, factories }) => {
+    const admin = await agent('admin'); const fleet = await domain(admin); const path = '/api/domains/' + fleet._id;
+    const key = (await admin.request(path + '/key')).json().data.apiKey;
+    const post = body => factories[0]().request('/addPacket', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({domain:fleet._id,apiKey:key,id:254,...body}) });
+    const state = async () => (await admin.request(path + '/identities')).json().data;
+    for (const packet of ['AQIDBAU=', 'AAEBAYAB\n', 'AAEBAYABAA==', 'AAEBASIBAgM=', 'AP8BAYAB', 'AAEBAYAB=', 'AAAAAIAB']) assert.equal((await post({packet})).status, 400, packet);
+    assert.equal((await post({packet:'AAEBAYAB',node:99})).status,400);
+    assert.equal((await post({packet:'AAEBAYAB',apiKey:'wrong'})).status,401);
+    assert.deepEqual(await state(),{nodes:[],drones:[]});
+    assert.equal((await admin.request(path + '/packet-count')).json().data.retainedPacketCount,0);
+    // A query, name query and cross-source value/request all name targets without establishing presence.
+    for (const packet of ['/gcBAXAA', '/gcBAWAA', '/gcBAYAB']) assert.equal((await post({packet})).status,202,packet);
+    assert.deepEqual((await state()).nodes,[]);
+    for (const packet of ['AAcBAYAB','BwcBAYAC']) assert.equal((await post({packet})).status,202,packet);
+    let observed = await state(); assert.equal(observed.nodes.length,1); assert.equal(observed.nodes[0].address,7); assert.equal(observed.drones[0].masterAddress,7);
+    assert.equal(observed.nodes[0].droneId,observed.drones[0]._id); assert.deepEqual(observed.drones[0].memberAddresses,[7]);
+    const other = await domain(admin,'Other'); const otherKey=(await admin.request(`/api/domains/${other._id}/key`)).json().data.apiKey;
+    assert.equal((await post({domain:other._id,apiKey:otherKey,packet:'AAcBAYAB'})).status,202);
+    const otherState=(await admin.request(`/api/domains/${other._id}/identities`)).json().data;
+    assert.notEqual(observed.nodes[0].droneId,otherState.nodes[0].droneId);
+    await new Promise(resolve=>setTimeout(resolve,40));
+    const history=(await admin.request(path+'/messages')).json().data;
+    assert.equal(history.length,5); const publication=history.find(row=>row.packet==='AAcBAYAB');
+    assert.deepEqual(publication.meta,{id:254,node:7,channel:1,param:1,msgType:0,source:0}); assert.deepEqual(publication.origin,{kind:'http'});
+}));
+test('gateway credential API enforces human roles and machine Domain/address/revocation boundaries', t => fixture(t, async ({ agent, factories }) => {
+    const admin=await agent('admin'); const editor=await agent('editor'); const viewer=await agent('viewer'); const outside=await agent('outside');
+    const fleet=await domain(admin); const path='/api/domains/'+fleet._id;
+    await join(admin,editor,fleet._id,'editor','editor'); await join(admin,viewer,fleet._id,'viewer','viewer');
+    for (const person of [editor,viewer,outside]) {
+        assert.equal((await person.mutate(path+'/gateways',{name:'Denied',nodeAddress:254})).status,403);
+        assert.equal((await person.request(path+'/gateways')).status,403);
+    }
+    const issued=await admin.mutate(path+'/gateways',{name:'Bench',nodeAddress:254}); assert.equal(issued.status,201); const {gateway,credential}=issued.json().data;
+    assert.equal(gateway.secretHash,undefined); assert.ok(!JSON.stringify((await admin.request(path+'/gateways')).json()).includes(credential));
+    const machine=(url,body={},token=credential)=>factories[1]().request(url,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({domain:fleet._id,id:254,...body})});
+    assert.equal((await machine('/gateway/verify')).status,200);
+    assert.equal((await machine('/gateway/verify',{id:253})).status,401);
+    assert.equal((await machine('/gateway/verify',{},credential+'a')).status,401);
+    assert.equal((await machine('/addPacket',{packet:'AAcBAYAB'})).status,202);
+    assert.equal((await factories[0]().request(path+'/members',{headers:{Authorization:'Bearer '+credential}})).status,401);
+    assert.equal((await viewer.request(path+'/identities')).json().data.nodes[0].address,7);
+    const other=await domain(admin,'Other'); assert.equal((await machine('/addPacket',{domain:other._id,packet:'AAcBAYAB'})).status,401);
+    let row=await current(admin,fleet._id); await admin.mutate(path+'/archive',{revision:row.revision}); assert.equal((await machine('/gateway/verify')).status,409);
+    row=await current(admin,fleet._id); await admin.mutate(path+'/restore',{revision:row.revision}); assert.equal((await machine('/gateway/verify')).status,200);
+    assert.equal((await editor.mutate(path+'/gateways/'+gateway._id,{revision:1},'DELETE')).status,403);
+    assert.equal((await admin.mutate(path+'/gateways/'+gateway._id,{revision:1},'DELETE')).status,200);
+    assert.equal((await machine('/addPacket',{packet:'AAcBAYAB'})).status,401);
+    await new Promise(resolve=>setTimeout(resolve,40)); const history=(await admin.request(path+'/messages')).json().data;
+    assert.deepEqual(history[0].origin,{kind:'gateway',gatewayId:gateway._id});
 }));

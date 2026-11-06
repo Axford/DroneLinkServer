@@ -14,6 +14,7 @@ import * as DMTB from './DroneMeshTxBuffer.mjs';
 import * as DMFS from './DroneMeshFS.mjs';
 import DroneLinkMeshMsgSequencer from './DroneLinkMeshMsgSequencer.mjs';
 import fs from 'fs';
+import { createCloudTelemetryRelay } from './CloudTelemetryRelay.mjs';
 
 
 const DRONE_LINK_MANAGER_MAX_ROUTE_AGE = 60000;
@@ -42,11 +43,12 @@ function constrain(v, minv, maxv) {
 
 export default class DroneLinkManager {
 
-  constructor(node, clog, domain, apiKey) {
+  constructor(node, clog, domain, apiKey, cloudRelay = {}) {
     this.node = node;
     this.clog = clog;
     this.domain = domain;
     this.apiKey = apiKey;
+    this.cloudRelay = createCloudTelemetryRelay({ domain, nodeAddress: node, url: cloudRelay.url, credential: cloudRelay.credential, log: clog, accepted: () => { this.cloudPacketsSent++; } });
 
     this.routeMap = {};
 
@@ -96,7 +98,6 @@ export default class DroneLinkManager {
     this.logToFile = false;
     this.logStream = null;
 
-    this.cloudPacketMap = {};
 
     this.clog('DroneLinkManager started');
 
@@ -1246,8 +1247,12 @@ export default class DroneLinkManager {
       // are we the destination?
       if (msg.destNode == this.node) {
 
+        // Reject malformed raw link payloads before permissive legacy decoding can normalize them.
+        const raw = new Uint8Array(msg.rawPayload, 0, msg.getPayloadSize());
+        if (raw.length < DLM.DRONE_LINK_MSG_HEADER_BYTES + 1 || raw.length !== DLM.DRONE_LINK_MSG_HEADER_BYTES + (raw[4] & 15) + 1 || ((raw[4] & 15) + 1) % DLM.DRONE_LINK_MSG_TYPE_SIZES[(raw[4] >> 4) & 7]) return;
+
         // unwrap contained DLM
-        var dlmMsg = new DLM.DroneLinkMsg( msg.rawPayload );
+        var dlmMsg = new DLM.DroneLinkMsg( raw.slice().buffer );
 
         if (this.logOptions.DroneLinkMsg)
           this.clog('    ' + dlmMsg.asString());
@@ -1255,7 +1260,7 @@ export default class DroneLinkManager {
         // publish dlm
         if (this.io) this.io.emit('DLM.msg', dlmMsg.encodeUnframed());
 
-        this.sendRxPacketToCloud(dlmMsg);
+        return this.sendRxPacketToCloud(dlmMsg);
 
       } else {
         // pass along to next hop
@@ -1266,56 +1271,7 @@ export default class DroneLinkManager {
   }
 
   sendRxPacketToCloud(dlmMsg) {
-    if (!this.domain || !this.apiKey) {
-      //this.clog('No domain or apiKey, skipping sendRxPacketToCloud');
-      return;
-    }
-
-    const unframed = dlmMsg.encodeUnframed();
-
-    // convert unframed to base64 string
-    const unframed64 = btoa(String.fromCharCode(...unframed));
-
-    // get signature to index into map
-    var signature = dlmMsg.getSignature();
-
-    if (this.cloudPacketMap[signature]) {
-      if (this.cloudPacketMap[signature] == unframed64) {
-        this.clog('Duplicate packet, skipping sendRxPacketToCloud');
-        return;
-      }
-    }
-
-    // store in map
-    this.cloudPacketMap[signature] = unframed64;
-
-    // add to cloud via cloud function: addRxPacket
-    // prepare payload
-    const payload = {
-      domain: this.domain,
-      apiKey: this.apiKey,
-      id: this.node,
-      node: dlmMsg.node,
-      channel: dlmMsg.channel,
-      param: dlmMsg.param,
-      msgType: dlmMsg.msgType,
-      packet: unframed64
-    };
-    //this.clog('payload:' + JSON.stringify(payload));
-    // post payload as json to /addRxPacket, log http response code
-    fetch('http://localhost:8003/addPacket', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload)
-    }).then(response => {
-      this.clog('HTTP response: ' + response.status + ' ' + response.statusText);
-    }).catch(error => {
-      this.clog('Error: ' + error);
-    });
-
-    this.cloudPacketsSent++;
+    return this.cloudRelay?.send(dlmMsg);
   }
 
 

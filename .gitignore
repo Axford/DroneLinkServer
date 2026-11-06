@@ -93,3 +93,7 @@ config.json
 !hosted/vendor/dronelink-persistence-0.3.0.tgz
 
 !hosted/vendor/dronelink-persistence-0.3.1.tgz
+
+# M1-B hosted identity and strict ingress dependencies.
+!hosted/vendor/dronelink-persistence-0.4.0.tgz
+!hosted/vendor/dronelink-protocol-0.1.1.tgz

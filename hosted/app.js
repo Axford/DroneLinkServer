@@ -5,7 +5,7 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const { FirestoreSessions } = require('./lib/firestoreSessions');
 const helmet = require('helmet');
 const path = require('path');
-const crypto = require('node:crypto');
+const { mountTelemetryRoutes } = require('./lib/telemetryRoutes');
 const { createAccessPolicy, fault } = require('./lib/accessPolicy');
 const { mountAccessRoutes } = require('./lib/accessRoutes');
 const { sendErrorResponse, asyncHandler, errorHandler } = require('./middleware/errorHandler');
@@ -17,7 +17,7 @@ const defaultGoogleStrategyFactory = (options, verify) => new GoogleStrategy(opt
 // or opening a listener. Tests provide adapters through this composition seam;
 // the production entrypoint always supplies real storage and the default provider.
 const createApp = ({ config, store, googleStrategyFactory = defaultGoogleStrategyFactory }) => {
-    const { users, domains, packets } = store;
+    const { users } = store;
     const policy = createAccessPolicy(store);
     const passport = new Passport();
     const app = express();
@@ -91,10 +91,10 @@ const createApp = ({ config, store, googleStrategyFactory = defaultGoogleStrateg
         resave: false, saveUninitialized: false,
         cookie: { secure: config.publicOrigin?.startsWith('https:') === true, httpOnly: true, sameSite: 'lax', maxAge: 600000 }
     });
-    app.use((req, res, next) => req.path === '/addPacket' ? next() : browserSession(req, res, next));
+    app.use((req, res, next) => ['/addPacket', '/gateway/verify'].includes(req.path) ? next() : browserSession(req, res, next));
     app.use(passport.initialize());
     const restoreSession = passport.session();
-    app.use((req, res, next) => req.path === '/addPacket' ? next() : restoreSession(req, res, next));
+    app.use((req, res, next) => ['/addPacket', '/gateway/verify'].includes(req.path) ? next() : restoreSession(req, res, next));
 
     // Serve static files
     app.use('/public', express.static(path.join(__dirname, 'public')));
@@ -172,17 +172,7 @@ const createApp = ({ config, store, googleStrategyFactory = defaultGoogleStrateg
     mountClientHosting(app, { clientBuildDir: config.clientBuildDir, ensureAuthenticated });
     mountAccessRoutes(app, { store, policy, ensureAuthenticated, config });
     app.get('/profile', ensureAuthenticated, (req, res) => res.redirect('/private'));
-    app.post('/addPacket', ready, asyncHandler(async (req, res) => {
-        const required = ['packet', 'id', 'node', 'channel', 'param', 'msgType', 'domain', 'apiKey'];
-        if (!req.body || required.some(key => !Object.hasOwn(req.body, key))) throw fault('validation');
-        const { packet, id, node, channel, param, msgType, domain, apiKey } = req.body;
-        if (typeof packet !== 'string' || !packet.length || packet.length > 87384 || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(packet)) throw fault('validation');
-        const target = await domains.getById(domain); if (!target) throw fault('not-found');
-        if (typeof apiKey !== 'string' || Buffer.byteLength(apiKey) !== Buffer.byteLength(target.apiKey) || !crypto.timingSafeEqual(Buffer.from(apiKey), Buffer.from(target.apiKey))) throw fault('unauthenticated');
-        if (target.status !== 'active') throw fault('archived');
-        await packets.enqueue({ domain, time: new Date(), packet: Buffer.from(packet, 'base64'), meta: { id, node, channel, param, msgType } });
-        res.status(202).send('Packet received');
-    }));
+    mountTelemetryRoutes(app, { store, ready, policy, ensureAuthenticated });
     app.use(errorHandler);
     return app;
 };

@@ -527,6 +527,7 @@ if (!(env in config)) {
     telemetryPort: "",
     domain: "",
     apiKey: "",
+    cloudRelay: { url: "", credential: "" },
   };
   // append to config.json
   fs.writeFileSync("./config.json", JSON.stringify(config, null, 2));
@@ -559,7 +560,7 @@ var logFilePath = config[env].logFilePath;
 clog("logFilePath path: " + logFilePath);
 
 // init DLM
-dlm = new DroneLinkManager(sourceId, clog, config[env].domain, config[env].apiKey);
+dlm = new DroneLinkManager(sourceId, clog, config[env].domain, config[env].apiKey, config[env].cloudRelay);
 dlm.firmwareRelease = selectedRelease.firmware;
 dlm.firmwarePath = selectedRelease.firmware?.path || "";
 dlm.logFilePath = logFilePath;
