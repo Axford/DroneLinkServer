@@ -55,9 +55,15 @@ def deploy(args):
         envfile = pathlib.Path(temporary) / 'env.json'; envfile.write_text(json.dumps(env))
         run('run', 'deploy', SERVICE, '--project', PROJECT, '--region', REGION, '--image', image, '--service-account', config['serviceAccount'], '--no-cpu-throttling', '--min', '0', '--max', '1', '--cpu', '1', '--memory', '512Mi', '--concurrency', '32', '--timeout', '60', '--port', '8080', '--ingress', 'all', '--allow-unauthenticated', '--env-vars-file', str(envfile), '--set-secrets', f'GOOGLE_CLIENT_SECRET={config["googleSecret"]},SESSION_SECRET={config["sessionSecret"]}', '--quiet')
     service = json.loads(run('run', 'services', 'describe', SERVICE, '--project', PROJECT, '--region', REGION, '--format=json'))
-    run('run', 'services', 'update-traffic', SERVICE, '--project', PROJECT, '--region', REGION, '--to-revisions', service['status']['latestReadyRevisionName'] + '=100', '--quiet')
+    revision_name = service['status']['latestCreatedRevisionName']
+    revision = json.loads(run('run', 'revisions', 'describe', revision_name, '--project', PROJECT, '--region', REGION, '--format=json'))
+    if revision['status']['imageDigest'] != image: raise ValueError('Created revision image differs from verified build')
+    run('run', 'services', 'update-traffic', SERVICE, '--project', PROJECT, '--region', REGION, '--to-revisions', revision_name + '=100', '--quiet')
+    service = json.loads(run('run', 'services', 'describe', SERVICE, '--project', PROJECT, '--region', REGION, '--format=json'))
+    traffic = service['status'].get('traffic', [])
+    if sum(row.get('percent', 0) for row in traffic if row.get('revisionName') == revision_name) != 100: raise ValueError('New revision is not serving all traffic')
     version, hosting = publish_hosting({'rewrites': [{'glob': '**', 'run': {'serviceId': SERVICE, 'region': REGION}}]}, 'Dronewright matched release ' + manifest['serverRevision'][:12])
-    result = {'schemaVersion': 1, 'project': PROJECT, 'region': REGION, 'service': SERVICE, 'image': image, 'revision': service['status']['latestReadyRevisionName'], 'hostingRelease': hosting['name'], 'hostingVersion': version['name'], 'storageFormat': manifest['storageFormat'], 'releaseManifestSha256': hashlib.sha256((pathlib.Path(args.release) / 'hosted-release.json').read_bytes()).hexdigest(), 'serverRevision': manifest['serverRevision'], 'clientRevision': manifest['clientRevision'], 'settings': config}
+    result = {'schemaVersion': 1, 'project': PROJECT, 'region': REGION, 'service': SERVICE, 'image': image, 'revision': revision_name, 'hostingRelease': hosting['name'], 'hostingVersion': version['name'], 'storageFormat': manifest['storageFormat'], 'releaseManifestSha256': hashlib.sha256((pathlib.Path(args.release) / 'hosted-release.json').read_bytes()).hexdigest(), 'serverRevision': manifest['serverRevision'], 'clientRevision': manifest['clientRevision'], 'settings': config}
     evidence.parent.mkdir(parents=True, exist_ok=True); evidence.write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps({key: result[key] for key in ['image', 'revision', 'hostingRelease']}))
 

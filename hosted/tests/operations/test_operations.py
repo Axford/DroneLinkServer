@@ -101,7 +101,10 @@ class StagingDeployment(unittest.TestCase):
                     self.assertIn('--async', args)
                     return json.dumps({'id': '12345678-1234-1234-1234-123456789012'})
                 if args[:2] == ('builds', 'describe'): return json.dumps({'status': 'SUCCESS', 'results': {'images': [{'name': image, 'digest': 'sha256:'+'c'*64}]}})
-                if args[:3] == ('run', 'services', 'describe'): return json.dumps({'status': {'latestReadyRevisionName': staging.SERVICE+'-new'}})
+                if args[:3] == ('run', 'revisions', 'describe'): return json.dumps({'status': {'imageDigest': image.split(':')[0]+'@sha256:'+'c'*64}})
+                if args[:3] == ('run', 'services', 'describe'):
+                    routed = any(call[:3] == ('run', 'services', 'update-traffic') for call in calls)
+                    return json.dumps({'status': {'latestCreatedRevisionName': staging.SERVICE+'-new', 'latestReadyRevisionName': staging.SERVICE+('-new' if routed else '-old'), 'traffic': [{'revisionName': staging.SERVICE+('-new' if routed else '-old'), 'percent': 100}]}})
                 return ''
             def api(path, body=None, method=None):
                 if path.endswith('/versions'): return {'name': 'sites/'+staging.PROJECT+'/versions/new'}
