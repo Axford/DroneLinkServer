@@ -58,8 +58,9 @@ def download_object(bucket, item, target):
     target.parent.mkdir(parents=True, exist_ok=True)
     source = f'https://storage.googleapis.com/storage/v1/b/{bucket}/o/' + urllib.parse.quote(item['name'], safe='') + '?alt=media&generation=' + item['generation']
     request = urllib.request.Request(source, headers={'Authorization': 'Bearer ' + access_token()})
-    with urllib.request.urlopen(request, timeout=120) as response:
-        with target.open('xb') as output: output.write(response.read())
+    if not target.exists():
+        with urllib.request.urlopen(request, timeout=120) as response:
+            with target.open('xb') as output: output.write(response.read())
     raw = target.read_bytes()
     if len(raw) != int(item['size']): raise ValueError('Object size differs')
     if item.get('md5Hash') and base64.b64encode(hashlib.md5(raw).digest()).decode() != item['md5Hash']: raise ValueError('Object checksum differs')
@@ -70,32 +71,49 @@ def archive(args):
     bucket_info = json.loads(run('storage', 'buckets', 'describe', 'gs://' + bucket, '--format=json'))
     if bucket_info.get('public_access_prevention') != 'enforced' or bucket_info.get('uniform_bucket_level_access') is not True or bucket_info.get('location', '').upper() != 'EU': raise ValueError('Export bucket must enforce public-access prevention, uniform access and EU location')
     root = pathlib.Path(args.archive).resolve()
-    if root.exists(): raise ValueError('Archive destination must be new')
-    root.mkdir(parents=True, mode=0o700)
-    os.chmod(root, 0o700)
-    save_json(root / 'export-bucket.json', bucket_info)
-    functions = json.loads(run('functions', 'list', '--project', args.project, '--format=json'))
-    save_json(root / 'legacy-functions.json', functions)
-    for function in functions:
-        if function['name'].split('/')[-1] != 'addRxPacket': raise ValueError('Unexpected legacy function: review writer inventory')
-        source = function.get('buildConfig', {}).get('sourceProvenance', {}).get('resolvedStorageSource')
-        if not source or not all(source.get(key) for key in ['bucket', 'object', 'generation']): raise ValueError('Legacy Function source metadata missing; writer retained')
-        target = root / 'addRxPacket-source.zip'
-        run('storage', 'cp', f'gs://{source["bucket"]}/{source["object"]}#{source["generation"]}', str(target), '--quiet')
-        with zipfile.ZipFile(target) as archive:
-            if not archive.namelist() or archive.testzip() is not None: raise ValueError('Legacy Function source archive is incomplete; writer retained')
-    save_json(root / 'database-before.json', json.loads(run('firestore', 'databases', 'describe', '--project', args.project, '--database', '(default)', '--format=json')))
-    # Preserve the deployed source/configuration before retiring the only legacy writer.
-    for function in functions:
-        if function['name'].split('/')[-1] != 'addRxPacket': raise ValueError('Unexpected legacy function: review writer inventory')
-        region = function['name'].split('/')[3]
-        run('functions', 'delete', 'addRxPacket', '--region', region, '--project', args.project, '--quiet')
-    remaining = json.loads(run('functions', 'list', '--project', args.project, '--format=json'))
-    if remaining: raise ValueError('Legacy writers remain')
-    save_json(root / 'quiescence.json', {'project': args.project, 'retiredFunctions': [f['name'] for f in functions], 'remainingFunctions': remaining})
     prefix = 'sep06-archive/' + root.name + '/native'
-    result = run('firestore', 'export', f'gs://{bucket}/{prefix}', '--database', '(default)', '--project', args.project, '--format=json')
-    (root / 'native-export-operation.json').write_text(result + '\n')
+    if getattr(args, 'resume', False):
+        if (root / 'archive-manifest.json').exists(): return verify(args)
+        before = json.loads((root / 'database-before.json').read_text())
+        quiescence = json.loads((root / 'quiescence.json').read_text())
+        if before.get('name') != database(args.project) or quiescence.get('project') != args.project or quiescence.get('remainingFunctions') != []: raise ValueError('Incomplete archive cannot be resumed automatically')
+        if json.loads(run('functions', 'list', '--project', args.project, '--format=json')): raise ValueError('Legacy writers remain')
+        operation = json.loads((root / 'native-export-operation.json').read_text())
+        if operation.get('metadata', {}).get('outputUriPrefix') != f'gs://{bucket}/{prefix}': raise ValueError('Resume export target differs')
+    else:
+        if root.exists(): raise ValueError('Archive destination must be new; use --resume only for a quiesced archive')
+        root.mkdir(parents=True, mode=0o700)
+        os.chmod(root, 0o700)
+        save_json(root / 'export-bucket.json', bucket_info)
+        functions = json.loads(run('functions', 'list', '--project', args.project, '--format=json'))
+        save_json(root / 'legacy-functions.json', functions)
+        for function in functions:
+            if function['name'].split('/')[-1] != 'addRxPacket': raise ValueError('Unexpected legacy function: review writer inventory')
+            source = function.get('buildConfig', {}).get('sourceProvenance', {}).get('resolvedStorageSource')
+            if not source or not all(source.get(key) for key in ['bucket', 'object', 'generation']): raise ValueError('Legacy Function source metadata missing; writer retained')
+            target = root / 'addRxPacket-source.zip'
+            run('storage', 'cp', f'gs://{source["bucket"]}/{source["object"]}#{source["generation"]}', str(target), '--quiet')
+            with zipfile.ZipFile(target) as archive:
+                if not archive.namelist() or archive.testzip() is not None: raise ValueError('Legacy Function source archive is incomplete; writer retained')
+        save_json(root / 'database-before.json', json.loads(run('firestore', 'databases', 'describe', '--project', args.project, '--database', '(default)', '--format=json')))
+        # Preflight TLS/authentication before changing the deployed writer.
+        api('https://firestore.googleapis.com/v1/' + database(args.project))
+        # Preserve the deployed source/configuration before retiring the only legacy writer.
+        for function in functions:
+            if function['name'].split('/')[-1] != 'addRxPacket': raise ValueError('Unexpected legacy function: review writer inventory')
+            region = function['name'].split('/')[3]
+            run('functions', 'delete', 'addRxPacket', '--region', region, '--project', args.project, '--quiet')
+        remaining = json.loads(run('functions', 'list', '--project', args.project, '--format=json'))
+        if remaining: raise ValueError('Legacy writers remain')
+        save_json(root / 'quiescence.json', {'project': args.project, 'retiredFunctions': [f['name'] for f in functions], 'remainingFunctions': remaining})
+        prefix = 'sep06-archive/' + root.name + '/native'
+        result = run('firestore', 'export', f'gs://{bucket}/{prefix}', '--database', '(default)', '--project', args.project, '--format=json')
+        (root / 'native-export-operation.json').write_text(result + '\n')
+        operation = json.loads((root / 'native-export-operation.json').read_text())
+    if not operation.get('name', '').startswith(database(args.project) + '/operations/'): raise ValueError('Export operation target differs')
+    completed = api('https://firestore.googleapis.com/v1/' + operation['name'])
+    save_json(root / 'native-export-operation.json', completed)
+    if completed.get('done') is not True or completed.get('error'): raise ValueError('Native export has not completed successfully')
     documents = scan(args.project)
     with (root / 'firestore-typed.jsonl').open('w') as output:
         for doc in sorted(documents, key=lambda d: d['name']): output.write(json.dumps(doc, sort_keys=True) + '\n')
@@ -184,7 +202,7 @@ def cleanse(args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=['archive', 'verify', 'cleanse']); parser.add_argument('--project', required=True); parser.add_argument('--archive', required=True); parser.add_argument('--apply', action='store_true'); parser.add_argument('--export-bucket')
+    parser.add_argument('action', choices=['archive', 'verify', 'cleanse']); parser.add_argument('--project', required=True); parser.add_argument('--archive', required=True); parser.add_argument('--apply', action='store_true'); parser.add_argument('--export-bucket'); parser.add_argument('--resume', action='store_true')
     args = parser.parse_args()
     if args.project != PROJECT: parser.error('Only the explicitly agreed staging project is supported')
     if args.action == 'verify': return verify(args)

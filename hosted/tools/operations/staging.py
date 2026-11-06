@@ -7,7 +7,7 @@ PROJECT = 'dronelink-25dbc'; REGION = 'europe-west1'; SERVICE = 'dronewright-sta
 def run(*args): return subprocess.check_output(['gcloud', *args], text=True).strip()
 def api(path, body=None, method=None):
     token = run('auth', 'print-access-token')
-    request = urllib.request.Request('https://firebasehosting.googleapis.com/v1beta1/' + path, data=None if body is None else json.dumps(body).encode(), headers={'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json'}, method=method)
+    request = urllib.request.Request('https://firebasehosting.googleapis.com/v1beta1/' + path, data=None if body is None else json.dumps(body).encode(), headers={'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'x-goog-user-project': PROJECT}, method=method)
     with urllib.request.urlopen(request, timeout=120) as response: return json.load(response)
 
 def settings(path):
