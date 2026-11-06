@@ -91,3 +91,5 @@ config.json
 # Separately installed privileged M1 operator tool and immutable persistence releases.
 !hosted/tools/access-control/package-lock.json
 !hosted/vendor/dronelink-persistence-0.3.0.tgz
+
+!hosted/vendor/dronelink-persistence-0.3.1.tgz
