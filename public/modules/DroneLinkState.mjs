@@ -31,8 +31,9 @@ function arraysEqual(a,b) {
 
 export default class DroneLinkState {
 
-  constructor() {
+  constructor(socket) {
     var me = this;
+    this.socket = socket;
     this.state = {};
     
     this.localAddress = 250; // default, overriden in observer.js
@@ -41,20 +42,16 @@ export default class DroneLinkState {
     this.liveMode = false;  // set to false to stop using the socket (i.e. log playback mode)
     this.received = 0; // received msg count
 
-    /*
-    this.socket.on('DLM.msg',function(msgBuffer) {
-      if (!me.liveMode) return;
+    if (this.socket) {
+      this.socket.on('DLM.msg', function(msgBuffer) {
+        if (!me.liveMode) return;
 
-      var msg = new DLM.DroneLinkMsg(msgBuffer);
-      //if (msg.node == 2 && msg.channel == 7)
-      //  console.log('DLM.msg: ' + msg.asString());
-      me.handleLinkMsg(msg, true, 'socket');
-
-      me.received++;
-
-      me.trigger('raw', msg);
-    });
-    */
+        var msg = new DLM.DroneLinkMsg(msgBuffer);
+        me.handleLinkMsg(msg, true, 'socket');
+        me.received++;
+        me.trigger('raw', msg);
+      });
+    }
   }
 
   init() {

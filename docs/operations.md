@@ -10,6 +10,16 @@ Status: source-derived; runtime/hardware not verified for this documentation bas
 
 Root `npm test` remains a placeholder failure. Select the explicit protocol and release suites below. The old sibling-source `parseModules.js` is retired; metadata is exported by DroneNode and help is rendered during explicit Server release preparation. Firebase deployment is a separate, unverified path; do not deploy it merely because `functions/` exists.
 
+## SEP-07 physical workbench preservation — 2026-11-06
+
+The bounded [SEP-07 plan](../../DroneLinkDatastore/docs/planning/sep-07-bench-preservation.md) owns current physical acceptance and companion identities. Use a separate gateway working directory and hostname configuration, an explicitly verified prepared release and no cloud credentials for local bench checks. Do not point the binary serial adapter at the USB console: this bench uses UDP for mesh telemetry. Observe current mesh addresses before choosing the gateway address, and reconfirm the physical node before active exchanges. A quiet passive sample is not proof of domain-wide address availability.
+
+Physical checks found that `DroneLinkState` discarded the socket supplied by `observer.js` and its receive listener was commented out: the real browser remained at “Waiting for nodes” despite live gateway messages. Its optional constructor socket now feeds live observations through the existing state/discovery/raw-event path; playback still ignores live traffic, and direct no-socket construction remains supported. `node --test tests/live-state.test.mjs` failed against the old code and passes with the fix. Root `npm run test:protocol` includes this regression. This restores existing gateway behavior without introducing the shared-Client WB implementation.
+
+Through the actual gateway, node 11 supplied live Management/UDP/NMEA data and three node files were downloaded privately before writing. Two versions of a new harmless support file were uploaded and read back; a separate Management Restart reset uptime and preserved that file. The temporary file was deleted and all three original files matched their pre-test hashes. An initially short post-upload uptime probe timed out; a later observation confirmed continuing uptime, so a timeout is not interpreted as an implicit restart. Actual Chrome rendering, reconnect and reload checks are distinct from the release suite's simulated hardware checks. Firmware programming and final source identities remain recorded in the owning plan.
+
+The legacy `/routes` HTTP handler attempts to serialize circular runtime objects once a physical route exists and returns an error. This is an existing diagnostic endpoint issue; the browser's `getRoutes`/`route.update` socket path remains usable. It is a recorded follow-up, not evidence that the HTTP route inventory works. Node files/captures/full-flash backups remain private and are not repository fixtures. The upload implementation uses `/backup.txt` as temporary scratch storage: preserve/inventory files first and do not use an existing scratch file as a harmless test target.
+
 Verify docs from this repo with `python3 ../DroneLinkDatastore/tools/check_docs.py`. Runtime checks and packet/command smoke gates are defined in the central M1/M2 plans.
 
 ## SEP-01 protocol checks — 2026-11-05
