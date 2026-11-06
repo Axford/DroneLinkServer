@@ -22,9 +22,12 @@ export default class UDPInterface extends NetworkInterface {
     this.server = udp.createSocket('udp4');
 
     // emits when any error occurs
-    this.server.on('error',function(error){
-      this.clog(('UDP Error: ' + error).red);
-      this.server.close();
+    this.server.on('error',error=>{
+      this.errorMsg = error.message;
+      this.clog('UDP Error: ' + error.message);
+      this.state = false;
+      try { this.server.close(); }
+      catch (closeError) { if (closeError.code !== 'ERR_SOCKET_DGRAM_NOT_RUNNING') throw closeError; }
     });
 
     // emits on new datagram msg
@@ -71,8 +74,8 @@ export default class UDPInterface extends NetworkInterface {
     });
 
     //emits after the socket is closed using socket.close();
-    this.server.on('close',function(){
-      this.clog(('UDP socket is closed').red);
+    this.server.on('close',()=>{
+      this.clog('UDP socket is closed');
       this.state = false;
     });
 
