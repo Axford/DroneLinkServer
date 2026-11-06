@@ -25,11 +25,19 @@ def settings(path):
     if config['serviceAccount'] != f'{SERVICE}@{PROJECT}.iam.gserviceaccount.com': raise ValueError('Unexpected service identity')
     return config
 
+def route_compatible_revision(revision_name):
+    run('run', 'services', 'update-traffic', SERVICE, '--project', PROJECT, '--region', REGION, '--to-revisions', revision_name + '=100', '--clear-tags', '--quiet')
+    service = json.loads(run('run', 'services', 'describe', SERVICE, '--project', PROJECT, '--region', REGION, '--format=json'))
+    traffic = service['status'].get('traffic', [])
+    if any(row.get('tag') for row in traffic) or sum(row.get('percent', 0) for row in traffic if row.get('revisionName') == revision_name) != 100: raise ValueError('New revision is not serving all traffic')
+    run('run', 'services', 'update', SERVICE, '--project', PROJECT, '--region', REGION, '--ingress', 'all', '--quiet')
+
 def deploy(args):
     manifest = verify(args.release); config = settings(args.settings)
     image = f'{REGION}-docker.pkg.dev/{PROJECT}/dronewright/hosted:{manifest["serverRevision"][:12]}-{manifest["clientRevision"][:12]}'
     if not args.apply:
         print(json.dumps({'dryRun': True, 'project': PROJECT, 'region': REGION, 'service': SERVICE, 'image': image, 'billing': 'instance', 'min': 0, 'max': 1, 'cpu': 1, 'memory': '512Mi', 'concurrency': 32})); return
+    if not args.maintenance: raise ValueError('M1 deployment requires explicit --maintenance for the old-runtime traffic cutover')
     evidence = pathlib.Path(args.evidence)
     if evidence.exists(): raise ValueError('Evidence destination already exists')
     # Build only the independently verified release directory, with no local config/secrets.
@@ -50,20 +58,20 @@ def deploy(args):
     if images[0]['name'] != image: raise ValueError('Build image does not match release identity')
     image = image.split(':')[0] + '@' + images[0]['digest']
     if not re.search(r'@sha256:[a-f0-9]{64}$', image): raise ValueError('Build did not produce a digest')
+    # Remove old public/tagged paths before the new policy can become reachable.
+    run('run', 'services', 'update', SERVICE, '--project', PROJECT, '--region', REGION, '--ingress', 'internal', '--quiet')
+    run('run', 'services', 'update-traffic', SERVICE, '--project', PROJECT, '--region', REGION, '--clear-tags', '--quiet')
     env = {'GOOGLE_CLOUD_PROJECT': PROJECT, 'FIRESTORE_DATABASE': '(default)', 'PUBLIC_ORIGIN': config['publicOrigin'], 'GOOGLE_CLIENT_ID': config['googleClientID'], 'MAPBOX_ACCESS_TOKEN': config.get('mapboxAccessToken', '')}
     with tempfile.TemporaryDirectory(prefix='dronewright-deploy-') as temporary:
         envfile = pathlib.Path(temporary) / 'env.json'; envfile.write_text(json.dumps(env))
-        run('run', 'deploy', SERVICE, '--project', PROJECT, '--region', REGION, '--image', image, '--service-account', config['serviceAccount'], '--no-cpu-throttling', '--min', '0', '--max', '1', '--cpu', '1', '--memory', '512Mi', '--concurrency', '32', '--timeout', '60', '--port', '8080', '--ingress', 'all', '--allow-unauthenticated', '--env-vars-file', str(envfile), '--set-secrets', f'GOOGLE_CLIENT_SECRET={config["googleSecret"]},SESSION_SECRET={config["sessionSecret"]}', '--quiet')
+        run('run', 'deploy', SERVICE, '--project', PROJECT, '--region', REGION, '--image', image, '--service-account', config['serviceAccount'], '--no-cpu-throttling', '--min', '0', '--max', '1', '--cpu', '1', '--memory', '512Mi', '--concurrency', '32', '--timeout', '60', '--port', '8080', '--ingress', 'internal', '--no-traffic', '--allow-unauthenticated', '--env-vars-file', str(envfile), '--set-secrets', f'GOOGLE_CLIENT_SECRET={config["googleSecret"]},SESSION_SECRET={config["sessionSecret"]}', '--quiet')
     service = json.loads(run('run', 'services', 'describe', SERVICE, '--project', PROJECT, '--region', REGION, '--format=json'))
     revision_name = service['status']['latestCreatedRevisionName']
     revision = json.loads(run('run', 'revisions', 'describe', revision_name, '--project', PROJECT, '--region', REGION, '--format=json'))
     if revision['status']['imageDigest'] != image: raise ValueError('Created revision image differs from verified build')
-    run('run', 'services', 'update-traffic', SERVICE, '--project', PROJECT, '--region', REGION, '--to-revisions', revision_name + '=100', '--quiet')
-    service = json.loads(run('run', 'services', 'describe', SERVICE, '--project', PROJECT, '--region', REGION, '--format=json'))
-    traffic = service['status'].get('traffic', [])
-    if sum(row.get('percent', 0) for row in traffic if row.get('revisionName') == revision_name) != 100: raise ValueError('New revision is not serving all traffic')
+    route_compatible_revision(revision_name)
     version, hosting = publish_hosting({'rewrites': [{'glob': '**', 'run': {'serviceId': SERVICE, 'region': REGION}}]}, 'Dronewright matched release ' + manifest['serverRevision'][:12])
-    result = {'schemaVersion': 1, 'project': PROJECT, 'region': REGION, 'service': SERVICE, 'image': image, 'revision': revision_name, 'hostingRelease': hosting['name'], 'hostingVersion': version['name'], 'storageFormat': manifest['storageFormat'], 'releaseManifestSha256': hashlib.sha256((pathlib.Path(args.release) / 'hosted-release.json').read_bytes()).hexdigest(), 'serverRevision': manifest['serverRevision'], 'clientRevision': manifest['clientRevision'], 'settings': config}
+    result = {'schemaVersion': 1, 'accessPolicyVersion': manifest['accessPolicyVersion'], 'project': PROJECT, 'region': REGION, 'service': SERVICE, 'image': image, 'revision': revision_name, 'hostingRelease': hosting['name'], 'hostingVersion': version['name'], 'storageFormat': manifest['storageFormat'], 'releaseManifestSha256': hashlib.sha256((pathlib.Path(args.release) / 'hosted-release.json').read_bytes()).hexdigest(), 'serverRevision': manifest['serverRevision'], 'clientRevision': manifest['clientRevision'], 'settings': config}
     evidence.parent.mkdir(parents=True, exist_ok=True); evidence.write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps({key: result[key] for key in ['image', 'revision', 'hostingRelease']}))
 
@@ -73,6 +81,7 @@ def rollback(args):
         run('run', 'services', 'update', SERVICE, '--project', PROJECT, '--region', REGION, '--ingress', 'internal', '--quiet')
         print('External staging access disabled; Firestore retained'); return
     prior = json.loads(pathlib.Path(args.deployment).read_text())
+    if prior.get('accessPolicyVersion') != 1: raise ValueError('Unsafe membership-only rollback; use maintenance and a compatible M1 release')
     if prior['project'] != PROJECT or prior['region'] != REGION or prior['service'] != SERVICE or prior['storageFormat']['schemaVersion'] != 1 or prior['storageFormat']['adapter'] != 'native-firestore' or not re.fullmatch(SERVICE + r'-[a-z0-9-]+', prior['revision']): raise ValueError('Incompatible rollback target')
     if not re.fullmatch(r'sites/' + PROJECT + r'/versions/[A-Za-z0-9_-]+', prior['hostingVersion']) or not re.fullmatch(REGION + r'-docker.pkg.dev/' + PROJECT + r'/dronewright/hosted@sha256:[a-f0-9]{64}', prior['image']): raise ValueError('Rollback resource target differs')
     if not args.apply: print(json.dumps({'dryRun': True, 'revision': prior['revision'], 'hostingVersion': prior['hostingVersion'], 'data': 'retained'})); return
@@ -82,8 +91,8 @@ def rollback(args):
     inventory = api(prior['hostingVersion'] + '/files?pageSize=10')
     reserved = {'/__/firebase/init.js', '/__/firebase/init.json'}
     if inventory.get('nextPageToken') or any(file['path'] not in reserved for file in inventory.get('files', [])): raise ValueError('Expected container-only Hosting version')
-    run('run', 'services', 'update', SERVICE, '--project', PROJECT, '--region', REGION, '--ingress', 'all', '--quiet')
-    run('run', 'services', 'update-traffic', SERVICE, '--project', PROJECT, '--region', REGION, '--to-revisions', prior['revision'] + '=100', '--quiet')
+    run('run', 'services', 'update', SERVICE, '--project', PROJECT, '--region', REGION, '--ingress', 'internal', '--quiet')
+    route_compatible_revision(prior['revision'])
     publish_hosting(hosting['config'], 'Data-preserving application rollback')
     print('Compatible application revision restored; Firestore retained')
 

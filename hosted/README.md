@@ -101,3 +101,17 @@ The pinned Google OpenID profile parser supplies `emails[0].verified`; false/mis
 Unsafe human requests require exact configured Origin, per-session X-CSRF-Token from GET /api/session, and JSON. Sign out is POST /auth/logout under the same checks; GET returns405 without revoking a session. OAuth state and invitation return paths use the real pinned strategy and a ten-minute relative-path flow. Machine ingestion has no browser session/administration authority and retains the accepted pre-archive gate/in-flight behavior. Error bodies contain stable sanitized codes.
 
 Local A.2 checks: CLIENT_BUILD_DIR pointing at the existing artifact,14 application/lifecycle scenarios and10 native integration scenarios pass; these include two app instances, current permissions/epoch, delayed history/list denial, logout/expiry, actual OAuth state and profile parsing with provider responses substituted, archive/restore/retained keys and pre-archive input completing late. This is local HTTP evidence, not real Google or managed acceptance. The new Client and staged cutover remain required.
+
+## M1 matched release/cutover guards
+
+Client and hosted manifests now require accessPolicyVersion1, and packaging requires the exact persistence0.3.0 archive. Old Client/membership-only release manifests are rejected before release/deployment. `deploy:staging -- --maintenance ... --apply` explicitly closes external service ingress and clears old tags, builds/deploys with no traffic under internal ingress, verifies the image and100% target traffic with no tags, then restores external access. An interrupted/failed traffic check remains closed. Compatible rollback uses the same internal/select/verify/reopen ordering. A pre-M1 rollback manifest is refused; use `rollback:staging -- --maintenance` and a compatible forward release.
+
+`npm run test:operations` passes11 Python safety checks plus3 installed-CLI checks. Native `test:application` passes15 scenarios and `test:integration`11, including the complete domain-route role matrix. The optional local two-context Chrome rehearsal is:
+
+```sh
+CLIENT_BUILD_DIR=<explicit-built-artifact> DRONELINK_PLAYWRIGHT_MODULE=<installed-playwright-module> node tests/browser/access.cjs
+```
+
+The rehearsal uses disposable demo projects and substituted provider responses through the real OAuth strategy, never live identities or the user's browser profile. It passes creation, targeted manual copy/accept, Viewer key exclusion, Editor/demotion cleanup, archive/reload/restore. Run it on the matching build; no browser download occurs.
+
+Managed read-only preview finds3 development domains/3 users with no collisions or missing Owners;3 shared links will retire, with keys/history retained. Private preview/digest and review gate are in the central M1 ledger. No M1 deployment/migration/grant/activation has run. The user selected their real Admin account and explicitly deferred managed ordinary-account tests; do not claim full A-T8/M1 closure.

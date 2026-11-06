@@ -191,3 +191,32 @@ test('real pinned OAuth strategy validates state and preserves only a bounded in
     assert.equal((await raw.request('/api/user')).json().email, 'oauth-user@example.test');
     assert.equal((await raw.request('/auth/google/callback?code=fixture&state=' + encodeURIComponent(next))).headers.get('location'), '/public');
 }));
+test('complete domain route role matrix uses real native transactions and inspects denied response bodies', t => fixture(t, async ({ agent, one }) => {
+    const admin = await agent('admin'); const owner = await agent('owner'); const editor = await agent('editor'); const viewer = await agent('viewer'); const outsider = await agent('outsider');
+    const fleet = await domain(admin, 'Route matrix'); const path = '/api/domains/' + fleet._id;
+    for (const [member, name, role] of [[owner, 'owner', 'owner'], [editor, 'editor', 'editor'], [viewer, 'viewer', 'viewer']]) await join(admin, member, fleet._id, name, role);
+    const target = await agent('matrix-target'); await join(admin, target, fleet._id, 'matrix-target', 'viewer'); const targetUser = await one.users.findByGoogleId('matrix-target');
+    const pending = await invite(admin, fleet._id, 'matrix-pending', 'editor');
+    let invitationRevision = pending.invitation.revision;
+    for (const [name, actor, manager, readKey, member] of [['owner', owner, true, true, true], ['admin', admin, true, true, true], ['editor', editor, false, true, true], ['viewer', viewer, false, false, true], ['outsider', outsider, false, false, false]]) {
+        for (const endpoint of ['', '/members', '/messages', '/packet-count', '/stream?timeout=10']) { const result = await actor.request(path + endpoint); assert.equal(result.status, member ? 200 : 403, name + endpoint); if (!member) assertSafe(result); }
+        assert.equal((await actor.request(path + '/key')).status, readKey ? 200 : 403, name + ' key');
+        assert.equal((await actor.request(path + '/invitations')).status, manager ? 200 : 403, name + ' invitation list');
+        const create = await actor.mutate('/api/domains', { name: 'Admin only ' + name }); assert.equal(create.status, name === 'admin' ? 201 : 403);
+        let row = await current(admin, fleet._id);
+        assert.equal((await actor.mutate(path, { name: 'Matrix ' + name, revision: row.revision }, 'PUT')).status, readKey ? 200 : 403);
+        row = await current(admin, fleet._id);
+        assert.equal((await actor.mutate(path + '/regenerate-key', { revision: row.revision })).status, manager ? 200 : 403);
+        row = await current(admin, fleet._id);
+        assert.equal((await actor.mutate(path + '/members/' + targetUser._id, { role: 'viewer', revision: row.revision }, 'PATCH')).status, manager ? 200 : 403);
+        const issued = await actor.mutate(path + '/invitations', { email: 'matrix-' + name + '@example.test', role: 'editor' }); assert.equal(issued.status, manager ? 201 : 403);
+        const reissued = await actor.mutate(path + '/invitations/' + pending.invitation._id + '/reissue', { role: 'editor', revision: invitationRevision }); assert.equal(reissued.status, manager ? 200 : 403); if (manager) invitationRevision = reissued.json().data.invitation.revision;
+        row = await current(admin, fleet._id);
+        assert.equal((await actor.mutate(path + '/archive', { revision: row.revision })).status, manager ? 200 : 403);
+        if (manager) { row = await current(admin, fleet._id); assert.equal((await actor.mutate(path + '/restore', { revision: row.revision })).status, 200); }
+        else { row = await current(admin, fleet._id); assert.equal((await actor.mutate(path + '/restore', { revision: row.revision })).status, 403); }
+        assert.equal((await actor.mutate(path, {}, 'DELETE')).status, 405); assert.equal((await actor.mutate(path + '/regenerate-invite')).status, 410); assert.equal((await actor.mutate('/api/send')).status, 501);
+    }
+    let row = await current(admin, fleet._id); assert.equal((await owner.mutate(path + '/members/' + targetUser._id, { revision: row.revision }, 'DELETE')).status, 200);
+    assert.equal((await owner.mutate(path + '/invitations/' + pending.invitation._id, { revision: invitationRevision }, 'DELETE')).status, 200);
+}));
