@@ -28,6 +28,7 @@ async function startHosted({ config, storeFactory = openFirestoreStore, appFacto
     const store = await storeFactory({ projectId: config.projectId, databaseId: config.databaseId, ...(config.emulatorHost ? { emulatorHost: config.emulatorHost } : {}) });
     let server;
     try {
+        await store.access.getControl();
         const app = appFactory({ config, store });
         server = http.createServer(app);
         await new Promise((resolve, reject) => {

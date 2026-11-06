@@ -8,7 +8,7 @@ const simpleApp=()=>((req,res)=>res.end('ready'));
 test('storage readiness precedes application/listening and failed initialization constructs neither',async t=>{
     const order=[]; let release;
     const ready=new Promise(resolve=>{release=resolve;});
-    const store={close:async()=>{order.push('close');}};
+    const store={access:{getControl:async()=>null},close:async()=>{order.push('close');}};
     const pending=startHosted({config:testConfig(),storeFactory:async()=>{order.push('open');await ready;order.push('ready');return store;},appFactory:()=>{order.push('app');return simpleApp();}});
     await new Promise(resolve=>setImmediate(resolve)); assert.deepEqual(order,['open']);
     release(); const service=await pending; t.after(()=>service.close());
@@ -24,7 +24,7 @@ test('invalid artifact is rejected before storage allocation',async()=>{
     assert.equal(opened,false);
 });
 test('application/listener startup failures release the owned store',async t=>{
-    let closes=0; const storeFactory=async()=>({close:async()=>{closes++;}});
+    let closes=0; const storeFactory=async()=>({access:{getControl:async()=>null},close:async()=>{closes++;}});
     await assert.rejects(startHosted({config:testConfig(),storeFactory,appFactory:()=>{throw Error('construction');}}),/construction/);
     const occupied=http.createServer(); await new Promise(resolve=>occupied.listen(0,resolve));
     t.after(()=>new Promise(resolve=>occupied.close(resolve)));
@@ -33,7 +33,7 @@ test('application/listener startup failures release the owned store',async t=>{
 });
 test('shutdown drains up to its grace deadline then releases HTTP and storage',async()=>{
     let reached; const received=new Promise(resolve=>{reached=resolve;}); let closed=false;
-    const service=await startHosted({config:testConfig(),storeFactory:async()=>({close:async()=>{closed=true;}}),appFactory:()=>((req,res)=>{reached();}),shutdownGraceMs:25});
+    const service=await startHosted({config:testConfig(),storeFactory:async()=>({access:{getControl:async()=>null},close:async()=>{closed=true;}}),appFactory:()=>((req,res)=>{reached();}),shutdownGraceMs:25});
     const request=http.get(`http://127.0.0.1:${service.server.address().port}`); request.on('error',()=>{});
     try { await received; await service.close(); assert.equal(service.server.listening,false); assert.equal(closed,true); }
     finally { request.destroy(); await service.close(); }
