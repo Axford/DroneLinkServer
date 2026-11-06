@@ -71,7 +71,7 @@ def deploy(args):
     if revision['status']['imageDigest'] != image: raise ValueError('Created revision image differs from verified build')
     route_compatible_revision(revision_name)
     version, hosting = publish_hosting({'rewrites': [{'glob': '**', 'run': {'serviceId': SERVICE, 'region': REGION}}]}, 'Dronewright matched release ' + manifest['serverRevision'][:12])
-    result = {'schemaVersion': 1, 'accessPolicyVersion': manifest['accessPolicyVersion'], 'project': PROJECT, 'region': REGION, 'service': SERVICE, 'image': image, 'revision': revision_name, 'hostingRelease': hosting['name'], 'hostingVersion': version['name'], 'storageFormat': manifest['storageFormat'], 'releaseManifestSha256': hashlib.sha256((pathlib.Path(args.release) / 'hosted-release.json').read_bytes()).hexdigest(), 'serverRevision': manifest['serverRevision'], 'clientRevision': manifest['clientRevision'], 'settings': config}
+    result = {'schemaVersion': 1, 'accessPolicyVersion': manifest['accessPolicyVersion'], 'telemetryPolicyVersion': manifest['telemetryPolicyVersion'], 'project': PROJECT, 'region': REGION, 'service': SERVICE, 'image': image, 'revision': revision_name, 'hostingRelease': hosting['name'], 'hostingVersion': version['name'], 'storageFormat': manifest['storageFormat'], 'releaseManifestSha256': hashlib.sha256((pathlib.Path(args.release) / 'hosted-release.json').read_bytes()).hexdigest(), 'serverRevision': manifest['serverRevision'], 'clientRevision': manifest['clientRevision'], 'settings': config}
     evidence.parent.mkdir(parents=True, exist_ok=True); evidence.write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps({key: result[key] for key in ['image', 'revision', 'hostingRelease']}))
 
@@ -82,6 +82,7 @@ def rollback(args):
         print('External staging access disabled; Firestore retained'); return
     prior = json.loads(pathlib.Path(args.deployment).read_text())
     if prior.get('accessPolicyVersion') != 1: raise ValueError('Unsafe membership-only rollback; use maintenance and a compatible M1 release')
+    if prior.get('telemetryPolicyVersion') != 1: raise ValueError('Unsafe permissive-ingress rollback; use maintenance and a compatible M1-B release')
     if prior['project'] != PROJECT or prior['region'] != REGION or prior['service'] != SERVICE or prior['storageFormat']['schemaVersion'] != 1 or prior['storageFormat']['adapter'] != 'native-firestore' or not re.fullmatch(SERVICE + r'-[a-z0-9-]+', prior['revision']): raise ValueError('Incompatible rollback target')
     if not re.fullmatch(r'sites/' + PROJECT + r'/versions/[A-Za-z0-9_-]+', prior['hostingVersion']) or not re.fullmatch(REGION + r'-docker.pkg.dev/' + PROJECT + r'/dronewright/hosted@sha256:[a-f0-9]{64}', prior['image']): raise ValueError('Rollback resource target differs')
     if not args.apply: print(json.dumps({'dryRun': True, 'revision': prior['revision'], 'hostingVersion': prior['hostingVersion'], 'data': 'retained'})); return

@@ -37,12 +37,18 @@ def prepare(args):
     lock = json.loads((ROOT / 'package-lock.json').read_text())['packages']['node_modules/@dronelink/persistence']
     if lock['resolved'] != pin or lock['integrity'] != 'sha512-' + base64.b64encode(hashlib.sha512(raw).digest()).decode(): raise ValueError('Persistence lock integrity differs')
     with tarfile.open(fileobj=io.BytesIO(raw), mode='r:gz') as tar: provenance = json.load(tar.extractfile('package/provenance.json'))
-    if provenance.get('version') != '0.3.0': raise ValueError('M1 requires persistence0.3.0')
+    if provenance.get('version') != '0.4.0': raise ValueError('M1-B requires persistence0.4.0')
     if provenance.get('storageFormat', {}).get('schemaVersion') != 1 or provenance['storageFormat']['adapter'] != 'native-firestore': raise ValueError('Incompatible storage format')
     files = {}
     tracked = git('ls-files', '--', 'app.js', 'index.js', 'lib', 'middleware', 'public', 'package.json', 'package-lock.json').splitlines()
     for name in tracked: files[name] = (ROOT / name).read_bytes()
     files[pin[5:]] = raw
+    protocol_pin = package['dependencies'].get('@dronelink/protocol')
+    if protocol_pin != 'file:vendor/dronelink-protocol-0.1.1.tgz': raise ValueError('M1-B requires pinned protocol0.1.1')
+    protocol_raw = (ROOT / protocol_pin[5:]).read_bytes()
+    protocol_lock = json.loads((ROOT / 'package-lock.json').read_text())['packages']['node_modules/@dronelink/protocol']
+    if protocol_lock['resolved'] != protocol_pin or protocol_lock['integrity'] != 'sha512-' + base64.b64encode(hashlib.sha512(protocol_raw).digest()).decode(): raise ValueError('Protocol lock integrity differs')
+    files[protocol_pin[5:]] = protocol_raw
     files.update({'private/' + name: data for name, data in client.items()})
     files['client-release-manifest.json'] = json.dumps(manifest, sort_keys=True).encode()
     files['Dockerfile'] = b'FROM node:22-bookworm-slim\nWORKDIR /app\nCOPY package*.json ./\nCOPY vendor ./vendor\nRUN npm ci --omit=dev --ignore-scripts && npm cache clean --force\nCOPY . .\nENV NODE_ENV=production\nUSER node\nCMD ["node", "index.js"]\n'
@@ -53,13 +59,14 @@ def prepare(args):
     output.mkdir(parents=True)
     for name, data in files.items():
         target = output / safe(name); target.parent.mkdir(parents=True, exist_ok=True); target.write_bytes(data)
-    result = {'schemaVersion': 1, 'accessPolicyVersion': 1, 'serverRevision': revision, 'clientRevision': manifest['clientRevision'], 'clientArchiveSha256': digest(pathlib.Path(args.client).read_bytes()), 'persistenceVersion': provenance['version'], 'persistenceSha256': digest(raw), 'storageFormat': provenance['storageFormat'], 'files': {name: digest(data) for name, data in files.items()}}
+    result = {'schemaVersion': 1, 'accessPolicyVersion': 1, 'telemetryPolicyVersion': 1, 'serverRevision': revision, 'clientRevision': manifest['clientRevision'], 'clientArchiveSha256': digest(pathlib.Path(args.client).read_bytes()), 'persistenceVersion': provenance['version'], 'persistenceSha256': digest(raw), 'storageFormat': provenance['storageFormat'], 'files': {name: digest(data) for name, data in files.items()}}
     (output / 'hosted-release.json').write_text(json.dumps(result, indent=2, sort_keys=True) + '\n')
     verify(output)
 
 def verify(output):
     output = pathlib.Path(output).resolve(); manifest = json.loads((output / 'hosted-release.json').read_text())
     if manifest.get('accessPolicyVersion') != 1: raise ValueError('M1 access policy version1 is required; old membership-only releases are unsafe')
+    if manifest.get('telemetryPolicyVersion') != 1: raise ValueError('M1-B telemetry policy version1 is required; use maintenance and roll forward')
     if manifest['schemaVersion'] != 1 or manifest['storageFormat']['adapter'] != 'native-firestore' or manifest['storageFormat']['schemaVersion'] != 1: raise ValueError('Incompatible release format')
     actual = set()
     for path in output.rglob('*'):

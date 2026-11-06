@@ -103,69 +103,28 @@ export default class SerialInterface extends NetworkInterface {
 
 
   decodeByte(b) {
-    if (this.receivedSize < this.msgBuffer.length) {
-      this.msgBuffer[this.receivedSize] = b;
-    } else {
-      this.clog('Buffer exceeded');
-      this.decodeState = 0;
-      this.receivedSize = 0;
+    if (this.decodeState === 0) {
+      if (b === 0xFE) { this.decodeState = 1; this.receivedSize = 0; }
+      return;
     }
-
-    switch(this.decodeState) {
-      case 0: // waiting for start
-        if (b == 254) {
-          this.decodeState = 1;
-          this.receivedSize = 1;
-          this.msgLen = 0;
-          //this.clog('Found start');
-        } else {
-          this.receivedSize = 0;
-        }
-        break;
-
-      case 1: // found start, waiting to confirm payload length
-        this.msgLen = this.getDroneMeshMsgTotalSize(b);
-        if (this.msgLen < 8 || this.msgLen > DMM.DRONE_MESH_MSG_MAX_PACKET_SIZE) {
-          this.decodeState = 0;
-          this.packetsRejected++;
-          //this.clog('Invalid payload size');
-        } else {
-          this.decodeState = 2;
-          this.receivedSize++;
-          //this.clog('Payload size: ' + this.msgLen);
-        }
-        break;
-
-      case 2: // reading payload
-        if (this.msgLen == this.receivedSize - 1) {
-          // now we've received a full message, print it out
-          var s = '';
-          for (var i=0; i<this.receivedSize; i++) {
-            s += this.msgBuffer[i].toString(16) + ' ';
-          }
-          //this.clog('Recv raw: ' + s);
-
-          // decode
-          var newMsg = new DMM.DroneMeshMsg(this.msgBuffer.slice(1, this.receivedSize));
-
-          if (newMsg.isValid) {
-            //this.clog(('Recv Msg: ' + newMsg.toString()).yellow);
-
-            // pass onto DLM for processing
-            this.dlm.receivePacket(this, newMsg, 1, this.id);
-
-            this.packetsReceived++;
-          } else {
-            this.clog('CRC fail');
-          }
-
-          this.decodeState = 0;
-          this.receivedSize = 0;
-        }
-        this.receivedSize++;
-        break;
-
+    if (this.decodeState === 1) {
+      this.msgLen = this.getDroneMeshMsgTotalSize(b);
+      if (this.msgLen > DMM.DRONE_MESH_MSG_MAX_PACKET_SIZE) {
+        this.decodeState = b === 0xFE ? 1 : 0;
+        this.packetsRejected++;
+        return;
+      }
+      this.decodeState = 2;
     }
+    this.msgBuffer[this.receivedSize++] = b;
+    if (this.receivedSize !== this.msgLen) return;
+    const message = new DMM.DroneMeshMsg(this.msgBuffer.slice(0, this.msgLen));
+    this.decodeState = 0;
+    this.receivedSize = 0;
+    if (message.isValid) {
+      this.dlm.receivePacket(this, message, 1, this.id);
+      this.packetsReceived++;
+    } else this.packetsRejected++;
   }
 
 

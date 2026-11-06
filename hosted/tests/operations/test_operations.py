@@ -74,7 +74,7 @@ class Operations(unittest.TestCase):
     def test_release_verify_detects_changed_and_extra_files(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = pathlib.Path(temporary); (root / 'index.js').write_text('ready')
-            manifest = {'schemaVersion': 1, 'accessPolicyVersion': 1, 'storageFormat': {'adapter': 'native-firestore', 'schemaVersion': 1}, 'serverRevision': 'a'*40, 'clientRevision': 'b'*40, 'files': {'index.js': release.digest(b'ready')}}
+            manifest = {'schemaVersion': 1, 'accessPolicyVersion': 1, 'telemetryPolicyVersion': 1, 'storageFormat': {'adapter': 'native-firestore', 'schemaVersion': 1}, 'serverRevision': 'a'*40, 'clientRevision': 'b'*40, 'files': {'index.js': release.digest(b'ready')}}
             (root / 'hosted-release.json').write_text(json.dumps(manifest))
             release.verify(root)
             (root / 'config.json').write_text('must not enter image')
@@ -92,7 +92,7 @@ class StagingDeployment(unittest.TestCase):
             root = pathlib.Path(temporary); context = root / 'release'; context.mkdir(); (context / 'hosted-release.json').write_text('verified')
             config = {'project': staging.PROJECT, 'region': staging.REGION, 'service': staging.SERVICE, 'publicOrigin': 'https://staging.dronewright.com', 'serviceAccount': f'{staging.SERVICE}@{staging.PROJECT}.iam.gserviceaccount.com', 'googleClientID': 'public-client-id', 'googleSecret': 'google:1', 'sessionSecret': 'session:1'}
             settings = root / 'settings.json'; settings.write_text(json.dumps(config))
-            manifest = {'accessPolicyVersion': 1, 'serverRevision': 'a'*40, 'clientRevision': 'b'*40, 'storageFormat': {'adapter': 'native-firestore', 'schemaVersion': 1}}
+            manifest = {'accessPolicyVersion': 1, 'telemetryPolicyVersion': 1, 'serverRevision': 'a'*40, 'clientRevision': 'b'*40, 'storageFormat': {'adapter': 'native-firestore', 'schemaVersion': 1}}
             image = f'{staging.REGION}-docker.pkg.dev/{staging.PROJECT}/dronewright/hosted:' + 'a'*12 + '-' + 'b'*12
             calls = []
             def run(*args):
@@ -145,5 +145,44 @@ class AccessTrafficGate(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'not serving all traffic'): staging.route_compatible_revision('safe-revision')
         self.assertIn('--clear-tags', calls[0])
         self.assertFalse(any('--ingress' in call and 'all' in call for call in calls))
+
+
+class TelemetryRelease(unittest.TestCase):
+    def test_prepare_includes_every_pinned_runtime_archive(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary); (root/'vendor').mkdir()
+            provenance = {'version':'0.4.0','storageFormat':{'schemaVersion':1,'adapter':'native-firestore'}}
+            archive = root/'vendor/dronelink-persistence-0.4.0.tgz'
+            with tarfile.open(archive,'w:gz') as tar:
+                raw=json.dumps(provenance).encode(); member=tarfile.TarInfo('package/provenance.json'); member.size=len(raw); tar.addfile(member,io.BytesIO(raw))
+            protocol=root/'vendor/dronelink-protocol-0.1.1.tgz'; protocol.write_bytes(b'pinned-protocol')
+            deps={'@dronelink/persistence':'file:vendor/'+archive.name,'@dronelink/protocol':'file:vendor/'+protocol.name}
+            (root/'package.json').write_text(json.dumps({'dependencies':deps}))
+            import base64, hashlib
+            locked={ 'node_modules/'+name:{'resolved':pin,'integrity':'sha512-'+base64.b64encode(hashlib.sha512((root/pin[5:]).read_bytes()).digest()).decode()} for name,pin in deps.items() }
+            (root/'package-lock.json').write_text(json.dumps({'packages':locked}))
+            (root/'app.js').write_text('committed source')
+            def git(*args):
+                if args[0]=='status': return ''
+                if args[0]=='rev-parse': return 'a'*40
+                if args[0]=='ls-files': return 'app.js\npackage.json\npackage-lock.json'
+                raise AssertionError(args)
+            manifest={'clientRevision':'b'*40}
+            client=root/'client.tgz'; client.write_bytes(b'client')
+            output=root/'output'
+            with patch.object(release,'ROOT',root), patch.object(release,'git',git), patch.object(release,'client_files',return_value=(manifest,{'build/index.html':b'client'})):
+                release.prepare(types.SimpleNamespace(client=str(client),release=str(output)))
+            self.assertEqual((output/'vendor'/protocol.name).read_bytes(),b'pinned-protocol')
+            self.assertEqual((output/'vendor'/archive.name).read_bytes(),archive.read_bytes())
+            self.assertEqual(json.loads((output/'hosted-release.json').read_text())['telemetryPolicyVersion'],1)
+    def test_pre_B_release_and_rollback_rejected_before_cloud_mutation(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root=pathlib.Path(temporary); prior={'accessPolicyVersion':1}
+            (root/'hosted-release.json').write_text(json.dumps(prior))
+            with self.assertRaisesRegex(ValueError,'telemetry policy'): release.verify(root)
+            (root/'deployment.json').write_text(json.dumps(prior))
+            with patch.object(staging,'run') as run:
+                with self.assertRaisesRegex(ValueError,'permissive-ingress'): staging.rollback(types.SimpleNamespace(maintenance=False,deployment=str(root/'deployment.json'),apply=True))
+                run.assert_not_called()
 
 if __name__ == '__main__': unittest.main()

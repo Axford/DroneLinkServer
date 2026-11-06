@@ -119,7 +119,10 @@ export class DroneMeshMsg {
     }
 
     // check CRC
-    this.isValid = crc8.calc(rawBuffer, this.getTotalSize()-1) == this.crc;
+    const declaredPayloadSize = (buffer[0] & 0b00111111) + 1;
+    this.isValid = declaredPayloadSize <= DRONE_MESH_MSG_MAX_PAYLOAD_SIZE &&
+      buffer.length === DRONE_MESH_MSG_HEADER_SIZE + declaredPayloadSize + 1 &&
+      crc8.calc(buffer, this.getTotalSize()-1) === this.crc;
   }
 
   isAck() {
