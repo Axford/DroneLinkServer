@@ -1,0 +1,78 @@
+import importlib.util, io, json, pathlib, sys, tarfile, tempfile, types, unittest
+from unittest.mock import patch
+TOOLS = pathlib.Path(__file__).resolve().parents[2] / 'tools/operations'
+sys.path.insert(0, str(TOOLS))
+import legacy, release, staging
+class Operations(unittest.TestCase):
+    def test_archive_verification_requires_complete_checksum_inventory(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary)
+            doc = {'name': 'projects/dronelink-25dbc/databases/(default)/documents/nodes/one', 'fields': {'packet': {'bytesValue': 'AQI='}}, 'createTime': '2020-01-01T00:00:00Z', 'updateTime': '2020-01-01T00:00:00Z'}
+            (root / 'firestore-typed.jsonl').write_text(json.dumps(doc) + '\n')
+            (root / 'logs-inventory.json').write_text('[]')
+            (root / 'native').mkdir(); (root / 'native/snapshot.overall_export_metadata').write_bytes(b'native')
+            legacy.save_json(root / 'native-inventory.json', [{'name': 'sep06/native/snapshot.overall_export_metadata', 'size': '6', 'generation': '1'}])
+            legacy.save_json(root / 'native-export-operation.json', {'done': True})
+            legacy.save_json(root / 'database-before.json', {'name': legacy.database(legacy.PROJECT), 'uid': 'preserved-resource', 'type': 'FIRESTORE_NATIVE', 'locationId': 'eur3'})
+            legacy.save_json(root / 'legacy-functions.json', [])
+            legacy.save_json(root / 'quiescence.json', {'project': legacy.PROJECT, 'remainingFunctions': [], 'retiredFunctions': []})
+            legacy.save_json(root / 'export-bucket.json', {'name': 'private-export', 'public_access_prevention': 'enforced', 'uniform_bucket_level_access': True, 'location': 'EU'})
+            manifest = {'project': legacy.PROJECT, 'database': '(default)', 'nativePrefix': 'gs://private-export/sep06/native', 'documentCount': 1, 'logCount': 0, 'files': {str(p.relative_to(root)): legacy.sha(p) for p in root.rglob('*') if p.is_file()}}
+            legacy.save_json(root / 'archive-manifest.json', manifest)
+            args = types.SimpleNamespace(archive=str(root), project=legacy.PROJECT)
+            self.assertEqual(legacy.verify(args), [doc])
+            (root / 'firestore-typed.jsonl').write_text('')
+            with self.assertRaisesRegex(ValueError, 'checksum'): legacy.verify(args)
+    def test_incomplete_archive_is_rejected_before_delete(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary)
+            legacy.save_json(root / 'archive-manifest.json', {'project': legacy.PROJECT, 'database': '(default)', 'files': {}})
+            args = types.SimpleNamespace(archive=str(root), project=legacy.PROJECT)
+            with patch.object(legacy, 'api') as api:
+                with self.assertRaisesRegex(ValueError, 'mandatory'): legacy.cleanse(args)
+                api.assert_not_called()
+    def test_missing_function_source_prevents_writer_retirement(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary) / 'archive'
+            args = types.SimpleNamespace(archive=str(root), project=legacy.PROJECT, export_bucket='gs://private-export')
+            calls = []
+            def run(*values):
+                calls.append(values)
+                if values[:3] == ('storage', 'buckets', 'describe'): return json.dumps({'name': 'private-export', 'public_access_prevention': 'enforced', 'uniform_bucket_level_access': True, 'location': 'EU'})
+                if values[:2] == ('functions', 'list'): return json.dumps([{'name': 'projects/dronelink-25dbc/locations/us-central1/functions/addRxPacket'}])
+                raise AssertionError(values)
+            with patch.object(legacy, 'run', run):
+                with self.assertRaisesRegex(ValueError, 'source metadata missing'): legacy.archive(args)
+            self.assertFalse(any(call[:2] == ('functions', 'delete') for call in calls))
+    def test_recursive_extract_visits_missing_parent_documents(self):
+        root = legacy.database(legacy.PROJECT) + '/documents'
+        doc = {'name': root + '/nodes/missing/params/value', 'createTime': '2020', 'updateTime': '2020', 'fields': {'x': {'integerValue': '4'}}}
+        def api(url, body=None):
+            if url.endswith(':listCollectionIds'):
+                parent = url.removeprefix('https://firestore.googleapis.com/v1/').removesuffix(':listCollectionIds')
+                return {'collectionIds': {root: ['nodes'], root + '/nodes/missing': ['params']}.get(parent, [])}
+            if '/nodes?' in url: return {'documents': [{'name': root + '/nodes/missing'}]}
+            if '/params?' in url: return {'documents': [doc]}
+            raise AssertionError(url)
+        with patch.object(legacy, 'api', api): self.assertEqual(legacy.scan(legacy.PROJECT), [doc])
+    def test_cleanse_never_deletes_unarchived_or_changed_documents(self):
+        original = {'name': 'document', 'updateTime': 'before'}
+        args = types.SimpleNamespace(archive='unused', project=legacy.PROJECT)
+        with patch.object(legacy, 'verify', return_value=[original]), patch.object(legacy, 'scan', return_value=[{**original, 'updateTime': 'after'}]), patch.object(legacy, 'api') as api:
+            with self.assertRaisesRegex(ValueError, 'differs'): legacy.cleanse(args)
+            api.assert_not_called()
+    def test_release_verify_detects_changed_and_extra_files(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary); (root / 'index.js').write_text('ready')
+            manifest = {'schemaVersion': 1, 'storageFormat': {'adapter': 'native-firestore', 'schemaVersion': 1}, 'serverRevision': 'a'*40, 'clientRevision': 'b'*40, 'files': {'index.js': release.digest(b'ready')}}
+            (root / 'hosted-release.json').write_text(json.dumps(manifest))
+            release.verify(root)
+            (root / 'config.json').write_text('must not enter image')
+            with self.assertRaisesRegex(ValueError, 'file set'): release.verify(root)
+    def test_client_path_and_target_validation(self):
+        for value in ['../secret', '/absolute', 'build/../config', 'build//index.html', 'C:config']:
+            with self.assertRaises(ValueError): release.safe(value)
+        with tempfile.TemporaryDirectory() as temporary:
+            path = pathlib.Path(temporary) / 'settings.json'; path.write_text(json.dumps({'project': 'production'}))
+            with self.assertRaisesRegex(ValueError, 'target differs'): staging.settings(path)
+if __name__ == '__main__': unittest.main()

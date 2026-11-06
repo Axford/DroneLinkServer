@@ -37,31 +37,11 @@ const validate = (schema) => {
 
 // Query parameter validation
 const validatePagination = (req, res, next) => {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const sort = req.query.sort || 'createdAt';
-    const order = req.query.order === 'asc' ? 1 : -1;
-
-    if (page < 1) {
-        return res.status(400).json({
-            success: false,
-            message: 'Page must be greater than 0'
-        });
+    const limit = req.query.limit === undefined ? 10 : Number(req.query.limit);
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100 || ['page', 'sort', 'order', 'search', 'status'].some(key => req.query[key] !== undefined)) {
+        return res.status(400).json({ success: false, message: 'Use a cursor and limit between 1 and 100' });
     }
-
-    if (limit < 1 || limit > 100) {
-        return res.status(400).json({
-            success: false,
-            message: 'Limit must be between 1 and 100'
-        });
-    }
-
-    req.pagination = {
-        page,
-        limit,
-        skip: (page - 1) * limit,
-        sort: { [sort]: order }
-    };
+    req.pagination = { limit, ...(req.query.cursor ? { cursor: req.query.cursor } : {}) };
 
     next();
 };

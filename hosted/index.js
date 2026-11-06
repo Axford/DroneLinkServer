@@ -1,27 +1,31 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const http = require('node:http');
-const { openMongoStore } = require('@dronelink/persistence');
+const { openFirestoreStore } = require('@dronelink/persistence');
 const { createApp } = require('./app');
 const { resolveClientBuildDir } = require('./lib/clientHosting');
 
 function loadConfig(serviceDir = __dirname) {
     const filename = path.join(serviceDir, 'config.json');
-    if (!fs.existsSync(filename)) {
-        fs.writeFileSync(filename, JSON.stringify({
-            mongoURI: 'mongodb://username:password@host:port/database', port: 8003,
-            googleClientID: 'your-google-client-id', googleClientSecret: 'your-google-client-secret',
-            cookieKey: 'your-random-cookie-key-at-least-32-characters-long', mapboxAccessToken: 'your-mapbox-access-token'
-        }, null, 4));
-        console.error('Created skeleton config.json. Configure the hosted service before starting.');
-        return null;
-    }
-    return JSON.parse(fs.readFileSync(filename, 'utf8'));
+    const local = fs.existsSync(filename) ? JSON.parse(fs.readFileSync(filename, 'utf8')) : {};
+    const values = { port: Number(process.env.PORT || local.port || 8003),
+        projectId: process.env.GOOGLE_CLOUD_PROJECT || local.projectId,
+        databaseId: process.env.FIRESTORE_DATABASE || local.databaseId || '(default)',
+        publicOrigin: process.env.PUBLIC_ORIGIN || local.publicOrigin,
+        googleClientID: process.env.GOOGLE_CLIENT_ID || local.googleClientID,
+        googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || local.googleClientSecret,
+        cookieKey: process.env.SESSION_SECRET || local.cookieKey,
+        mapboxAccessToken: process.env.MAPBOX_ACCESS_TOKEN || local.mapboxAccessToken,
+        clientBuildDir: process.env.CLIENT_BUILD_DIR || local.clientBuildDir };
+    if (!values.projectId || !values.publicOrigin || !values.googleClientID || !values.googleClientSecret || !values.cookieKey || values.cookieKey.length < 32) throw new Error('Hosted configuration is incomplete');
+    const origin = new URL(values.publicOrigin);
+    if (origin.origin !== values.publicOrigin || !['http:', 'https:'].includes(origin.protocol)) throw new Error('Invalid public origin');
+    return values;
 }
 
-async function startHosted({ config, storeFactory = openMongoStore, appFactory = createApp, shutdownGraceMs = 10000 }) {
+async function startHosted({ config, storeFactory = openFirestoreStore, appFactory = createApp, shutdownGraceMs = 10000 }) {
     resolveClientBuildDir(config.clientBuildDir);
-    const store = await storeFactory({ uri: config.mongoURI });
+    const store = await storeFactory({ projectId: config.projectId, databaseId: config.databaseId, ...(config.emulatorHost ? { emulatorHost: config.emulatorHost } : {}) });
     let server;
     try {
         const app = appFactory({ config, store });
@@ -41,8 +45,10 @@ async function startHosted({ config, storeFactory = openMongoStore, appFactory =
         closing ||= (async () => {
             const deadline = setTimeout(() => server.closeAllConnections(), shutdownGraceMs);
             deadline.unref();
-            try { await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve())); }
-            finally { clearTimeout(deadline); await store.close(); }
+            try {
+                const drained = new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+                await Promise.all([drained, store.close()]);
+            } finally { clearTimeout(deadline); }
         })();
         return closing;
     };

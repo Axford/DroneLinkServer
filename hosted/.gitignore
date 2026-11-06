@@ -3,3 +3,6 @@ config.json
 private/build/
 .cache/
 .test-application-*/
+.cache/
+releases/
+__pycache__/

@@ -1,0 +1,78 @@
+#!/usr/bin/env python3
+"""Prepare and verify a matched, committed-source hosted release without deploying."""
+import argparse, base64, hashlib, io, json, pathlib, re, subprocess, tarfile
+ROOT = pathlib.Path(__file__).resolve().parents[2]
+
+def digest(raw): return hashlib.sha256(raw).hexdigest()
+def git(*args): return subprocess.check_output(['git', *args], cwd=ROOT, text=True).strip()
+def safe(name):
+    if not isinstance(name, str) or not name or any(part in ['', '.', '..'] for part in name.split('/')) or '\\' in name or ':' in name: raise ValueError('Unsafe archive path')
+    return name
+
+def client_files(archive):
+    raw = archive.read_bytes()
+    if pathlib.Path(str(archive) + '.sha256').read_text().strip() != f'{digest(raw)}  {archive.name}': raise ValueError('Client archive checksum differs')
+    files = {}
+    with tarfile.open(fileobj=io.BytesIO(raw), mode='r:gz') as tar:
+        for entry in tar:
+            name = safe(entry.name)
+            if name in files or not entry.isfile(): raise ValueError('Duplicate or non-regular Client entry')
+            files[name] = tar.extractfile(entry).read()
+    manifest = json.loads(files.pop('release-manifest.json'))
+    if manifest.get('schemaVersion') != 1 or not re.fullmatch('[a-f0-9]{40}', manifest.get('clientRevision', '')): raise ValueError('Invalid Client identity')
+    expected = {'build/' + safe(name): sha for name, sha in manifest['files'].items()}
+    if set(files) != set(expected) or any(digest(files[name]) != sha for name, sha in expected.items()): raise ValueError('Client files differ')
+    if 'build/index.html' not in files or not any(name.startswith('build/static/') for name in files): raise ValueError('Client shell missing')
+    identity = f'dronelink-client-{manifest["packageVersion"]}-{manifest["clientRevision"]}.tgz'
+    if archive.name != identity: raise ValueError('Client archive identity differs')
+    return manifest, files
+
+def prepare(args):
+    if git('status', '--porcelain', '--untracked-files=all'): raise ValueError('Commit Server sources before preparing a release')
+    revision = git('rev-parse', 'HEAD'); manifest, client = client_files(pathlib.Path(args.client).resolve())
+    package = json.loads((ROOT / 'package.json').read_text()); pin = package['dependencies']['@dronelink/persistence']
+    if not pin.startswith('file:vendor/'): raise ValueError('Persistence must use an immutable archive')
+    archive = ROOT / pin[5:]; raw = archive.read_bytes()
+    lock = json.loads((ROOT / 'package-lock.json').read_text())['packages']['node_modules/@dronelink/persistence']
+    if lock['resolved'] != pin or lock['integrity'] != 'sha512-' + base64.b64encode(hashlib.sha512(raw).digest()).decode(): raise ValueError('Persistence lock integrity differs')
+    with tarfile.open(fileobj=io.BytesIO(raw), mode='r:gz') as tar: provenance = json.load(tar.extractfile('package/provenance.json'))
+    if provenance.get('storageFormat', {}).get('schemaVersion') != 1 or provenance['storageFormat']['adapter'] != 'native-firestore': raise ValueError('Incompatible storage format')
+    files = {}
+    tracked = git('ls-files', '--', 'app.js', 'index.js', 'lib', 'middleware', 'public', 'package.json', 'package-lock.json').splitlines()
+    for name in tracked: files[name] = (ROOT / name).read_bytes()
+    files[pin[5:]] = raw
+    files.update({'private/' + name: data for name, data in client.items()})
+    files['client-release-manifest.json'] = json.dumps(manifest, sort_keys=True).encode()
+    files['Dockerfile'] = b'FROM node:22-bookworm-slim\nWORKDIR /app\nCOPY package*.json ./\nCOPY vendor ./vendor\nRUN npm ci --omit=dev --ignore-scripts && npm cache clean --force\nCOPY . .\nENV NODE_ENV=production\nUSER node\nCMD ["node", "index.js"]\n'
+    files['.dockerignore'] = b'config.json\nnode_modules\n**/.cache\n'
+    if git('rev-parse', 'HEAD') != revision or git('status', '--porcelain', '--untracked-files=all'): raise ValueError('Server changed during preparation')
+    output = pathlib.Path(args.release).resolve()
+    if output.exists(): raise ValueError('Release destination already exists')
+    output.mkdir(parents=True)
+    for name, data in files.items():
+        target = output / safe(name); target.parent.mkdir(parents=True, exist_ok=True); target.write_bytes(data)
+    result = {'schemaVersion': 1, 'serverRevision': revision, 'clientRevision': manifest['clientRevision'], 'clientArchiveSha256': digest(pathlib.Path(args.client).read_bytes()), 'persistenceVersion': provenance['version'], 'persistenceSha256': digest(raw), 'storageFormat': provenance['storageFormat'], 'files': {name: digest(data) for name, data in files.items()}}
+    (output / 'hosted-release.json').write_text(json.dumps(result, indent=2, sort_keys=True) + '\n')
+    verify(output)
+
+def verify(output):
+    output = pathlib.Path(output).resolve(); manifest = json.loads((output / 'hosted-release.json').read_text())
+    if manifest['schemaVersion'] != 1 or manifest['storageFormat']['adapter'] != 'native-firestore' or manifest['storageFormat']['schemaVersion'] != 1: raise ValueError('Incompatible release format')
+    actual = set()
+    for path in output.rglob('*'):
+        if path.is_symlink(): raise ValueError('Release contains a symlink')
+        if path.is_file() and path.name != 'hosted-release.json': actual.add(str(path.relative_to(output)))
+    if actual != set(manifest['files']): raise ValueError('Release file set differs')
+    for name, sha in manifest['files'].items():
+        if digest((output / safe(name)).read_bytes()) != sha: raise ValueError('Release checksum differs')
+    print(json.dumps({'verified': True, 'serverRevision': manifest['serverRevision'], 'clientRevision': manifest['clientRevision'], 'releaseSha256': digest((output / 'hosted-release.json').read_bytes())}))
+    return manifest
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__); parser.add_argument('action', choices=['prepare', 'verify']); parser.add_argument('--release', required=True); parser.add_argument('--client')
+    args = parser.parse_args()
+    if args.action == 'prepare':
+        if not args.client: parser.error('--client is required for preparation')
+        prepare(args)
+    else: verify(args.release)
+if __name__ == '__main__': main()

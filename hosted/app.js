@@ -2,7 +2,7 @@ const express = require('express');
 const session = require('express-session');
 const { Passport } = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
-const rateLimit = require('express-rate-limit');
+const { FirestoreSessions } = require('./lib/firestoreSessions');
 const helmet = require('helmet');
 const path = require('path');
 const { validateDomainCreate, validateDomainUpdate, validatePagination } = require('./middleware/validation');
@@ -78,38 +78,26 @@ const createApp = ({ config, store, googleStrategyFactory = defaultGoogleStrateg
         hsts: false // Disable HSTS for localhost development
     }));
 
-    // Rate limiting - more generous for development
-    const limiter = rateLimit({
-        windowMs: 15 * 60 * 1000, // 15 minutes
-        max: 1000, // limit each IP to 1000 requests per windowMs
-        message: {
-            success: false,
-            message: 'Too many requests from this IP, please try again later.'
-        }
-    });
-
-    const apiLimiter = rateLimit({
-        windowMs: 15 * 60 * 1000, // 15 minutes
-        max: 500, // limit each IP to 500 API requests per windowMs
-        message: {
-            success: false,
-            message: 'Too many API requests from this IP, please try again later.'
-        }
-    });
-
-    // Temporarily disable rate limiting for development
-    // app.use(limiter);
-    // app.use('/api/', apiLimiter);
-
     // Middleware
     app.use(express.json({ limit: '10mb' }));
-    app.use(session({
-        secret: config.cookieKey,
-        resave: false,
-        saveUninitialized: true,
-    }));
+    app.set('trust proxy', 1);
+    app.use((req, res, next) => {
+        if (req.path.startsWith('/api/') || req.path.startsWith('/auth/') || req.path.startsWith('/private')) res.set('Cache-Control', 'private, no-store');
+        next();
+    });
+    const browserSession = session({
+        name: '__session', store: new FirestoreSessions(store.sessions), secret: config.cookieKey,
+        resave: false, saveUninitialized: false,
+        cookie: { secure: config.publicOrigin?.startsWith('https:') === true, httpOnly: true, sameSite: 'lax', maxAge: 600000 }
+    });
+    app.use((req, res, next) => req.path === '/addPacket' ? next() : browserSession(req, res, next));
+    app.use((req, res, next) => {
+        if (req.path !== '/addPacket' && !['GET', 'HEAD', 'OPTIONS'].includes(req.method) && req.headers.origin && req.headers.origin !== config.publicOrigin) return sendErrorResponse(res, 403, 'Origin not allowed');
+        next();
+    });
     app.use(passport.initialize());
-    app.use(passport.session());
+    const restoreSession = passport.session();
+    app.use((req, res, next) => req.path === '/addPacket' ? next() : restoreSession(req, res, next));
 
     // Serve static files
     app.use('/public', express.static(path.join(__dirname, 'public')));
@@ -132,27 +120,16 @@ const createApp = ({ config, store, googleStrategyFactory = defaultGoogleStrateg
     passport.use(googleStrategyFactory({
         clientID: config.googleClientID,
         clientSecret: config.googleClientSecret,
-        callbackURL: "/auth/google/callback"
+        callbackURL: new URL('/auth/google/callback', config.publicOrigin || 'http://localhost:8003').href,
+        state: true
       },
       async (accessToken, refreshToken, profile, done) => {
         try {
-            let user = await users.findByGoogleId(profile.id);
-            if (user) {
-                console.log('User found', user);
-                user = await users.recordSignIn(user._id, new Date());
-                return done(null, user);
-            } else {
-                console.log('User not found, creating new user', profile);
-                const newUser = await users.create({
-                    displayName: profile.displayName,
-                    email: profile.emails[0].value,
-                    googleId: profile.id,
-                    profilePicture: profile.photos[0].value,
-                    createdAt: new Date(),
-                    lastSignInDate: new Date()
-                });
-                return done(null, newUser);
-            }
+            const user = await users.registerSignIn({
+                displayName: profile.displayName, email: profile.emails?.[0]?.value,
+                googleId: profile.id, profilePicture: profile.photos?.[0]?.value
+            });
+            return done(null, user);
         } catch (error) {
             return done(error, null);
         }
@@ -179,24 +156,29 @@ const createApp = ({ config, store, googleStrategyFactory = defaultGoogleStrateg
 
     app.get('/auth/google/callback',
       passport.authenticate('google', { failureRedirect: '/public' }),
-      (req, res) => {
-        // Successful authentication, redirect to profile.
-        res.redirect('/profile');
+      (req, res, next) => {
+        req.session.cookie.expires = new Date(req.session.validUntil);
+        req.session.cookie.originalMaxAge = new Date(req.session.validUntil).getTime() - Date.now();
+        req.session.save(error => error ? next(error) : res.redirect(req.user.stagingAccess ? '/profile' : '/access-pending'));
       });
 
+    app.get('/access-pending', (req, res) => {
+        res.set('Cache-Control', 'private, no-store').status(403).type('html').send('<h1>Access pending</h1><p>Your Dronewright staging account is awaiting approval. Once enabled, sign in again.</p><a href="/auth/logout">Sign out</a>');
+    });
     app.get('/auth/logout', (req, res, next) => {
-        req.logout(err => {
-            if (err) { return next(err); }
-            res.redirect('/public');
+        req.logout(error => {
+            if (error) return next(error);
+            req.session.destroy(error => {
+                if (error) return next(error);
+                res.clearCookie('__session', { httpOnly: true, sameSite: 'lax', secure: config.publicOrigin?.startsWith('https:') === true });
+                res.redirect('/public');
+            });
         });
     });
-
-    // Middleware to check authentication
     const ensureAuthenticated = (req, res, next) => {
-        if (req.isAuthenticated()) {
-            return next();
-        }
-        res.redirect('/public');
+        if (!req.isAuthenticated()) return req.path.startsWith('/api/') ? sendErrorResponse(res, 401, 'Sign in required') : res.redirect('/public');
+        if (req.user.stagingAccess !== true) return req.path.startsWith('/api/') ? sendErrorResponse(res, 403, 'Access pending') : res.redirect('/access-pending');
+        next();
     };
 
     mountClientHosting(app, { clientBuildDir: config.clientBuildDir, ensureAuthenticated });
@@ -211,7 +193,7 @@ const createApp = ({ config, store, googleStrategyFactory = defaultGoogleStrateg
         const { lng, lat, zoom } = req.body;
 
         // Validate input
-        if (typeof lng !== 'number' || typeof lat !== 'number' || typeof zoom !== 'number') {
+        if (![lng, lat, zoom].every(Number.isFinite)) {
             return sendErrorResponse(res, 400, 'Invalid map state data. lng, lat, and zoom must be numbers.');
         }
 
@@ -231,27 +213,8 @@ const createApp = ({ config, store, googleStrategyFactory = defaultGoogleStrateg
 
     // API for user's domains with pagination
     app.get('/api/domains', ensureAuthenticated, validatePagination, asyncHandler(async (req, res) => {
-        const { page, limit, skip, sort } = req.pagination;
-        const { search, status } = req.query;
-
-        const total = await domains.countForUser(req.user._id, search);
-        const normalizedDomains = await domains.listForUser(req.user._id, {
-            searchPattern: search, offset: skip, limit,
-            sortField: Object.keys(sort)[0], sortDirection: Object.values(sort)[0] === 1 ? 'asc' : 'desc'
-        });
-
-        res.json({
-            success: true,
-            data: normalizedDomains,
-            pagination: {
-                page,
-                limit,
-                total,
-                pages: Math.ceil(total / limit),
-                hasNext: page * limit < total,
-                hasPrev: page > 1
-            }
-        });
+        const page = await domains.listForUser(req.user._id, req.pagination);
+        res.json({ success: true, data: page.items, pagination: { nextCursor: page.nextCursor, limit: req.pagination.limit } });
     }));
 
     // Create a new domain
@@ -265,14 +228,7 @@ const createApp = ({ config, store, googleStrategyFactory = defaultGoogleStrateg
             return sendErrorResponse(res, 409, 'You already have a domain with this name');
         }
 
-        const newDomain = await domains.create({
-            name,
-            users: [req.user._id],
-            createdBy: req.user._id
-        });
-
-
-        await users.addDomain(req.user._id, newDomain._id);
+        const newDomain = await domains.createWithCreator({ name, createdBy: req.user._id });
 
         // Populate the created domain for response
         const populatedDomain = await domains.getDetails(newDomain._id);
@@ -329,7 +285,7 @@ const createApp = ({ config, store, googleStrategyFactory = defaultGoogleStrateg
         }
 
         // Update name
-        await domains.rename(domain._id, name);
+        await domains.rename(domain._id, name, domain.revision);
 
         const updatedDomain = await domains.getDetails(domain._id);
 
@@ -353,10 +309,7 @@ const createApp = ({ config, store, googleStrategyFactory = defaultGoogleStrateg
         }
 
         // Remove the domain
-        await domains.remove(domain._id);
-
-        // Remove the domain reference from all associated users
-        await users.removeDomainFromUsers(domain.users.map(identifier), domain._id);
+        await domains.deleteWithUserLinks(domain._id, domain.revision);
 
         res.json({
             success: true,
@@ -378,7 +331,7 @@ const createApp = ({ config, store, googleStrategyFactory = defaultGoogleStrateg
 
         // Generate new API key
         const crypto = require('crypto');
-        await domains.setApiKey(domain._id, crypto.randomBytes(32).toString('hex'));
+        await domains.setApiKey(domain._id, crypto.randomBytes(32).toString('hex'), domain.revision);
 
         const updatedDomain = await domains.getDetails(domain._id);
 
@@ -406,7 +359,7 @@ const createApp = ({ config, store, googleStrategyFactory = defaultGoogleStrateg
         const newInviteToken = crypto.randomBytes(16).toString('hex');
 
         // Use findByIdAndUpdate to avoid validation issues with missing fields
-        await domains.setInviteToken(req.params.id, newInviteToken);
+        await domains.setInviteToken(req.params.id, newInviteToken, domain.revision);
 
         const updatedDomain = await domains.getDetails(req.params.id);
 
@@ -431,10 +384,7 @@ const createApp = ({ config, store, googleStrategyFactory = defaultGoogleStrateg
         }
 
         // Add user to domain
-        await domains.addMember(domain._id, req.user._id);
-
-        // Add domain to user's domains
-        await users.addDomain(req.user._id, domain._id);
+        await domains.addMemberAndLink(domain._id, req.user._id, { inviteToken: req.params.token });
 
         const updatedDomain = await domains.getDetails(domain._id);
 
@@ -476,25 +426,28 @@ const createApp = ({ config, store, googleStrategyFactory = defaultGoogleStrateg
             return sendErrorResponse(res, 403, 'You are not authorized to view this domain\'s messages');
         }
 
-        // Parse query parameters
-        const since = req.query.since ? new Date(req.query.since) : new Date(Date.now() - 60 * 60 * 1000); // Default: last hour
-        const limit = parseInt(req.query.limit) || 1000; // Default: 1000 messages
-
-        try {
-            // Fetch messages from rxPackets collection
-            const messages = await packets.listHistory({ domainId: req.params.id, since, limit: limit });
-
-            res.json({
-                success: true,
-                data: messages.map(packetJSON),
-                count: messages.length,
-                since: since.toISOString()
-            });
-        } catch (error) {
-            console.error('Error fetching historical messages:', error);
-            return sendErrorResponse(res, 500, 'Failed to fetch historical messages');
-        }
+        const page = await packets.readPage(packetOptions(req));
+        res.json({ success: true, data: page.items.map(packetJSON), count: page.items.length,
+            cursor: page.cursor, nextCursor: page.nextCursor, from: page.from, until: page.until });
     }));
+    function packetOptions(req) {
+        return { domainId: req.params.id, ...(req.query.cursor ? { cursor: req.query.cursor } : {}),
+            ...(req.query.from || req.query.since ? { from: new Date(req.query.from || req.query.since) } : {}),
+            ...(req.query.until ? { until: new Date(req.query.until) } : {}),
+            limit: req.query.limit === undefined ? 1000 : Number(req.query.limit) };
+    }
+    app.get('/api/domains/:id/packet-count', ensureAuthenticated, asyncHandler(async (req, res) => {
+        if (!await authorizeDomain(req, res)) return;
+        res.json({ success: true, data: { retainedPacketCount: await packets.countRetained(req.params.id) } });
+    }));
+    async function authorizeDomain(req, res, recheck = false) {
+        const user = recheck ? await users.getById(req.user._id) : req.user;
+        if (!user?.stagingAccess) { sendErrorResponse(res, 403, 'Access pending'); return false; }
+        const domain = await domains.getById(req.params.id);
+        if (!domain) { sendErrorResponse(res, 404, 'Domain not found'); return false; }
+        if (!domain.users.some(user => identifier(user) === req.user._id)) { sendErrorResponse(res, 403, 'Domain access denied'); return false; }
+        return true;
+    }
 
     // Get configuration values for frontend
     app.get('/api/config', ensureAuthenticated, (req, res) => {
@@ -508,95 +461,26 @@ const createApp = ({ config, store, googleStrategyFactory = defaultGoogleStrateg
 
     // Send DroneLink message
     app.post('/api/send', ensureAuthenticated, asyncHandler(async (req, res) => {
-        const { addr, msgType, values } = req.body;
-
-        if (!addr || msgType === undefined || !values) {
-            return sendErrorResponse(res, 400, 'Missing required fields: addr, msgType, values');
-        }
-
-        // TODO: Implement actual message sending to DroneLink network
-        // For now, just log the message and return success
-        console.log('DroneLink message send request:', { addr, msgType, values });
-
-        res.json({
-            success: true,
-            message: 'Message queued for sending',
-            data: { addr, msgType, values }
-        });
+        return sendErrorResponse(res, 501, 'Command delivery is not available yet');
     }));
 
     // Long-polling endpoint for real-time message streaming (compatible with time-series collections)
     app.get('/api/domains/:id/stream', ensureAuthenticated, asyncHandler(async (req, res) => {
-        const domain = await domains.getById(req.params.id);
-        if (!domain) {
-            return sendErrorResponse(res, 404, 'Domain not found');
-        }
-
-        // Check if user is part of the domain
-        const userIsInDomain = domain.users.some(user => identifier(user) === req.user._id);
-        if (!userIsInDomain) {
-            return sendErrorResponse(res, 403, 'You are not authorized to stream this domain\'s messages');
-        }
-
-        // Get the 'since' parameter to know what messages to look for
-        const since = req.query.since ? new Date(req.query.since) : new Date(Date.now() - 1000); // Default: last second
-        const timeout = parseInt(req.query.timeout) || 30000; // Default: 30 seconds
-
-        const startTime = Date.now();
-        console.log(`Long-polling: Started for domain ${req.params.id}, since ${since.toISOString()}`);
-
-        // Long-polling: check for new messages periodically
-        const checkForNewMessages = async () => {
-            try {
-                const messages = await packets.listAfter({ domainId: req.params.id, since, limit: 100 });
-
-                if (messages.length > 0) {
-                    // Found new messages, return them
-                    console.log(`Long-polling: Returning ${messages.length} new messages for domain ${req.params.id}`);
-                    return res.json({
-                        success: true,
-                        type: 'messages',
-                        data: messages.map(packetJSON),
-                        count: messages.length
-                    });
-                }
-
-                // No new messages yet, check if we should continue polling
-                const elapsed = Date.now() - startTime;
-                if (elapsed >= timeout) {
-                    // Timeout reached, return empty result
-                    console.log(`Long-polling: Timeout reached for domain ${req.params.id} after ${elapsed}ms`);
-                    return res.json({
-                        success: true,
-                        type: 'timeout',
-                        data: [],
-                        count: 0
-                    });
-                }
-
-                // Wait a bit and check again
-                setTimeout(checkForNewMessages, 1000); // Check every second
-            } catch (error) {
-                console.error('Error checking for new messages:', error);
-                return res.status(500).json({
-                    success: false,
-                    error: 'Failed to check for new messages'
-                });
-            }
-        };
-
-        // Handle client disconnect (normal for long-polling)
-        req.on('close', () => {
-            const elapsed = Date.now() - startTime;
-            if (elapsed < 1000) {
-                // Disconnected very quickly - might be unexpected
-                console.log(`Long-polling: Client disconnected early after ${elapsed}ms for domain ${req.params.id}`);
-            }
-            // Normal disconnects after successful responses are expected and not logged
-        });
-
-        // Start checking for messages
-        checkForNewMessages();
+        if (!await authorizeDomain(req, res)) return;
+        const controller = new AbortController();
+        const cancel = () => controller.abort();
+        res.once('close', cancel);
+        try {
+            const page = await packets.waitForPage({ ...packetOptions(req),
+                timeoutMs: req.query.timeout === undefined ? 30000 : Number(req.query.timeout), signal: controller.signal });
+            if (res.destroyed) return;
+            const session = await store.sessions.get(req.sessionID);
+            if (!session || session.data.passport?.user !== req.user._id) return sendErrorResponse(res, 401, 'Sign in required');
+            if (!await authorizeDomain(req, res, true)) return;
+            res.json({ success: true, type: page.items.length ? 'messages' : 'timeout',
+                data: page.items.map(packetJSON), count: page.items.length, cursor: page.cursor, nextCursor: page.nextCursor });
+        } catch (error) { if (!controller.signal.aborted) throw error; }
+        finally { controller.abort(); res.off('close', cancel); }
     }));
 
     // Profile route
@@ -625,6 +509,7 @@ const createApp = ({ config, store, googleStrategyFactory = defaultGoogleStrateg
 
             const { packet, id, node, channel, param, msgType, domain, apiKey } = req.body;
 
+            if (typeof packet !== 'string' || packet.length > 87384 || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(packet) || !packet.length) return sendErrorResponse(res, 400, 'Invalid base64 packet');
             // Find the domain and verify apiKey
             const targetDomain = await domains.getById(domain);
 
@@ -638,7 +523,7 @@ const createApp = ({ config, store, googleStrategyFactory = defaultGoogleStrateg
                 return res.status(401).send('Invalid API key');
             }
 
-            await packets.append({
+            await packets.enqueue({
                 time: new Date(),
                 packet: Buffer.from(packet, 'base64'), // Assuming packet is sent as a base64 string
                 domain: domain,
@@ -651,14 +536,9 @@ const createApp = ({ config, store, googleStrategyFactory = defaultGoogleStrateg
                 }
             });
 
-
-            // Update domain stats
-            await domains.incrementPacketCount(domain);
-
-            res.status(201).send('Packet saved');
+            res.status(202).send('Packet received');
         } catch (error) {
-            console.error(error);
-            res.status(500).send('Error saving packet');
+            return errorHandler(error, req, res);
         }
     });
 

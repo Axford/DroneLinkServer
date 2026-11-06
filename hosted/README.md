@@ -1,26 +1,51 @@
-# DroneLink hosted backend
+# Dronewright hosted backend
 
-This package installs and runs independently of the Server gateway. Runtime dependencies include the pinned `@dronelink/persistence` archive; no Datastore checkout, gateway installation, serial device or terminal UI is required.
+The independent hosted service uses pinned native Firestore persistence 0.2.0. Install with Node22+ using `npm ci --omit=dev`; run `npm start`. No MongoDB, gateway, emulator, Java or sibling source is required in production.
 
-```sh
-npm ci --omit=dev
-npm start
-```
+Supply `GOOGLE_CLOUD_PROJECT`, `PUBLIC_ORIGIN`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SESSION_SECRET` (32+characters), optional `FIRESTORE_DATABASE` (default `(default)`), `MAPBOX_ACCESS_TOKEN`, `CLIENT_BUILD_DIR` and `PORT`. A local ignored hosted `config.json` may supply equivalent camelCase fields. Startup never creates configuration or downloads credentials. Production uses the service identity and Secret Manager values; no service-account key file. Client build defaults to hosted `private/build`; an explicit path must contain index.html/static. Validate a release before selection.
 
-Run from this directory. Missing `config.json` creates a skeleton here and exits; configure it before starting. This configuration is separate from the gateway's hostname-based root configuration. Supply a verified extracted Client build with `clientBuildDir`; relative values resolve against this hosted root. The default remains `private/build` within this package. Startup validates an explicit artifact, opens persistence, waits for readiness, then listens. Initialization failure exits clearly without an HTTP listener or credential-bearing URI logs. SIGINT/SIGTERM drains HTTP for up to 10 seconds and closes the owned store.
+Google/Passport uses an absolute configured callback and state checking. Firestore sessions expire thirty days from sign-in; no polling touch writes. `__session` is host-only, HttpOnly, SameSite=Lax and Secure for HTTPS, compatible with Firebase Hosting proxying. New users receive `stagingAccess:false`; after approval in the Firestore console, sign out/in. Disabling the flag blocks existing sessions. Pending users see Access pending. APIs return401/403 and private/no-store; delayed telemetry rechecks session expiry/revocation and current membership. Public/machine ingress does not create sessions. No new admin UI or role model is introduced.
 
-Development/acceptance (Node 22.23.4, npm 10.9.9; real MongoDB 8.0.34 prepared explicitly):
+Packet ingress returns202 `Packet received` after bounded volatile admission, before persistence. The adapter batches approx one second (1024packets/128KiB max), with8MiB total accounting and a five-second actual RPC deadline. Restart/deploy/write failure may lose admitted packets; failures drop with sanitized diagnostics and no retry backlog. Management/sessions remain durable operations. Domain deletion retains inaccessible packet history under the old ID. Counts are persisted retained counts requested explicitly. Commands return501 until M2.
+
+Domain lists use opaque cursor Next/Previous; history follows every fixed-window page and continues into listener-backed long polling. Server composition owns admission, session policy and HTTP mapping; Datastore owns transactions, native queries/chunks and resource lifecycle. HTTP draining and store shutdown begin together under the existing ten-second HTTP grace; packet flush is bounded within it. Importing app/startup connects or listens to nothing.
+
+## Local checks
 
 ```sh
 npm ci
-npm run test:mongo:prepare
+npm run test:firestore:prepare
 CLIENT_BUILD_DIR=/absolute/verified/build npm run test:application
 CLIENT_BUILD_DIR=/absolute/verified/build npm run test:integration
+npm run test:operations
 ```
 
-The application gate uses actual middleware/session/routes and isolated storage/provider adapters, plus frozen original-source replay. Integration uses the released real MongoDB adapter with disposable data and a construction-only identity provider. It also replays the original backend against the same synthetic persisted data and starts/stops real CLI children on SIGINT/SIGTERM. Test-only original schemas/Mongoose dependencies never enter production application code. Binary downloads happen only during explicit preparation; test processes bind to loopback and own temporary paths. No Google consent/token exchange, user database, deployment or hardware is touched.
+Preparation explicitly downloads the pinned official Firestore emulator1.22.0 (Java21); tests never download it. Each native HTTP test owns an isolated disposable loopback emulator. A construction-only Google provider adapter exercises actual Passport/session composition without Google consent or production data. Historical application/Mongo fixtures remain for earlier evidence and are excluded from the native gate; intentional API changes are in the [HTTP contract](../../DroneLinkDatastore/docs/contracts/http.md). Production installs exclude test tooling.
 
-Do not modify `vendor/` archives in place. Persistence 0.1.2 is pinned with lockfile integrity; a change needs a new reviewed version and companion evidence. Source/schema provenance is inside the archive and in Datastore's canonical release manifest. Keep the original backend/dependency revision, selected Client release and configuration/path mapping for rollback. Current command stub, role-policy and telemetry limitations remain; see the [shared plan/evidence](../../DroneLinkDatastore/docs/planning/repository-separation.md#sep-04-planning-decisions--2026-11-05) and [HTTP contract](../../DroneLinkDatastore/docs/contracts/http.md).
+## Manual staging operations
+
+All cloud commands require the explicit agreed `--project dronelink-25dbc`; cloud mutations default to dry run and require `--apply`. Use a deliberate durable private archive directory outside Git. No command creates production resources or runs automatic releases.
+
+```sh
+npm run legacy:archive -- --project dronelink-25dbc --archive /private/archive/new-name --export-bucket gs://PRIVATE_EU_BUCKET
+npm run legacy:archive -- --project dronelink-25dbc --archive /private/archive/new-name --export-bucket gs://PRIVATE_EU_BUCKET --apply
+npm run legacy:verify -- --project dronelink-25dbc --archive /private/archive/new-name
+npm run legacy:cleanse -- --project dronelink-25dbc --archive /private/archive/new-name
+npm run legacy:cleanse -- --project dronelink-25dbc --archive /private/archive/new-name --apply
+npm run release:prepare -- --client /absolute/client.tgz --release /absolute/new-release
+npm run release:verify -- --release /absolute/new-release
+npm run deploy:staging -- --project dronelink-25dbc --release /absolute/new-release --settings /private/staging-settings.json --evidence /private/new-deployment.json
+npm run rollback:staging -- --project dronelink-25dbc --deployment /private/previous-deployment.json
+npm run rollback:staging -- --project dronelink-25dbc --maintenance
+```
+
+Archive preserves deployed Function metadata/source, retires the only legacy `addRxPacket` writer, then exports native Firestore to a separate explicitly private EU bucket (uniform access/PAP enforced). It recursively extracts typed documents, including children under missing parents; downloads all native-export objects and historic Storage logs with inventories/checksums; verifies stable source inventories and mandatory local components. Cleanse verifies again, requires current documents to match the archive, deletes only those documents with update-time preconditions and verifies the existing database resource is unchanged. Failure leaves archives in place and never implies cleansing succeeded. No restore rehearsal is performed or claimed. If archival fails midway, retain that directory and its preserved Function source/configuration; investigate before retrying or cleansing.
+
+Release preparation requires clean committed Server source, checks the Client archive/manifest/file hashes and persistence lock integrity, and creates one standalone container build context with declared native storage format1. Deployment builds it in Cloud Build, deploys the exact image digest in Belgium with instance billing, min0/service max1,1vCPU/512MiB/concurrency32, explicitly routes traffic and publishes a Firebase Hosting rewrite. The separately provisioned runtime service account needs Firestore access and only the two selected Secret Manager secrets; settings pin numbered secret versions. Settings fields: project, region, service, publicOrigin, serviceAccount, googleClientID, googleSecret (`name:version`), sessionSecret (`name:version`), optional public mapboxAccessToken. Secrets themselves never enter release bytes/settings/evidence.
+
+Provision required APIs, private artifact repository, service identity, secrets and declared Firestore indexes before deployment. Configure `staging.dronewright.com` in Hosting/DNS and the Google callback before real sign-in acceptance. Pin persistence archives; never overwrite them. Compatible rollback selects an existing recorded image/revision and Hosting version without altering Firestore. First release uses the explicit maintenance/disabled-service fallback; the old Mongo runtime cannot read native data. Backup restoration is a separate operator procedure.
+
+Actual cloud/browser results and exact companions belong in the central [SEP-06 evidence](../../DroneLinkDatastore/docs/planning/repository-separation.md). Local tests are not managed-index, Google-consent or deployment proof.
 
 ## SEP-04 acceptance evidence
 
