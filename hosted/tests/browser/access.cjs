@@ -4,10 +4,13 @@ const assert = require('node:assert/strict');
 const http = require('node:http'); const path = require('node:path');
 const { chromium } = require(process.env.DRONELINK_PLAYWRIGHT_MODULE || 'playwright');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
-const { openFirestoreStore } = require('@dronelink/persistence');
-const { openAccessOperatorStore } = require('@dronelink/persistence/operator');
+const { createRequire } = require('node:module');
+const hostedRoot = process.env.DRONELINK_HOSTED_ROOT || path.resolve(__dirname, '../..');
+const hostedRequire = createRequire(path.join(hostedRoot, 'package.json'));
+const { openFirestoreStore } = hostedRequire('@dronelink/persistence');
+const { openAccessOperatorStore } = hostedRequire('@dronelink/persistence/operator');
 const { withFirestore } = require('../../tools/firestore.cjs');
-const { createApp } = require('../../app');
+const { createApp } = hostedRequire('./app');
 async function run() {
     if (!process.env.CLIENT_BUILD_DIR) throw Error('Select an explicit built Client artifact');
     await withFirestore(async options => {
