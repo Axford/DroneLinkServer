@@ -26,6 +26,13 @@ test('native HTTP composition shares fixed sessions, enforces admission and stre
         const signed = await agent.login();
         assert.equal(signed.headers.get('location'), '/profile');
         assert.match(signed.headers.get('set-cookie'), /__session=.*HttpOnly; SameSite=Lax/);
+        if (process.env.CLIENT_BUILD_DIR) {
+            const expectedShell = require('node:fs').readFileSync(require('node:path').join(process.env.CLIENT_BUILD_DIR, 'index.html'), 'utf8');
+            for (const route of ['/private/', '/private/domain/acceptance']) {
+                const page = await agent.request(route); assert.equal(page.status, 200); assert.equal(page.text, expectedShell);
+                assert.equal(page.headers.get('cache-control'), 'private, no-store');
+            }
+        }
         const cookie = agent.cookie;
         const cross = await secondAgent.request('/api/user', { headers: { Cookie: cookie } });
         assert.equal(cross.status, 200);

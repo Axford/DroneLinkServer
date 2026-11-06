@@ -158,6 +158,11 @@ def verify(args):
     if len(prefix) != 2 or prefix[0] != bucket.get('name') or prefix[0] == BUCKET: raise ValueError('Native export target differs')
     operation = json.loads((root / 'native-export-operation.json').read_text())
     if operation.get('error') or not (operation.get('done') is True or operation.get('metadata', {}).get('operationState') == 'SUCCESSFUL' or operation.get('operationState') == 'SUCCESSFUL'): raise ValueError('Native export did not complete')
+    metadata = operation.get('metadata', {})
+    if metadata.get('outputUriPrefix') != manifest['nativePrefix'] or operation.get('response', {}).get('outputUriPrefix', manifest['nativePrefix']) != manifest['nativePrefix']: raise ValueError('Native export output target differs')
+    progress = metadata.get('progressDocuments', {})
+    completed = progress.get('completedWork', progress.get('workCompleted', 0))
+    if int(completed) != manifest['documentCount']: raise ValueError('Native export document count differs from readable extract')
     functions = json.loads((root / 'legacy-functions.json').read_text()); quiescence = json.loads((root / 'quiescence.json').read_text())
     if quiescence.get('project') != args.project or quiescence.get('remainingFunctions') != [] or quiescence.get('retiredFunctions') != [f['name'] for f in functions]: raise ValueError('Quiescence evidence differs')
     for function in functions:

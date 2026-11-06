@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Explicit manual staging deployment/rollback. Cloud mutation requires --apply."""
-import argparse, hashlib, json, pathlib, re, subprocess, tempfile, urllib.request
+import argparse, hashlib, json, pathlib, re, subprocess, tempfile, urllib.request, time
 from release import verify
 PROJECT = 'dronelink-25dbc'; REGION = 'europe-west1'; SERVICE = 'dronewright-staging'
 
@@ -9,6 +9,13 @@ def api(path, body=None, method=None):
     token = run('auth', 'print-access-token')
     request = urllib.request.Request('https://firebasehosting.googleapis.com/v1beta1/' + path, data=None if body is None else json.dumps(body).encode(), headers={'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'x-goog-user-project': PROJECT}, method=method)
     with urllib.request.urlopen(request, timeout=120) as response: return json.load(response)
+
+def publish_hosting(config, message):
+    version = api(f'sites/{PROJECT}/versions', {'config': config})
+    api(version['name'] + ':populateFiles', {'files': {}})
+    api(version['name'] + '?updateMask=status', {'status': 'FINALIZED'}, 'PATCH')
+    release = api(f'sites/{PROJECT}/releases?versionName=' + version['name'], {'message': message})
+    return version, release
 
 def settings(path):
     config = json.loads(pathlib.Path(path).read_text())
@@ -26,9 +33,21 @@ def deploy(args):
     evidence = pathlib.Path(args.evidence)
     if evidence.exists(): raise ValueError('Evidence destination already exists')
     # Build only the independently verified release directory, with no local config/secrets.
-    build = json.loads(run('builds', 'submit', str(pathlib.Path(args.release).resolve()), '--tag', image, '--project', PROJECT, '--region', REGION, '--format=json', '--quiet'))
-    built = build[0] if isinstance(build, list) else build
+    if args.build:
+        if not re.fullmatch(r'[a-f0-9-]{36}', args.build): raise ValueError('Invalid build identity')
+        build_id = args.build
+    else:
+        queued = json.loads(run('builds', 'submit', str(pathlib.Path(args.release).resolve()), '--tag', image, '--project', PROJECT, '--region', REGION, '--format=json', '--quiet', '--async'))
+        build_id = queued['id']
+    print(json.dumps({'buildId': build_id}), flush=True)
+    deadline = time.monotonic() + 900
+    while True:
+        built = json.loads(run('builds', 'describe', build_id, '--project', PROJECT, '--region', REGION, '--format=json'))
+        if built['status'] == 'SUCCESS': break
+        if built['status'] not in ['QUEUED', 'WORKING', 'PENDING'] or time.monotonic() > deadline: raise ValueError('Cloud Build did not succeed: ' + built['status'])
+        time.sleep(3)
     images = built['results']['images']
+    if images[0]['name'] != image: raise ValueError('Build image does not match release identity')
     image = image.split(':')[0] + '@' + images[0]['digest']
     if not re.search(r'@sha256:[a-f0-9]{64}$', image): raise ValueError('Build did not produce a digest')
     env = {'GOOGLE_CLOUD_PROJECT': PROJECT, 'FIRESTORE_DATABASE': '(default)', 'PUBLIC_ORIGIN': config['publicOrigin'], 'GOOGLE_CLIENT_ID': config['googleClientID'], 'MAPBOX_ACCESS_TOKEN': config.get('mapboxAccessToken', '')}
@@ -37,9 +56,7 @@ def deploy(args):
         run('run', 'deploy', SERVICE, '--project', PROJECT, '--region', REGION, '--image', image, '--service-account', config['serviceAccount'], '--no-cpu-throttling', '--min', '0', '--max', '1', '--cpu', '1', '--memory', '512Mi', '--concurrency', '32', '--timeout', '60', '--port', '8080', '--ingress', 'all', '--allow-unauthenticated', '--env-vars-file', str(envfile), '--set-secrets', f'GOOGLE_CLIENT_SECRET={config["googleSecret"]},SESSION_SECRET={config["sessionSecret"]}', '--quiet')
     service = json.loads(run('run', 'services', 'describe', SERVICE, '--project', PROJECT, '--region', REGION, '--format=json'))
     run('run', 'services', 'update-traffic', SERVICE, '--project', PROJECT, '--region', REGION, '--to-revisions', service['status']['latestReadyRevisionName'] + '=100', '--quiet')
-    version = api(f'sites/{PROJECT}/versions', {'config': {'rewrites': [{'glob': '**', 'run': {'serviceId': SERVICE, 'region': REGION}}]}})
-    api(version['name'] + '?updateMask=status', {'status': 'FINALIZED'}, 'PATCH')
-    hosting = api(f'sites/{PROJECT}/releases?versionName=' + version['name'], {'message': 'Dronewright matched release ' + manifest['serverRevision'][:12]})
+    version, hosting = publish_hosting({'rewrites': [{'glob': '**', 'run': {'serviceId': SERVICE, 'region': REGION}}]}, 'Dronewright matched release ' + manifest['serverRevision'][:12])
     result = {'schemaVersion': 1, 'project': PROJECT, 'region': REGION, 'service': SERVICE, 'image': image, 'revision': service['status']['latestReadyRevisionName'], 'hostingRelease': hosting['name'], 'hostingVersion': version['name'], 'storageFormat': manifest['storageFormat'], 'releaseManifestSha256': hashlib.sha256((pathlib.Path(args.release) / 'hosted-release.json').read_bytes()).hexdigest(), 'serverRevision': manifest['serverRevision'], 'clientRevision': manifest['clientRevision'], 'settings': config}
     evidence.parent.mkdir(parents=True, exist_ok=True); evidence.write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps({key: result[key] for key in ['image', 'revision', 'hostingRelease']}))
@@ -55,12 +72,17 @@ def rollback(args):
     if not args.apply: print(json.dumps({'dryRun': True, 'revision': prior['revision'], 'hostingVersion': prior['hostingVersion'], 'data': 'retained'})); return
     revision = json.loads(run('run', 'revisions', 'describe', prior['revision'], '--project', PROJECT, '--region', REGION, '--format=json'))
     if revision['status']['imageDigest'] != prior['image']: raise ValueError('Rollback image differs')
+    hosting = api(prior['hostingVersion'])
+    inventory = api(prior['hostingVersion'] + '/files?pageSize=10')
+    reserved = {'/__/firebase/init.js', '/__/firebase/init.json'}
+    if inventory.get('nextPageToken') or any(file['path'] not in reserved for file in inventory.get('files', [])): raise ValueError('Expected container-only Hosting version')
+    run('run', 'services', 'update', SERVICE, '--project', PROJECT, '--region', REGION, '--ingress', 'all', '--quiet')
     run('run', 'services', 'update-traffic', SERVICE, '--project', PROJECT, '--region', REGION, '--to-revisions', prior['revision'] + '=100', '--quiet')
-    api(f'sites/{PROJECT}/releases?versionName=' + prior['hostingVersion'], {'message': 'Data-preserving application rollback'})
+    publish_hosting(hosting['config'], 'Data-preserving application rollback')
     print('Compatible application revision restored; Firestore retained')
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__); parser.add_argument('action', choices=['deploy', 'rollback']); parser.add_argument('--project', required=True); parser.add_argument('--release'); parser.add_argument('--settings'); parser.add_argument('--evidence'); parser.add_argument('--deployment'); parser.add_argument('--maintenance', action='store_true'); parser.add_argument('--apply', action='store_true')
+    parser = argparse.ArgumentParser(description=__doc__); parser.add_argument('action', choices=['deploy', 'rollback']); parser.add_argument('--project', required=True); parser.add_argument('--release'); parser.add_argument('--settings'); parser.add_argument('--evidence'); parser.add_argument('--deployment'); parser.add_argument('--maintenance', action='store_true'); parser.add_argument('--apply', action='store_true'); parser.add_argument('--build', help='Resume a completed build of this exact release')
     args = parser.parse_args()
     if args.project != PROJECT: parser.error('Only agreed staging project supported')
     if args.action == 'deploy':

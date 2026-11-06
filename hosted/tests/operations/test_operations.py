@@ -12,7 +12,7 @@ class Operations(unittest.TestCase):
             (root / 'logs-inventory.json').write_text('[]')
             (root / 'native').mkdir(); (root / 'native/snapshot.overall_export_metadata').write_bytes(b'native')
             legacy.save_json(root / 'native-inventory.json', [{'name': 'sep06/native/snapshot.overall_export_metadata', 'size': '6', 'generation': '1'}])
-            legacy.save_json(root / 'native-export-operation.json', {'done': True})
+            legacy.save_json(root / 'native-export-operation.json', {'done': True, 'metadata': {'outputUriPrefix': 'gs://private-export/sep06/native', 'progressDocuments': {'completedWork': '1'}}})
             legacy.save_json(root / 'database-before.json', {'name': legacy.database(legacy.PROJECT), 'uid': 'preserved-resource', 'type': 'FIRESTORE_NATIVE', 'locationId': 'eur3'})
             legacy.save_json(root / 'legacy-functions.json', [])
             legacy.save_json(root / 'quiescence.json', {'project': legacy.PROJECT, 'remainingFunctions': [], 'retiredFunctions': []})
@@ -21,6 +21,16 @@ class Operations(unittest.TestCase):
             legacy.save_json(root / 'archive-manifest.json', manifest)
             args = types.SimpleNamespace(archive=str(root), project=legacy.PROJECT)
             self.assertEqual(legacy.verify(args), [doc])
+            operation = json.loads((root / 'native-export-operation.json').read_text())
+            operation['metadata']['progressDocuments']['completedWork'] = '2'
+            legacy.save_json(root / 'native-export-operation.json', operation)
+            manifest['files']['native-export-operation.json'] = legacy.sha(root / 'native-export-operation.json')
+            legacy.save_json(root / 'archive-manifest.json', manifest)
+            with self.assertRaisesRegex(ValueError, 'document count differs'): legacy.verify(args)
+            operation['metadata']['progressDocuments']['completedWork'] = '1'
+            legacy.save_json(root / 'native-export-operation.json', operation)
+            manifest['files']['native-export-operation.json'] = legacy.sha(root / 'native-export-operation.json')
+            legacy.save_json(root / 'archive-manifest.json', manifest)
             (root / 'firestore-typed.jsonl').write_text('')
             with self.assertRaisesRegex(ValueError, 'checksum'): legacy.verify(args)
     def test_incomplete_archive_is_rejected_before_delete(self):
@@ -75,4 +85,32 @@ class Operations(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             path = pathlib.Path(temporary) / 'settings.json'; path.write_text(json.dumps({'project': 'production'}))
             with self.assertRaisesRegex(ValueError, 'target differs'): staging.settings(path)
+
+class StagingDeployment(unittest.TestCase):
+    def test_deployment_uses_structured_build_metadata_and_routes_new_revision(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary); context = root / 'release'; context.mkdir(); (context / 'hosted-release.json').write_text('verified')
+            config = {'project': staging.PROJECT, 'region': staging.REGION, 'service': staging.SERVICE, 'publicOrigin': 'https://staging.dronewright.com', 'serviceAccount': f'{staging.SERVICE}@{staging.PROJECT}.iam.gserviceaccount.com', 'googleClientID': 'public-client-id', 'googleSecret': 'google:1', 'sessionSecret': 'session:1'}
+            settings = root / 'settings.json'; settings.write_text(json.dumps(config))
+            manifest = {'serverRevision': 'a'*40, 'clientRevision': 'b'*40, 'storageFormat': {'adapter': 'native-firestore', 'schemaVersion': 1}}
+            image = f'{staging.REGION}-docker.pkg.dev/{staging.PROJECT}/dronewright/hosted:' + 'a'*12 + '-' + 'b'*12
+            calls = []
+            def run(*args):
+                calls.append(args)
+                if args[:2] == ('builds', 'submit'):
+                    self.assertIn('--async', args)
+                    return json.dumps({'id': '12345678-1234-1234-1234-123456789012'})
+                if args[:2] == ('builds', 'describe'): return json.dumps({'status': 'SUCCESS', 'results': {'images': [{'name': image, 'digest': 'sha256:'+'c'*64}]}})
+                if args[:3] == ('run', 'services', 'describe'): return json.dumps({'status': {'latestReadyRevisionName': staging.SERVICE+'-new'}})
+                return ''
+            def api(path, body=None, method=None):
+                if path.endswith('/versions'): return {'name': 'sites/'+staging.PROJECT+'/versions/new'}
+                return {'name': 'sites/'+staging.PROJECT+'/releases/new'}
+            args = types.SimpleNamespace(release=str(context), settings=str(settings), evidence=str(root/'evidence.json'), apply=True, build=None)
+            with patch.object(staging, 'verify', return_value=manifest), patch.object(staging, 'run', run), patch.object(staging, 'api', api): staging.deploy(args)
+            traffic = next(call for call in calls if call[:3] == ('run', 'services', 'update-traffic'))
+            self.assertIn(staging.SERVICE+'-new=100', traffic)
+            evidence = json.loads((root/'evidence.json').read_text())
+            self.assertEqual(evidence['image'], image.split(':')[0]+'@sha256:'+'c'*64)
+
 if __name__ == '__main__': unittest.main()
