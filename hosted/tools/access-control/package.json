@@ -4,7 +4,7 @@
   "private": true,
   "description": "Separately installed privileged access tooling; absent from the hosted runtime",
   "dependencies": {
-    "@dronelink/persistence": "file:../../vendor/dronelink-persistence-0.4.0.tgz"
+    "@dronelink/persistence": "file:../../vendor/dronelink-persistence-0.5.0.tgz"
   },
   "engines": {
     "node": ">=22"

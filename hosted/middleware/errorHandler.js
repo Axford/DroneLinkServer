@@ -28,7 +28,7 @@ const errorHandler = (err, req, res, next) => {
 
     const known = {
         validation: [400, 'Validation failed'], 'invalid-id': [400, 'Invalid ID format'], duplicate: [409, 'Identity already exists'],
-        conflict: [409, 'The record changed; refresh and try again'], unavailable: [503, 'Service temporarily unavailable'],
+        'snapshot-required': [410, 'Reload shared observations to resume updates'], conflict: [409, 'The record changed; refresh and try again'], unavailable: [503, 'Service temporarily unavailable'],
         unauthenticated: [401, 'Sign in required'], 'unverified-identity': [403, 'A verified Google email is required'], forbidden: [403, 'Access denied'],
         csrf: [403, 'Browser request verification failed'], 'not-found': [404, 'Record not found'], archived: [409, 'Domain is archived'],
         'invite-unavailable': [410, 'Invitation is unavailable'], 'invite-retired': [410, 'Shared invitation links are retired'],

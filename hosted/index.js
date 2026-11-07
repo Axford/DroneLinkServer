@@ -11,6 +11,7 @@ function loadConfig(serviceDir = __dirname) {
     const values = { port: Number(process.env.PORT || local.port || 8003),
         projectId: process.env.GOOGLE_CLOUD_PROJECT || local.projectId,
         databaseId: process.env.FIRESTORE_DATABASE || local.databaseId || '(default)',
+        observationEpoch: 'm1-c-1',
         publicOrigin: process.env.PUBLIC_ORIGIN || local.publicOrigin,
         googleClientID: process.env.GOOGLE_CLIENT_ID || local.googleClientID,
         googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || local.googleClientSecret,
@@ -24,8 +25,10 @@ function loadConfig(serviceDir = __dirname) {
 }
 
 async function startHosted({ config, storeFactory = openFirestoreStore, appFactory = createApp, shutdownGraceMs = 10000 }) {
+    config = { ...config, observationEpoch: config.observationEpoch || 'm1-c-1' };
+    if (config.observationEpoch !== 'm1-c-1') throw Object.assign(new Error('Unsupported observation contract'), { code: 'observation-schema' });
     resolveClientBuildDir(config.clientBuildDir);
-    const store = await storeFactory({ projectId: config.projectId, databaseId: config.databaseId, ...(config.emulatorHost ? { emulatorHost: config.emulatorHost } : {}) });
+    const store = await storeFactory({ projectId: config.projectId, databaseId: config.databaseId, observationEpoch: config.observationEpoch, ...(config.emulatorHost ? { emulatorHost: config.emulatorHost } : {}) });
     let server;
     try {
         await store.access.getControl();

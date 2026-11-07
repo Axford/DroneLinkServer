@@ -38,3 +38,11 @@ test('shutdown drains up to its grace deadline then releases HTTP and storage',a
     try { await received; await service.close(); assert.equal(service.server.listening,false); assert.equal(closed,true); }
     finally { request.destroy(); await service.close(); }
 });
+
+
+test('C startup normalizes the same activation contract for storage and HTTP even without a config epoch', async () => {
+    let storageEpoch, appEpoch;
+    const service = await startHosted({ config: testConfig(), storeFactory: async options => { storageEpoch = options.observationEpoch; return { access: { getControl: async () => null }, close: async () => {} }; }, appFactory: options => { appEpoch = options.config.observationEpoch; return simpleApp(); } });
+    try { assert.equal(storageEpoch, 'm1-c-1'); assert.equal(appEpoch, storageEpoch); } finally { await service.close(); }
+    await assert.rejects(startHosted({ config: testConfig({ observationEpoch: 'unknown' }) }), { code: 'observation-schema' });
+});

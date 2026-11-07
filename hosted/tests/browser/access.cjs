@@ -14,7 +14,7 @@ const { createApp } = hostedRequire('./app');
 async function run() {
     if (!process.env.CLIENT_BUILD_DIR) throw Error('Select an explicit built Client artifact');
     await withFirestore(async options => {
-        const store = await openFirestoreStore({ ...options, flushIntervalMs: 10 }); const operator = await openAccessOperatorStore({ ...options, databaseId: '(default)' });
+        const store = await openFirestoreStore({ ...options, flushIntervalMs: 10, observationEpoch: 'm1-c-1', observationFlushIntervalMs: 20 }); const operator = await openAccessOperatorStore({ ...options, databaseId: '(default)' });
         let app; const server = http.createServer((req, res) => app(req, res)); let browser;
         try {
             for (const name of ['admin', 'viewer']) await store.users.registerVerifiedSignIn({ googleId: name, email: name === 'admin' ? 'damian@axford.me.uk' : name + '@example.test', emailVerified: true, displayName: name });
@@ -23,7 +23,7 @@ async function run() {
             let control = await store.access.getControl(); const admin = await store.users.findByGoogleId('admin');
             await operator.grantSoleAdmin({ userId: admin._id, googleId: 'admin', expectedControlRevision: control.revision }); control = await store.access.getControl(); await operator.activate({ planDigest: plan.digest, expectedControlRevision: control.revision });
             await new Promise(resolve => server.listen(0, '127.0.0.1', resolve)); const origin = `http://127.0.0.1:${server.address().port}`;
-            app = createApp({ config: { publicOrigin: origin, cookieKey: 'isolated-browser-session-secret-32-chars', googleClientID: 'fixture-client', googleClientSecret: 'fixture-secret', clientBuildDir: path.resolve(process.env.CLIENT_BUILD_DIR) }, store, googleStrategyFactory: (options, verify) => {
+            app = createApp({ config: { publicOrigin: origin, observationEpoch: 'm1-c-1', cookieKey: 'isolated-browser-session-secret-32-chars', googleClientID: 'fixture-client', googleClientSecret: 'fixture-secret', clientBuildDir: path.resolve(process.env.CLIENT_BUILD_DIR) }, store, googleStrategyFactory: (options, verify) => {
                 const strategy = new GoogleStrategy(options, verify);
                 strategy._oauth2.getOAuthAccessToken = (code, params, done) => done(null, code, 'fixture-refresh', {});
                 strategy._oauth2.get = (url, token, done) => done(null, JSON.stringify({ sub: token, name: token, email: token === 'admin' ? 'damian@axford.me.uk' : token + '@example.test', email_verified: true }));
@@ -51,6 +51,40 @@ async function run() {
             await viewerPage.getByRole('button', { name: 'Show key' }).click(); await viewerPage.getByRole('button', { name: 'Hide key' }).waitFor();
             await ownerPage.getByLabel('Role for viewer@example.test').selectOption('viewer'); await viewerPage.evaluate(() => window.dispatchEvent(new Event('focus')));
             await viewerPage.getByRole('button', { name: /Collaboration.*viewer/ }).waitFor(); assert.equal(await viewerPage.getByRole('button', { name: 'Hide key' }).count(), 0);
+            const pageRequests = [];
+            for (const page of [ownerPage, viewerPage]) page.on('request', request => pageRequests.push(new URL(request.url()).pathname));
+            const keyResponse = await ownerContext.request.get(origin + `/api/domains/${id}/key`); const key = (await keyResponse.json()).data.apiKey;
+            const publish = async value => {
+                const response = await ownerContext.request.post(origin + '/addPacket', { data: { domain: id, id: 254, apiKey: key, packet: Buffer.from([7,7,1,1,0,value]).toString('base64') } });
+                assert.equal(response.status(), 202);
+            };
+            await publish(42);
+            const select = async page => {
+                await page.locator('.node-selector select option[value="7"]').waitFor({ state: 'attached' });
+                await page.locator('.node-selector select').selectOption('7');
+                await page.getByRole('button', { name: 'Expand All', exact: true }).click();
+            };
+            const valueVisible = async (page, value) => page.locator('.parameter-row .font-monospace').getByText(String(value), { exact: true }).waitFor();
+            await select(ownerPage); await select(viewerPage);
+            await valueVisible(ownerPage, 42); await valueVisible(viewerPage, 42);
+            const identityBefore = await (await ownerContext.request.get(origin + `/api/domains/${id}/identities`)).json();
+            assert.equal(await viewerPage.getByRole('button', { name: 'Reset node observations' }).count(), 0);
+            await ownerPage.getByRole('button', { name: 'Reset node observations' }).click();
+            for (const page of [ownerPage, viewerPage]) await page.waitForFunction(() => document.querySelectorAll('.parameter-row').length === 0);
+            const identityAfter = await (await ownerContext.request.get(origin + `/api/domains/${id}/identities`)).json(); assert.deepEqual(identityAfter, identityBefore);
+            await publish(43);
+            // Expansion remains controlled while the node structure rebuilds.
+            for (const page of [ownerPage, viewerPage]) {
+                await page.getByRole('button', { name: /^(Expand|Collapse) All$/ }).waitFor();
+                if (await page.getByRole('button', { name: 'Expand All', exact: true }).count()) await page.getByRole('button', { name: 'Expand All', exact: true }).click();
+                await valueVisible(page, 43);
+            }
+            await viewerPage.reload(); await select(viewerPage); await valueVisible(viewerPage, 43);
+            assert.ok(!pageRequests.some(url => /\/(messages|stream)$/.test(url)), 'Current view must not consume packet history');
+            const history = await ownerContext.request.get(origin + `/api/domains/${id}/messages`, { headers: { 'X-Observation-Contract': '1' } });
+            assert.equal(history.status(), 200); assert.equal((await history.json()).data.length, 2);
+            await viewerPage.getByText(/Saved failed snapshot writes: 0/).waitFor();
+            console.log('PASS: two Chrome contexts share persisted observations, clear on reset, preserve identity/history, rebuild/reload and exclude Viewer reset');
             await ownerPage.getByRole('button', { name: 'Archive domain' }).click(); await ownerPage.getByText('Archived domain · Read-only retained history.', { exact: false }).waitFor();
             await viewerPage.reload(); await viewerPage.getByText('Archived domain · Read-only retained history.', { exact: false }).waitFor();
             await ownerPage.getByRole('button', { name: /Collaboration/ }).click(); await ownerPage.getByRole('button', { name: 'Restore domain' }).click();

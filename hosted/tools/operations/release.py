@@ -20,6 +20,7 @@ def client_files(archive):
             files[name] = tar.extractfile(entry).read()
     manifest = json.loads(files.pop('release-manifest.json'))
     if manifest.get('accessPolicyVersion') != 1: raise ValueError('Client requires M1 access policy version1')
+    if manifest.get('observationPolicyVersion') != 1: raise ValueError('Client requires M1-C observation policy version1')
     if manifest.get('schemaVersion') != 1 or not re.fullmatch('[a-f0-9]{40}', manifest.get('clientRevision', '')): raise ValueError('Invalid Client identity')
     expected = {'build/' + safe(name): sha for name, sha in manifest['files'].items()}
     if set(files) != set(expected) or any(digest(files[name]) != sha for name, sha in expected.items()): raise ValueError('Client files differ')
@@ -37,7 +38,7 @@ def prepare(args):
     lock = json.loads((ROOT / 'package-lock.json').read_text())['packages']['node_modules/@dronelink/persistence']
     if lock['resolved'] != pin or lock['integrity'] != 'sha512-' + base64.b64encode(hashlib.sha512(raw).digest()).decode(): raise ValueError('Persistence lock integrity differs')
     with tarfile.open(fileobj=io.BytesIO(raw), mode='r:gz') as tar: provenance = json.load(tar.extractfile('package/provenance.json'))
-    if provenance.get('version') != '0.4.0': raise ValueError('M1-B requires persistence0.4.0')
+    if provenance.get('version') != '0.5.0': raise ValueError('M1-C requires persistence0.5.0')
     if provenance.get('storageFormat', {}).get('schemaVersion') != 1 or provenance['storageFormat']['adapter'] != 'native-firestore': raise ValueError('Incompatible storage format')
     files = {}
     tracked = git('ls-files', '--', 'app.js', 'index.js', 'lib', 'middleware', 'public', 'package.json', 'package-lock.json').splitlines()
@@ -59,7 +60,7 @@ def prepare(args):
     output.mkdir(parents=True)
     for name, data in files.items():
         target = output / safe(name); target.parent.mkdir(parents=True, exist_ok=True); target.write_bytes(data)
-    result = {'schemaVersion': 1, 'accessPolicyVersion': 1, 'telemetryPolicyVersion': 1, 'serverRevision': revision, 'clientRevision': manifest['clientRevision'], 'clientArchiveSha256': digest(pathlib.Path(args.client).read_bytes()), 'persistenceVersion': provenance['version'], 'persistenceSha256': digest(raw), 'storageFormat': provenance['storageFormat'], 'files': {name: digest(data) for name, data in files.items()}}
+    result = {'schemaVersion': 1, 'accessPolicyVersion': 1, 'telemetryPolicyVersion': 1, 'observationPolicyVersion': 1, 'serverRevision': revision, 'clientRevision': manifest['clientRevision'], 'clientArchiveSha256': digest(pathlib.Path(args.client).read_bytes()), 'persistenceVersion': provenance['version'], 'persistenceSha256': digest(raw), 'storageFormat': provenance['storageFormat'], 'files': {name: digest(data) for name, data in files.items()}}
     (output / 'hosted-release.json').write_text(json.dumps(result, indent=2, sort_keys=True) + '\n')
     verify(output)
 

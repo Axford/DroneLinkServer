@@ -17,11 +17,11 @@ class GoogleFixture extends Strategy {
         this.verify('provider-access', 'provider-refresh', profile, (error, user) => error ? this.error(error) : this.success(user));
     }
 }
-async function fixture(t, run, { ready = true } = {}) {
+async function fixture(t, run, { ready = true, observations = false } = {}) {
     return withFirestore(async options => {
-        const one = await openFirestoreStore({ ...options, flushIntervalMs: 10 }); const two = await openFirestoreStore({ ...options, flushIntervalMs: 10 });
+        const one = await openFirestoreStore({ ...options, flushIntervalMs: 10, ...(observations ? { observationEpoch: 'm1-c-1', observationFlushIntervalMs: 20 } : {}) }); const two = await openFirestoreStore({ ...options, flushIntervalMs: 10, ...(observations ? { observationEpoch: 'm1-c-1', observationFlushIntervalMs: 20 } : {}) });
         const operator = await openAccessOperatorStore({ ...options, databaseId: '(default)' }); const db = new Firestore({ projectId: options.projectId, host: options.emulatorHost, ssl: false });
-        const config = testConfig({ publicOrigin: 'http://localhost:8003' });
+        const config = testConfig({ publicOrigin: 'http://localhost:8003', ...(observations ? { observationEpoch: 'm1-c-1' } : {}) });
         const factories = [];
         try {
             await one.users.registerVerifiedSignIn({ googleId: 'admin', email: 'damian@axford.me.uk', emailVerified: true, displayName: 'admin' });
@@ -272,3 +272,32 @@ test('gateway credential API enforces human roles and machine Domain/address/rev
     await new Promise(resolve=>setTimeout(resolve,40)); const history=(await admin.request(path+'/messages')).json().data;
     assert.deepEqual(history[0].origin,{kind:'gateway',gatewayId:gateway._id});
 }));
+
+
+test('shared observation API follows persisted updates, enforces reset generation/roles and rejects the old cloud reducer', t => fixture(t, async ({ agent, factories, one }) => {
+    const admin = await agent('admin'); const collaborator = await agent('admin', 1); const viewer = await agent('viewer'); const editor = await agent('editor'); const outsider = await agent('outsider');
+    const fleet = await domain(admin, 'Shared'); const path = '/api/domains/' + fleet._id;
+    await join(admin, viewer, fleet._id, 'viewer', 'viewer'); await join(admin, editor, fleet._id, 'editor', 'editor');
+    const key = (await admin.request(path + '/key')).json().data.apiKey;
+    const initial = await admin.request(path + '/observations'); assert.equal(initial.status, 200, initial.text); assert.deepEqual(initial.json().data.channels, []);
+    const response = await factories[0]().request('/addPacket', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain: fleet._id, apiKey: key, id: 254, packet: Buffer.from([7,7,1,1,0,10]).toString('base64') }) });
+    assert.equal(response.status, 202, response.text);
+    const changes = await collaborator.request(path + '/observations/updates?cursor=' + initial.json().data.startCursor + '&timeoutMs=3000');
+    assert.equal(changes.status, 200, changes.text); assert.equal(changes.json().data.events[0].channels[0].params['1'].value.payload, 'Cg==');
+    const saved = await viewer.request(path + '/observations'); assert.equal(saved.status, 200); assert.equal(saved.json().data.channels.length, 1); assertSafe(saved);
+    assert.equal((await outsider.request(path + '/observations')).status, 403);
+    assert.equal((await viewer.mutate(path + '/nodes/7/reset', { expectedGeneration: 0 })).status, 403);
+    assert.equal((await admin.mutate(path + '/nodes/7/reset', { expectedGeneration: 0 }, 'POST', { 'X-CSRF-Token': '' })).status, 403);
+    assert.equal((await admin.mutate(path + '/nodes/7/reset', { expectedGeneration: 0, history: true })).status, 400);
+    const reset = await editor.mutate(path + '/nodes/7/reset', { expectedGeneration: 0 }); assert.equal(reset.status, 200, reset.text); assert.equal(reset.json().data.generation, 1);
+    assert.equal((await admin.mutate(path + '/nodes/7/reset', { expectedGeneration: 0 })).status, 409);
+    assert.equal((await collaborator.request(path + '/observations')).json().data.channels.length, 0);
+    assert.equal((await viewer.request(path + '/observation-diagnostics')).json().data.snapshotWriteFailures, 0);
+    assert.equal((await viewer.request(path + '/messages')).status, 426);
+    assert.equal((await viewer.request(path + '/messages', { headers: { 'X-Observation-Contract': '1' } })).status, 200);
+    assert.equal((await viewer.request(path + '/observations/updates?cursor=bad&timeoutMs=0')).status, 400);
+    const identity = await one.telemetry.listIdentities({ userId: (await one.users.findByGoogleId('admin'))._id, sessionEpoch: 1, allowedRoles: ['owner'], allowPlatformAdmin: true }, { domainId: fleet._id }); assert.equal(identity.nodes.length, 1);
+    const row = await current(admin, fleet._id); await admin.mutate(path + '/archive', { revision: row.revision });
+    assert.equal((await viewer.request(path + '/observations')).status, 200);
+    assert.equal((await editor.mutate(path + '/nodes/7/reset', { expectedGeneration: 1 })).status, 409);
+}, { observations: true }));

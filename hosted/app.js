@@ -5,6 +5,7 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const { FirestoreSessions } = require('./lib/firestoreSessions');
 const helmet = require('helmet');
 const path = require('path');
+const { mountObservationRoutes } = require('./lib/observationRoutes');
 const { mountTelemetryRoutes } = require('./lib/telemetryRoutes');
 const { createAccessPolicy, fault } = require('./lib/accessPolicy');
 const { mountAccessRoutes } = require('./lib/accessRoutes');
@@ -170,9 +171,15 @@ const createApp = ({ config, store, googleStrategyFactory = defaultGoogleStrateg
     app.use(['/api/domains', '/api/invite', '/api/send'], ready);
     app.use('/invite', (req, res, next) => { res.set('Referrer-Policy', 'no-referrer'); res.set('Cache-Control', 'private, no-store'); next(); });
     mountClientHosting(app, { clientBuildDir: config.clientBuildDir, ensureAuthenticated });
+    app.use('/api/domains/:id', asyncHandler(async (req, res, next) => {
+        if (!config.observationEpoch || !['/messages', '/stream'].includes(req.path) || req.get('X-Observation-Contract') === '1') return next();
+        await policy.domain(req);
+        return sendErrorResponse(res, 426, 'Refresh the application to use shared observations. Historical packets require an explicit history client.', null, 'client-refresh-required');
+    }));
     mountAccessRoutes(app, { store, policy, ensureAuthenticated, config });
     app.get('/profile', ensureAuthenticated, (req, res) => res.redirect('/private'));
     mountTelemetryRoutes(app, { store, ready, policy, ensureAuthenticated });
+    mountObservationRoutes(app, { store, policy, ensureAuthenticated });
     app.use(errorHandler);
     return app;
 };

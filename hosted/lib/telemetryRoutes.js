@@ -35,7 +35,8 @@ function mountTelemetryRoutes(app, { store, ready, policy, ensureAuthenticated }
     };
     app.post('/addPacket', ready, asyncHandler(async (req, res) => {
         const decoded = decodePacket(req.body); const machine = credential(req); const receivedAt = new Date();
-        await authenticate(() => store.telemetry.admit({ domainId: req.body.domain, credential: machine, forwarderAddress: decoded.meta.id, receivedAt, nodeAddress: decoded.nodeAddress }));
+        const admitted = await authenticate(() => store.telemetry.admit({ domainId: req.body.domain, credential: machine, forwarderAddress: decoded.meta.id, receivedAt, nodeAddress: decoded.nodeAddress, ...(store.observations ? { receiptId: crypto.randomUUID() } : {}) }));
+        if (admitted.observationTicket) await store.observations.enqueue({ ticket: admitted.observationTicket, packet: decoded.packet });
         await store.packets.enqueue({ domain: req.body.domain, time: receivedAt, packet: decoded.packet, meta: decoded.meta,
             origin: machine.kind === 'gateway' ? { kind: 'gateway', gatewayId: machine.id } : { kind: 'http' } });
         res.status(202).send('Packet received');
