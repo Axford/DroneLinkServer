@@ -1,19 +1,21 @@
 
 import NetworkInterface from './NetworkInterface.mjs';
 import * as DMM from './DroneMeshMsg.mjs';
-import SerialPort from 'serialport';
+import {SerialPort} from 'serialport';
 import CRC8 from './CRC.mjs';
+import SerialDiagnosticText from './SerialDiagnosticText.mjs';
 const crc8 = CRC8();
 
 
 export default class SerialInterface extends NetworkInterface {
 
-  constructor(dlm, id, clog, portName) {
+  constructor(dlm, id, clog, portName, binding) {
     super(dlm, id, clog);
 
     this.typeName = 'Serial';
     this.typeCode = 2;
     this.portName = portName;
+    this.binding = binding;
     this.openSerialPort = null;
 
     // decoding vars
@@ -21,6 +23,9 @@ export default class SerialInterface extends NetworkInterface {
     this.receivedSize = 0;
     this.msgLen = 0;
     this.decodeState = 0;
+    this.diagnosticRecords = 0;
+    this.diagnosticRejected = 0;
+    this.diagnostics = new SerialDiagnosticText(text => this.clog(`[Serial ${this.portName || this.id}] ${text}`));
 
     if ((!portName || (portName == ""))) {
       this.clog('ERROR undefined Serial Telemetry portName: '+portName);
@@ -45,8 +50,10 @@ export default class SerialInterface extends NetworkInterface {
     try {
       ///dev/tty.SLAB_USBtoUART
       this.clog('Opening serial telemetry port: ' + this.portName);
-      const port = new SerialPort(this.portName, {
-        baudRate: 115200
+      const port = new SerialPort({
+        path: this.portName,
+        baudRate: 115200,
+        ...(this.binding ? {binding: this.binding} : {})
       });
 
       // Open errors will be emitted as an error event
@@ -54,16 +61,18 @@ export default class SerialInterface extends NetworkInterface {
         me.clog('Serial Error: '+ err.message);
         me.errorMsg = err.message;
 
+        me.resetDecoder();
         me.openSerialPort = null;
         me.state = false;
         
         // wait a while, then try to open port again
-        setTimeout(()=>{
-          me.attemptToOpenSerial();
-        }, 10000);
+        me.scheduleReconnect();
       });
 
+      port.on('close', () => { me.resetDecoder(); me.openSerialPort=null; me.state=false; me.scheduleReconnect(); });
+
       port.on('open', () =>{
+        me.resetDecoder();
         me.openSerialPort = port;
         me.state = true;
         me.clog('Serial port open');
@@ -102,12 +111,31 @@ export default class SerialInterface extends NetworkInterface {
   }
 
 
+  scheduleReconnect() {
+    if(this.reconnectTimer) return;
+    this.reconnectTimer=setTimeout(()=>{
+      this.reconnectTimer=null;this.attemptToOpenSerial();
+    },10000);
+    this.reconnectTimer.unref?.();
+  }
+
+  resetDecoder() {
+    this.decodeState=0;this.receivedSize=0;this.msgLen=0;
+    this.diagnostics.reset();
+  }
+
   decodeByte(b) {
     if (this.decodeState === 0) {
-      if (b === 0xFE) { this.decodeState = 1; this.receivedSize = 0; }
+      if (b === 0xFE) { this.decodeState=1;this.receivedSize=0; }
+      else if (b === 0xFD) { this.decodeState=3;this.receivedSize=0; }
       return;
     }
-    if (this.decodeState === 1) {
+    if (this.decodeState === 3) {
+      if (b < 1 || b > 48) {
+        this.decodeState=0;this.diagnosticRejected++;return;
+      }
+      this.msgLen=b+5;this.decodeState=4;
+    } else if (this.decodeState === 1) {
       this.msgLen = this.getDroneMeshMsgTotalSize(b);
       if (this.msgLen > DMM.DRONE_MESH_MSG_MAX_PACKET_SIZE) {
         this.decodeState = b === 0xFE ? 1 : 0;
@@ -118,9 +146,20 @@ export default class SerialInterface extends NetworkInterface {
     }
     this.msgBuffer[this.receivedSize++] = b;
     if (this.receivedSize !== this.msgLen) return;
-    const message = new DMM.DroneMeshMsg(this.msgBuffer.slice(0, this.msgLen));
-    this.decodeState = 0;
-    this.receivedSize = 0;
+    const diagnostic=this.decodeState===4;
+    const record=this.msgBuffer.slice(0,this.msgLen);
+    this.decodeState=0;this.receivedSize=0;
+    if(diagnostic) {
+      if((record[1]&~7)!==0 || crc8.calc(record,record.length-1)!==record[record.length-1]) {
+        this.diagnosticRejected++;
+        this.diagnostics.breakLine('corrupt record');
+        return;
+      }
+      this.diagnosticRecords++;
+      this.diagnostics.receive(record);
+      return;
+    }
+    const message = new DMM.DroneMeshMsg(record);
     if (message.isValid) {
       this.dlm.receivePacket(this, message, 1, this.id);
       this.packetsReceived++;

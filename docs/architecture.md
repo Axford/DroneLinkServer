@@ -67,3 +67,8 @@ C activation rejects legacy history-based current-view requests with426/client-r
 ## M1.2 bounded gateway codec source — 2026-11-08
 
 The gateway pins protocol0.1.2 and explicitly syncs its versioned browser constant artifact. The hosted backend remains independently pinned to0.1.1 (identical wire constants); no hosted runtime or persistence change occurs. The legacy link codec imports the existing browser-safe CRC factory rather than relying on an ambient global, validates framed length and wraps its unframed bytes. Complete1–4 ADDR helpers validate before mutation; binary-log timestamp parsing is unsigned without changing encoding. Active mesh/SerialInterface framing and firmware are unchanged. The [packet contract](../../DroneLinkDatastore/docs/contracts/packet.md#m12-bounded-codec-software-corrections--2026-11-08) records exact semantics and remaining compatibility limits.
+
+
+## Serial diagnostic records
+
+SerialInterface retains FE+mesh delivery and separately decodes bounded FD diagnostic records into the existing terminal log panel with serial-port attribution. `SerialDiagnosticText` owns incremental UTF-8 display, bounded continuation segments, visible gaps/reset and short partial-line deadlines; diagnostic records never enter mesh routing, cloud observations or mesh counters. It renders terminal controls as text. Port open/close/error resets parser/text state; reconnect is coalesced. Physical access uses the installed serialport11 named constructor/options interface. The [shared contract](../../DroneLinkDatastore/docs/contracts/packet.md#proposed-serial-diagnostic-extension) owns exact bytes and rollout requirements; there is no new browser console or interactive device-command path.

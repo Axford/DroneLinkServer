@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "provenance": "Literal serial wire fixtures: historical sanitized query capture plus independently worked lengths/text; CRC bytes cross-checked with existing gateway CRC8 and the SMBus 123456789 -> F4 check. No live device data in synthetic cases.",
+  "mesh": [
+    {
+      "name": "captured-query",
+      "hex": "fe05fafa02021847fa02010d70001b"
+    },
+    {
+      "name": "minimum-markers",
+      "hex": "fe00fafa02021847fe13"
+    },
+    {
+      "name": "maximum-markers",
+      "hex": "fe2ffafa02021847fefd80fefd80fefd80fefd80fefd80fefd80fefd80fefd80fefd80fefd80fefd80fefd80fefd80fefd80fefd80fefd8067"
+    }
+  ],
+  "diagnostic": [
+    {
+      "name": "hi-line",
+      "hex": "fd0303000068690af7"
+    },
+    {
+      "name": "utf8-start-wrap",
+      "hex": "fd0101ffffe228"
+    },
+    {
+      "name": "utf8-end-wrap",
+      "hex": "fd0302000082ac0a3b"
+    },
+    {
+      "name": "markers-loss",
+      "hex": "fd03070300fdfe0a16"
+    }
+  ]
+}
