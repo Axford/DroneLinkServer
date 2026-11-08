@@ -30,4 +30,7 @@ for (const vector of vectors) {
   const msg = new Codec(buffer);
   assert.deepEqual(Array.from(msg.encodeUnframed()),raw,vector.name);
 }
+context.raw = [0,7,4,136,128,42];
+const framed = new Codec(vm.runInContext('Uint8Array.from(raw).buffer', context)).encode();
+assert.equal(Buffer.from(framed).toString('hex'), 'fe00070488802a4b', 'Framed CRC must work without a global crc8 or Node imports');
 console.log(`PASS: browser ESM graph (${modules.size} modules), no bare/Node imports, ${vectors.length} fixture round trips`);
