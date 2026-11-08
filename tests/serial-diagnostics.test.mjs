@@ -4,6 +4,7 @@ import {MockBinding} from '@serialport/binding-mock';
 import assert from 'node:assert/strict';
 import SerialInterface from '../public/modules/SerialInterface.mjs';
 import CRC8 from '../public/modules/CRC.mjs';
+import {DroneMeshMsg} from '../public/modules/DroneMeshMsg.mjs';
 const diagnostic=Uint8Array.from([0xfd,3,3,0,0,104,105,10,0xf7]);
 const mesh=Uint8Array.from(Buffer.from('fe05fafa02021847fa02010d70001b','hex'));
 function adapter(){const received=[],logs=[];const serial=new SerialInterface({receivePacket:(_i,msg)=>received.push(msg)},'test',v=>logs.push(v),'');logs.length=0;return {serial,received,logs};}
@@ -88,12 +89,16 @@ test('reset makes pending line/character loss visible',()=>{
   assert.ok(logs.some(v=>v.includes('incomplete')));assert.ok(logs.some(v=>v.includes('connection reset')));
 });
 test('installed serialport constructor opens, receives and reopens with a simulated binding',async()=>{
-  const path='/test/serial-diagnostics';MockBinding.createPort(path);
+  const path='/test/serial-diagnostics';MockBinding.createPort(path,{record:true});
   const received=[],logs=[];
   const serial=new SerialInterface({registerInterface(){},receivePacket:(_i,msg)=>received.push(msg)},'binding',v=>logs.push(v),path,MockBinding);
   const waitFor=async predicate=>{const deadline=Date.now()+1000;while(!predicate()){assert.ok(Date.now()<deadline,logs.join('\n'));await new Promise(resolve=>setTimeout(resolve,5));}};
   await waitFor(()=>serial.state===true);let port=serial.openSerialPort;
   assert.equal(port.path,path);assert.equal(port.baudRate,115200);
+  port.flush=()=>assert.fail('serialport flush discards buffered serial data');
+  serial.sendPacket(new DroneMeshMsg(mesh.slice(1)),path);
+  await new Promise((resolve,reject)=>port.drain(error=>error?reject(error):resolve()));
+  assert.deepEqual([...port.port.recording],[...mesh]);
   port.port.emitData(Buffer.from([...diagnostic,...mesh]));await waitFor(()=>received.length===1);
   port.port.emitData(Buffer.from(record([65],1,1)));await new Promise(resolve=>setTimeout(resolve,10));
   await new Promise((resolve,reject)=>port.close(error=>error?reject(error):resolve()));

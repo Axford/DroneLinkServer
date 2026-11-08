@@ -189,7 +189,7 @@ export default class SerialInterface extends NetworkInterface {
     // write to serial port
     this.openSerialPort.write(txBuffer);
 
-    this.openSerialPort.flush();
+    // serialport.write preserves queue order. flush() would discard RX/TX data.
 
     this.packetsSent++;
 
