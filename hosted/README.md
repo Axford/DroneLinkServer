@@ -171,3 +171,7 @@ Local acceptance passes19 application/lifecycle/native cases,14 separately rerun
 ### M1-F codec validation checkpoint — 2026-11-09
 
 Hosted ingress uses the shared protocol0.2.0 structural parser after its canonical-base64 envelope check and before the existing address/auth/admission rules. Invalid packet shapes remain HTTP400 with no admission/identity/history mutation. Reserved-address operational restrictions remain unchanged. Release preparation pins protocol0.2.0 and rejects a Client built with a different protocol archive. Native application19 tests, operations and real Chrome/native-store access/observation/map/reset/reload checks pass locally. The central M1-F ledger records final release and managed acceptance separately.
+
+### M1-F staging closeout — 2026-11-09
+
+The matched Server30d5704/Clientac0816e/protocol0.2.0/persistence0.5.0 release is verified on revision00009-rn9,100% traffic/no old tags. Original57 record hashes, schema/index readiness, image and all7 static assets match. Managed malformed rejection,14 valid fixture packets, stable identity, live/reload and native Admin reset/rebuild pass. Fixture cleanup verifies gateway revocation, direct-key rotation, old-credential401 and archive/history retention. Central M1-F owns full sanitized evidence; raw artifacts remain private. No production, ordinary-account, Iridium or new schema/index/TTL change is included.
