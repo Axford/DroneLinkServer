@@ -1,3 +1,5 @@
+import { ProtocolValidationError, readLinkPacket, readLinkLog, encodeLinkPacket, encodeLinkLog, typedPayload, textPayload, integerField } from './vendor/protocol-0.2.0.mjs';
+export { ProtocolValidationError } from './vendor/protocol-0.2.0.mjs';
 import CRC8 from './CRC.mjs';
 const crc8 = CRC8();
 
@@ -24,7 +26,7 @@ import {
   DRONE_LINK_MSG_PRIORITY_CRITICAL,
   DRONE_LINK_MSG_MAX_PAYLOAD,
   DRONE_LINK_MSG_HEADER_BYTES
-} from './vendor/protocol-0.1.2.mjs';
+} from './vendor/protocol-0.2.0.mjs';
 
 export {
   DRONE_LINK_SOURCE_OWNER,
@@ -102,11 +104,23 @@ export class DroneLinkMsg {
     this.values = [];
     this.timestamp = Date.now();
 
-    if (buffer) this.parse(buffer);
+    if (buffer !== undefined) this.parse(buffer);
   }
 
   totalSize() {
     return DRONE_LINK_MSG_HEADER_BYTES + this.msgLength;
+  }
+
+  assignDecoded(packet) {
+    const {payload, ...fields}=packet;
+    this.uint8_tPayload.fill(0);this.uint8_tPayload.set(payload);
+    Object.assign(this,fields);
+  }
+
+  replacePayload(type, bytes, resetWritable = true) {
+    this.uint8_tPayload.fill(0);this.uint8_tPayload.set(bytes);
+    this.msgType=type;this.msgLength=bytes.length;
+    if(resetWritable)this.writable=false;
   }
 
   getSignature() {
@@ -142,107 +156,40 @@ export class DroneLinkMsg {
   }
 
   parse(rawBuffer) {
-    var buffer = new Uint8Array(rawBuffer, 0);
-    this.source = buffer[0];
-    this.node = buffer[1];
-    this.channel = buffer[2];
-    this.param = buffer[3] & 0b00111111;
-    this.priority = buffer[3] >> 6;
-    this.msgType = (buffer[4] >> 4) & 0x07;
-    this.msgLength = (buffer[4] & 0x0F) + 1;
-    this.writable = (buffer[4] & DRONE_LINK_MSG_WRITABLE) > 0;
-    for (var i=0; i < this.msgLength; i++) {
-      this.uint8_tPayload[i] = buffer[5+i];
-    }
+    this.assignDecoded(readLinkPacket(rawBuffer));
   }
 
   parseFromLog(buffer) {
-    const t = ((buffer[1] << 24) | (buffer[2] << 16) | (buffer[3] << 8) | buffer[4]) >>> 0;
-    this.timestamp = t;
-
-    this.source = buffer[5 + 0];
-    this.node = buffer[5 + 1];
-    this.channel = buffer[5 + 2];
-    this.param = buffer[5 + 3] & 0b00111111;
-    this.priority = buffer[5 + 3] >> 6;
-    this.msgType = (buffer[5 + 4] >> 4) & 0x07;
-    this.msgLength = (buffer[5 + 4] & 0x0F) + 1;
-    this.writable = (buffer[5 + 4] & DRONE_LINK_MSG_WRITABLE) > 0;
-    for (var i=0; i < this.msgLength; i++) {
-      this.uint8_tPayload[i] = buffer[5 + 5+i];
-    }
+    this.assignDecoded(readLinkLog(buffer));
   }
 
   copy(msg) {
-    this.source = msg.source;
-    this.node = msg.node;
-    this.channel = msg.channel;
-    this.param = msg.param;
-    this.priority = msg.priority;
-    this.msgType = msg.msgType;
-    this.msgLength = msg.msgLength;
-    this.writable = msg.writable;
-    //console.log('msgTypeLength: ', buffer[3].toString(2));
-    for (var i=0; i < this.msgLength; i++) {
-      this.uint8_tPayload[i] = msg.uint8_tPayload[i];
-    }
+    const packet=readLinkPacket(msg.encodeUnframed());
+    this.assignDecoded(packet);
   }
 
 	setUint8(values) {
-		this.msgType = DRONE_LINK_MSG_TYPE_UINT8_T;
-		this.msgLength = values.length;
-    this.writable = false;
-		for (var i=0; i < values.length; i++) {
-      this.uint8_tPayload[i] =values[i];
-    }
-	}
+    this.replacePayload(0,typedPayload(0,values));
+  }
 
   setUint32(values) {
-    if (values === undefined) {
-      console.error('Undefined values for setUint32: ', values);
-      return;
-    }
-      
-		this.msgType = DRONE_LINK_MSG_TYPE_UINT32_T;
-		this.msgLength = values.length * 4;
-    this.writable = false;
-    var vv = new Uint32Array(this.rawPayload, 0, values.length);
-		for (var i=0; i < values.length; i++) {
-      vv[i] =values[i];
-    }
-	}
+    this.replacePayload(2,typedPayload(2,values));
+  }
 
   setFloat(values) {
-		this.msgType = DRONE_LINK_MSG_TYPE_FLOAT;
-		this.msgLength = values.length * 4;
-    this.writable = false;
-    var vv = new Float32Array(this.rawPayload, 0, values.length);
-		for (var i=0; i < values.length; i++) {
-      vv[i] =values[i];
-    }
-	}
+    this.replacePayload(3,typedPayload(3,values));
+  }
   
   setAddr(values) {
-    if (!values || ![4, 8, 12, 16].includes(values.length) ||
-        Array.from(values).some(value => !Number.isInteger(value) || value < 0 || value > 255)) {
-      throw new RangeError('ADDR requires one to four complete four-byte addresses');
-    }
-    this.msgType = DRONE_LINK_MSG_TYPE_ADDR;
-    this.msgLength = values.length;
-    this.writable = false;
-    this.uint8_tPayload.set(values);
+    this.replacePayload(1,typedPayload(1,values));
   }
 
 	parseAddress(addr) {
-		var gti = addr.indexOf('>');
-    var pi = addr.indexOf('.');
-		var a = {
-			node: parseInt(addr.substring(0,gti)),
-			channel: parseInt(addr.substring(gti+1,pi)),
-			param: parseInt(addr.substring(pi+1, addr.length))
-		}
-		return a;
-	}
+    if(typeof addr!=='string'||!/^\d+>\d+\.\d+$/.test(addr))throw new ProtocolValidationError('invalid-field','address');
+    const [node,channel,param]=addr.split(/[>.]/).map(Number);
+    integerField(node,0,255,'node');integerField(channel,0,255,'channel');integerField(param,0,63,'param');
+    return {node,channel,param};
+  }
 
 	setAddress(addr) {
 		var a = this.parseAddress(addr);
@@ -252,26 +199,18 @@ export class DroneLinkMsg {
   }
 
   setPriority(p) {
-    this.priority = p;
+    this.priority=integerField(p,0,3,'priority');
   }
 
   setString(s) {
-		this.msgType = DRONE_LINK_MSG_TYPE_CHAR;
-    this.msgLength = s.length;
-    for (var i=0; i < this.msgLength; i++) {
-      this.uint8_tPayload[i] = s.charCodeAt(i);
-    }
+    this.replacePayload(4,textPayload(s),false);
   }
 
 	setName(s) {
-		this.setString(s);
-		this.msgType = DRONE_LINK_MSG_TYPE_NAME;
+    this.replacePayload(5,textPayload(s),false);
   }
 
   encode() {
-    if (!Number.isInteger(this.msgLength) || this.msgLength < 1 || this.msgLength > DRONE_LINK_MSG_MAX_PAYLOAD) {
-      throw new RangeError('Framed link payload must contain 1–16 bytes');
-    }
     const payload = this.encodeUnframed();
     const frame = new Uint8Array(payload.length + 2);
     frame[0] = 0xFE;
@@ -281,18 +220,7 @@ export class DroneLinkMsg {
   }
 
 	encodeUnframed() {
-    // return Uint8Array
-    var buffer = new Uint8Array(this.msgLength + DRONE_LINK_MSG_HEADER_BYTES);
-    buffer[0] = this.source;
-    buffer[1] = this.node;
-    buffer[2] = this.channel;
-    buffer[3] = this.priority << 6 | (this.param & 0b00111111);
-    buffer[4] = (this.writable ? DRONE_LINK_MSG_WRITABLE : 0) | (this.msgType << 4) | ((this.msgLength-1) & 0x0F);
-
-    for (var i=0; i<this.msgLength; i++) {
-      buffer[5+i] = this.uint8_tPayload[i];
-    }
-    return buffer;
+    return encodeLinkPacket(this,this.uint8_tPayload.subarray(0,this.msgLength));
   }
 
   getLogEncodingSize() {
@@ -300,29 +228,7 @@ export class DroneLinkMsg {
   }
 
   encodeForLog() {
-    // prefixes a total size and timestamp
-    // return Uint8Array
-    var packetSize = this.getLogEncodingSize();
-    var buffer = new Uint8Array(packetSize);
-    buffer[0] = packetSize;
-
-    // encode timestamp
-    buffer[1] = (this.timestamp >> 24) & 0xFF;
-    buffer[2] = (this.timestamp >> 16) & 0xFF;
-    buffer[3] = (this.timestamp >> 8) & 0xFF;
-    buffer[4] = (this.timestamp) & 0xFF;
-
-    // encode actual packet
-    buffer[5+0] = this.source;
-    buffer[5+1] = this.node;
-    buffer[5+2] = this.channel;
-    buffer[5+3] = this.priority << 6 | (this.param & 0b00111111)
-    buffer[5+4] = (this.writable ? DRONE_LINK_MSG_WRITABLE : 0) | (this.msgType << 4) | ((this.msgLength-1) & 0x0F);
-
-    for (var i=0; i<this.msgLength; i++) {
-      buffer[5+5+i] = this.uint8_tPayload[i];
-    }
-    return buffer;
+    return encodeLinkLog(this,this.uint8_tPayload.subarray(0,this.msgLength),this.timestamp);
   }
 
   // returns true if values in this message match those of msg
@@ -369,12 +275,12 @@ export class DroneLinkMsg {
       valueView = Array.from(temp);
 
     } else if (this.msgType == DRONE_LINK_MSG_TYPE_UINT32_T) {
-      var temp = new Uint32Array(this.rawPayload, 0, numValues);
+      var temp = Array.from({length:numValues},(_,i)=>new DataView(this.rawPayload).getUint32(i*4,true));
       valueView = Array.from(temp);
       //console.log("u32", valueView);
 
     } else if (this.msgType == DRONE_LINK_MSG_TYPE_FLOAT) {
-      valueView = new Float32Array(this.rawPayload, 0, numValues);
+      valueView = Float32Array.from(Array.from({length:numValues},(_,i)=>new DataView(this.rawPayload).getFloat32(i*4,true)));
       //console.log("F", valueView);
 
     } else if (this.msgType == DRONE_LINK_MSG_TYPE_CHAR) {
@@ -439,7 +345,7 @@ export class DroneLinkMsg {
       doWrite = true;
 
     } else if (this.msgType == DRONE_LINK_MSG_TYPE_UINT32_T) {
-      let int32view = new Uint32Array(this.rawPayload, 0, numValues);
+      let int32view = Array.from({length:numValues},(_,i)=>new DataView(this.rawPayload).getUint32(i*4,true));
       for (var i=0; i<numValues; i++) {
         var uv = int32view[i];
         if (uv == undefined) uv = 0;
@@ -448,7 +354,7 @@ export class DroneLinkMsg {
       doWrite = true;
 
     } else if (this.msgType == DRONE_LINK_MSG_TYPE_FLOAT) {
-      let floatView = new Float32Array(this.rawPayload, 0, numValues);
+      let floatView = Float32Array.from(Array.from({length:numValues},(_,i)=>new DataView(this.rawPayload).getFloat32(i*4,true)));
       for (var i=0; i<numValues; i++) {
         var fv = floatView[i];
         if (fv != undefined) {

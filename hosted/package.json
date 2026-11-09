@@ -33,7 +33,7 @@
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
     "@dronelink/persistence": "file:vendor/dronelink-persistence-0.5.0.tgz",
-    "@dronelink/protocol": "file:vendor/dronelink-protocol-0.1.1.tgz"
+    "@dronelink/protocol": "file:vendor/dronelink-protocol-0.2.0.tgz"
   },
   "private": true,
   "type": "commonjs",

@@ -1247,12 +1247,17 @@ export default class DroneLinkManager {
       // are we the destination?
       if (msg.destNode == this.node) {
 
-        // Reject malformed raw link payloads before permissive legacy decoding can normalize them.
-        const raw = new Uint8Array(msg.rawPayload, 0, msg.getPayloadSize());
-        if (raw.length < DLM.DRONE_LINK_MSG_HEADER_BYTES + 1 || raw.length !== DLM.DRONE_LINK_MSG_HEADER_BYTES + (raw[4] & 15) + 1 || ((raw[4] & 15) + 1) % DLM.DRONE_LINK_MSG_TYPE_SIZES[(raw[4] >> 4) & 7]) return;
-
-        // unwrap contained DLM
-        var dlmMsg = new DLM.DroneLinkMsg( raw.slice().buffer );
+        const raw=new Uint8Array(msg.rawPayload,0,msg.getPayloadSize());
+        let dlmMsg;
+        try {dlmMsg=new DLM.DroneLinkMsg(raw);}
+        catch(error) {
+          if(!(error instanceof DLM.ProtocolValidationError))throw error;
+          this.rejectedLinkMessages=(this.rejectedLinkMessages||0)+1;
+          if(!this.lastLinkRejectionLog || Date.now()-this.lastLinkRejectionLog>=1000) {
+            this.lastLinkRejectionLog=Date.now();this.clog('Rejected malformed link packet: '+error.code);
+          }
+          return;
+        }
 
         if (this.logOptions.DroneLinkMsg)
           this.clog('    ' + dlmMsg.asString());

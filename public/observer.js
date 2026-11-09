@@ -1,3 +1,4 @@
+import { showLogImportStatus } from './modules/log-import-status.mjs';
 
 import loadStylesheet from './modules/loadStylesheet.js';
 
@@ -78,6 +79,8 @@ mapboxgl.accessToken = 'pk.eyJ1IjoiYXhmb3JkIiwiYSI6ImNqMWMwYXI5MDAwNG8zMm5uanFye
 import DroneLinkLog from './modules/DroneLinkLog.mjs';
 var logger = new DroneLinkLog(state);
 var stateLog = new DroneLinkLog(state);
+logger.on('import', report => showLogImportStatus(report, 'log-import-status'));
+stateLog.on('import', report => showLogImportStatus(report, 'state-import-status'));
 
 var resumeLogPlayback = false;
 

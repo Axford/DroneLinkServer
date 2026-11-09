@@ -45,8 +45,9 @@ def prepare(args):
     for name in tracked: files[name] = (ROOT / name).read_bytes()
     files[pin[5:]] = raw
     protocol_pin = package['dependencies'].get('@dronelink/protocol')
-    if protocol_pin != 'file:vendor/dronelink-protocol-0.1.1.tgz': raise ValueError('M1-B requires pinned protocol0.1.1')
+    if protocol_pin != 'file:vendor/dronelink-protocol-0.2.0.tgz': raise ValueError('M1-F requires pinned protocol0.2.0')
     protocol_raw = (ROOT / protocol_pin[5:]).read_bytes()
+    if manifest.get('protocolVersion') != '0.2.0' or manifest.get('protocolArchiveSha256') != digest(protocol_raw): raise ValueError('Client and Server protocol releases differ')
     protocol_lock = json.loads((ROOT / 'package-lock.json').read_text())['packages']['node_modules/@dronelink/protocol']
     if protocol_lock['resolved'] != protocol_pin or protocol_lock['integrity'] != 'sha512-' + base64.b64encode(hashlib.sha512(protocol_raw).digest()).decode(): raise ValueError('Protocol lock integrity differs')
     files[protocol_pin[5:]] = protocol_raw
@@ -60,7 +61,7 @@ def prepare(args):
     output.mkdir(parents=True)
     for name, data in files.items():
         target = output / safe(name); target.parent.mkdir(parents=True, exist_ok=True); target.write_bytes(data)
-    result = {'schemaVersion': 1, 'accessPolicyVersion': 1, 'telemetryPolicyVersion': 1, 'observationPolicyVersion': 1, 'serverRevision': revision, 'clientRevision': manifest['clientRevision'], 'clientArchiveSha256': digest(pathlib.Path(args.client).read_bytes()), 'persistenceVersion': provenance['version'], 'persistenceSha256': digest(raw), 'storageFormat': provenance['storageFormat'], 'files': {name: digest(data) for name, data in files.items()}}
+    result = {'schemaVersion': 1, 'accessPolicyVersion': 1, 'telemetryPolicyVersion': 1, 'observationPolicyVersion': 1, 'serverRevision': revision, 'clientRevision': manifest['clientRevision'], 'clientArchiveSha256': digest(pathlib.Path(args.client).read_bytes()), 'protocolVersion': '0.2.0', 'protocolArchiveSha256': digest(protocol_raw), 'persistenceVersion': provenance['version'], 'persistenceSha256': digest(raw), 'storageFormat': provenance['storageFormat'], 'files': {name: digest(data) for name, data in files.items()}}
     (output / 'hosted-release.json').write_text(json.dumps(result, indent=2, sort_keys=True) + '\n')
     verify(output)
 

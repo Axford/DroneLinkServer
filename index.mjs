@@ -1,3 +1,4 @@
+import { registerSocketLinkIngress } from './public/modules/socket-link-ingress.mjs';
 import _ from "lodash";
 import path from "path";
 import colors from "colors";
@@ -731,16 +732,7 @@ io.on("connection", (socket) => {
   io.emit("localAddress", sourceId);
 
   // if we receive a message from a client for onward transmission
-  socket.on("sendMsg", (msgBuffer) => {
-    var msg = new DLM.DroneLinkMsg(msgBuffer);
-    //clog(('[.sM] recv: ' + msg.asString()).green );
-
-    // dont send messages addressed to ourself!
-    if (msg.node == sourceId) return;
-
-    // hand to DLM to managge
-    dlm.sendDroneLinkMessage(msg);
-  });
+  registerSocketLinkIngress(socket, dlm, sourceId);
 
   // AIS
   socket.on("AIS", (msg) => {

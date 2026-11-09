@@ -33,6 +33,8 @@ import '/modules/oui/GraphPort.mjs';
 import '/modules/oui/Wizard.mjs';
 import Parser from '/modules/DroneConfigParser.mjs';
 import State from '/modules/DroneLinkState.mjs';
+import Log from '/modules/DroneLinkLog.mjs';
+import {showLogImportStatus} from '/modules/log-import-status.mjs';
 import {DroneLinkMsg} from '/modules/droneLinkMsg.mjs';
 // Draggable presentation plugin is outside these controls' acceptance scope.
 $.fn.draggable=function(){return this;};
@@ -44,6 +46,8 @@ const management=new Management(channel,{getParamValues:(_n,_c,p,def)=>p===12?[1
 const raw={setEditorContents:(text,name)=>document.querySelector('#raw-file').textContent=name+': '+text};
 Configuration.prototype.onDownloadComplete.call(raw,{filedata:new TextEncoder().encode('node=2'),fullpath:'/config.ini'});
 const parser=new Parser();let parseError='';try{parser.parse('node=2\\n[ Drone = 1 ]\\nstatus=1');}catch(error){parseError=error.message;}
+const log=new Log(state);log.on('import', report=>showLogImportStatus(report,'log-import-status'));
+log.loadFromBuffer(Uint8Array.of(11,0,0,0,1,0,7,4,0,0,42,0));
 window.acceptance={applyGatewayStatus,metadataAvailable,modules:Object.keys(catalog),parseError,management,graph:new GraphEditor({})};
 </script></body></html>`));
   app.use(express.static(path.join(serverRoot,'public')));
@@ -59,6 +63,7 @@ window.acceptance={applyGatewayStatus,metadataAvailable,modules:Object.keys(cata
   const page=await context.newPage();const errors=[];page.on('pageerror',error=>errors.push(error.message));
   await page.goto(base+'/browser-test');await page.waitForFunction(()=>window.acceptance);
   assert.equal(await page.evaluate(()=>window.acceptance.metadataAvailable),available,name);
+  assert.match(await page.getByRole('alert').filter({hasText:'Partial log import'}).textContent(),/1 valid records, 0 invalid records skipped; stopped at byte 11/);
   assert.equal(await page.locator('button').filter({hasText:/^Modules$/}).isDisabled(),!available,name);
   assert.equal(await page.locator('#release-warning').count(),available?0:1,name);
   assert.match(await page.locator('#telemetry').textContent(),/42/);assert.match(await page.locator('#raw-file').textContent(),/\/config.ini: node=2/);

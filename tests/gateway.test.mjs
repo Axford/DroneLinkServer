@@ -134,3 +134,10 @@ test('a changed publication received immediately after a suppressed duplicate is
   const uploads = requests.filter(x=>x.url.endsWith('/addPacket'));
   assert.equal(uploads.length, 2); assert.equal(uploads[1].body.packet, Buffer.from(changed).toString('base64'));
 });
+
+test('malformed inner links are rejected before local/cloud delivery and the next valid packet succeeds',async t=>{
+ const {manager,events,requests}=gateway(t);
+ for(const bad of [raw.subarray(0,5),Uint8Array.of(0,2,3,0x48,0x20,42)])await manager.receiveDroneLinkMsg({},incoming(250,250,bad),0);
+ assert.equal(events.length,0);assert.equal(requests.length,0);assert.equal(manager.rejectedLinkMessages,2);
+ await manager.receiveDroneLinkMsg({},incoming(),0);assert.equal(events.length,1);assert.equal(requests.filter(r=>r.url.endsWith('/addPacket')).length,1);
+});

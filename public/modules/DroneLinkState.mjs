@@ -40,13 +40,16 @@ export default class DroneLinkState {
     this.discoveryQueue = new DroneLinkMsgQueue();
     this.callbacks = {}; // each key is an event type, values are an array of callback functions
     this.liveMode = false;  // set to false to stop using the socket (i.e. log playback mode)
-    this.received = 0; // received msg count
+    this.received = 0;
+    this.rejectedMessages = 0; // received msg count
 
     if (this.socket) {
       this.socket.on('DLM.msg', function(msgBuffer) {
         if (!me.liveMode) return;
 
-        var msg = new DLM.DroneLinkMsg(msgBuffer);
+        let msg;
+        try {msg=new DLM.DroneLinkMsg();msg.parse(msgBuffer);}
+        catch(error) {if(!(error instanceof DLM.ProtocolValidationError))throw error;me.rejectedMessages++;me.trigger('validation', {code:error.code});return;}
         me.handleLinkMsg(msg, true, 'socket');
         me.received++;
         me.trigger('raw', msg);
@@ -148,8 +151,8 @@ export default class DroneLinkState {
 
         // generate the value message
         qm.node = nodeState.id;
-        qm.channel = channelKey;
-        qm.param = paramKey;
+        qm.channel = Number(channelKey);
+        qm.param = Number(paramKey);
         
         switch(param.msgType) {
           case DLM.DRONE_LINK_MSG_TYPE_UINT8_T: qm.setUint8(param.values); break;

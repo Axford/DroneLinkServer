@@ -155,7 +155,7 @@ class TelemetryRelease(unittest.TestCase):
             archive = root/'vendor/dronelink-persistence-0.5.0.tgz'
             with tarfile.open(archive,'w:gz') as tar:
                 raw=json.dumps(provenance).encode(); member=tarfile.TarInfo('package/provenance.json'); member.size=len(raw); tar.addfile(member,io.BytesIO(raw))
-            protocol=root/'vendor/dronelink-protocol-0.1.1.tgz'; protocol.write_bytes(b'pinned-protocol')
+            protocol=root/'vendor/dronelink-protocol-0.2.0.tgz'; protocol.write_bytes(b'pinned-protocol')
             deps={'@dronelink/persistence':'file:vendor/'+archive.name,'@dronelink/protocol':'file:vendor/'+protocol.name}
             (root/'package.json').write_text(json.dumps({'dependencies':deps}))
             import base64, hashlib
@@ -167,7 +167,7 @@ class TelemetryRelease(unittest.TestCase):
                 if args[0]=='rev-parse': return 'a'*40
                 if args[0]=='ls-files': return 'app.js\npackage.json\npackage-lock.json'
                 raise AssertionError(args)
-            manifest={'clientRevision':'b'*40}
+            manifest={'clientRevision':'b'*40,'protocolVersion':'0.2.0','protocolArchiveSha256':hashlib.sha256(b'pinned-protocol').hexdigest()}
             client=root/'client.tgz'; client.write_bytes(b'client')
             output=root/'output'
             with patch.object(release,'ROOT',root), patch.object(release,'git',git), patch.object(release,'client_files',return_value=(manifest,{'build/index.html':b'client'})):

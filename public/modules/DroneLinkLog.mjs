@@ -6,6 +6,7 @@ Manages a time-stamped log of DroneLinkMsgs
 
 
 import * as DLM from './droneLinkMsg.mjs';
+import {byteView} from './vendor/protocol-0.2.0.mjs';
 
 export default class DroneLinkLog {
   constructor(state) {
@@ -192,9 +193,9 @@ export default class DroneLinkLog {
         console.log('    param:' + pkey);
 
         var msg = new DLM.DroneLinkMsg();
-        msg.node = nkey;
-        msg.channel = ckey;
-        msg.param = pkey;
+        msg.node = Number(nkey);
+        msg.channel = Number(ckey);
+        msg.param = Number(pkey);
         msg.writable = param.writable;
 
         switch(param.msgType) {
@@ -202,9 +203,7 @@ export default class DroneLinkLog {
           case DLM.DRONE_LINK_MSG_TYPE_UINT32_T: msg.setUint32(param.values); break;
           case DLM.DRONE_LINK_MSG_TYPE_FLOAT: msg.setFloat(param.values); break;
           case DLM.DRONE_LINK_MSG_TYPE_CHAR: msg.setString(param.values[0]); break;
-          case DLM.DRONE_LINK_MSG_TYPE_ADDR: msg.setUint8(param.values);
-          msg.msgType = DLM.DRONE_LINK_MSG_TYPE_ADDR;
-          msg.msgLength = 4;
+          case DLM.DRONE_LINK_MSG_TYPE_ADDR: msg.setAddr(param.values);
           break;
         }
 
@@ -260,35 +259,30 @@ export default class DroneLinkLog {
   }
 
   loadFromBuffer(buffer) {
-    this.reset();
-
-    const view = new Uint8Array(buffer);
-
-    // parse view
-    var i = 0;
-    while (i < view.length) {
-      // read size byte
-      var size = view[i];
-      //console.log('Reading from '+i+': '+size+' bytes...');
-
-      var packet = new Uint8Array(buffer, i, size);
-
-      var msg = new DLM.DroneLinkMsg();
-      msg.parseFromLog(packet);
-      //console.log(msg.timestamp + ': '+msg.asString());
-
-      // add to logger
-      this.add(msg);
-
-      // jump to next packet
-      i += size;
+    const view=byteView(buffer);
+    this.reset();this.pause();
+    const report={complete:true,imported:0,skipped:0,stoppedAt:null,errors:[]};
+    let offset=0;
+    while(offset<view.length) {
+      const size=view[offset];
+      if(size<11||size>26||offset+size>view.length) {
+        report.complete=false;report.stoppedAt=offset;
+        if(report.errors.length<16)report.errors.push({offset,code:'invalid-log-record'});
+        break;
+      }
+      try {
+        const msg=new DLM.DroneLinkMsg();msg.parseFromLog(view.subarray(offset,offset+size));
+        this.add(msg);report.imported++;
+      } catch(error) {
+        if(!(error instanceof DLM.ProtocolValidationError))throw error;
+        report.complete=false;report.skipped++;
+        if(report.errors.length<16)report.errors.push({offset,code:error.code});
+      }
+      offset+=size;
     }
-
-    this.playbackIndex = 0;
-    this.playbackTime = 0;
-    this.playbackStart = Date.now() - this.playbackTime;
-
-    this.trigger('status', null);
+    this.playbackIndex=0;this.playbackTime=0;this.playbackStart=Date.now();
+    this.importStatus=report;this.trigger('import',report);this.trigger('status',report);
+    return report;
   }
 
 }

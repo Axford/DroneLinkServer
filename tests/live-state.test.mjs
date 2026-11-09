@@ -41,3 +41,14 @@ test('gateway socket observations reach live state and discovery; playback ignor
   assert.deepEqual(state.getParamValues(11, 1, 13, [0]), [480]);
   assert.equal(state.received, 1);
 });
+
+test('malformed live traffic is counted without discovery or freshness mutation and valid traffic continues',t=>{
+ const previous=globalThis._;globalThis._=lodash;t.after(()=>globalThis._=previous);
+ const socket=new EventEmitter(),state=new DroneLinkState(socket);state.goLive();
+ const good=Uint8Array.of(11,11,1,13,0,42);socket.emit('DLM.msg',good);
+ const before=JSON.stringify(state.state),queued=state.discoveryQueue.size?.();
+ for(const bad of [undefined,good.subarray(0,5),Uint8Array.of(99,99,1,13,0x20,42)])socket.emit('DLM.msg',bad);
+ assert.equal(JSON.stringify(state.state),before);assert.equal(state.received,1);assert.equal(state.rejectedMessages,3);
+ if(queued!==undefined)assert.equal(state.discoveryQueue.size(),queued);
+ good[5]=43;socket.emit('DLM.msg',good);assert.equal(state.received,2);assert.deepEqual(state.getParamValues(11,1,13,[0]),[43]);
+});
