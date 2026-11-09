@@ -1,5 +1,5 @@
 {
-  "sourceRevision": "df91ebac6d23c9ce7ad15274c5f1f01c4048c322",
+  "sourceRevision": "1d230325e3996face7948853d0e813406204e364",
   "files": {
     "src/TelemetryReport.h": "83816d5b0e77bbb395be7e3b3605018b66ab52b7ad30d2e636617bbb87b3b7c1",
     "src/CloudTelemetryHttp.h": "db0da0b7a5d60f2515180ffc86247c3f738caaff96bdb70508dce079062786c0",

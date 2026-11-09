@@ -195,3 +195,7 @@ The matching optional local firmware/help bundle is independently prepared/verif
 ### G.4 measurement producer provenance
 
 The explicitly coordinated producer fixture now pins DroneNode `df91ebac6d23c9ce7ad15274c5f1f01c4048c322`, including its new portable measurement header. This is the G.1 producer with local measurement hooks; observer defaults preserve the emitted HTTP envelope and admission/no-replay behavior in the native harness. Hosted runtime, Client, protocol and persistence archives are unchanged. Keep the already verified G.3 hosted artifact for staging; the test provenance update does not require a different backend. The central [G.4 preview](../../DroneLinkDatastore/docs/operations/m1-g4-activation-preview.md) owns the refreshed device candidate and remaining physical gates.
+
+### G.4 DNS-ready candidate refresh
+
+The producer provenance now names DroneNode `1d230325e3996face7948853d0e813406204e364`, which adds the optional Wi-Fi DNS override and controlled fault tools. The five sender/header hashes are identical to the measurement candidate: cloud HTTP bytes, packet/catalog constants and hosted runtime are unchanged. Refreshed matched release identities and installed-artifact acceptance are recorded in the [central G.4 ledger](../../DroneLinkDatastore/docs/planning/m1-g-device-http-telemetry.md). Device, workstation-LAN listener/firewall and staging activation remain pending; unit fixtures use loopback only.
