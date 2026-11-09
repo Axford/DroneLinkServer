@@ -7,6 +7,7 @@ const helmet = require('helmet');
 const path = require('path');
 const { mountObservationRoutes } = require('./lib/observationRoutes');
 const { mountTelemetryRoutes } = require('./lib/telemetryRoutes');
+const { mountPackedTelemetry } = require('./lib/packedTelemetry');
 const { createAccessPolicy, fault } = require('./lib/accessPolicy');
 const { mountAccessRoutes } = require('./lib/accessRoutes');
 const { sendErrorResponse, asyncHandler, errorHandler } = require('./middleware/errorHandler');
@@ -22,6 +23,10 @@ const createApp = ({ config, store, googleStrategyFactory = defaultGoogleStrateg
     const policy = createAccessPolicy(store);
     const passport = new Passport();
     const app = express();
+
+    const ready = asyncHandler(async (req, res, next) => {
+        const control = await store.access.getControl(); if (control?.state !== 'ready') throw fault('unavailable'); next();
+    });
 
     // Security middleware with custom CSP for Google profile images, Bootstrap CDN, and Mapbox GL JS
     app.use(helmet({
@@ -81,6 +86,7 @@ const createApp = ({ config, store, googleStrategyFactory = defaultGoogleStrateg
     }));
 
     // Middleware
+    mountPackedTelemetry(app, { store, ready });
     app.use(express.json({ limit: '10mb' }));
     app.set('trust proxy', 1);
     app.use((req, res, next) => {
@@ -165,9 +171,6 @@ const createApp = ({ config, store, googleStrategyFactory = defaultGoogleStrateg
         });
     }));
     app.get('/auth/logout', (req, res) => res.status(405).set('Allow', 'POST').json({ success: false, code: 'method-not-allowed', message: 'Use the protected sign-out action' }));
-    const ready = asyncHandler(async (req, res, next) => {
-        const control = await store.access.getControl(); if (control?.state !== 'ready') throw fault('unavailable'); next();
-    });
     app.use(['/api/domains', '/api/invite', '/api/send'], ready);
     app.use('/invite', (req, res, next) => { res.set('Referrer-Policy', 'no-referrer'); res.set('Cache-Control', 'private, no-store'); next(); });
     mountClientHosting(app, { clientBuildDir: config.clientBuildDir, ensureAuthenticated });

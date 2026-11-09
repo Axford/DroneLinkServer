@@ -125,3 +125,8 @@ Local acceptance:65 gateway tests,16 fixture browser-graph round trips,8 release
 ### M1-F managed acceptance complete — 2026-11-09
 
 The frozen matched Server `30d5704` / Client `ac0816e` release is deployed on staging revision `dronewright-staging-00009-rn9` at100% traffic with no old tags. Exact image/static hashes and managed schema/index readiness pass. Twelve malformed direct/gateway packets reject before discovery/history;14 valid fixture packets, stable identity, snapshot/map/inspector/live/reload and user-performed native-Chrome reset/rebuild pass. Fixture credentials are revoked/rotated and old credentials return401; the fixture is archived with retained history. All57 original Domain/history record hashes match. Prior C/E contexts are unchanged; central M1-F owns exact image/manifests and scope limits. This documentation follow-up does not change frozen release bytes.
+
+
+## M1-G packed telemetry verification
+
+Use the current Firestore installation/preparation and verified Client-build commands in [hosted guidance](../hosted/README.md#m1-g-g2-packed-device-ingress--local-acceptance). Set `DRONELINK_NODE_DIR` explicitly to run the hash-checked production G.1 sender/native-store interoperability case; ordinary isolated Server runs may skip it. The route reuses the managed HTTPS frontend and requires no additional listener, database migration or dependency release. Export/verify the matched additive Server release before enabling packed firmware on a device. G.2 is local software evidence only; resource/timing/preservation checks and managed/device activation remain separately gated by the [M1-G plan](../../DroneLinkDatastore/docs/planning/m1-g-device-http-telemetry.md).

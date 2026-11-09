@@ -153,6 +153,7 @@ async function serve(t, app) {
   return function agent() {
     let cookie='';
     return {
+      origin, server,
       get cookie() {return cookie;},
       async request(url,options={}) {
         const headers={...options.headers}; if(cookie) headers.Cookie=cookie;

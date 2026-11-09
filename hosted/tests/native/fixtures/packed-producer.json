@@ -1,0 +1,9 @@
+{
+  "sourceRevision": "cc930ba46baad083a2686313ad5030be4009aee2",
+  "files": {
+    "src/TelemetryReport.h": "83816d5b0e77bbb395be7e3b3605018b66ab52b7ad30d2e636617bbb87b3b7c1",
+    "src/CloudTelemetryHttp.h": "9c88ab4b986e8b4ed877652c45ce4325762661091b08ae6fb5a8b5aa9c97daf4",
+    "src/CloudTelemetryConfig.h": "6cf3112821d3daeb0b1b99f8dc7950b23179ef6c7fbbf0ae9de72c39f2060065",
+    "src/ConfigurationLine.h": "c1961099bdac8ac8bea611069f4135c1f266fcd63e415c513a6b028b410dc0a8"
+  }
+}
