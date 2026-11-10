@@ -46,3 +46,24 @@ test('C startup normalizes the same activation contract for storage and HTTP eve
     try { assert.equal(storageEpoch, 'm1-c-1'); assert.equal(appEpoch, storageEpoch); } finally { await service.close(); }
     await assert.rejects(startHosted({ config: testConfig({ observationEpoch: 'unknown' }) }), { code: 'observation-schema' });
 });
+
+test('shared design assets are served from the selected Client artifact without exposing private routes', async () => {
+    const fs = require('node:fs/promises'); const os = require('node:os'); const path = require('node:path');
+    const express = require('express'); const { mountClientHosting } = require('../../lib/clientHosting');
+    const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'dw-design-assets-'));
+    const app = express(); const server = http.createServer(app);
+    try {
+        await fs.mkdir(path.join(directory, 'static')); await fs.writeFile(path.join(directory, 'index.html'), '<main>Private</main>');
+        await fs.writeFile(path.join(directory, 'design-tokens.css'), ':root { --dw-font-size-base: 14px; }');
+        await fs.writeFile(path.join(directory, 'design-system.css'), 'body { color: var(--dw-color-text); }');
+        mountClientHosting(app, { clientBuildDir: directory, ensureAuthenticated: (req, res) => res.sendStatus(401) });
+        await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+        const origin = `http://127.0.0.1:${server.address().port}`;
+        for (const name of ['design-tokens.css', 'design-system.css']) {
+            const response = await fetch(`${origin}/${name}`); assert.equal(response.status, 200);
+            assert.match(response.headers.get('content-type'), /text\/css/);
+            assert.equal(await response.text(), await fs.readFile(path.join(directory, name), 'utf8'));
+        }
+        assert.equal((await fetch(origin + '/private/')).status, 401);
+    } finally { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); await fs.rm(directory, { recursive: true, force: true }); }
+});

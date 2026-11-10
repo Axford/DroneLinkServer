@@ -29,7 +29,7 @@ const resolveClientBuildDir = clientBuildDir => {
 const mountClientHosting = (app, { clientBuildDir, ensureAuthenticated }) => {
     const buildDir = resolveClientBuildDir(clientBuildDir);
     app.use('/static', express.static(path.join(buildDir, 'static')));
-    for (const asset of ['manifest.json', 'favicon.ico', 'logo192.png', 'logo512.png']) {
+    for (const asset of ['manifest.json', 'favicon.ico', 'logo192.png', 'logo512.png', 'design-tokens.css', 'design-system.css']) {
         app.get(`/${asset}`, (req, res) => res.sendFile(path.join(buildDir, asset)));
     }
     app.use('/private', ensureAuthenticated, express.static(buildDir));
