@@ -48,12 +48,16 @@ async function run() {
             ownerPage.on('dialog', dialog => dialog.accept());
             await ownerPage.goto(origin + '/private'); await ownerPage.getByRole('button', { name: 'New Domain', exact: true }).click();
             await ownerPage.getByLabel('Domain Name', { exact: true }).fill('Browser Fleet'); await ownerPage.getByRole('button', { name: 'Create Domain', exact: true }).click();
-            await ownerPage.getByRole('link', { name: 'Browser Fleet', exact: true }).click();
-            const id = ownerPage.url().split('/').at(-1); await ownerPage.getByRole('button', { name: /Collaboration/ }).click();
+            const fleet = ownerPage.locator('.card').filter({ has: ownerPage.getByRole('link', { name: 'Browser Fleet', exact: true }) });
+            const id = (await fleet.getByRole('link', { name: 'Browser Fleet', exact: true }).getAttribute('href')).split('/').at(-1);
+            await fleet.getByLabel('Domain totals').getByText('1 user', { exact: true }).waitFor();
+            assert.equal(await ownerPage.getByRole('button', { name: /Collaboration/ }).getAttribute('aria-expanded'), 'false'); await ownerPage.getByRole('button', { name: /Collaboration/ }).click();
             await ownerPage.getByLabel('Invitation email').fill('viewer@example.test'); await ownerPage.getByLabel('Invitation role').selectOption('viewer'); await ownerPage.getByRole('button', { name: 'Create invitation' }).click();
             const link = ownerPage.getByLabel('Invitation share link'); await link.waitFor(); const invitationUrl = await link.inputValue();
             await ownerPage.getByRole('button', { name: 'Copy invitation link' }).click(); assert.equal(await ownerPage.evaluate(() => navigator.clipboard.readText()), invitationUrl);
             await viewerPage.goto(invitationUrl); await viewerPage.getByRole('button', { name: 'Accept Invitation' }).click(); await viewerPage.waitForURL('**/private/domain/' + id);
+            assert.equal(await viewerPage.getByRole('button', { name: /Collaboration/ }).count(), 0);
+            await viewerPage.getByRole('button', { name: 'Domains', exact: true }).click();
             await viewerPage.getByRole('button', { name: /Collaboration/ }).click(); assert.equal(await viewerPage.getByRole('button', { name: 'Show key' }).count(), 0);
             assert.equal((await viewerContext.request.get(origin + `/api/domains/${id}/key`)).status(), 403);
             await ownerPage.evaluate(() => window.dispatchEvent(new Event('focus')));
@@ -69,6 +73,9 @@ async function run() {
                 const response = await ownerContext.request.post(origin + '/addPacket', { data: { domain: id, id: 254, apiKey: key, packet: Buffer.from([7,7,1,1,0,value]).toString('base64') } });
                 assert.equal(response.status(), 202);
             };
+            await ownerPage.screenshot({ path: '/tmp/domain-home-administration.png', fullPage: true });
+            for (const page of [ownerPage, viewerPage]) await page.goto(origin + '/private/domain/' + id);
+            assert.equal(await ownerPage.getByRole('button', { name: /Collaboration/ }).count(), 0);
             await publish(42);
             const select = async page => {
                 await page.locator('.node-selector select option[value="7"]').waitFor({ state: 'attached' });
@@ -96,7 +103,6 @@ async function run() {
             assert.equal(history.status(), 200); assert.equal((await history.json()).data.length, 2);
             await viewerPage.getByText(/Saved failed snapshot writes: 0/).waitFor();
             console.log('PASS: two Chrome contexts share persisted observations, clear on reset, preserve identity/history, rebuild/reload and exclude Viewer reset');
-            await ownerPage.getByRole('button', { name: /Collaboration/ }).click();
             const packet = async (channel, param, type, values) => {
                 let payload;
                 if (type === CHAR) payload = Buffer.from(values);
@@ -158,11 +164,18 @@ async function run() {
             for (const page of [ownerPage, viewerPage]) await page.waitForFunction(() => document.querySelectorAll('.mapboxgl-marker').length === 0);
             console.log('PASS: real Mapbox markers with inert style; Nav/NMEA precedence, provenance, carried identity, two-context updates, retry/reconnect, reload, Domain isolation and reset removal');
 
-            await ownerPage.getByRole('button', { name: /Collaboration/ }).click();
-            await ownerPage.getByRole('button', { name: 'Archive domain' }).click(); await ownerPage.getByText('Archived domain · Read-only retained history.', { exact: false }).waitFor();
+            await ownerPage.getByRole('button', { name: 'Domains', exact: true }).click();
+            const adminCard = ownerPage.locator('.card').filter({ has: ownerPage.getByRole('link', { name: 'Browser Fleet', exact: true }) });
+            await adminCard.getByRole('button', { name: /Collaboration/ }).click();
+            await adminCard.getByRole('button', { name: 'Archive domain' }).click();
+            await adminCard.waitFor({ state: 'detached' });
             await viewerPage.reload(); await viewerPage.getByText('Archived domain · Read-only retained history.', { exact: false }).waitFor();
-            await ownerPage.getByRole('button', { name: /Collaboration/ }).click(); await ownerPage.getByRole('button', { name: 'Restore domain' }).click();
-            await ownerPage.getByRole('button', { name: /Collaboration.*active/ }).waitFor();
+            await ownerPage.getByRole('button', { name: 'Archived domains', exact: true }).click();
+            await adminCard.getByRole('button', { name: /Collaboration/ }).click();
+            await adminCard.getByRole('button', { name: 'Restore domain' }).click();
+            await adminCard.waitFor({ state: 'detached' });
+            await ownerPage.getByRole('button', { name: 'Active domains', exact: true }).click();
+            await adminCard.getByRole('link', { name: 'Open map and inspector', exact: true }).click();
             await viewerPage.reload(); assert.equal(await viewerPage.getByText('Archived domain · Read-only retained history.', { exact: false }).count(), 0);
             console.log('PASS: real Chrome + native Server/Client: create, targeted copy/accept, Viewer filtering, Editor key/demotion cleanup, archive/reload/restore');
         } finally { await browser?.close(); server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); await store.close(); await operator.close(); }
