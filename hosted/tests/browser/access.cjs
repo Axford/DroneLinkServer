@@ -51,21 +51,21 @@ async function run() {
             const fleet = ownerPage.locator('.card').filter({ has: ownerPage.getByRole('link', { name: 'Browser Fleet', exact: true }) });
             const id = (await fleet.getByRole('link', { name: 'Browser Fleet', exact: true }).getAttribute('href')).split('/').at(-1);
             await fleet.getByLabel('Domain totals').getByText('1 user', { exact: true }).waitFor();
-            assert.equal(await ownerPage.getByRole('button', { name: /Collaboration/ }).getAttribute('aria-expanded'), 'false'); await ownerPage.getByRole('button', { name: /Collaboration/ }).click();
+            assert.equal(await ownerPage.getByRole('button', { name: 'Domain settings' }).getAttribute('aria-expanded'), 'false'); await ownerPage.getByRole('button', { name: 'Domain settings' }).click();
             await ownerPage.getByLabel('Invitation email').fill('viewer@example.test'); await ownerPage.getByLabel('Invitation role').selectOption('viewer'); await ownerPage.getByRole('button', { name: 'Create invitation' }).click();
             const link = ownerPage.getByLabel('Invitation share link'); await link.waitFor(); const invitationUrl = await link.inputValue();
             await ownerPage.getByRole('button', { name: 'Copy invitation link' }).click(); assert.equal(await ownerPage.evaluate(() => navigator.clipboard.readText()), invitationUrl);
             await viewerPage.goto(invitationUrl); await viewerPage.getByRole('button', { name: 'Accept Invitation' }).click(); await viewerPage.waitForURL('**/private/domain/' + id);
-            assert.equal(await viewerPage.getByRole('button', { name: /Collaboration/ }).count(), 0);
+            assert.equal(await viewerPage.getByRole('button', { name: 'Domain settings' }).count(), 0);
             await viewerPage.getByRole('button', { name: 'Domains', exact: true }).click();
-            await viewerPage.getByRole('button', { name: /Collaboration/ }).click(); assert.equal(await viewerPage.getByRole('button', { name: 'Show key' }).count(), 0);
+            await viewerPage.getByRole('button', { name: 'Domain settings' }).click(); assert.equal(await viewerPage.getByRole('button', { name: 'Show key' }).count(), 0);
             assert.equal((await viewerContext.request.get(origin + `/api/domains/${id}/key`)).status(), 403);
             await ownerPage.evaluate(() => window.dispatchEvent(new Event('focus')));
             await ownerPage.getByLabel('Role for viewer@example.test').selectOption('editor');
-            await viewerPage.evaluate(() => window.dispatchEvent(new Event('focus'))); await viewerPage.getByRole('button', { name: /Collaboration.*editor/ }).click();
+            await viewerPage.evaluate(() => window.dispatchEvent(new Event('focus'))); await viewerPage.getByLabel('Domain role and status').getByText('editor', { exact: true }).waitFor(); await viewerPage.getByRole('button', { name: 'Domain settings', exact: true }).click();
             await viewerPage.getByRole('button', { name: 'Show key' }).click(); await viewerPage.getByRole('button', { name: 'Hide key' }).waitFor();
             await ownerPage.getByLabel('Role for viewer@example.test').selectOption('viewer'); await viewerPage.evaluate(() => window.dispatchEvent(new Event('focus')));
-            await viewerPage.getByRole('button', { name: /Collaboration.*viewer/ }).waitFor(); assert.equal(await viewerPage.getByRole('button', { name: 'Hide key' }).count(), 0);
+            await viewerPage.getByLabel('Domain role and status').getByText('viewer', { exact: true }).waitFor(); assert.equal(await viewerPage.getByRole('button', { name: 'Hide key' }).count(), 0);
             const pageRequests = [];
             for (const page of [ownerPage, viewerPage]) page.on('request', request => pageRequests.push(new URL(request.url()).pathname));
             const keyResponse = await ownerContext.request.get(origin + `/api/domains/${id}/key`); const key = (await keyResponse.json()).data.apiKey;
@@ -75,7 +75,7 @@ async function run() {
             };
             await ownerPage.screenshot({ path: '/tmp/domain-home-administration.png', fullPage: true });
             for (const page of [ownerPage, viewerPage]) await page.goto(origin + '/private/domain/' + id);
-            assert.equal(await ownerPage.getByRole('button', { name: /Collaboration/ }).count(), 0);
+            assert.equal(await ownerPage.getByRole('button', { name: 'Domain settings' }).count(), 0);
             await publish(42);
             const select = async page => {
                 await page.locator('.node-selector select option[value="7"]').waitFor({ state: 'attached' });
@@ -166,16 +166,16 @@ async function run() {
 
             await ownerPage.getByRole('button', { name: 'Domains', exact: true }).click();
             const adminCard = ownerPage.locator('.card').filter({ has: ownerPage.getByRole('link', { name: 'Browser Fleet', exact: true }) });
-            await adminCard.getByRole('button', { name: /Collaboration/ }).click();
+            await adminCard.getByRole('button', { name: 'Domain settings' }).click();
             await adminCard.getByRole('button', { name: 'Archive domain' }).click();
             await adminCard.waitFor({ state: 'detached' });
             await viewerPage.reload(); await viewerPage.getByText('Archived domain · Read-only retained history.', { exact: false }).waitFor();
-            await ownerPage.getByRole('button', { name: 'Archived domains', exact: true }).click();
-            await adminCard.getByRole('button', { name: /Collaboration/ }).click();
+            await ownerPage.getByRole('tab', { name: 'Archived domains', exact: true }).click();
+            await adminCard.getByRole('button', { name: 'Domain settings' }).click();
             await adminCard.getByRole('button', { name: 'Restore domain' }).click();
             await adminCard.waitFor({ state: 'detached' });
-            await ownerPage.getByRole('button', { name: 'Active domains', exact: true }).click();
-            await adminCard.getByRole('link', { name: 'Open map and inspector', exact: true }).click();
+            await ownerPage.getByRole('tab', { name: 'Active domains', exact: true }).click();
+            await adminCard.getByRole('link', { name: 'Browser Fleet', exact: true }).click();
             await viewerPage.reload(); assert.equal(await viewerPage.getByText('Archived domain · Read-only retained history.', { exact: false }).count(), 0);
             console.log('PASS: real Chrome + native Server/Client: create, targeted copy/accept, Viewer filtering, Editor key/demotion cleanup, archive/reload/restore');
         } finally { await browser?.close(); server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); await store.close(); await operator.close(); }
