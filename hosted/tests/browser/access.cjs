@@ -57,6 +57,10 @@ async function run() {
             assert.equal(await ownerPage.getByRole('heading', { name: 'Domains', exact: true }).count(), 0);
             assert.equal(await newDomain.evaluate(element => getComputedStyle(element).borderTopWidth), '0px');
             assert.notEqual(await newDomain.evaluate(element => getComputedStyle(element).backgroundColor), 'rgba(0, 0, 0, 0)');
+            const activeTab = ownerPage.getByRole('tab', { name: 'Active domains', exact: true });
+            assert.equal(await activeTab.evaluate(element => getComputedStyle(element).backgroundColor), await newDomain.evaluate(element => getComputedStyle(element).backgroundColor));
+            const tabBox = await activeTab.boundingBox(); const contentBox = await ownerPage.getByRole('tabpanel').boundingBox();
+            assert.ok(Math.abs(tabBox.y + tabBox.height - contentBox.y) <= 1, 'Tabs should attach directly to their content');
             const secondary = ownerPage.getByRole('button', { name: 'Collapse navigation', exact: true });
             assert.equal(await secondary.evaluate(element => getComputedStyle(element).borderTopWidth), '0px');
             assert.equal(await secondary.evaluate(element => getComputedStyle(element).backgroundColor), 'rgba(0, 0, 0, 0)');
@@ -79,6 +83,10 @@ async function run() {
             assert.equal(await ownerPage.getByRole('button', { name: 'Domain settings' }).getAttribute('aria-haspopup'), 'dialog'); await ownerPage.getByRole('button', { name: 'Domain settings' }).click();
             await ownerPage.getByLabel('Invitation email').fill('viewer@example.test'); await ownerPage.getByLabel('Invitation role').selectOption('viewer'); await ownerPage.getByRole('button', { name: 'Create invitation' }).click();
             const link = ownerPage.getByLabel('Invitation share link'); await link.waitFor(); const invitationUrl = await link.inputValue();
+            const invitationRow = ownerPage.getByRole('row').filter({ has: ownerPage.getByRole('cell', { name: 'viewer@example.test', exact: true }) });
+            const reissueBox = await invitationRow.getByRole('button', { name: 'Reissue', exact: true }).boundingBox();
+            const revokeBox = await invitationRow.getByRole('button', { name: 'Revoke', exact: true }).boundingBox();
+            assert.ok(Math.abs(reissueBox.y + reissueBox.height / 2 - revokeBox.y - revokeBox.height / 2) < 2, 'Invitation controls should stay inline');
             await ownerPage.getByRole('button', { name: 'Copy invitation link' }).click(); assert.equal(await ownerPage.evaluate(() => navigator.clipboard.readText()), invitationUrl);
             await ownerPage.getByRole('button', { name: 'Show key' }).click();
             await ownerPage.getByRole('button', { name: 'Hide key' }).waitFor();
@@ -95,6 +103,13 @@ async function run() {
             assert.equal((await viewerContext.request.get(origin + `/api/domains/${id}/key`)).status(), 403);
             await viewerPage.getByRole('button', { name: 'Close Domain settings', exact: true }).click();
             await ownerPage.evaluate(() => window.dispatchEvent(new Event('focus')));
+            const roleControl = ownerPage.getByLabel('Role for viewer@example.test');
+            const memberRow = ownerPage.getByRole('row').filter({ has: roleControl });
+            const roleBox = await roleControl.boundingBox(); const removeBox = await memberRow.getByRole('button', { name: 'Remove member' }).boundingBox();
+            const memberBox = await memberRow.boundingBox();
+            assert.ok(Math.abs(roleBox.y + roleBox.height / 2 - removeBox.y - removeBox.height / 2) < 2, 'Member actions should stay inline');
+            assert.ok(memberBox.x + memberBox.width - removeBox.x - removeBox.width < 24, 'Member actions should align to the right edge');
+            assert.equal(await memberRow.getByRole('group', { name: 'Remove member', exact: true }).evaluate(element => getComputedStyle(element).backgroundColor), 'rgb(53, 35, 44)');
             await ownerPage.getByLabel('Role for viewer@example.test').selectOption('editor');
             await viewerPage.evaluate(() => window.dispatchEvent(new Event('focus'))); await viewerPage.getByLabel('Domain role and status').getByText('editor', { exact: true }).waitFor(); await viewerPage.getByRole('button', { name: 'Domain settings', exact: true }).click();
             await viewerPage.getByRole('button', { name: 'Show key' }).click(); await viewerPage.getByRole('button', { name: 'Hide key' }).waitFor();
@@ -214,6 +229,11 @@ async function run() {
             await ownerPage.getByRole('link', { name: 'Home', exact: true }).click();
             const adminCard = ownerPage.locator('.card').filter({ has: ownerPage.getByRole('link', { name: 'Browser Fleet', exact: true }) });
             await adminCard.getByRole('button', { name: 'Domain settings' }).click();
+            const archiveGroup = ownerPage.getByRole('group', { name: 'Archive domain', exact: true });
+            await archiveGroup.scrollIntoViewIfNeeded();
+            await archiveGroup.getByText('Stops telemetry for everyone and invalidates pending invitations.', { exact: true }).waitFor();
+            assert.equal(await archiveGroup.evaluate(element => getComputedStyle(element).backgroundColor), 'rgb(53, 35, 44)');
+            await ownerPage.screenshot({ path: '/tmp/dw-danger-settings.png', fullPage: true, animations: 'disabled' });
             await ownerPage.getByRole('dialog', { name: 'Domain settings' }).getByRole('button', { name: 'Archive domain' }).click();
             await adminCard.waitFor({ state: 'detached' });
             await viewerPage.reload(); await viewerPage.getByText('Archived domain · Read-only retained history.', { exact: false }).waitFor();
@@ -244,8 +264,8 @@ async function run() {
             await ownerPage.screenshot({ path: '/tmp/dw-mobile-home.png', fullPage: true });
             await ownerPage.setViewportSize({ width: 1280, height: 900 });
             await ownerPage.getByRole('dialog', { name: 'Create Domain' }).waitFor({ state: 'detached' });
-            await ownerPage.screenshot({ path: '/tmp/dw-panel-home.png', fullPage: true, animations: 'disabled' });
-            console.log('PASS: borderless primary/hover controls, tinted blurred modal context, grouped panels and title-free Home');
+            await ownerPage.screenshot({ path: '/tmp/dw-attached-home.png', fullPage: true, animations: 'disabled' });
+            console.log('PASS: attached accent tabs, inline right-edge actions, danger impact warnings, borderless controls and contextual modals');
             console.log('PASS: shared 14px tokens, modal focus/secret cleanup and narrow Home/operations rail/layout');
             console.log('PASS: real Chrome + native Server/Client: create, targeted copy/accept, Viewer filtering, Editor key/demotion cleanup, archive/reload/restore');
         } finally { await browser?.close(); server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); await store.close(); await operator.close(); }
