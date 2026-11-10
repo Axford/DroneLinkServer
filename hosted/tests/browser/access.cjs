@@ -51,7 +51,27 @@ async function run() {
             assert.equal(await ownerPage.evaluate(() => getComputedStyle(document.documentElement).fontSize), '14px');
             assert.equal(await ownerPage.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--dw-color-canvas').trim()), '#171b20');
             assert.equal(await ownerPage.getByRole('link', { name: 'Sign in with Google', exact: true }).isVisible(), true);
-            await ownerPage.goto(origin + '/private'); await ownerPage.getByRole('button', { name: 'New Domain', exact: true }).click();
+            await ownerPage.goto(origin + '/private');
+            const newDomain = ownerPage.getByRole('button', { name: 'New Domain', exact: true });
+            await newDomain.waitFor();
+            assert.equal(await ownerPage.getByRole('heading', { name: 'Domains', exact: true }).count(), 0);
+            assert.equal(await newDomain.evaluate(element => getComputedStyle(element).borderTopWidth), '0px');
+            assert.notEqual(await newDomain.evaluate(element => getComputedStyle(element).backgroundColor), 'rgba(0, 0, 0, 0)');
+            const secondary = ownerPage.getByRole('button', { name: 'Collapse navigation', exact: true });
+            assert.equal(await secondary.evaluate(element => getComputedStyle(element).borderTopWidth), '0px');
+            assert.equal(await secondary.evaluate(element => getComputedStyle(element).backgroundColor), 'rgba(0, 0, 0, 0)');
+            await secondary.hover();
+            await ownerPage.waitForFunction(() => getComputedStyle(document.querySelector('[aria-label="Collapse navigation"]')).backgroundColor !== 'rgba(0, 0, 0, 0)');
+            assert.notEqual(await secondary.evaluate(element => getComputedStyle(element).backgroundColor), 'rgba(0, 0, 0, 0)');
+            await newDomain.click();
+            await ownerPage.locator('.modal.show').waitFor();
+            const overlay = ownerPage.locator('.dw-modal-backdrop.show');
+            assert.equal(await overlay.evaluate(element => getComputedStyle(element).backdropFilter), 'blur(6px)');
+            await ownerPage.waitForFunction(() => getComputedStyle(document.querySelector('.dw-modal-backdrop.show')).opacity === '1');
+            assert.equal(await overlay.evaluate(element => getComputedStyle(element).opacity), '1');
+            assert.equal(await ownerPage.getByRole('dialog', { name: 'Create Domain' }).evaluate(element => getComputedStyle(element).backgroundColor), 'rgba(0, 0, 0, 0)');
+            assert.equal(await ownerPage.locator('.modal .dw-panel').count(), 1);
+
             await ownerPage.getByLabel('Domain Name', { exact: true }).fill('Browser Fleet'); await ownerPage.getByRole('button', { name: 'Create Domain', exact: true }).click();
             const fleet = ownerPage.locator('.card').filter({ has: ownerPage.getByRole('link', { name: 'Browser Fleet', exact: true }) });
             const id = (await fleet.getByRole('link', { name: 'Browser Fleet', exact: true }).getAttribute('href')).split('/').at(-1);
@@ -87,7 +107,8 @@ async function run() {
                 const response = await ownerContext.request.post(origin + '/addPacket', { data: { domain: id, id: 254, apiKey: key, packet: Buffer.from([7,7,1,1,0,value]).toString('base64') } });
                 assert.equal(response.status(), 202);
             };
-            await ownerPage.screenshot({ path: '/tmp/domain-home-administration.png', fullPage: true });
+            assert.equal(await ownerPage.locator('.modal .dw-panel').count(), 4);
+            await ownerPage.screenshot({ path: '/tmp/dw-panel-settings.png', fullPage: true, animations: 'disabled' });
             for (const page of [ownerPage, viewerPage]) await page.goto(origin + '/private/domain/' + id);
             assert.equal(await ownerPage.getByRole('button', { name: 'Domain settings' }).count(), 0);
             await publish(42);
@@ -222,6 +243,9 @@ async function run() {
             await ownerPage.getByRole('button', { name: 'Close Create Domain' }).click();
             await ownerPage.screenshot({ path: '/tmp/dw-mobile-home.png', fullPage: true });
             await ownerPage.setViewportSize({ width: 1280, height: 900 });
+            await ownerPage.getByRole('dialog', { name: 'Create Domain' }).waitFor({ state: 'detached' });
+            await ownerPage.screenshot({ path: '/tmp/dw-panel-home.png', fullPage: true, animations: 'disabled' });
+            console.log('PASS: borderless primary/hover controls, tinted blurred modal context, grouped panels and title-free Home');
             console.log('PASS: shared 14px tokens, modal focus/secret cleanup and narrow Home/operations rail/layout');
             console.log('PASS: real Chrome + native Server/Client: create, targeted copy/accept, Viewer filtering, Editor key/demotion cleanup, archive/reload/restore');
         } finally { await browser?.close(); server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); await store.close(); await operator.close(); }
