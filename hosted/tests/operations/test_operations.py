@@ -169,8 +169,9 @@ class TelemetryRelease(unittest.TestCase):
     def test_prepare_includes_every_pinned_runtime_archive(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = pathlib.Path(temporary); (root/'vendor').mkdir()
-            provenance = {'version':'0.5.0','storageFormat':{'schemaVersion':1,'adapter':'native-firestore'}}
-            archive = root/'vendor/dronelink-persistence-0.5.0.tgz'
+            provenance = {'version':'0.7.0','storageFormat':{'schemaVersion':1,'adapter':'native-firestore',
+                'commandContract':'m2-a-1','commandMutationAPIs':True,'supportedWriterSchemas':[1,2]}}
+            archive = root/'vendor/dronelink-persistence-0.7.0.tgz'
             with tarfile.open(archive,'w:gz') as tar:
                 raw=json.dumps(provenance).encode(); member=tarfile.TarInfo('package/provenance.json'); member.size=len(raw); tar.addfile(member,io.BytesIO(raw))
             protocol=root/'vendor/dronelink-protocol-0.2.0.tgz'; protocol.write_bytes(b'pinned-protocol')

@@ -17,9 +17,9 @@ class GoogleFixture extends Strategy {
         this.verify('provider-access', 'provider-refresh', profile, (error, user) => error ? this.error(error) : this.success(user));
     }
 }
-async function fixture(t, run, { ready = true, observations = false } = {}) {
+async function fixture(t, run, { ready = true, observations = false, commands = false } = {}) {
     return withFirestore(async options => {
-        const one = await openFirestoreStore({ ...options, flushIntervalMs: 10, ...(observations ? { observationEpoch: 'm1-c-1', observationFlushIntervalMs: 20 } : {}) }); const two = await openFirestoreStore({ ...options, flushIntervalMs: 10, ...(observations ? { observationEpoch: 'm1-c-1', observationFlushIntervalMs: 20 } : {}) });
+        const one = await openFirestoreStore({ ...options, flushIntervalMs: 10, ...(commands ? { commandContract: 'm2-a-1' } : {}), ...(observations ? { observationEpoch: 'm1-c-1', observationFlushIntervalMs: 20 } : {}) }); const two = await openFirestoreStore({ ...options, flushIntervalMs: 10, ...(commands ? { commandContract: 'm2-a-1' } : {}), ...(observations ? { observationEpoch: 'm1-c-1', observationFlushIntervalMs: 20 } : {}) });
         const operator = await openAccessOperatorStore({ ...options, databaseId: '(default)' }); const db = new Firestore({ projectId: options.projectId, host: options.emulatorHost, ssl: false });
         const config = testConfig({ publicOrigin: 'http://localhost:8003', ...(observations ? { observationEpoch: 'm1-c-1' } : {}) });
         const factories = [];

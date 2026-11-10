@@ -28,7 +28,7 @@ async function startHosted({ config, storeFactory = openFirestoreStore, appFacto
     config = { ...config, observationEpoch: config.observationEpoch || 'm1-c-1' };
     if (config.observationEpoch !== 'm1-c-1') throw Object.assign(new Error('Unsupported observation contract'), { code: 'observation-schema' });
     resolveClientBuildDir(config.clientBuildDir);
-    const store = await storeFactory({ projectId: config.projectId, databaseId: config.databaseId, observationEpoch: config.observationEpoch, ...(config.emulatorHost ? { emulatorHost: config.emulatorHost } : {}) });
+    const store = await storeFactory({ projectId: config.projectId, databaseId: config.databaseId, commandContract: 'm2-a-1', observationEpoch: config.observationEpoch, ...(config.emulatorHost ? { emulatorHost: config.emulatorHost } : {}) });
     let server;
     try {
         await store.access.getControl();

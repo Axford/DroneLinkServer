@@ -5,6 +5,7 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const { FirestoreSessions } = require('./lib/firestoreSessions');
 const helmet = require('helmet');
 const path = require('path');
+const { mountCommandRoutes, mountCommandPoll } = require('./lib/commandRoutes');
 const { mountObservationRoutes } = require('./lib/observationRoutes');
 const { mountTelemetryRoutes } = require('./lib/telemetryRoutes');
 const { mountPackedTelemetry } = require('./lib/packedTelemetry');
@@ -87,10 +88,10 @@ const createApp = ({ config, store, googleStrategyFactory = defaultGoogleStrateg
 
     // Middleware
     mountPackedTelemetry(app, { store, ready });
-    app.use(express.json({ limit: '10mb' }));
+    mountCommandPoll(app, { store });
     app.set('trust proxy', 1);
     app.use((req, res, next) => {
-        if (req.path.startsWith('/api/') || req.path.startsWith('/auth/') || req.path.startsWith('/private')) res.set('Cache-Control', 'private, no-store');
+        if (/^\/api\//i.test(req.path) || req.path.startsWith('/auth/') || req.path.startsWith('/private')) res.set('Cache-Control', 'private, no-store');
         next();
     });
     const browserSession = session({
@@ -156,13 +157,15 @@ const createApp = ({ config, store, googleStrategyFactory = defaultGoogleStrateg
     });
     const ensureAuthenticated = asyncHandler(async (req, res, next) => {
         try { req.current = await policy.identity(req); }
-        catch (error) { if (error.code === 'unauthenticated' && !req.path.startsWith('/api/')) return res.redirect('/public'); throw error; }
+        catch (error) { if (error.code === 'unauthenticated' && !/^\/api\//i.test(req.path)) return res.redirect('/public'); throw error; }
         if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
             if (req.get('Origin') !== config.publicOrigin || !req.session.csrfToken || req.get('X-CSRF-Token') !== req.session.csrfToken) throw fault('csrf');
             if (!req.is('application/json')) throw fault('validation');
         }
         next();
     });
+    mountCommandRoutes(app, { store, policy, ensureAuthenticated, ready });
+    app.use(express.json({ limit: '10mb' }));
     app.post('/auth/logout', ensureAuthenticated, (req, res, next) => req.logout(error => {
         if (error) return next(error);
         req.session.destroy(error => {
