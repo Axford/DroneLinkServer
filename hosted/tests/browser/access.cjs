@@ -46,20 +46,34 @@ async function run() {
                 page.on('console', message => { if (message.type() === 'error') console.error('Browser console:', message.text()); });
             }
             ownerPage.on('dialog', dialog => dialog.accept());
+            await ownerPage.goto(origin + '/public');
+            await ownerPage.getByRole('link', { name: 'Sign in with Google', exact: true }).waitFor();
+            assert.equal(await ownerPage.evaluate(() => getComputedStyle(document.documentElement).fontSize), '14px');
+            assert.equal(await ownerPage.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--dw-color-canvas').trim()), '#171b20');
+            assert.equal(await ownerPage.getByRole('link', { name: 'Sign in with Google', exact: true }).isVisible(), true);
             await ownerPage.goto(origin + '/private'); await ownerPage.getByRole('button', { name: 'New Domain', exact: true }).click();
             await ownerPage.getByLabel('Domain Name', { exact: true }).fill('Browser Fleet'); await ownerPage.getByRole('button', { name: 'Create Domain', exact: true }).click();
             const fleet = ownerPage.locator('.card').filter({ has: ownerPage.getByRole('link', { name: 'Browser Fleet', exact: true }) });
             const id = (await fleet.getByRole('link', { name: 'Browser Fleet', exact: true }).getAttribute('href')).split('/').at(-1);
             await fleet.getByLabel('Domain totals').getByText('1 user', { exact: true }).waitFor();
-            assert.equal(await ownerPage.getByRole('button', { name: 'Domain settings' }).getAttribute('aria-expanded'), 'false'); await ownerPage.getByRole('button', { name: 'Domain settings' }).click();
+            assert.equal(await ownerPage.getByRole('button', { name: 'Domain settings' }).getAttribute('aria-haspopup'), 'dialog'); await ownerPage.getByRole('button', { name: 'Domain settings' }).click();
             await ownerPage.getByLabel('Invitation email').fill('viewer@example.test'); await ownerPage.getByLabel('Invitation role').selectOption('viewer'); await ownerPage.getByRole('button', { name: 'Create invitation' }).click();
             const link = ownerPage.getByLabel('Invitation share link'); await link.waitFor(); const invitationUrl = await link.inputValue();
             await ownerPage.getByRole('button', { name: 'Copy invitation link' }).click(); assert.equal(await ownerPage.evaluate(() => navigator.clipboard.readText()), invitationUrl);
+            await ownerPage.getByRole('button', { name: 'Show key' }).click();
+            await ownerPage.getByRole('button', { name: 'Hide key' }).waitFor();
+            await ownerPage.getByRole('button', { name: 'Close Domain settings' }).click();
+            await ownerPage.getByRole('dialog', { name: 'Domain settings' }).waitFor({ state: 'detached' });
+            assert.equal(await ownerPage.evaluate(() => document.activeElement.getAttribute('aria-label')), 'Domain settings');
+            await ownerPage.getByRole('button', { name: 'Domain settings' }).click();
+            assert.equal(await ownerPage.getByRole('button', { name: 'Hide key' }).count(), 0);
+            assert.equal(await ownerPage.getByLabel('Invitation share link').count(), 0);
             await viewerPage.goto(invitationUrl); await viewerPage.getByRole('button', { name: 'Accept Invitation' }).click(); await viewerPage.waitForURL('**/private/domain/' + id);
             assert.equal(await viewerPage.getByRole('button', { name: 'Domain settings' }).count(), 0);
-            await viewerPage.getByRole('button', { name: 'Domains', exact: true }).click();
+            await viewerPage.getByRole('link', { name: 'Home', exact: true }).click();
             await viewerPage.getByRole('button', { name: 'Domain settings' }).click(); assert.equal(await viewerPage.getByRole('button', { name: 'Show key' }).count(), 0);
             assert.equal((await viewerContext.request.get(origin + `/api/domains/${id}/key`)).status(), 403);
+            await viewerPage.getByRole('button', { name: 'Close Domain settings', exact: true }).click();
             await ownerPage.evaluate(() => window.dispatchEvent(new Event('focus')));
             await ownerPage.getByLabel('Role for viewer@example.test').selectOption('editor');
             await viewerPage.evaluate(() => window.dispatchEvent(new Event('focus'))); await viewerPage.getByLabel('Domain role and status').getByText('editor', { exact: true }).waitFor(); await viewerPage.getByRole('button', { name: 'Domain settings', exact: true }).click();
@@ -87,7 +101,9 @@ async function run() {
             await valueVisible(ownerPage, 42); await valueVisible(viewerPage, 42);
             const identityBefore = await (await ownerContext.request.get(origin + `/api/domains/${id}/identities`)).json();
             assert.equal(await viewerPage.getByRole('button', { name: 'Reset node observations' }).count(), 0);
+            await ownerPage.getByRole('button', { name: 'Inspector tools' }).click();
             await ownerPage.getByRole('button', { name: 'Reset node observations' }).click();
+            await ownerPage.getByRole('button', { name: 'Close Inspector tools' }).click();
             for (const page of [ownerPage, viewerPage]) await page.waitForFunction(() => document.querySelectorAll('.parameter-row').length === 0);
             const identityAfter = await (await ownerContext.request.get(origin + `/api/domains/${id}/identities`)).json(); assert.deepEqual(identityAfter, identityBefore);
             await publish(43);
@@ -101,7 +117,10 @@ async function run() {
             assert.ok(!pageRequests.some(url => /\/(messages|stream)$/.test(url)), 'Current view must not consume packet history');
             const history = await ownerContext.request.get(origin + `/api/domains/${id}/messages`, { headers: { 'X-Observation-Contract': '1' } });
             assert.equal(history.status(), 200); assert.equal((await history.json()).data.length, 2);
+            await viewerPage.getByRole('button', { name: 'Inspector tools' }).click();
             await viewerPage.getByText(/Saved failed snapshot writes: 0/).waitFor();
+            assert.equal(await viewerPage.getByRole('button', { name: 'Reset node observations' }).count(), 0);
+            await viewerPage.getByRole('button', { name: 'Close Inspector tools' }).click();
             console.log('PASS: two Chrome contexts share persisted observations, clear on reset, preserve identity/history, rebuild/reload and exclude Viewer reset');
             const packet = async (channel, param, type, values) => {
                 let payload;
@@ -137,9 +156,12 @@ async function run() {
                 assert.equal(await marker(page).count(), 1);
                 await page.getByRole('button', { name: 'Fit observed positions', exact: true }).click();
                 await marker(page).click();
+                await page.getByRole('button', { name: 'Node details' }).click();
                 await page.getByText(/Drone: .*Singleton master: Node 7/).waitFor();
-                await page.getByText('Map source bindings', { exact: true }).click();
+                await page.getByRole('button', { name: 'Close Node details' }).click();
+                await page.getByRole('button', { name: 'Map source bindings', exact: true }).click();
                 await page.getByRole('cell', { name: /7>4.8/ }).waitFor();
+                await page.getByRole('button', { name: 'Close Map source bindings' }).click();
             }
             // Reconnect keeps the saved map while update requests fail, then catches up.
             await viewerPage.route('**/observations/updates?**', route => route.abort('failed'));
@@ -150,7 +172,9 @@ async function run() {
             await packet(4, 8, FLOAT, [-1.96, 51.66, 0]);
             await viewerPage.getByText('Shared updates: ready', { exact: true }).waitFor({ timeout: 35000 });
             await viewerPage.reload(); await viewerPage.getByRole('button', { name: 'Fit observed positions', exact: true }).click(); await marker(viewerPage).click();
+            await viewerPage.getByRole('button', { name: 'Node details' }).click();
             await viewerPage.getByText(/Drone: .*Singleton master: Node 7/).waitFor();
+            await viewerPage.getByRole('button', { name: 'Close Node details' }).click();
             assert.equal(await viewerPage.getByRole('button', { name: 'Reset node observations' }).count(), 0);
             await ownerPage.screenshot({ path: '/tmp/m1-d-operator.png', fullPage: true });
             // Domain switch removes markers and selection, even for the same browser session.
@@ -160,23 +184,45 @@ async function run() {
             await ownerPage.getByRole('link', { name: 'Empty Operator Domain', exact: true }).click();
             await ownerPage.getByText('No nodes discovered', { exact: true }).waitFor(); assert.equal(await marker(ownerPage).count(), 0);
             await ownerPage.goto(origin + '/private/domain/' + id); await ownerPage.getByRole('button', { name: 'Fit observed positions', exact: true }).click(); await marker(ownerPage).click();
+            await ownerPage.getByRole('button', { name: 'Inspector tools' }).click();
             await ownerPage.getByRole('button', { name: 'Reset node observations' }).click();
+            await ownerPage.getByRole('button', { name: 'Close Inspector tools' }).click();
             for (const page of [ownerPage, viewerPage]) await page.waitForFunction(() => document.querySelectorAll('.mapboxgl-marker').length === 0);
             console.log('PASS: real Mapbox markers with inert style; Nav/NMEA precedence, provenance, carried identity, two-context updates, retry/reconnect, reload, Domain isolation and reset removal');
 
-            await ownerPage.getByRole('button', { name: 'Domains', exact: true }).click();
+            await ownerPage.getByRole('link', { name: 'Home', exact: true }).click();
             const adminCard = ownerPage.locator('.card').filter({ has: ownerPage.getByRole('link', { name: 'Browser Fleet', exact: true }) });
             await adminCard.getByRole('button', { name: 'Domain settings' }).click();
-            await adminCard.getByRole('button', { name: 'Archive domain' }).click();
+            await ownerPage.getByRole('dialog', { name: 'Domain settings' }).getByRole('button', { name: 'Archive domain' }).click();
             await adminCard.waitFor({ state: 'detached' });
             await viewerPage.reload(); await viewerPage.getByText('Archived domain · Read-only retained history.', { exact: false }).waitFor();
             await ownerPage.getByRole('tab', { name: 'Archived domains', exact: true }).click();
             await adminCard.getByRole('button', { name: 'Domain settings' }).click();
-            await adminCard.getByRole('button', { name: 'Restore domain' }).click();
+            await ownerPage.getByRole('dialog', { name: 'Domain settings' }).getByRole('button', { name: 'Restore domain' }).click();
             await adminCard.waitFor({ state: 'detached' });
             await ownerPage.getByRole('tab', { name: 'Active domains', exact: true }).click();
             await adminCard.getByRole('link', { name: 'Browser Fleet', exact: true }).click();
             await viewerPage.reload(); assert.equal(await viewerPage.getByText('Archived domain · Read-only retained history.', { exact: false }).count(), 0);
+            // Responsive surfaces use the same typography, retain account navigation and avoid horizontal overflow.
+            await ownerPage.setViewportSize({ width: 390, height: 844 });
+            await ownerPage.locator('.sidebar-container.collapsed').waitFor();
+            assert.equal(await ownerPage.getByRole('button', { name: 'Expand navigation' }).count(), 0);
+            assert.equal(await ownerPage.getByLabel('Workspace navigation').evaluate(element => Math.round(element.getBoundingClientRect().width)), 56);
+            await ownerPage.locator('[data-panel-group][data-panel-group-direction="vertical"]').waitFor();
+            assert.equal(await ownerPage.locator('main').evaluate(element => element.scrollWidth <= element.clientWidth), true);
+            assert.equal(await ownerPage.locator('.inspector-panel').evaluate(element => getComputedStyle(element).fontSize), '14px');
+            await ownerPage.screenshot({ path: '/tmp/dw-mobile-operations.png', fullPage: true });
+            await ownerPage.getByRole('link', { name: 'Home', exact: true }).click();
+            await ownerPage.getByRole('button', { name: 'New Domain', exact: true }).waitFor();
+            assert.equal(await ownerPage.locator('main').evaluate(element => element.scrollWidth <= element.clientWidth), true);
+            await ownerPage.getByRole('button', { name: 'New Domain', exact: true }).click();
+            const createDialog = ownerPage.getByRole('dialog', { name: 'Create Domain' });
+            await createDialog.waitFor();
+            assert.equal(await createDialog.evaluate(element => getComputedStyle(element).fontSize), '14px');
+            await ownerPage.getByRole('button', { name: 'Close Create Domain' }).click();
+            await ownerPage.screenshot({ path: '/tmp/dw-mobile-home.png', fullPage: true });
+            await ownerPage.setViewportSize({ width: 1280, height: 900 });
+            console.log('PASS: shared 14px tokens, modal focus/secret cleanup and narrow Home/operations rail/layout');
             console.log('PASS: real Chrome + native Server/Client: create, targeted copy/accept, Viewer filtering, Editor key/demotion cleanup, archive/reload/restore');
         } finally { await browser?.close(); server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); await store.close(); await operator.close(); }
     });

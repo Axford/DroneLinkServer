@@ -25,6 +25,7 @@ def client_files(archive):
     expected = {'build/' + safe(name): sha for name, sha in manifest['files'].items()}
     if set(files) != set(expected) or any(digest(files[name]) != sha for name, sha in expected.items()): raise ValueError('Client files differ')
     if 'build/index.html' not in files or not any(name.startswith('build/static/') for name in files): raise ValueError('Client shell missing')
+    if not {'build/design-tokens.css', 'build/design-system.css'}.issubset(files): raise ValueError('Client design-system assets missing')
     identity = f'dronelink-client-{manifest["packageVersion"]}-{manifest["clientRevision"]}.tgz'
     if archive.name != identity: raise ValueError('Client archive identity differs')
     return manifest, files

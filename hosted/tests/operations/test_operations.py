@@ -4,6 +4,24 @@ TOOLS = pathlib.Path(__file__).resolve().parents[2] / 'tools/operations'
 sys.path.insert(0, str(TOOLS))
 import legacy, release, staging
 class Operations(unittest.TestCase):
+    def test_matched_client_requires_both_shared_design_assets(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary)
+            archive = root / ('dronelink-client-0.1.0-' + 'a' * 40 + '.tgz')
+            def write(files):
+                manifest = {'schemaVersion': 1, 'accessPolicyVersion': 1, 'observationPolicyVersion': 1, 'packageVersion': '0.1.0', 'clientRevision': 'a' * 40, 'files': {name[6:]: release.digest(raw) for name, raw in files.items()}}
+                with tarfile.open(archive, 'w:gz') as tar:
+                    for name, raw in [*files.items(), ('release-manifest.json', json.dumps(manifest).encode())]:
+                        entry = tarfile.TarInfo(name); entry.size = len(raw); tar.addfile(entry, io.BytesIO(raw))
+                pathlib.Path(str(archive) + '.sha256').write_text(f'{release.digest(archive.read_bytes())}  {archive.name}\n')
+            files = {'build/index.html': b'entry', 'build/static/app.js': b'app', 'build/design-tokens.css': b'tokens', 'build/design-system.css': b'bridge'}
+            write(files)
+            self.assertEqual(release.client_files(archive)[1], files)
+            for name in ['build/design-tokens.css', 'build/design-system.css']:
+                write({key: raw for key, raw in files.items() if key != name})
+                with self.assertRaisesRegex(ValueError, 'design-system assets missing'):
+                    release.client_files(archive)
+
     def test_archive_verification_requires_complete_checksum_inventory(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = pathlib.Path(temporary)
