@@ -55,6 +55,11 @@ async function run() {
             const newDomain = ownerPage.getByRole('button', { name: 'New Domain', exact: true });
             await newDomain.waitFor();
             assert.equal(await ownerPage.getByRole('heading', { name: 'Domains', exact: true }).count(), 0);
+            assert.equal(await ownerPage.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--dw-grid').trim()), '4px');
+            assert.equal(await ownerPage.locator('main').evaluate(element => getComputedStyle(element).paddingLeft), '24px');
+            assert.equal(await ownerPage.getByRole('tabpanel').evaluate(element => getComputedStyle(element).paddingLeft), '16px');
+            assert.equal(await ownerPage.evaluate(() => getComputedStyle(document.body).lineHeight), '20px');
+
             assert.equal(await newDomain.evaluate(element => getComputedStyle(element).borderTopWidth), '0px');
             assert.notEqual(await newDomain.evaluate(element => getComputedStyle(element).backgroundColor), 'rgba(0, 0, 0, 0)');
             const activeTab = ownerPage.getByRole('tab', { name: 'Active domains', exact: true });
@@ -75,11 +80,17 @@ async function run() {
             assert.equal(await overlay.evaluate(element => getComputedStyle(element).opacity), '1');
             assert.equal(await ownerPage.getByRole('dialog', { name: 'Create Domain' }).evaluate(element => getComputedStyle(element).backgroundColor), 'rgba(0, 0, 0, 0)');
             assert.equal(await ownerPage.locator('.modal .dw-panel').count(), 1);
+            assert.equal(await ownerPage.locator('.modal-body').evaluate(element => getComputedStyle(element).paddingLeft), '16px');
+            assert.equal(await ownerPage.locator('.modal .dw-panel').evaluate(element => getComputedStyle(element).paddingLeft), '16px');
+            assert.equal(await ownerPage.getByLabel('Domain Name', { exact: true }).evaluate(element => Math.round(element.getBoundingClientRect().height)), 32);
+            assert.equal(await ownerPage.getByRole('button', { name: 'Close Create Domain' }).evaluate(element => Math.round(element.getBoundingClientRect().width)), 32);
+
 
             await ownerPage.getByLabel('Domain Name', { exact: true }).fill('Browser Fleet'); await ownerPage.getByRole('button', { name: 'Create Domain', exact: true }).click();
             const fleet = ownerPage.locator('.card').filter({ has: ownerPage.getByRole('link', { name: 'Browser Fleet', exact: true }) });
             const id = (await fleet.getByRole('link', { name: 'Browser Fleet', exact: true }).getAttribute('href')).split('/').at(-1);
             await fleet.getByLabel('Domain totals').getByText('1 user', { exact: true }).waitFor();
+            assert.equal(await fleet.locator('.card-body').evaluate(element => getComputedStyle(element).paddingLeft), '16px');
             assert.equal(await ownerPage.getByRole('button', { name: 'Domain settings' }).getAttribute('aria-haspopup'), 'dialog'); await ownerPage.getByRole('button', { name: 'Domain settings' }).click();
             await ownerPage.getByLabel('Invitation email').fill('viewer@example.test'); await ownerPage.getByLabel('Invitation role').selectOption('viewer'); await ownerPage.getByRole('button', { name: 'Create invitation' }).click();
             const link = ownerPage.getByLabel('Invitation share link'); await link.waitFor(); const invitationUrl = await link.inputValue();
@@ -255,6 +266,7 @@ async function run() {
             await ownerPage.screenshot({ path: '/tmp/dw-mobile-operations.png', fullPage: true });
             await ownerPage.getByRole('link', { name: 'Home', exact: true }).click();
             await ownerPage.getByRole('button', { name: 'New Domain', exact: true }).waitFor();
+            assert.equal(await ownerPage.locator('main').evaluate(element => getComputedStyle(element).paddingLeft), '12px');
             assert.equal(await ownerPage.locator('main').evaluate(element => element.scrollWidth <= element.clientWidth), true);
             await ownerPage.getByRole('button', { name: 'New Domain', exact: true }).click();
             const createDialog = ownerPage.getByRole('dialog', { name: 'Create Domain' });
@@ -264,8 +276,14 @@ async function run() {
             await ownerPage.screenshot({ path: '/tmp/dw-mobile-home.png', fullPage: true });
             await ownerPage.setViewportSize({ width: 1280, height: 900 });
             await ownerPage.getByRole('dialog', { name: 'Create Domain' }).waitFor({ state: 'detached' });
-            await ownerPage.screenshot({ path: '/tmp/dw-attached-home.png', fullPage: true, animations: 'disabled' });
-            console.log('PASS: attached accent tabs, inline right-edge actions, danger impact warnings, borderless controls and contextual modals');
+            const cards = await ownerPage.locator('.dw-domain-card').all();
+            const firstCard = await cards[0].boundingBox(); const secondCard = await cards[1].boundingBox();
+            assert.ok(Math.abs(firstCard.height - secondCard.height) <= 1, 'Cards in a row should share a grid height');
+            const firstAction = await cards[0].getByRole('button', { name: 'Domain settings' }).boundingBox();
+            const secondAction = await cards[1].getByRole('button', { name: 'Domain settings' }).boundingBox();
+            assert.ok(Math.abs(firstAction.y - secondAction.y) <= 1, 'Card actions should align across a row');
+            await ownerPage.screenshot({ path: '/tmp/dw-grid-home.png', fullPage: true, animations: 'disabled' });
+            console.log('PASS: 4px grid, consistent padding/control sizing, attached accent tabs, inline right-edge actions, danger impact warnings, borderless controls and contextual modals');
             console.log('PASS: shared 14px tokens, modal focus/secret cleanup and narrow Home/operations rail/layout');
             console.log('PASS: real Chrome + native Server/Client: create, targeted copy/accept, Viewer filtering, Editor key/demotion cleanup, archive/reload/restore');
         } finally { await browser?.close(); server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); await store.close(); await operator.close(); }
