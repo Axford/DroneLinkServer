@@ -70,7 +70,10 @@ function mountCommandRoutes(app, { store, policy, ensureAuthenticated, ready }) 
     const root = '/api/domains/:id';
     function route(method, path, handler, { limit, roles } = {}) {
         app[method](root + path, noStore, ensureAuthenticated, ready, ...(limit ? [body(limit)] : []), asyncHandler(async (req, res) => {
+            const expectedUser = req.get('X-Command-User');
+            if (expectedUser !== undefined && expectedUser !== req.current.user._id) throw fault('unauthenticated');
             const current = await policy.domain(req, roles, Boolean(roles));
+            if (expectedUser !== undefined && expectedUser !== current.actor.userId) throw fault('unauthenticated');
             await handler(req, res, current.actor, { domainId: req.params.id });
         }), (error, req, res, next) => {
             try { commandError(error, res); }

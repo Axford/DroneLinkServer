@@ -112,6 +112,7 @@ test('authority, bounded parsers, terminal conflicts and uncertain HTTP response
     assert.equal((await outsider.request(root + '/commands')).status, 403);
     assert.equal((await viewer.mutate(root + '/command-submissions')).status, 403);
     assert.equal((await editor.mutate(root + '/command-submissions', {}, 'POST', { 'X-CSRF-Token': 'invalid' })).status, 403);
+    assert.equal((await editor.mutate(root + '/command-submissions', {}, 'POST', { 'X-Command-User': 'prior-user' })).status, 401);
     assert.equal((await editor.mutate(root + '/command-submissions', { padding: 'x'.repeat(1024) })).status, 400);
     assert.equal((await editor.mutate(root + '/command-settings', { revision: 1, httpLifetimeSeconds: 60 }, 'PATCH')).status, 403);
     assert.deepEqual((await viewer.request(root + '/command-settings')).json().data, { revision: 1, httpLifetimeSeconds: 3600 });
