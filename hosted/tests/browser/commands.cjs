@@ -14,16 +14,35 @@ const { openFirestoreStore } = localRequire('@dronelink/persistence');
 const { openAccessOperatorStore, openCommandOperatorStore } = localRequire('@dronelink/persistence/operator');
 const { Strategy: GoogleStrategy } = localRequire('passport-google-oauth20');
 
+function verifiedPersistence(root, version, expectedProvenance) {
+    const fs = require('node:fs');
+    const crypto = require('node:crypto');
+    const from = createRequire(path.join(root, 'package.json'));
+    const installed = path.dirname(from.resolve('@dronelink/persistence'));
+    const digest = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
+    const provenanceBytes = fs.readFileSync(path.join(installed, 'provenance.json'));
+    assert.equal(digest(provenanceBytes), expectedProvenance);
+    const provenance = JSON.parse(provenanceBytes);
+    assert.equal(provenance.version, version);
+    for (const [file, hash] of Object.entries(provenance.files)) {
+        if (file === 'package-lock.json') continue;
+        assert.equal(digest(fs.readFileSync(path.join(installed, file))), hash);
+    }
+    return from('@dronelink/persistence');
+}
+
 async function run() {
     assert.ok(process.env.CLIENT_BUILD_DIR, 'Select the Client build explicitly');
     await withFirestore(async options => {
         const config = { ...options, databaseId: '(default)', commandContract: 'm2-a-1', observationEpoch: 'm1-c-1', observationFlushIntervalMs: 20 };
-        const store = await openFirestoreStore(config);
-        const access = await openAccessOperatorStore(config);
-        const operator = await openCommandOperatorStore(config);
-        let app, browser;
+        let store, access, operator;
+        let app, browser, nodeProbe;
         const server = http.createServer((req, res) => app(req, res));
         try {
+            store = await openFirestoreStore(config);
+            access = await openAccessOperatorStore(config);
+            operator = await openCommandOperatorStore(config);
+            if (process.env.DRONELINK_NODE_DIR) nodeProbe = await require('./command-node.cjs').buildNode(process.env.DRONELINK_NODE_DIR);
             const emails = { admin: 'damian@axford.me.uk', editor: 'editor@example.test' };
             for (const [id, email] of Object.entries(emails)) {
                 await store.users.registerVerifiedSignIn({ googleId: id, email, emailVerified: true, displayName: id });
@@ -119,25 +138,127 @@ async function run() {
             assert.equal(await collaborator.getByRole('button', { name: 'Save command lifetime' }).count(), 0);
             assert.equal(await collaborator.getByRole('button', { name: /Cancel Write/ }).count(), 0);
             assert.deepEqual(captured.payload, { values: [77] });
-            const poll = await post('/commands/poll', { ...machine, limit: 32 });
-            assert.equal(poll.status, 200);
-            const { data } = await poll.json();
-            assert.deepEqual([...Buffer.from(data.packets, 'base64')], [7, 7, 4, 200, 0, 77]);
+            await owner.locator('.parameter-row .font-monospace').getByText('42', { exact: true }).waitFor();
+            if (nodeProbe) {
+                await owner.getByRole('button', { name: 'Domain commands', exact: true }).click();
+                await owner.getByRole('textbox', { name: 'Query channel' }).fill('4');
+                await owner.getByRole('textbox', { name: 'Query parameter' }).fill('8');
+                await owner.getByRole('button', { name: 'Query addressed name' }).click();
+                await owner.getByText(/Name query accepted at/).waitFor();
+                await owner.getByRole('button', { name: 'Close Domain commands' }).click();
+                assert.deepEqual(await nodeProbe.poll({ origin, ...machine }),
+                    { writes: 1, queries: 1, names: 1, value: 77, uploads: 2, failures: 0 });
+                const detail = owner.getByRole('button', { name: 'Parameter details: Fixture' });
+                await detail.waitFor();
+                const valueFacet = async () => (await store.observations.readSnapshot(actor(admin._id), { domainId: fleet._id })).channels[0].params[8].value;
+                const beforeQuery = await valueFacet();
+                await detail.click();
+                await owner.getByRole('button', { name: 'Query value', exact: true }).click();
+                await owner.getByText(/Value query accepted at/).waitFor();
+                assert.deepEqual(await nodeProbe.poll({ origin, ...machine, initialValue: 77 }),
+                    { writes: 0, queries: 1, names: 0, value: 77, uploads: 1, failures: 0 });
+                let afterQuery = await valueFacet();
+                for (let i = 0; i < 80 && afterQuery.lastReceivedAt <= beforeQuery.lastReceivedAt; i++) {
+                    await new Promise(resolve => setTimeout(resolve, 25));
+                    afterQuery = await valueFacet();
+                }
+                assert.ok(afterQuery.lastReceivedAt > beforeQuery.lastReceivedAt);
+                assert.equal(afterQuery.payload, beforeQuery.payload);
+                assert.deepEqual(afterQuery.valueLastChangedAt, beforeQuery.valueLastChangedAt);
+                await owner.getByRole('button', { name: 'Close Parameter details: Fixture' }).click();
+            } else {
+                const poll = await post('/commands/poll', { ...machine, limit: 32 });
+                assert.equal(poll.status, 200);
+                const { data } = await poll.json();
+                assert.deepEqual([...Buffer.from(data.packets, 'base64')], [7, 7, 4, 200, 0, 77]);
+                await owner.locator('.parameter-row .font-monospace').getByText('42', { exact: true }).waitFor();
+                await publish(77);
+            }
             assert.equal((await (await post('/commands/poll', { ...machine, limit: 32 })).json()).data.count, 0);
             await collaborator.getByLabel('Command view').selectOption('history');
             await collaborator.getByText('Write · retrieved', { exact: true }).waitFor();
-            await owner.locator('.parameter-row .font-monospace').getByText('42', { exact: true }).waitFor();
-            await publish(77);
             await owner.locator('.parameter-row .font-monospace').getByText('77', { exact: true }).waitFor();
             await collaborator.getByRole('button', { name: 'Close Domain commands' }).click();
             await collaborator.getByRole('button', { name: 'Node details' }).click();
             await collaborator.getByText('Command transport: HTTP', { exact: true }).waitFor();
-            console.log('PASS: Chrome owner/editor-viewer contexts, canonical write, lost response recovery, role recheck, settings, poll and readback');
+            console.log('PASS: Chrome command workflow, role recheck, settings and distinct observed values');
+            const serviceMode = process.env.DRONELINK_HOSTED_ROOT ? 'installed hosted app' : 'source hosted app';
+            if (nodeProbe) console.log('PASS: CloudTelemetry host and production channel dequeue with fixture target, write/readback and explicit value/NAME queries through ' + serviceMode);
+            else console.log('PASS: HTTP packet bytes and simulated publication through ' + serviceMode);
+            if (process.env.DRONELINK_LEGACY_ROOT) {
+                const crypto = require('node:crypto');
+                const previous = verifiedPersistence(process.env.DRONELINK_LEGACY_ROOT, '0.5.0',
+                    '707dcfbc1b6ccdda807906d4917d2513b0e753ddeaea22f4c64be3f8e057a513');
+                const legacy = await previous.openFirestoreStore({ ...options, observationEpoch: 'm1-c-1' });
+                let oldM2;
+                try {
+                    if (process.env.DRONELINK_PRE_CLEANUP_ROOT) {
+                        const firstM2 = verifiedPersistence(process.env.DRONELINK_PRE_CLEANUP_ROOT, '0.7.0',
+                            '34b831bcf967b3c29fd3f513c42d5924640233f5eeee7adfaec62f4ee7ded965');
+                        oldM2 = await firstM2.openFirestoreStore(config);
+                        assert.equal((await oldM2.access.getControl()).schemaVersion, 2);
+                    }
+                    const writer = actor(admin._id);
+                    await assert.rejects(legacy.access.getControl(), { code: 'unavailable' });
+                    const second = await store.domains.createOwned(writer, { name: 'Second recovery Domain' });
+                    const domainId = fleet._id;
+                    await store.telemetry.admit({ domainId: second._id, credential: { kind: 'domain', secret: second.apiKey },
+                        nodeAddress: 7, forwarderAddress: 7, receivedAt: new Date() });
+                    const submit = async domainId => {
+                        const { submissionId } = await store.commands.prepare(writer, { domainId });
+                        const result = await store.commands.submit(writer, { domainId, submissionId,
+                            operation: 'query-value', target: { nodeAddress: 7, channel: 4, param: 9 } });
+                        return result.command;
+                    };
+                    const pending = [await submit(domainId), await submit(second._id)];
+                    const before = await store.observations.readSnapshot(writer, { domainId });
+                    const revision = async () => (await store.access.getControl()).revision;
+                    await operator.disable({ expectedControlRevision: await revision() });
+                    await assert.rejects(store.commands.prepare(writer, { domainId }), { code: 'unavailable' });
+                    assert.equal((await post('/commands/poll', { ...machine, limit: 32 })).status, 503);
+                    for (const command of pending) assert.equal((await store.commands.get(writer, { domainId: command.domainId, commandId: command.id })).state, 'pending');
+                    await operator.beginRecovery({ expectedControlRevision: await revision() });
+                    if (oldM2) {
+                        await assert.rejects(oldM2.access.getControl(), { code: 'unavailable' });
+                        await assert.rejects(oldM2.telemetry.admit({ domainId, credential: { kind: 'domain', secret: fleet.apiKey },
+                            nodeAddress: 7, forwarderAddress: 7, receivedAt: new Date() }), { code: 'unavailable' });
+                    }
+                    await operator.recoverDomain({ domainId });
+                    assert.equal((await operator.purgeRecoveryMetadata({ domainId })).complete, true);
+                    await assert.rejects(operator.finishRecovery({ expectedControlRevision: await revision() }), { code: 'conflict' });
+                    await operator.recoverDomain({ domainId: second._id });
+                    assert.equal((await operator.purgeRecoveryMetadata({ domainId: second._id })).complete, true);
+                    await operator.finishRecovery({ expectedControlRevision: await revision() });
+                    assert.equal((await legacy.access.getControl()).schemaVersion, 1);
+                    const after = await legacy.observations.readSnapshot(writer, { domainId });
+                    assert.deepEqual(after.nodes, before.nodes);
+                    assert.deepEqual(after.channels, before.channels);
+                    for (const command of pending) {
+                        const retired = await store.commands.get(writer, { domainId: command.domainId, commandId: command.id });
+                        assert.equal(retired.reason, 'writer-downgrade');
+                    }
+                    assert.equal((await store.access.getControl()).sessionEpoch, epoch);
+                    const admission = await legacy.telemetry.admit({ domainId, credential: { kind: 'domain', secret: fleet.apiKey },
+                        nodeAddress: 7, forwarderAddress: 7, receivedAt: new Date(), receiptId: crypto.randomUUID() });
+                    await legacy.observations.enqueue({ ticket: admission.observationTicket, packet: Buffer.from([7, 7, 4, 8, 128, 78]) });
+                    let visible;
+                    for (let i = 0; i < 80; i++) {
+                        visible = await legacy.observations.readSnapshot(writer, { domainId });
+                        if (visible.channels[0].params[8].value.payload === 'Tg==') break;
+                        await new Promise(resolve => setTimeout(resolve, 25));
+                    }
+                    assert.equal(visible.channels[0].params[8].value.payload, 'Tg==');
+                    console.log('PASS: two-Domain recovery, exact 0.5.0 snapshots and a post-recovery legacy write');
+                    if (oldM2) console.log('PASS: the dedicated recovery fence rejected installed 0.7.0 reads and ingress');
+                } finally { await Promise.all([legacy.close(), oldM2?.close()]); }
+            }
         } finally {
-            await browser?.close();
+            const browserCleanup = await Promise.allSettled([browser?.close(), nodeProbe?.close()]);
             server.closeAllConnections();
-            if (server.listening) await new Promise(resolve => server.close(resolve));
-            await Promise.all([operator.close(), access.close(), store.close()]);
+            const serverClose = server.listening ? new Promise(resolve => server.close(resolve)) : undefined;
+            const serviceCleanup = await Promise.allSettled([serverClose, operator?.close(), access?.close(), store?.close()]);
+            const failures = [...browserCleanup, ...serviceCleanup].filter(result => result.status === 'rejected');
+            if (failures.length) throw new AggregateError(failures.map(result => result.reason), 'Command fixture cleanup failed');
         }
     });
 }

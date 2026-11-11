@@ -1,6 +1,6 @@
 # Dronewright hosted backend
 
-The independent hosted service uses pinned native Firestore persistence 0.7.0. Install with Node22+ using `npm ci --omit=dev`; run `npm start`. No MongoDB, gateway, emulator, Java or sibling source is required in production.
+The independent hosted service uses pinned native Firestore persistence 0.7.1. Install with Node22+ using `npm ci --omit=dev`; run `npm start`. No MongoDB, gateway, emulator, Java or sibling source is required in production.
 
 Supply `GOOGLE_CLOUD_PROJECT`, `PUBLIC_ORIGIN`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SESSION_SECRET` (32+characters), optional `FIRESTORE_DATABASE` (default `(default)`), `MAPBOX_ACCESS_TOKEN`, `CLIENT_BUILD_DIR` and `PORT`. A local ignored hosted `config.json` may supply equivalent camelCase fields. Startup never creates configuration or downloads credentials. Production uses the service identity and Secret Manager values; no service-account key file. Client build defaults to hosted `private/build`; an explicit path must contain index.html/static. Validate a release before selection.
 
@@ -206,3 +206,7 @@ The producer provenance now names DroneNode `1d230325e3996face7948853d0e81340620
 The runtime opts into the M2 writer contract while supporting the existing M1 schema. The database operator controls activation. Browser command routes use current session and Domain authority with bounded JSON and CSRF checks. Machine polling uses the Domain key and the existing node address, and runs before browser sessions. The hosted service validates typed intent and constructs final packets after the native consume transaction. [Shared HTTP contract](../../DroneLinkDatastore/docs/contracts/http.md#m2-a-command-api-draft--2026-11-10)
 
 S3 release preparation validates the writer capability of the pinned runtime archive. Managed selection and rollback with the M2 writer fence require the coordinated compatibility and recovery rehearsal in the M2 plan. Use the separate persistence command operator for local emulator activation.
+
+The coordinated local check uses `tests/browser/commands.cjs` with an extracted release build in `CLIENT_BUILD_DIR` and a separate production installation in `DRONELINK_HOSTED_ROOT`. Select installed Chrome and Playwright with the same environment used by the access browser fixture. Set `DRONELINK_NODE_DIR` to the repository containing the verified S4 Git revision, `DRONELINK_LEGACY_ROOT` to the installed 0.5.0 operator package, and `DRONELINK_PRE_CLEANUP_ROOT` to the installed 0.7.0 hosted package. The fixture verifies the older package bytes and compiles the firmware probe from the S4 Git blobs. It uses loopback HTTP and a synthetic parameter target.
+
+The recovery rehearsal retires pending commands in every fixture Domain, completes the bounded metadata purge and checks schema 1 reads and a new publication through the older runtime. Review the live writer schema and the release's supported writer contract before selecting an application revision during managed operations.
