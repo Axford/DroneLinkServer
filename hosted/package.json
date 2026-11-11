@@ -32,7 +32,7 @@
     "joi": "^17.13.3",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
-    "@dronelink/persistence": "file:vendor/dronelink-persistence-0.7.1.tgz",
+    "@dronelink/persistence": "file:vendor/dronelink-persistence-0.8.0.tgz",
     "@dronelink/protocol": "file:vendor/dronelink-protocol-0.2.0.tgz"
   },
   "private": true,

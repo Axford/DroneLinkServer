@@ -39,10 +39,11 @@ def prepare(args):
     lock = json.loads((ROOT / 'package-lock.json').read_text())['packages']['node_modules/@dronelink/persistence']
     if lock['resolved'] != pin or lock['integrity'] != 'sha512-' + base64.b64encode(hashlib.sha512(raw).digest()).decode(): raise ValueError('Persistence lock integrity differs')
     with tarfile.open(fileobj=io.BytesIO(raw), mode='r:gz') as tar: provenance = json.load(tar.extractfile('package/provenance.json'))
-    if provenance.get('version') != '0.7.1' or archive.name != 'dronelink-persistence-0.7.1.tgz':
-        raise ValueError('M2-A requires pinned persistence0.7.1')
+    if provenance.get('version') != '0.8.0' or archive.name != 'dronelink-persistence-0.8.0.tgz':
+        raise ValueError('M2-B requires pinned persistence 0.8.0')
     command_format = provenance.get('storageFormat', {})
     if (command_format.get('commandContract') != 'm2-a-1' or command_format.get('commandMutationAPIs') is not True
+            or command_format.get('peerCommandPoll') is not True
             or command_format.get('supportedWriterSchemas') != [1, 2]):
         raise ValueError('Persistence lacks the M2 writer contract')
     if provenance.get('storageFormat', {}).get('schemaVersion') != 1 or provenance['storageFormat']['adapter'] != 'native-firestore': raise ValueError('Incompatible storage format')

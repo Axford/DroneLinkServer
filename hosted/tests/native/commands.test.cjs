@@ -150,11 +150,13 @@ test('authority, bounded parsers, terminal conflicts and uncertain HTTP response
     assert.equal((await poll({ domain: 'unknown' })).status, 401);
     assert.equal((await poll({ id: 9 })).status, 404);
     assert.equal((await poll({ id: 8 })).json().data.count, 0);
-    assert.equal((await poll({ peers: [8] })).status, 400);
+    assert.equal((await poll({ peers: [8, 8] })).status, 400);
     assert.equal((await poll({}, { Authorization: 'Bearer other' })).status, 401);
     assert.equal((await device.request('/commands/poll', { method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Content-Encoding': 'gzip' }, body: gzipSync(JSON.stringify({ ...machine, limit: 1 })) })).status, 400);
-    assert.equal((await poll()).json().data.count, 1);
+    const bridge = await poll({ id: 8, peers: [7, 9] });
+    assert.equal(bridge.status, 200, bridge.text);
+    assert.deepEqual(bridge.json().data, { count: 1, packets: Buffer.from([8, 7, 1, 12, 112, 0]).toString('base64') });
     const cancel = await editor.mutate(root + '/commands/' + command.id + '/cancel');
     assert.equal(cancel.status, 409); assert.equal(cancel.json().data.command.state, 'retrieved');
     assert.equal((await editor.request(root + '/command-submissions/' + submissionId)).json().data.command.id, command.id);

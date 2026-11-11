@@ -102,7 +102,7 @@ function packet(command, source) {
     const { target, operation, priority, msgType } = command;
     const write = operation === 'write';
     const type = write ? msgType : operation === 'query-name' ? NAMEQUERY : QUERY;
-    if (target.nodeAddress !== source || (write ? priority !== 3 || type < 0 || type > CHAR : priority !== 0 || command.payload !== null || msgType !== type)) throw fault('unavailable');
+    if (write ? priority !== 3 || type < 0 || type > CHAR : priority !== 0 || command.payload !== null || msgType !== type) throw fault('unavailable');
     const payload = write ? command.payload : Buffer.of(0);
     return encodeLinkPacket({ source, node: target.nodeAddress, channel: target.channel, param: target.param,
         priority, msgType: type, msgLength: payload.length, writable: false }, payload);

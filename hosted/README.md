@@ -1,6 +1,6 @@
 # Dronewright hosted backend
 
-The independent hosted service uses pinned native Firestore persistence 0.7.1. Install with Node22+ using `npm ci --omit=dev`; run `npm start`. No MongoDB, gateway, emulator, Java or sibling source is required in production.
+The independent hosted service uses pinned native Firestore persistence 0.8.0. Install with Node22+ using `npm ci --omit=dev`; run `npm start`. No MongoDB, gateway, emulator, Java or sibling source is required in production.
 
 Supply `GOOGLE_CLOUD_PROJECT`, `PUBLIC_ORIGIN`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SESSION_SECRET` (32+characters), optional `FIRESTORE_DATABASE` (default `(default)`), `MAPBOX_ACCESS_TOKEN`, `CLIENT_BUILD_DIR` and `PORT`. A local ignored hosted `config.json` may supply equivalent camelCase fields. Startup never creates configuration or downloads credentials. Production uses the service identity and Secret Manager values; no service-account key file. Client build defaults to hosted `private/build`; an explicit path must contain index.html/static. Validate a release before selection.
 
@@ -210,3 +210,7 @@ S3 release preparation validates the writer capability of the pinned runtime arc
 The coordinated local check uses `tests/browser/commands.cjs` with an extracted release build in `CLIENT_BUILD_DIR` and a separate production installation in `DRONELINK_HOSTED_ROOT`. Select installed Chrome and Playwright with the same environment used by the access browser fixture. Set `DRONELINK_NODE_DIR` to the repository containing the verified S4 Git revision, `DRONELINK_LEGACY_ROOT` to the installed 0.5.0 operator package, and `DRONELINK_PRE_CLEANUP_ROOT` to the installed 0.7.0 hosted package. The fixture verifies the older package bytes and compiles the firmware probe from the S4 Git blobs. It uses loopback HTTP and a synthetic parameter target.
 
 The recovery rehearsal retires pending commands in every fixture Domain, completes the bounded metadata purge and checks schema 1 reads and a new publication through the older runtime. Review the live writer schema and the release's supported writer contract before selecting an application revision during managed operations.
+
+### M2-B bridge polling
+
+The machine poll endpoint accepts up to 16 distinct peer addresses in the optional `peers` field. Persistence selects eligible HTTP targets within the authenticated Domain and atomically consumes across the polling node and its peers. Own-node polls use the same endpoint. Install this Server release before configuring upgraded bridges to advertise peers.

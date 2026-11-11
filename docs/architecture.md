@@ -59,7 +59,7 @@ Hosted `telemetryRoutes` derives packet metadata from the pinned portable defini
 
 ## M1-C local shared observation adoption — 2026-11-07
 
-The hosted runtime pins persistence 0.7.1 and the separate M1 access operator pins 0.5.0. Startup normalizes observationEpoch m1-c-1 for storage and HTTP once. Strict ingress captures a generation-bound ticket for eligible publications and independently admits shared observations/history;202 remains volatile admission, not persistence assurance. observationRoutes owns current-role/session checks, snapshot/update projection, cancellation, diagnostics and CSRF-protected reset. Storage owns transactions/reduction and returns plain records.
+The hosted runtime pins persistence 0.8.0 and the separate M1 access operator pins 0.5.0. Startup normalizes observationEpoch m1-c-1 for storage and HTTP once. Strict ingress captures a generation-bound ticket for eligible publications and independently admits shared observations/history;202 remains volatile admission, not persistence assurance. observationRoutes owns current-role/session checks, snapshot/update projection, cancellation, diagnostics and CSRF-protected reset. Storage owns transactions/reduction and returns plain records.
 
 C activation rejects legacy history-based current-view requests with426/client-refresh-required; explicit historical consumers send X-Observation-Contract:1. New Client manifests carry observationPolicyVersion1, which matched preparation requires alongside the exact storage/protocol archives. Existing release safeguards remain unchanged; rollback planning is deferred. This is local source/adoption evidence; managed C deployment is not implied.
 

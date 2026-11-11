@@ -136,24 +136,32 @@ function mountCommandPoll(app, { store }) {
     app.post('/commands/poll', noStore, body(4096), asyncHandler(async (req, res) => {
         const input = req.body;
         if (input && typeof input === 'object' && !Array.isArray(input) && !Object.hasOwn(input, 'apiKey')) throw fault('unauthenticated');
-        exact(input, ['domain', 'id', 'apiKey', 'limit']);
+        exact(input, ['domain', 'id', 'apiKey', 'limit', ...(input && Object.hasOwn(input, 'peers') ? ['peers'] : [])]);
         if (req.get('Authorization') !== undefined || req.get('Cookie') !== undefined) throw fault('unauthenticated');
         if (typeof input.domain !== 'string' || !input.domain || Buffer.byteLength(input.domain) > 200 ||
             /[/\u0000-\u001f]/.test(input.domain) || input.domain === '.' || input.domain === '..' || /^__.*__$/.test(input.domain)) throw fault('validation');
         if (typeof input.apiKey !== 'string' || !input.apiKey || Buffer.byteLength(input.apiKey) > 512) throw fault('unauthenticated');
         const nodeAddress = integer(input.id, 1, 254);
         const limit = integer(input.limit, 1, 32);
+        const peers = input.peers === undefined ? [] : input.peers;
+        if (!Array.isArray(peers) || peers.length > 16) throw fault('validation');
+        const targets = new Set([nodeAddress]);
+        for (const peer of peers) {
+            integer(peer, 1, 254);
+            if (targets.has(peer)) throw fault('validation');
+            targets.add(peer);
+        }
         let selected;
         try {
             selected = await store.commands.consume({ credential: { kind: 'domain', secret: input.apiKey } },
-                { domainId: input.domain, nodeAddress, limit, attemptId: randomBytes(32).toString('base64url') });
+                { domainId: input.domain, nodeAddress, peers, limit, attemptId: randomBytes(32).toString('base64url') });
         } catch (error) {
             if (error.code === 'forbidden' || error.code === 'not-found') throw fault('unauthenticated');
             return commandError(error, res);
         }
         let packets;
         try {
-            if (selected.length > limit) throw fault('unavailable');
+            if (selected.length > limit || selected.some(row => !targets.has(row.target.nodeAddress))) throw fault('unavailable');
             packets = Buffer.concat(selected.map(row => packet(row, nodeAddress))).toString('base64');
             if (packets.length > 896) throw fault('unavailable');
         } catch { throw fault('unavailable'); }
