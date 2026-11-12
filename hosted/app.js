@@ -7,6 +7,7 @@ const helmet = require('helmet');
 const path = require('path');
 const { mountCommandRoutes, mountCommandPoll } = require('./lib/commandRoutes');
 const { mountObservationRoutes } = require('./lib/observationRoutes');
+const { mountVisualizationSettingsRoutes } = require('./lib/visualizationSettingsRoutes');
 const { mountTelemetryRoutes } = require('./lib/telemetryRoutes');
 const { mountPackedTelemetry } = require('./lib/packedTelemetry');
 const { createAccessPolicy, fault } = require('./lib/accessPolicy');
@@ -186,6 +187,7 @@ const createApp = ({ config, store, googleStrategyFactory = defaultGoogleStrateg
     app.get('/profile', ensureAuthenticated, (req, res) => res.redirect('/private'));
     mountTelemetryRoutes(app, { store, ready, policy, ensureAuthenticated });
     mountObservationRoutes(app, { store, policy, ensureAuthenticated });
+    mountVisualizationSettingsRoutes(app, { store, policy, ensureAuthenticated });
     app.use(errorHandler);
     return app;
 };

@@ -80,3 +80,7 @@ Hosted `packedTelemetry` owns the bounded report envelope, whole-report validati
 
 
 Hosted M2 commands use the existing access policy for browser requests and native key verification for machine polls. Typed payload validation, safe projections and final link packet encoding live in the hosted application. Native persistence owns command identity, queue state and writer activation. [Shared command contract](../../DroneLinkDatastore/docs/contracts/http.md#m2-a-command-api-draft--2026-11-10)
+
+## Shared visualization settings with M2
+
+The hosted visualization settings routes reuse Domain authentication, permissions and CSRF. The pinned persistence library validates the INA219 channel's observation generation and the settings revision. The settings route and the M2 command routes are available in the same hosted release. INA219 settings writes affect display preferences. M2 parameter writes retain their separate observation and command lifecycle.

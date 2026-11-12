@@ -39,8 +39,9 @@ def prepare(args):
     lock = json.loads((ROOT / 'package-lock.json').read_text())['packages']['node_modules/@dronelink/persistence']
     if lock['resolved'] != pin or lock['integrity'] != 'sha512-' + base64.b64encode(hashlib.sha512(raw).digest()).decode(): raise ValueError('Persistence lock integrity differs')
     with tarfile.open(fileobj=io.BytesIO(raw), mode='r:gz') as tar: provenance = json.load(tar.extractfile('package/provenance.json'))
-    if provenance.get('version') != '0.8.0' or archive.name != 'dronelink-persistence-0.8.0.tgz':
-        raise ValueError('M2-B requires pinned persistence 0.8.0')
+    version = provenance.get('version')
+    if version not in ('0.8.0', '0.8.1') or archive.name != f'dronelink-persistence-{version}.tgz':
+        raise ValueError('Unsupported M2 persistence release')
     command_format = provenance.get('storageFormat', {})
     if (command_format.get('commandContract') != 'm2-a-1' or command_format.get('commandMutationAPIs') is not True
             or command_format.get('peerCommandPoll') is not True
