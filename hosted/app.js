@@ -9,6 +9,7 @@ const { mountCommandRoutes, mountCommandPoll } = require('./lib/commandRoutes');
 const { mountObservationRoutes } = require('./lib/observationRoutes');
 const { mountVisualizationSettingsRoutes } = require('./lib/visualizationSettingsRoutes');
 const { mountTelemetryRoutes } = require('./lib/telemetryRoutes');
+const { mountWorkbenchRoutes, machinePath } = require('./lib/workbenchRoutes');
 const { mountPackedTelemetry } = require('./lib/packedTelemetry');
 const { createAccessPolicy, fault } = require('./lib/accessPolicy');
 const { mountAccessRoutes } = require('./lib/accessRoutes');
@@ -76,7 +77,8 @@ const createApp = ({ config, store, googleStrategyFactory = defaultGoogleStrateg
                 connectSrc: [
                     "'self'",
                     "https://api.mapbox.com",
-                    "https://events.mapbox.com"
+                    "https://events.mapbox.com",
+                    "http://127.0.0.1:*"
                 ],
                 frameSrc: ["'none'"],
                 objectSrc: ["'none'"],
@@ -100,10 +102,10 @@ const createApp = ({ config, store, googleStrategyFactory = defaultGoogleStrateg
         resave: false, saveUninitialized: false,
         cookie: { secure: config.publicOrigin?.startsWith('https:') === true, httpOnly: true, sameSite: 'lax', maxAge: 600000 }
     });
-    app.use((req, res, next) => ['/addPacket', '/gateway/verify'].includes(req.path) ? next() : browserSession(req, res, next));
+    app.use((req, res, next) => ['/addPacket', '/gateway/verify', machinePath].includes(req.path) ? next() : browserSession(req, res, next));
     app.use(passport.initialize());
     const restoreSession = passport.session();
-    app.use((req, res, next) => ['/addPacket', '/gateway/verify'].includes(req.path) ? next() : restoreSession(req, res, next));
+    app.use((req, res, next) => ['/addPacket', '/gateway/verify', machinePath].includes(req.path) ? next() : restoreSession(req, res, next));
 
     // Serve static files
     app.use('/public', express.static(path.join(__dirname, 'public')));
@@ -166,6 +168,7 @@ const createApp = ({ config, store, googleStrategyFactory = defaultGoogleStrateg
         next();
     });
     mountCommandRoutes(app, { store, policy, ensureAuthenticated, ready });
+    mountWorkbenchRoutes(app, { config, store, ready, policy, ensureAuthenticated });
     app.use(express.json({ limit: '10mb' }));
     app.post('/auth/logout', ensureAuthenticated, (req, res, next) => req.logout(error => {
         if (error) return next(error);

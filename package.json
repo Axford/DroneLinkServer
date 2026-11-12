@@ -15,6 +15,7 @@
     "release:prepare": "node scripts/release.mjs prepare",
     "release:verify": "node scripts/release.mjs verify",
     "test:release": "node --test tests/release/*.test.mjs",
+    "test:workbench:connected": "node tests/workbench/connected-browser.mjs",
     "test:workbench:browser": "node tests/workbench/browser.mjs",
     "test:release:browser": "node tests/release/browser.mjs"
   },

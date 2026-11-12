@@ -6,6 +6,7 @@ import { parseArgs } from 'node:util';
 import express from 'express';
 import WorkbenchMesh from './workbench-mesh.mjs';
 import WorkbenchFiles, { FileError } from './workbench-files.mjs';
+import ConnectedWorkbench, { readConnectedConfig } from './workbench-connected.mjs';
 
 const host = '127.0.0.1';
 const heartbeatIntervalMs = 15000;
@@ -29,6 +30,7 @@ async function start() {
   const { values } = parseArgs({ options: {
     'client-build': { type: 'string' }, 'node-address': { type: 'string' },
     port: { type: 'string', default: '8002' },
+    'connected-config': { type: 'string' },
     'serial-port': { type: 'string' }, 'serial-address': { type: 'string' }, 'serial-only': { type: 'boolean' },
   } });
   const node = readInteger(values['node-address'], '--node-address', 1, 254);
@@ -40,6 +42,7 @@ async function start() {
   const udpAddress = serialOnly ? undefined : node;
   const serialAddress = serialOnly ? node : serialPort ? readInteger(values['serial-address'], '--serial-address', 1, 254) : undefined;
   if (serialAddress === udpAddress) throw new Error('Wi-Fi and serial must use different mesh addresses');
+  const connectedConfig = await readConnectedConfig(values['connected-config'], { wifi: udpAddress, serial: serialAddress });
   const port = readInteger(values.port, '--port', 1, 65535);
   const build = values['client-build'];
   if (!build || !isAbsolute(build)) throw new Error('--client-build must point to an absolute, verified Client build directory');
@@ -59,9 +62,25 @@ async function start() {
     }
   });
   const files = new WorkbenchFiles(mesh);
+  const connected = connectedConfig ? new ConnectedWorkbench(connectedConfig, mesh) : null;
   let ready = false;
   let heartbeatTimer;
   let stopping = false;
+
+  function subscribe(response, enhanced) {
+    if (!ready || streams.size >= maxStreams) {
+      response.sendStatus(503);
+      return false;
+    }
+    response.set({ 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store' });
+    response.on('close', () => streams.delete(response));
+    mesh.refresh();
+    streams.set(response, enhanced);
+    writeEvent(response, 'snapshot', mesh.snapshot(enhanced));
+    return true;
+  }
+
+  connected?.mount(app, { localHost: origin.host, subscribe, available: () => ready });
 
   app.use((request, response, next) => {
     const requestOrigin = request.get('origin');
@@ -80,13 +99,7 @@ async function start() {
   });
   app.head('/api/workbench/v1/events', (_request, response) => response.sendStatus(405));
   app.get('/api/workbench/v1/events', (request, response) => {
-    if (!ready || streams.size >= maxStreams) return response.sendStatus(503);
-    const enhanced = request.query.diagnostics === '1';
-    response.set({ 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store' });
-    response.on('close', () => streams.delete(response));
-    mesh.refresh();
-    streams.set(response, enhanced);
-    writeEvent(response, 'snapshot', mesh.snapshot(enhanced));
+    subscribe(response, request.query.diagnostics === '1');
   });
   const nodeAPI = '/api/workbench/v1/nodes/:node';
   const json = express.json({ limit: '64kb', inflate: false });
@@ -125,9 +138,10 @@ async function start() {
   }
 
   try {
+    await connected?.verify();
     server.listen(port, host);
     await once(server, 'listening');
-    await mesh.start({ udpAddress, serialAddress, serialPort });
+    await mesh.start({ udpAddress, serialAddress, serialPort, connected });
     ready = true;
     heartbeatTimer = setInterval(() => {
       for (const response of streams.keys()) writeEvent(response);
@@ -135,6 +149,7 @@ async function start() {
     process.once('SIGINT', stop);
     process.once('SIGTERM', stop);
     console.log(`Workbench available at ${origin.origin}/workbench/`);
+    connected?.announce();
   } catch (error) {
     stop();
     throw error;

@@ -194,3 +194,15 @@ The Workbench browser checks use a disposable UDP port and the installed serial 
 Select a node and local transport, then open **Node files** and select **List files**. Open an existing UTF-8 file, edit it, and select **Upload to node**. The gateway compares the opened revision and verifies stored bytes after Save. Supported files have consistent LF or CRLF line endings and are at most 8 KiB. The Workbench preserves the opened line-ending style. The node's `/backup.txt` is reserved and an occupied scratch path blocks Upload.
 
 Use one file-writing gateway per node. If Save cannot be verified, reopen the stored file and inspect the reserved scratch path before retrying. The editor keeps its draft on failure. **Restart node** is a separate confirmed action. The runtime uptime shown in the panel comes from node telemetry. See the [WB.3 plan](../../DroneLinkDatastore/docs/planning/workbench.md#wb3--standalone-node-files).
+
+### Connected Workbench
+
+Use a matched hosted release and the gateway from the same Workbench implementation. As a Domain Owner, issue a gateway credential for each mesh address you will use. Store the credential in a private file outside Git. For a Wi-Fi gateway, the configuration has this shape:
+
+```json
+{"origin":"https://staging.dronewright.com","domain":"<Domain ID>","credentials":{"wifi":"<gateway credential>"}}
+```
+
+Use `serial` for a serial-only gateway, or both fields for dual mode. Start with the standalone launch options and `--connected-config /absolute/private/gateway.json`. The gateway checks the configured associations with the hosted Server before starting. In the matching hosted Domain, select **Connect local gateway**, enter the gateway port and the process key printed in the terminal, and allow loopback access in Chrome when prompted. Keep the process key private. Restarting the gateway issues a new one. Disconnect in the Domain to remove the page pairing.
+
+The connected Inspector offers a direct read-only value query to current Editors, Owners and Platform Admins. It displays queueing separately from fresh observation. Cloud node actions use the existing hosted command queue. See the [connected Workbench contract](../../DroneLinkDatastore/docs/contracts/workbench.md#connected-browser-access) and [WB.4 plan](../../DroneLinkDatastore/docs/planning/workbench.md#wb4--connected-workbench-and-direct-actions) for acceptance status.

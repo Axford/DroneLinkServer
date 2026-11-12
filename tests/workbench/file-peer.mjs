@@ -82,6 +82,7 @@ export async function filePeer() {
     }
     if (type === Mesh.DRONE_MESH_MSG_TYPE_DRONELINKMSG) {
       const msg = new DroneLinkMsg(bytes);
+      if (msg.msgType === 7 && msg.node === 11 && msg.channel === 1 && msg.param === 13) actions.push('query');
       if (msg.node === 11 && msg.channel === 1 && msg.param === 10 && msg.valueArray()[0] === 1) actions.push('restart');
     }
   });

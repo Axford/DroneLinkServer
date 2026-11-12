@@ -31,13 +31,13 @@ export default class WorkbenchMesh {
     this.#emit = emit;
   }
 
-  async start({ udpAddress, serialAddress, serialPort }) {
+  async start({ udpAddress, serialAddress, serialPort, connected }) {
     if (udpAddress) {
-      const udp = this.#createLink('wifi', udpAddress, serialAddress, manager => new UDPInterface(manager, 1, console.log));
+      const udp = this.#createLink('wifi', udpAddress, serialAddress, connected, manager => new UDPInterface(manager, 1, console.log));
       await once(udp.server, 'listening');
     }
     if (serialAddress) {
-      this.#createLink('serial', serialAddress, udpAddress, manager => new SerialInterface(manager, 2, console.log, serialPort, undefined, text => {
+      this.#createLink('serial', serialAddress, udpAddress, connected, manager => new SerialInterface(manager, 2, console.log, serialPort, undefined, text => {
         this.#emit('diagnostic', { text, receivedAtMs: Date.now() }, null);
       }));
     }
@@ -45,8 +45,9 @@ export default class WorkbenchMesh {
     this.#timer = setInterval(() => this.refresh(), intervalMs);
   }
 
-  #createLink(transport, address, otherAddress, makeInterface) {
-    const manager = new DroneLinkManager(address, console.log);
+  #createLink(transport, address, otherAddress, connected, makeInterface) {
+    const relay = connected?.relay(transport);
+    const manager = new DroneLinkManager(address, console.log, relay?.domain, undefined, relay?.cloudRelay);
     manager.otherWorkbenchAddress = otherAddress;
     manager.logOptions.Hello = false;
     manager.logOptions.DroneLinkMsg = false;

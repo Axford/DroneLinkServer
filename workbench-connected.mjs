@@ -1,0 +1,166 @@
+import { randomBytes, timingSafeEqual } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import { isAbsolute } from 'node:path';
+import express from 'express';
+import { DroneLinkMsg, DRONE_LINK_MSG_TYPE_QUERY } from './public/modules/droneLinkMsg.mjs';
+import { FileError } from './workbench-files.mjs';
+
+const base = '/api/workbench/v1/connected';
+const permissionIntervalMs = 15000;
+const credentialPattern = /^([A-Za-z0-9_-]{1,200})\.[A-Za-z0-9_-]{43}$/;
+
+export async function readConnectedConfig(path, addresses) {
+  if (!path) return null;
+  if (!isAbsolute(path)) throw new Error('--connected-config must be an absolute path');
+  let settings;
+  try { settings = JSON.parse(await readFile(path, 'utf8')); }
+  catch { throw new Error('Cannot read the connected Workbench configuration'); }
+  const { origin, domain, credentials } = settings ?? {};
+  let url;
+  try { url = new URL(origin); } catch { throw new Error('Configure a canonical HTTPS cloud origin'); }
+  if (url.origin !== origin || url.protocol !== 'https:' || typeof domain !== 'string' || !/^[A-Za-z0-9_-]{1,200}$/.test(domain)) {
+    throw new Error('Configure a canonical HTTPS cloud origin and one Domain ID');
+  }
+  const links = Object.entries(addresses).filter(([, address]) => address !== undefined).map(([transport, address]) => {
+    const credential = credentials?.[transport];
+    if (typeof credential !== 'string' || !credentialPattern.test(credential)) throw new Error(`Missing or invalid ${transport} gateway credential`);
+    return { transport, address, credential };
+  });
+  return { origin, domain, links };
+}
+
+export default class ConnectedWorkbench {
+  #settings;
+  #key = randomBytes(18).toString('base64url');
+  #mesh;
+  #gatewayId;
+  #queryTimes = new Map();
+
+  constructor(settings, mesh) {
+    this.#settings = settings;
+    this.#mesh = mesh;
+    this.#gatewayId = credentialPattern.exec(settings.links[0].credential)[1];
+  }
+
+  get origin() { return this.#settings.origin; }
+
+  announce() {
+    console.log(`Connected Workbench for ${this.origin}, Domain ${this.#settings.domain}`);
+    console.log(`Pairing key for this gateway process: ${this.#key}`);
+  }
+
+  #post(path, link, body) {
+    return fetch(new URL(path, this.origin), {
+      method: 'POST', redirect: 'error', signal: AbortSignal.timeout(5000),
+      headers: { Authorization: `Bearer ${link.credential}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ domain: this.#settings.domain, id: link.address, ...body }),
+    });
+  }
+
+  async verify() {
+    await Promise.all(this.#settings.links.map(async link => {
+      const response = await this.#post('/gateway/verify', link, {});
+      if (!response.ok) throw new Error(`Cloud rejected ${link.transport} gateway association (${response.status})`);
+      const { data } = await response.json();
+      if (data?.domainId !== this.#settings.domain || data.nodeAddress !== link.address || !data.capabilities?.includes('telemetry')) {
+        throw new Error('Cloud gateway association does not match the configured Domain and address');
+      }
+    }));
+  }
+
+  relay(transport) {
+    const link = this.#settings.links.find(link => link.transport === transport);
+    return { domain: this.#settings.domain, cloudRelay: { url: this.origin, credential: link.credential } };
+  }
+
+  #pair(request) {
+    const supplied = request.get('X-Workbench-Key');
+    if (typeof supplied !== 'string' || !/^[A-Za-z0-9_-]{24}$/.test(supplied) || !timingSafeEqual(Buffer.from(this.#key), Buffer.from(supplied))) {
+      throw new FileError(403, 'The local gateway pairing key is invalid.');
+    }
+  }
+
+  async #authorize(grant, action, transport) {
+    if (typeof grant !== 'string' || !/^[A-Za-z0-9_-]{40,2048}$/.test(grant)) throw new FileError(403, 'Cloud Workbench access is required.');
+    let response;
+    try {
+      response = await this.#post('/gateway/workbench/authorize', this.#settings.links[0], { grant, action });
+    } catch {
+      throw new FileError(503, 'Could not verify cloud Workbench access.');
+    }
+    if (!response.ok) {
+      if (response.status >= 500 || response.status === 429) throw new FileError(503, 'Could not verify cloud Workbench access.');
+      throw new FileError(403, 'Cloud Workbench access was denied or expired.');
+    }
+    const { data } = await response.json();
+    if (data?.domainId !== this.#settings.domain || (action === 'query-value' && !data.canQuery)) throw new FileError(403, 'Current edit access is required.');
+    const additional = this.#settings.links.slice(1).filter(link => transport === undefined || link.transport === transport);
+    for (const link of additional) {
+      const verified = await this.#post('/gateway/verify', link, {}).catch(() => null);
+      if (!verified?.ok) throw new FileError(verified && verified.status < 500 ? 403 : 503, 'The second gateway credential could not be verified.');
+    }
+  }
+
+  mount(app, { localHost, subscribe, available }) {
+    app.use(base, (req, res, next) => {
+      if (req.get('host') !== localHost || req.get('origin') !== this.origin) return res.sendStatus(403);
+      res.set({ 'Access-Control-Allow-Origin': this.origin, 'Cache-Control': 'no-store', Vary: 'Origin' });
+      if (req.method === 'OPTIONS') {
+        res.set({ 'Access-Control-Allow-Methods': 'GET, POST', 'Access-Control-Allow-Headers': 'Content-Type, X-Workbench-Key, X-Workbench-Grant' });
+        return res.sendStatus(204);
+      }
+      if (!available()) return res.sendStatus(503);
+      next();
+    });
+    const parse = express.json({ limit: '4kb', inflate: false });
+    const handle = operation => async (req, res) => {
+      try { this.#pair(req); await operation(req, res); }
+      catch (error) {
+        if (!res.headersSent) res.status(error instanceof FileError ? error.status : 503).json({ error: error instanceof FileError ? error.message : 'Connected Workbench is unavailable.' });
+        else res.end();
+      }
+    };
+    app.get(`${base}/identity`, handle(async (_req, res) => {
+      res.json({ domainId: this.#settings.domain, gatewayId: this.#gatewayId });
+    }));
+    app.get(`${base}/events`, handle(async (req, res) => {
+      const grant = req.get('X-Workbench-Grant');
+      await this.#authorize(grant, 'observe');
+      if (res.destroyed || !subscribe(res, true)) return;
+      let checking = false;
+      const timer = setInterval(async () => {
+        if (checking || res.destroyed) return;
+        checking = true;
+        try { await this.#authorize(grant, 'observe'); }
+        catch (error) {
+          if (!res.destroyed && error.status === 403) res.write('event: access-lost\ndata: {}\n\n');
+          res.end();
+        } finally { checking = false; }
+      }, permissionIntervalMs);
+      res.once('close', () => clearInterval(timer));
+    }));
+    app.post(`${base}/query-value`, (req, res, next) => {
+      if (!req.is('application/json')) return res.sendStatus(415);
+      next();
+    }, parse, handle(async (req, res) => {
+      const { node, channel, parameter, transport } = req.body || {};
+      const within = (n, min, max) => Number.isInteger(n) && n >= min && n <= max;
+      if (!within(node, 1, 254) || !within(channel, 1, 254) || !within(parameter, 1, 63) || !['wifi', 'serial'].includes(transport)) {
+        throw new FileError(400, 'Select a valid local parameter and transport.');
+      }
+      await this.#authorize(req.get('X-Workbench-Grant'), 'query-value', transport);
+      if (res.destroyed) return;
+      const { manager, assertAvailable } = this.#mesh.fileRoute(node, transport);
+      const route = assertAvailable();
+      const now = Date.now();
+      if (now - (this.#queryTimes.get(node) ?? 0) < 750) throw new FileError(429, 'Wait before querying the same node again.');
+      const query = new DroneLinkMsg();
+      Object.assign(query, { source: manager.node, node, channel, param: parameter });
+      query.setUint8([0]);
+      query.msgType = DRONE_LINK_MSG_TYPE_QUERY;
+      if (!manager.generateDroneLinkMessage(route.netInterface, query, route.nextHop)) throw new FileError(503, 'The local query could not be queued.');
+      this.#queryTimes.set(node, now);
+      res.status(202).json({ status: 'queued' });
+    }));
+  }
+}

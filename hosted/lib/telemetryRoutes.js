@@ -52,4 +52,4 @@ function mountTelemetryRoutes(app, { store, ready, policy, ensureAuthenticated }
         res.json({ success: true, data: row });
     }));
 }
-module.exports = { mountTelemetryRoutes };
+module.exports = { mountTelemetryRoutes, credential };
