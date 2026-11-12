@@ -9,7 +9,7 @@ const crc8 = CRC8();
 
 export default class SerialInterface extends NetworkInterface {
 
-  constructor(dlm, id, clog, portName, binding) {
+  constructor(dlm, id, clog, portName, binding, onDiagnostic) {
     super(dlm, id, clog);
 
     this.typeName = 'Serial';
@@ -17,6 +17,8 @@ export default class SerialInterface extends NetworkInterface {
     this.portName = portName;
     this.binding = binding;
     this.openSerialPort = null;
+    this.serialPort = null;
+    this.stopped = false;
 
     // decoding vars
     this.msgBuffer = new Uint8Array(DMM.DRONE_MESH_MSG_MAX_PACKET_SIZE+2);
@@ -25,7 +27,10 @@ export default class SerialInterface extends NetworkInterface {
     this.decodeState = 0;
     this.diagnosticRecords = 0;
     this.diagnosticRejected = 0;
-    this.diagnostics = new SerialDiagnosticText(text => this.clog(`[Serial ${this.portName || this.id}] ${text}`));
+    this.diagnostics = new SerialDiagnosticText(text => {
+      this.clog(`[Serial ${this.portName || this.id}] ${text}`);
+      onDiagnostic?.(text);
+    });
 
     if ((!portName || (portName == ""))) {
       this.clog('ERROR undefined Serial Telemetry portName: '+portName);
@@ -43,56 +48,69 @@ export default class SerialInterface extends NetworkInterface {
 
 
   attemptToOpenSerial() {
-    if (this.openSerialPort) return;
-
-    var me = this;
+    if (this.stopped || this.serialPort) return;
 
     try {
-      ///dev/tty.SLAB_USBtoUART
       this.clog('Opening serial telemetry port: ' + this.portName);
       const port = new SerialPort({
         path: this.portName,
         baudRate: 115200,
-        ...(this.binding ? {binding: this.binding} : {})
+        ...(this.binding ? { binding: this.binding } : {})
       });
+      this.serialPort = port;
 
-      // Open errors will be emitted as an error event
-      port.on('error', function(err) {
-        me.clog('Serial Error: '+ err.message);
-        me.errorMsg = err.message;
-
-        me.resetDecoder();
-        me.openSerialPort = null;
-        me.state = false;
-        
-        // wait a while, then try to open port again
-        me.scheduleReconnect();
+      const disconnected = () => {
+        if (this.serialPort !== port) return;
+        this.serialPort = null;
+        this.openSerialPort = null;
+        this.state = false;
+        this.resetDecoder();
+        this.scheduleReconnect();
+      };
+      port.on('error', error => {
+        if (this.serialPort !== port || this.stopped) return;
+        this.errorMsg = error.message;
+        this.clog('Serial Error: ' + error.message);
+        if (port.isOpen) {
+          this.openSerialPort = null;
+          this.state = false;
+          port.close(disconnected);
+        } else disconnected();
       });
-
-      port.on('close', () => { me.resetDecoder(); me.openSerialPort=null; me.state=false; me.scheduleReconnect(); });
-
-      port.on('open', () =>{
-        me.resetDecoder();
-        me.openSerialPort = port;
-        me.state = true;
-        me.clog('Serial port open');
-      })
-
-      port.on('data', function (data) {
-        
-       // me.clog('Serial recv: ' + data);
-
-        try {
-          me.decodeBuffer(data);
-        } catch(err) {
-          me.clog('decode error: '+ err)
+      port.on('close', disconnected);
+      port.on('open', () => {
+        if (this.stopped || this.serialPort !== port) {
+          port.close(() => {});
+          return;
         }
-
+        this.resetDecoder();
+        this.errorMsg = '';
+        this.openSerialPort = port;
+        this.state = true;
+        this.clog('Serial port open');
       });
-    } catch(err) {
-      this.clog('ERROR in opening serial port: ' + err);
-      me.errorMsg = err.message;
+      port.on('data', data => {
+        if (this.openSerialPort !== port) return;
+        try { this.decodeBuffer(data); }
+        catch (error) { this.clog('decode error: ' + error); }
+      });
+    } catch (error) {
+      this.errorMsg = error.message;
+      this.clog('ERROR in opening serial port: ' + error);
+      this.scheduleReconnect();
     }
+  }
+
+  close() {
+    this.stopped = true;
+    clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = null;
+    const port = this.serialPort;
+    this.serialPort = null;
+    this.openSerialPort = null;
+    this.state = false;
+    this.resetDecoder();
+    if (port?.isOpen) port.close(() => {});
   }
 
 
@@ -112,7 +130,7 @@ export default class SerialInterface extends NetworkInterface {
 
 
   scheduleReconnect() {
-    if(this.reconnectTimer) return;
+    if(this.stopped || this.reconnectTimer) return;
     this.reconnectTimer=setTimeout(()=>{
       this.reconnectTimer=null;this.attemptToOpenSerial();
     },10000);

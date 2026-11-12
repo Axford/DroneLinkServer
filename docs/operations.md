@@ -172,3 +172,19 @@ npm run workbench -- --client-build /absolute/extracted-release/build --node-add
 Choose a free node address on the bench mesh. Stop any competing local gateway first because Workbench uses mesh UDP port 8007. Open `http://127.0.0.1:8002/workbench/` on the same workstation. Use `--port` for a different browser port. The gateway uses existing UDP HELLOs and subscriptions. The browser observes live routes and publications through the local listener. Cloud login, credentials, services and internet access are unnecessary. Stop with Ctrl+C, then start the legacy gateway with its original configuration when needed.
 
 Run `npm run test:protocol` for the Workbench loopback UDP and HTTP cases. With installed Chrome and Playwright, set `CLIENT_BUILD_DIR` to the absolute verified build directory and run `npm run test:workbench:browser`. The browser case routes UDP to a disposable loopback port and rejects off-origin browser requests. Physical bench acceptance is recorded in the [WB plan](../../DroneLinkDatastore/docs/planning/workbench.md).
+
+### Serial and network diagnostics
+
+The default command above enables Wi-Fi. Use an explicit device path for a node running binary SerialTelemetry at 115200 baud. A USB console carrying ordinary text will show no framed mesh or diagnostics. Close other programs using the serial port first.
+
+```sh
+# Serial only. This mode does not bind UDP port 8007.
+npm run workbench -- --client-build /absolute/extracted-release/build --node-address 253 --serial-port /dev/cu.usbserial-example --serial-only
+
+# Wi-Fi and serial. Pick two distinct, unused mesh addresses.
+npm run workbench -- --client-build /absolute/extracted-release/build --node-address 254 --serial-port /dev/cu.usbserial-example --serial-address 253
+```
+
+The two addresses allow independent subscriptions in dual mode. The gateway selects the active route by mesh cost and preserves its current choice on equal cost. Each node has an Auto / Wi-Fi / Serial selection in the Client. Explicit choices retain last-seen readings on loss. Network shows each transport's state, cumulative counters, per-node paths and selected route. The serial adapter retries the configured device every ten seconds after a loss or failed open. A reopened port discovers fresh routes before displaying current observations. The browser log retains up to 200 decoded lines for the current connection.
+
+The Workbench browser checks use a disposable UDP port and the installed serial adapter with its simulated binding. Use the [WB.2 plan](../../DroneLinkDatastore/docs/planning/workbench.md#wb2--serial-and-network-diagnostics) for physical validation status.

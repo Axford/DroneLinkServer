@@ -4,12 +4,13 @@ import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { hello, launch, publication } from './workbench/harness.mjs';
+import { hello, launch, publication, serialFrame, serialHello, serialPublication } from './workbench/harness.mjs';
 
 const packet = [11, 11, 5, 8, 0, 42];
 
-async function openFeed(origin, signal) {
-  const response = await fetch(`${origin}/api/workbench/v1/events`, { signal });
+async function openFeed(origin, signal, diagnostics = false) {
+  const query = diagnostics ? '?diagnostics=1' : '';
+  const response = await fetch(`${origin}/api/workbench/v1/events${query}`, { signal });
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('cache-control'), 'no-store');
   const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
@@ -23,6 +24,7 @@ async function openFeed(origin, signal) {
     const end = pending.indexOf('\n\n');
     const lines = pending.slice(0, end).split('\n');
     pending = pending.slice(end + 2);
+    if (lines[0].startsWith(':')) return { event: 'heartbeat' };
     return { event: lines[0].slice(7), payload: JSON.parse(lines[1].slice(6)) };
   };
 }
@@ -120,4 +122,75 @@ test('a stalled workbench subscriber is disconnected while a healthy subscriber 
   assert.equal((await healthy()).event, 'route');
   const reconnected = await openFeed(gateway.origin, signal);
   assert.equal((await reconnected()).payload.routes[0].node, 11);
+});
+
+async function until(next, event, predicate = () => true) {
+  for (;;) {
+    const current = await next();
+    if (current.event === event && predicate(current.payload)) return current.payload;
+  }
+}
+
+test('dual workbench receives both transports independently and recovers serial without losing Wi-Fi', { timeout: 25000 }, async t => {
+  const gateway = await launch(await buildFixture(t), undefined, undefined, { serialMode: 'dual' });
+  t.after(() => gateway.close());
+  await gateway.ready;
+  const signal = AbortSignal.timeout(22000);
+  const next = await openFeed(gateway.origin, signal, true);
+  const snapshot = await until(next, 'snapshot');
+  assert.deepEqual(snapshot.interfaces.map(({ transport, address }) => ({ transport, address })), [
+    { transport: 'wifi', address: 254 }, { transport: 'serial', address: 253 },
+  ]);
+  if (!snapshot.interfaces[1].up) await until(next, 'interface', status => status.transport === 'serial' && status.up);
+  await hello(gateway);
+  await until(next, 'route', route => route.transport === 'wifi');
+  serialHello(gateway);
+  await until(next, 'route', route => route.transport === 'serial');
+  await publication(gateway, packet);
+  assert.equal((await until(next, 'observation')).transport, 'wifi');
+  serialPublication(gateway, [11, 11, 5, 8, 0, 91]);
+  assert.equal((await until(next, 'observation')).transport, 'serial');
+  const diagnostic = [0xfd, 3, 3, 0, 0, 104, 105, 10, 0xf7];
+  serialFrame(gateway, [...diagnostic.slice(0, -1), 0]);
+  serialFrame(gateway, diagnostic);
+  assert.equal((await until(next, 'diagnostic', item => item.text === 'hi')).text, 'hi');
+  const counters = await until(next, 'interface', status => status.transport === 'serial' && status.diagnosticRecords === 1);
+  assert.equal(counters.diagnosticRejected, 1);
+  assert.equal(counters.rejected, 0);
+
+  gateway.processHandle.send({ serial: 'detach' });
+  await until(next, 'interface', status => status.transport === 'serial' && !status.up);
+  await until(next, 'path', route => route.transport === 'serial' && !route.reachable);
+  await until(next, 'route', route => route.transport === 'wifi' && route.reachable);
+  await publication(gateway, packet);
+  assert.equal((await until(next, 'observation')).transport, 'wifi');
+  await until(next, 'interface', status => status.transport === 'serial' && status.up);
+  // Port reopen alone cannot resurrect an old route.
+  const afterOpen = await until(await openFeed(gateway.origin, signal, true), 'snapshot');
+  assert.deepEqual(afterOpen.paths.map(path => path.transport), ['wifi']);
+  serialHello(gateway);
+  await until(next, 'route', route => route.transport === 'serial' && route.reachable);
+  serialPublication(gateway, packet);
+  assert.equal((await until(next, 'observation')).transport, 'serial');
+});
+
+test('serial-only mode runs without a UDP bind and rejects duplicate mesh addresses in dual mode', { timeout: 10000 }, async t => {
+  const build = await buildFixture(t);
+  const wifi = await launch(build);
+  t.after(() => wifi.close());
+  await wifi.ready;
+  const serial = await launch(build, undefined, wifi.udpPort, { serialMode: 'only' });
+  t.after(() => serial.close());
+  await serial.ready;
+  const next = await openFeed(serial.origin, AbortSignal.timeout(6000), true);
+  const { interfaces } = await until(next, 'snapshot');
+  assert.deepEqual(interfaces.map(({ transport, address }) => ({ transport, address })), [{ transport: 'serial', address: 254 }]);
+  if (!interfaces[0].up) await until(next, 'interface', status => status.up);
+  serialHello(serial);
+  await until(next, 'route', route => route.transport === 'serial');
+  serialPublication(serial, packet, 254);
+  assert.equal((await until(next, 'observation')).transport, 'serial');
+  const invalid = await launch(build, undefined, undefined, { serialMode: 'dual', serialAddress: 254 });
+  await assert.rejects(invalid.ready, /different mesh addresses/);
+  assert.deepEqual(await invalid.exited, [1, null]);
 });

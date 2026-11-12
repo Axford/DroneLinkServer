@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { isAbsolute } from 'node:path';
-import { hello, launch, publication } from './harness.mjs';
+import { hello, launch, publication, serialFrame, serialHello, serialPublication } from './harness.mjs';
 
 const build = process.env.CLIENT_BUILD_DIR;
 if (!build || !isAbsolute(build)) throw new Error('Select a verified Client build with CLIENT_BUILD_DIR');
@@ -46,7 +46,7 @@ try {
   assert.ok(await row.locator('time').getAttribute('datetime'));
 
   gateway.processHandle.send('expire routes');
-  await page.getByText('Node 11 · Local · Last seen').waitFor(timeout);
+  await page.getByText('Node 11 · Local · Wi-Fi · Last seen').waitFor(timeout);
   await hello(gateway);
   await waitForPublication.waitFor(timeout);
   await publication(gateway, packet(43));
@@ -72,6 +72,43 @@ try {
   for (const request of apiRequests) assert.deepEqual(request, ['GET', '/api/workbench/v1/events']);
   assert.deepEqual(errors, []);
   console.log(`PASS Chrome ${browser.version()}: local typed values, independent route and gateway recovery, reload, zero off-origin requests`);
+
+  await page.close();
+  await gateway.close();
+  gateway = await launch(build, first.port, first.udpPort, { serialMode: 'dual' });
+  await gateway.ready;
+  const dual = await context.newPage();
+  dual.on('pageerror', error => errors.push(error.message));
+  await dual.goto(`${first.origin}/workbench/`);
+  await dual.getByText('Serial · Up', { exact: true }).waitFor(timeout);
+  await hello(gateway);
+  serialHello(gateway);
+  await dual.getByRole('button', { name: /Node 11 · Reachable/ }).click(timeout);
+  await dual.getByText('Node 11 · Local · Serial', { exact: true }).waitFor(timeout);
+  await publication(gateway, packet(46));
+  serialPublication(gateway, packet(90));
+  serialFrame(gateway, [0xfd, 3, 3, 0, 0, 104, 105, 10, 0xf7]);
+  const serialRow = dual.getByRole('article', { name: 'Parameter 11>5.8' });
+  await serialRow.getByText('90', { exact: true }).waitFor(timeout);
+  await dual.getByRole('list', { name: 'Recent serial messages' }).getByText('hi').waitFor(timeout);
+  const selector = dual.getByRole('combobox', { name: 'Transport' });
+  await selector.selectOption('serial');
+  await dual.getByText(/Hidden by transport selection/).waitFor(timeout);
+  gateway.processHandle.send({ serial: 'detach' });
+  await dual.getByText('Node 11 · Local · Serial · Last seen', { exact: true }).waitFor(timeout);
+  await serialRow.getByText('90', { exact: true }).waitFor(timeout);
+  await selector.selectOption('auto');
+  await dual.getByText('Node 11 · Local · Wi-Fi', { exact: true }).waitFor(timeout);
+  await serialRow.getByText('46', { exact: true }).waitFor(timeout);
+  await dual.getByText('Serial · Up', { exact: true }).waitFor({ timeout: 14000 });
+  serialHello(gateway);
+  await dual.getByText('Waiting for publications.').waitFor(timeout);
+  serialPublication(gateway, packet(91));
+  await serialRow.getByText('91', { exact: true }).waitFor(timeout);
+  assert.deepEqual(offOrigin, []);
+  assert.deepEqual(errors, []);
+  console.log(`PASS Chrome ${browser.version()}: dual receipts, diagnostic text, pinned stale state, Auto failover and fresh serial recovery`);
+
 } finally {
   await browser?.close();
   await gateway.close();

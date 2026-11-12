@@ -974,6 +974,7 @@ export default class DroneLinkManager {
 
 
   receivePacket(netInterface, msg, metric, interfaceAddress) {
+    if (this.otherWorkbenchAddress && [msg.srcNode, msg.txNode].includes(this.otherWorkbenchAddress)) return;
     try {
 
           // update lastHeard for tx node
