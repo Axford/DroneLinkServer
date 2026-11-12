@@ -160,3 +160,15 @@ Grid refinement (2026-11-10): the browser gate checks computed 4px-grid values, 
 
 
 Design-system staging rollout (2026-11-10): matched Server `bb762dc` / Client `927a386` is deployed on ready revision `dronewright-staging-00011-vhs` at 100% traffic without tags. Canonical HTTPS sign-in and shared/main Client assets match the verified release; anonymous private routes redirect to sign-in. Managed schema/index readiness passes without data/schema/index mutations. The [central rollout ledger](../../DroneLinkDatastore/docs/planning/m1-contracts-and-telemetry.md#design-system-staging-rollout--2026-11-10) owns exact build/image/Hosting identities, CA-publication recovery and acceptance limits. This operations follow-up changes no frozen runtime bytes.
+
+## Standalone Workbench
+
+Install the Server root package with `npm ci`. Verify and extract a matched [Client release](../../DroneLinkClient/docs/operations.md), then run:
+
+```sh
+npm run workbench -- --client-build /absolute/extracted-release/build --node-address 254
+```
+
+Choose a free node address on the bench mesh. Stop any competing local gateway first because Workbench uses mesh UDP port 8007. Open `http://127.0.0.1:8002/workbench/` on the same workstation. Use `--port` for a different browser port. The gateway uses existing UDP HELLOs and subscriptions. The browser observes live routes and publications through the local listener. Cloud login, credentials, services and internet access are unnecessary. Stop with Ctrl+C, then start the legacy gateway with its original configuration when needed.
+
+Run `npm run test:protocol` for the Workbench loopback UDP and HTTP cases. With installed Chrome and Playwright, set `CLIENT_BUILD_DIR` to the absolute verified build directory and run `npm run test:workbench:browser`. The browser case routes UDP to a disposable loopback port and rejects off-origin browser requests. Physical bench acceptance is recorded in the [WB plan](../../DroneLinkDatastore/docs/planning/workbench.md).

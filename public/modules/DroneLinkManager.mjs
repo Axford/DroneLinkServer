@@ -101,8 +101,9 @@ export default class DroneLinkManager {
 
     this.clog('DroneLinkManager started');
 
+    this.timers = [];
     // slow process timer
-    setInterval( ()=>{
+    this.timers.push(setInterval( ()=>{
       try {
         this.checkForOldRoutes();
         this.checkDirectLinks();
@@ -110,33 +111,38 @@ export default class DroneLinkManager {
       } catch (err) {
         this.clog('ERROR: ' + err);
       }
-    }, 1000);
+    }, 1000));
 
     // transmit timer
-    setInterval( ()=>{
+    this.timers.push(setInterval( ()=>{
       try {
         this.processTransmitQueue();
       } catch (err) {
         this.clog('ERROR: ' + err);
       }
 
-    }, 1);
+    }, 1));
 
     // hello Timer
-    setInterval( ()=>{
+    this.timers.push(setInterval( ()=>{
       try {
         this.generateHellos();
       } catch (err) {
         this.clog('ERROR: ' + err);
       }
-    }, DRONE_LINK_MANAGER_HELLO_INTERVAL);
+    }, DRONE_LINK_MANAGER_HELLO_INTERVAL));
 
     // firmware transmission, max 1000 per second
-    setInterval( ()=>{
+    this.timers.push(setInterval( ()=>{
       this.transmitFirmware();
-    }, 1);
+    }, 1));
   }
 
+
+  stop() {
+    for (const timer of this.timers) clearInterval(timer);
+    this.timers = [];
+  }
 
   setLogToFile(nv) {
     if (nv) {
@@ -1262,7 +1268,8 @@ export default class DroneLinkManager {
         if (this.logOptions.DroneLinkMsg)
           this.clog('    ' + dlmMsg.asString());
 
-        // publish dlm
+        // Publish only after validation and address checks.
+        this.observeLinkMessage?.(dlmMsg, loopTime);
         if (this.io) this.io.emit('DLM.msg', dlmMsg.encodeUnframed());
 
         return this.sendRxPacketToCloud(dlmMsg);

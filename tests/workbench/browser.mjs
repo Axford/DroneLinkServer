@@ -1,0 +1,78 @@
+import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
+import { isAbsolute } from 'node:path';
+import { hello, launch, publication } from './harness.mjs';
+
+const build = process.env.CLIENT_BUILD_DIR;
+if (!build || !isAbsolute(build)) throw new Error('Select a verified Client build with CLIENT_BUILD_DIR');
+const require = createRequire(import.meta.url);
+const { chromium } = require(process.env.DRONELINK_PLAYWRIGHT_MODULE || 'playwright');
+const packet = value => [11, 11, 5, 8, 0, value];
+const first = await launch(build);
+let gateway = first;
+let browser;
+try {
+  await gateway.ready;
+  browser = await chromium.launch({ channel: process.env.DRONELINK_BROWSER_CHANNEL || 'chrome', headless: true });
+  const context = await browser.newContext();
+  const offOrigin = [];
+  const apiRequests = [];
+  const errors = [];
+  await context.route('**/*', route => {
+    const request = route.request();
+    const url = new URL(request.url());
+    if (url.origin !== first.origin) {
+      offOrigin.push(url.origin);
+      return route.abort();
+    }
+    if (url.pathname.startsWith('/api/')) apiRequests.push([request.method(), url.pathname]);
+    return route.continue();
+  });
+  const page = await context.newPage();
+  page.on('pageerror', error => errors.push(error.message));
+  const timeout = { timeout: 8000 };
+  const connected = page.getByText('Local gateway connected', { exact: true });
+  const waitForPublication = page.getByText('Waiting for publications.');
+  const row = page.getByRole('article', { name: 'Parameter 11>5.8' });
+
+  await page.goto(`${first.origin}/workbench/`);
+  await connected.waitFor(timeout);
+  await hello(gateway);
+  await page.getByRole('button', { name: /Node 11 · Reachable/ }).click(timeout);
+  await waitForPublication.waitFor(timeout);
+  await publication(gateway, packet(42));
+  await row.getByText('42', { exact: true }).waitFor(timeout);
+  await row.getByText(/Local ·/).waitFor(timeout);
+  assert.ok(await row.locator('time').getAttribute('datetime'));
+
+  gateway.processHandle.send('expire routes');
+  await page.getByText('Node 11 · Local · Last seen').waitFor(timeout);
+  await hello(gateway);
+  await waitForPublication.waitFor(timeout);
+  await publication(gateway, packet(43));
+  await row.getByText('43', { exact: true }).waitFor(timeout);
+
+  await gateway.close();
+  await page.getByText(/Local gateway disconnected/).waitFor(timeout);
+  gateway = await launch(build, first.port, first.udpPort);
+  await gateway.ready;
+  await connected.waitFor(timeout);
+  await hello(gateway);
+  await waitForPublication.waitFor(timeout);
+  await publication(gateway, packet(44));
+  await row.getByText('44', { exact: true }).waitFor(timeout);
+
+  await page.reload();
+  await page.getByRole('button', { name: /Node 11 · Reachable/ }).click(timeout);
+  await waitForPublication.waitFor(timeout);
+  await publication(gateway, packet(45));
+  await row.getByText('45', { exact: true }).waitFor(timeout);
+  assert.deepEqual(offOrigin, []);
+  assert.ok(apiRequests.length >= 3);
+  for (const request of apiRequests) assert.deepEqual(request, ['GET', '/api/workbench/v1/events']);
+  assert.deepEqual(errors, []);
+  console.log(`PASS Chrome ${browser.version()}: local typed values, independent route and gateway recovery, reload, zero off-origin requests`);
+} finally {
+  await browser?.close();
+  await gateway.close();
+}

@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "workbench": "node workbench.mjs",
     "sim": "node -r esm sim.mjs",
     "test:protocol": "npm run protocol:check && node --test tests/*.test.mjs",
     "protocol:sync": "node scripts/sync-protocol.mjs",
@@ -14,6 +15,7 @@
     "release:prepare": "node scripts/release.mjs prepare",
     "release:verify": "node scripts/release.mjs verify",
     "test:release": "node --test tests/release/*.test.mjs",
+    "test:workbench:browser": "node tests/workbench/browser.mjs",
     "test:release:browser": "node tests/release/browser.mjs"
   },
   "author": "",
