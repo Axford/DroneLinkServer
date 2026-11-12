@@ -7,8 +7,9 @@ dgram.createSocket = function (...args) {
   const socket = createSocket.apply(this, args);
   const bind = socket.bind.bind(socket);
   const send = socket.send.bind(socket);
+  const peer = Number(process.env.WB_TEST_PEER_PORT || process.env.WB_TEST_UDP_PORT);
   socket.bind = (_port, callback) => bind(Number(process.env.WB_TEST_UDP_PORT), '127.0.0.1', callback);
-  socket.send = (message, _port, _host, callback) => send(message, Number(process.env.WB_TEST_UDP_PORT), '127.0.0.1', callback);
+  socket.send = (message, _port, _host, callback) => send(message, peer, '127.0.0.1', callback);
   return socket;
 };
 

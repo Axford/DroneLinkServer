@@ -1,4 +1,5 @@
-import { once } from 'node:events';
+import { EventEmitter, once } from 'node:events';
+import { FileError } from './workbench-files.mjs';
 import DroneLinkManager from './public/modules/DroneLinkManager.mjs';
 import UDPInterface from './public/modules/UDPInterface.mjs';
 import SerialInterface from './public/modules/SerialInterface.mjs';
@@ -49,7 +50,9 @@ export default class WorkbenchMesh {
     manager.otherWorkbenchAddress = otherAddress;
     manager.logOptions.Hello = false;
     manager.logOptions.DroneLinkMsg = false;
-    const link = { transport, address, manager, adapter: undefined, wasUp: false };
+    const events = new EventEmitter();
+    manager.io = events;
+    const link = { transport, address, manager, events, adapter: undefined, wasUp: false };
     this.#links.push(link);
     link.adapter = makeInterface(manager);
     manager.observeLinkMessage = (message, receivedAtMs) => {
@@ -85,9 +88,9 @@ export default class WorkbenchMesh {
         this.#emit('interface', status, null);
       }
       if (!adapter.state) continue;
-      for (const { heard, node, nextHop, lastHeard, metric } of Object.values(manager.routeMap)) {
+      for (const { heard, node, nextHop, lastHeard, metric, uptime } of Object.values(manager.routeMap)) {
         if (!heard || !validAddress(node) || !validAddress(nextHop)) continue;
-        const path = { node, nextHop, lastHeardAtMs: lastHeard, transport, metric };
+        const path = { node, nextHop, lastHeardAtMs: lastHeard, transport, metric, uptimeMs: uptime >= 0 ? uptime : undefined };
         paths.set(`${node}:${transport}`, path);
         const best = selected.get(node);
         // Lower mesh cost wins. Preserve an existing selection on equal cost.
@@ -119,6 +122,20 @@ export default class WorkbenchMesh {
     const routes = [...this.#selected.values()];
     if (!enhanced) return { routes: routes.map(bareRoute) };
     return { routes, paths: [...this.#paths.values()], interfaces: [...this.#interfaces.values()] };
+  }
+
+  fileRoute(node, transport) {
+    const link = this.#links.find(link => link.transport === transport);
+    const assertAvailable = () => {
+      this.refresh();
+      const route = link?.manager.getNodeInfo(node, false);
+      if (!link?.adapter.state || !this.#paths.has(`${node}:${transport}`) || route?.netInterface !== link.adapter) {
+        throw new FileError(503, 'The selected local route is unavailable.');
+      }
+      return route;
+    };
+    assertAvailable();
+    return { manager: link.manager, events: link.events, assertAvailable };
   }
 
   close() {

@@ -5,6 +5,7 @@ import { isAbsolute, join } from 'node:path';
 import { parseArgs } from 'node:util';
 import express from 'express';
 import WorkbenchMesh from './workbench-mesh.mjs';
+import WorkbenchFiles, { FileError } from './workbench-files.mjs';
 
 const host = '127.0.0.1';
 const heartbeatIntervalMs = 15000;
@@ -57,6 +58,7 @@ async function start() {
       if (payload !== null) writeEvent(response, event, payload);
     }
   });
+  const files = new WorkbenchFiles(mesh);
   let ready = false;
   let heartbeatTimer;
   let stopping = false;
@@ -68,7 +70,12 @@ async function start() {
         (fetchSite && fetchSite !== 'same-origin' && fetchSite !== 'none')) return response.sendStatus(403);
     response.set('Content-Security-Policy', "default-src 'self'; connect-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; frame-ancestors 'none'; base-uri 'none'");
     response.set('X-Content-Type-Options', 'nosniff');
-    if (request.method !== 'GET' && request.method !== 'HEAD') return response.sendStatus(405);
+    if (request.method !== 'GET' && request.method !== 'HEAD') {
+      const fileMutation = /^\/api\/workbench\/v1\/nodes\/\d+\/(file|restart)$/.test(request.path);
+      if (!fileMutation || !['PUT', 'POST'].includes(request.method)) return response.sendStatus(405);
+      if (requestOrigin !== origin.origin) return response.sendStatus(403);
+      if (!request.is('application/json')) return response.sendStatus(415);
+    }
     next();
   });
   app.head('/api/workbench/v1/events', (_request, response) => response.sendStatus(405));
@@ -80,6 +87,29 @@ async function start() {
     mesh.refresh();
     streams.set(response, enhanced);
     writeEvent(response, 'snapshot', mesh.snapshot(enhanced));
+  });
+  const nodeAPI = '/api/workbench/v1/nodes/:node';
+  const json = express.json({ limit: '64kb', inflate: false });
+  const handleFile = (status, operation) => async (request, response) => {
+    response.set('Cache-Control', 'no-store');
+    if (!ready) return response.status(503).json({ error: 'The Workbench is starting.' });
+    try {
+      const { node } = request.params;
+      const { transport, path } = request.query;
+      const result = await operation(node, transport, path, request.body);
+      response.status(status).json(result);
+    } catch (error) {
+      if (error instanceof FileError) return response.status(error.status).json({ error: error.message });
+      console.error('Unexpected Workbench file error:', error);
+      response.status(500).json({ error: 'The node file operation failed.' });
+    }
+  };
+  app.get(`${nodeAPI}/files`, handleFile(200, (node, transport, path) => files.list(node, transport, path)));
+  app.get(`${nodeAPI}/file`, handleFile(200, (node, transport, path) => files.read(node, transport, path)));
+  app.put(`${nodeAPI}/file`, json, handleFile(200, (node, transport, _path, body) => files.upload(node, transport, body)));
+  app.post(`${nodeAPI}/restart`, json, handleFile(202, (node, transport) => files.restart(node, transport)));
+  app.use(nodeAPI, (error, _request, response, _next) => {
+    response.set('Cache-Control', 'no-store').status(error.status || 400).json({ error: 'Invalid node file request body.' });
   });
   app.get('/workbench/', (_request, response) => response.sendFile(entry));
   app.use(express.static(build, { index: false, redirect: false }));

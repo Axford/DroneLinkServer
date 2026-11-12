@@ -1424,6 +1424,7 @@ export default class DroneLinkManager {
 
 
   receiveFSFileResponse(netInterface, msg, metric) {
+    if (msg.getPayloadSize() !== DMFS.DRONE_MESH_MSG_FS_FILE_RESPONSE_SIZE) return;
     var loopTime = Date.now();
 
     if (this.logOptions.FS)
@@ -1448,6 +1449,7 @@ export default class DroneLinkManager {
 
 
   receiveFSReadResponse(netInterface, msg, metric) {
+    if (msg.getPayloadSize() !== DMFS.DRONE_MESH_MSG_FS_READ_RESPONSE_SIZE) return;
     var loopTime = Date.now();
 
     if (this.logOptions.FS)
@@ -1472,6 +1474,7 @@ export default class DroneLinkManager {
 
 
   receiveFSManageResponse(netInterface, msg, metric) {
+    if (msg.getPayloadSize() !== DMFS.DRONE_MESH_MSG_FS_MANAGE_RESPONSE_SIZE) return;
     var loopTime = Date.now();
 
     if (this.logOptions.FS)
@@ -1496,6 +1499,7 @@ export default class DroneLinkManager {
 
 
   receiveFSWriteResponse(netInterface, msg, metric) {
+    if (msg.getPayloadSize() !== DMFS.DRONE_MESH_MSG_FS_WRITE_RESPONSE_SIZE) return;
     var loopTime = Date.now();
 
     if (this.logOptions.FS)

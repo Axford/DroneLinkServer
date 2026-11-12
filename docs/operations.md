@@ -188,3 +188,9 @@ npm run workbench -- --client-build /absolute/extracted-release/build --node-add
 The two addresses allow independent subscriptions in dual mode. The gateway selects the active route by mesh cost and preserves its current choice on equal cost. Each node has an Auto / Wi-Fi / Serial selection in the Client. Explicit choices retain last-seen readings on loss. Network shows each transport's state, cumulative counters, per-node paths and selected route. The serial adapter retries the configured device every ten seconds after a loss or failed open. A reopened port discovers fresh routes before displaying current observations. The browser log retains up to 200 decoded lines for the current connection.
 
 The Workbench browser checks use a disposable UDP port and the installed serial adapter with its simulated binding. Use the [WB.2 plan](../../DroneLinkDatastore/docs/planning/workbench.md#wb2--serial-and-network-diagnostics) for physical validation status.
+
+### Standalone node files
+
+Select a node and local transport, then open **Node files** and select **List files**. Open an existing UTF-8 file, edit it, and select **Upload to node**. The gateway compares the opened revision and verifies stored bytes after Save. Supported files have consistent LF or CRLF line endings and are at most 8 KiB. The Workbench preserves the opened line-ending style. The node's `/backup.txt` is reserved and an occupied scratch path blocks Upload.
+
+Use one file-writing gateway per node. If Save cannot be verified, reopen the stored file and inspect the reserved scratch path before retrying. The editor keeps its draft on failure. **Restart node** is a separate confirmed action. The runtime uptime shown in the panel comes from node telemetry. See the [WB.3 plan](../../DroneLinkDatastore/docs/planning/workbench.md#wb3--standalone-node-files).
