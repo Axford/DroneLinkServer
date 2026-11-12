@@ -17,9 +17,10 @@ class GoogleFixture extends Strategy {
         this.verify('provider-access', 'provider-refresh', profile, (error, user) => error ? this.error(error) : this.success(user));
     }
 }
-async function fixture(t, run, { ready = true, observations = false, commands = false } = {}) {
+async function fixture(t, run, { ready = true, observations = false, commands = false, stagingTestSignIn = false } = {}) {
     return withFirestore(async options => {
-        const one = await openFirestoreStore({ ...options, flushIntervalMs: 10, ...(commands ? { commandContract: 'm2-a-1' } : {}), ...(observations ? { observationEpoch: 'm1-c-1', observationFlushIntervalMs: 20 } : {}) }); const two = await openFirestoreStore({ ...options, flushIntervalMs: 10, ...(commands ? { commandContract: 'm2-a-1' } : {}), ...(observations ? { observationEpoch: 'm1-c-1', observationFlushIntervalMs: 20 } : {}) });
+        const mountStagingTestSignIn = stagingTestSignIn ? require('../../staging-test/routes').mountStagingTestSignIn : undefined;
+        const one = await openFirestoreStore({ ...options, stagingTestSignIn, flushIntervalMs: 10, ...(commands ? { commandContract: 'm2-a-1' } : {}), ...(observations ? { observationEpoch: 'm1-c-1', observationFlushIntervalMs: 20 } : {}) }); const two = await openFirestoreStore({ ...options, stagingTestSignIn, flushIntervalMs: 10, ...(commands ? { commandContract: 'm2-a-1' } : {}), ...(observations ? { observationEpoch: 'm1-c-1', observationFlushIntervalMs: 20 } : {}) });
         const operator = await openAccessOperatorStore({ ...options, databaseId: '(default)' }); const db = new Firestore({ projectId: options.projectId, host: options.emulatorHost, ssl: false });
         const config = testConfig({ publicOrigin: 'http://localhost:8003', ...(observations ? { observationEpoch: 'm1-c-1' } : {}) });
         const factories = [];
@@ -30,7 +31,7 @@ async function fixture(t, run, { ready = true, observations = false, commands = 
             const person = await one.users.findByGoogleId('admin'); let control = await one.access.getControl();
             await operator.grantSoleAdmin({ userId: person._id, googleId: 'admin', expectedControlRevision: control.revision });
             if (ready) { control = await one.access.getControl(); await operator.activate({ planDigest: plan.digest, expectedControlRevision: control.revision }); }
-            for (const store of [one, two]) factories.push(await serve(t, createApp({ config, store, googleStrategyFactory: (opts, verify) => new GoogleFixture(opts, verify) })));
+            for (const store of [one, two]) factories.push(await serve(t, createApp({ config, store, mountStagingTestSignIn, googleStrategyFactory: (opts, verify) => new GoogleFixture(opts, verify) })));
             const agent = async (name, instance = 0) => {
                 const raw = factories[instance](); const login = await raw.login(name); assert.equal(login.status, 302, login.text);
                 const token = (await raw.request('/api/session')).json().data.csrfToken;

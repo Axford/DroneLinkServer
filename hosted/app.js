@@ -21,9 +21,9 @@ const defaultGoogleStrategyFactory = (options, verify) => new GoogleStrategy(opt
 // Construct an application without loading configuration, connecting a database
 // or opening a listener. Tests provide adapters through this composition seam;
 // the production entrypoint always supplies real storage and the default provider.
-const createApp = ({ config, store, googleStrategyFactory = defaultGoogleStrategyFactory }) => {
+const createApp = ({ config, store, mountStagingTestSignIn, googleStrategyFactory = defaultGoogleStrategyFactory }) => {
     const { users } = store;
-    const policy = createAccessPolicy(store);
+    const policy = createAccessPolicy(store, Boolean(mountStagingTestSignIn));
     const passport = new Passport();
     const app = express();
 
@@ -167,6 +167,7 @@ const createApp = ({ config, store, googleStrategyFactory = defaultGoogleStrateg
         }
         next();
     });
+    mountStagingTestSignIn?.(app, { config, store, policy, ensureAuthenticated });
     mountCommandRoutes(app, { store, policy, ensureAuthenticated, ready });
     mountWorkbenchRoutes(app, { config, store, ready, policy, ensureAuthenticated });
     app.use(express.json({ limit: '10mb' }));

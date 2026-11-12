@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Staging test access</title>
+    <link rel="stylesheet" href="/design-tokens.css">
+    <link rel="stylesheet" href="/design-system.css">
+    <script src="/auth/staging-test/admin.js" defer></script>
+</head>
+<body>
+    <main class="dw-auth">
+        <section class="dw-auth-card">
+            <h1>Staging test access</h1>
+            <form method="post" id="membership">
+                <h2>Assign Domain membership</h2>
+                <label>Test user name <input name="name" required pattern="[a-z0-9][a-z0-9\-]{0,39}" placeholder="wb4-editor"></label>
+                <label>Domain ID <input name="domainId" required></label>
+                <label>Role <select name="role"><option value="editor">Editor</option><option value="viewer">Viewer</option></select></label>
+                <button type="submit">Assign membership</button>
+                <output id="membership-result" aria-live="polite"></output>
+            </form>
+            <form method="post" id="issue">
+                <h2>Issue a single-use code</h2>
+                <label>Test user name <input name="name" required pattern="[a-z0-9][a-z0-9\-]{0,39}"></label>
+                <label>Intended recipient or run <input name="recipient" required maxlength="160"></label>
+                <button type="submit">Issue code</button>
+                <label>Code <input id="code" readonly autocomplete="off"></label>
+                <label>Audit reference <input id="reference" readonly></label>
+                <output id="issue-result" aria-live="polite"></output>
+            </form>
+            <form method="post" id="audit">
+                <h2>Inspect or revoke access</h2>
+                <label>Audit reference <input name="id" required pattern="[A-Za-z0-9]{20}"></label>
+                <button type="submit" value="inspect">Inspect</button>
+                <button type="submit" value="revoke">Revoke</button>
+                <pre><output id="audit-result" aria-live="polite"></output></pre>
+            </form>
+            <a href="/private">Return to Dronewright</a>
+        </section>
+    </main>
+</body>
+</html>

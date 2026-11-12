@@ -1,6 +1,6 @@
 # Dronewright hosted backend
 
-The independent hosted service uses pinned native Firestore persistence 0.8.0. Install with Node22+ using `npm ci --omit=dev`; run `npm start`. No MongoDB, gateway, emulator, Java or sibling source is required in production.
+The independent hosted service uses pinned native Firestore persistence 0.8.2. Install with Node22+ using `npm ci --omit=dev`; run `npm start`. No MongoDB, gateway, emulator, Java or sibling source is required in production.
 
 Supply `GOOGLE_CLOUD_PROJECT`, `PUBLIC_ORIGIN`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SESSION_SECRET` (32+characters), optional `FIRESTORE_DATABASE` (default `(default)`), `MAPBOX_ACCESS_TOKEN`, `CLIENT_BUILD_DIR` and `PORT`. A local ignored hosted `config.json` may supply equivalent camelCase fields. Startup never creates configuration or downloads credentials. Production uses the service identity and Secret Manager values; no service-account key file. Client build defaults to hosted `private/build`; an explicit path must contain index.html/static. Validate a release before selection.
 
@@ -9,6 +9,8 @@ Google/Passport uses an absolute configured callback and state checking. Firesto
 Packet ingress returns202 `Packet received` after bounded volatile admission, before persistence. The adapter batches approx one second (1024packets/128KiB max), with8MiB total accounting and a five-second actual RPC deadline. Restart/deploy/write failure may lose admitted packets; failures drop with sanitized diagnostics and no retry backlog. Management/sessions remain durable operations. Archive preserves keys, memberships and readable history, rejects new ingress and invalidates pending invitations. Restoration does not revive invitations or replay packets. Permanent deletion is unavailable. Counts are persisted retained counts requested explicitly. The hosted M2 command API is available when the database writer gate is active. The retired domainless command route returns 501.
 
 Domain lists use opaque cursor Next/Previous; history follows every fixed-window page and continues into listener-backed long polling. Server composition owns admission, session policy and HTTP mapping; Datastore owns transactions, native queries/chunks and resource lifecycle. HTTP draining and store shutdown begin together under the existing ten-second HTTP grace; packet flush is bounded within it. Importing app/startup connects or listens to nothing.
+
+Staging can opt into [Admin-issued synthetic test sessions](../docs/operations.md#staging-test-sign-in). The default release excludes the staging sign-in pages and routes.
 
 ## Local checks
 

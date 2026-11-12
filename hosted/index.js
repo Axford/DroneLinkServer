@@ -10,6 +10,7 @@ function loadConfig(serviceDir = __dirname) {
     const local = fs.existsSync(filename) ? JSON.parse(fs.readFileSync(filename, 'utf8')) : {};
     const values = { port: Number(process.env.PORT || local.port || 8003),
         projectId: process.env.GOOGLE_CLOUD_PROJECT || local.projectId,
+        stagingTestSignIn: process.env.STAGING_TEST_SIGN_IN === '1',
         databaseId: process.env.FIRESTORE_DATABASE || local.databaseId || '(default)',
         observationEpoch: 'm1-c-1',
         publicOrigin: process.env.PUBLIC_ORIGIN || local.publicOrigin,
@@ -27,12 +28,20 @@ function loadConfig(serviceDir = __dirname) {
 async function startHosted({ config, storeFactory = openFirestoreStore, appFactory = createApp, shutdownGraceMs = 10000 }) {
     config = { ...config, observationEpoch: config.observationEpoch || 'm1-c-1' };
     if (config.observationEpoch !== 'm1-c-1') throw Object.assign(new Error('Unsupported observation contract'), { code: 'observation-schema' });
+    let mountStagingTestSignIn;
+    if (config.stagingTestSignIn) {
+        if (config.projectId !== 'dronelink-25dbc' || (config.databaseId || '(default)') !== '(default)' ||
+            config.publicOrigin !== 'https://staging.dronewright.com' || process.env.K_SERVICE !== 'dronewright-staging' || config.emulatorHost) {
+            throw new Error('Staging test sign-in requires the canonical staging deployment');
+        }
+        ({ mountStagingTestSignIn } = require('./staging-test/routes'));
+    }
     resolveClientBuildDir(config.clientBuildDir);
-    const store = await storeFactory({ projectId: config.projectId, databaseId: config.databaseId, commandContract: 'm2-a-1', observationEpoch: config.observationEpoch, ...(config.emulatorHost ? { emulatorHost: config.emulatorHost } : {}) });
+    const store = await storeFactory({ projectId: config.projectId, databaseId: config.databaseId, commandContract: 'm2-a-1', stagingTestSignIn: Boolean(mountStagingTestSignIn), observationEpoch: config.observationEpoch, ...(config.emulatorHost ? { emulatorHost: config.emulatorHost } : {}) });
     let server;
     try {
         await store.access.getControl();
-        const app = appFactory({ config, store });
+        const app = appFactory({ config, store, mountStagingTestSignIn });
         server = http.createServer(app);
         await new Promise((resolve, reject) => {
             server.once('error', reject);

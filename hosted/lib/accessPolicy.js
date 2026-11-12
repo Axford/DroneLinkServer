@@ -2,10 +2,13 @@
 const crypto = require('node:crypto');
 const fault = code => Object.assign(new Error(code), { code });
 const allRoles = ['owner', 'editor', 'viewer'];
-function createAccessPolicy(store) {
-    const isAdmin = (control, user) => control?.soleAdmin?.userId === user._id && control.soleAdmin.googleId === user.googleId;
+function createAccessPolicy(store, stagingTestSignIn = false) {
+    const isAdmin = (control, user) => user.identityProvider !== 'staging-test' && control?.soleAdmin?.userId === user._id && control.soleAdmin.googleId === user.googleId;
     function validIdentity(user, evidence, control) {
-        return user?.emailVerified === true && evidence && typeof evidence === 'object' && evidence.userId === user._id && evidence.googleId === user.googleId && evidence.emailCanonical === user.emailCanonical && evidence.emailVerified === true && evidence.sessionEpoch === (control?.sessionEpoch || 0);
+        if (!user || !evidence || evidence.userId !== user._id || evidence.emailCanonical !== user.emailCanonical ||
+            evidence.sessionEpoch !== (control?.sessionEpoch || 0)) return false;
+        if (user.identityProvider === 'staging-test') return stagingTestSignIn && evidence.identityProvider === 'staging-test';
+        return !evidence.identityProvider && user.emailVerified === true && evidence.emailVerified === true && evidence.googleId === user.googleId;
     }
     async function identity(req) {
         const session = await store.sessions.get(req.sessionID);
@@ -15,14 +18,17 @@ function createAccessPolicy(store) {
         if (!validIdentity(user, evidence, control)) throw fault('unauthenticated');
         return { control, user, admin: isAdmin(control, user), evidence };
     }
-    const actor = current => ({ userId: current.user._id, sessionEpoch: current.evidence.sessionEpoch, allowedRoles: allRoles, allowPlatformAdmin: true });
+    const actor = current => ({ userId: current.user._id, sessionEpoch: current.evidence.sessionEpoch, allowedRoles: current.evidence.identityProvider === 'staging-test' ? ['editor', 'viewer'] : allRoles,
+        allowPlatformAdmin: current.evidence.identityProvider !== 'staging-test',
+        ...(current.evidence.identityProvider ? { identityProvider: current.evidence.identityProvider } : {}) });
     async function domain(req, roles = allRoles, active = false, domainId = req.params.id) {
         const current = await identity(req);
         const context = await store.domains.getAccessContext(domainId, current.user._id);
         if (!validIdentity(context.user, current.evidence, context.control)) throw fault('unauthenticated');
         if (!context.domain) throw fault('not-found');
         const admin = isAdmin(context.control, context.user);
-        if (!admin && !roles.includes(context.role)) throw fault('forbidden');
+        const currentActor = actor(current);
+        if (!admin && (!roles.includes(context.role) || !currentActor.allowedRoles.includes(context.role))) throw fault('forbidden');
         if (active && context.domain.status !== 'active') throw fault('archived');
         return { ...current, ...context, admin, actor: actor({ ...current, user: context.user }) };
     }

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Staging test sign-in</title>
+    <link rel="stylesheet" href="/design-tokens.css">
+    <link rel="stylesheet" href="/design-system.css">
+</head>
+<body>
+    <main class="dw-auth">
+        <section class="dw-auth-card">
+            <h1>Staging test sign-in</h1>
+            <form method="post" action="/auth/staging-test">
+                <label for="code">Single-use code</label>
+                <input id="code" name="code" required autocomplete="off" spellcheck="false" maxlength="64">
+                <button class="dw-auth-action" type="submit">Sign in</button>
+            </form>
+            <p>Use a code from the staging Platform Admin in a separate browser profile or private window.</p>
+        </section>
+    </main>
+</body>
+</html>

@@ -36,7 +36,7 @@ const errorHandler = (err, req, res, next) => {
         'submission-conflict': [409, 'This submission ID is bound to a different command'],
         'submission-unavailable': [410, 'This submission ID is unavailable'],
         'submission-capacity': [429, 'Too many unused submissions. Wait for a reservation to expire before preparing another'],
-        'invite-unavailable': [410, 'Invitation is unavailable'], 'invite-retired': [410, 'Shared invitation links are retired'],
+        'test-code-unavailable': [410, 'Test sign-in code is unavailable'], 'invite-unavailable': [410, 'Invitation is unavailable'], 'invite-retired': [410, 'Shared invitation links are retired'],
         'last-owner': [409, 'Another Owner must accept before this Owner can leave or be demoted'],
         'method-not-allowed': [405, 'Permanent deletion is unavailable'], 'command-unavailable': [501, 'Command delivery is not available yet']
     };

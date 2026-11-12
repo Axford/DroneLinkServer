@@ -40,7 +40,7 @@ def prepare(args):
     if lock['resolved'] != pin or lock['integrity'] != 'sha512-' + base64.b64encode(hashlib.sha512(raw).digest()).decode(): raise ValueError('Persistence lock integrity differs')
     with tarfile.open(fileobj=io.BytesIO(raw), mode='r:gz') as tar: provenance = json.load(tar.extractfile('package/provenance.json'))
     version = provenance.get('version')
-    if version not in ('0.8.0', '0.8.1') or archive.name != f'dronelink-persistence-{version}.tgz':
+    if version not in ('0.8.0', '0.8.1', '0.8.2') or archive.name != f'dronelink-persistence-{version}.tgz':
         raise ValueError('Unsupported M2 persistence release')
     command_format = provenance.get('storageFormat', {})
     if (command_format.get('commandContract') != 'm2-a-1' or command_format.get('commandMutationAPIs') is not True
@@ -51,6 +51,9 @@ def prepare(args):
     files = {}
     tracked = git('ls-files', '--', 'app.js', 'index.js', 'lib', 'middleware', 'public', 'package.json', 'package-lock.json').splitlines()
     for name in tracked: files[name] = (ROOT / name).read_bytes()
+    if getattr(args, 'staging_test_sign_in', False):
+        if version != '0.8.2': raise ValueError('Staging test sign-in requires persistence 0.8.2')
+        for name in git('ls-files', '--', 'staging-test').splitlines(): files[name] = (ROOT / name).read_bytes()
     files[pin[5:]] = raw
     protocol_pin = package['dependencies'].get('@dronelink/protocol')
     if protocol_pin != 'file:vendor/dronelink-protocol-0.2.0.tgz': raise ValueError('M1-F requires pinned protocol0.2.0')
@@ -70,6 +73,7 @@ def prepare(args):
     for name, data in files.items():
         target = output / safe(name); target.parent.mkdir(parents=True, exist_ok=True); target.write_bytes(data)
     result = {'schemaVersion': 1, 'accessPolicyVersion': 1, 'telemetryPolicyVersion': 1, 'observationPolicyVersion': 1, 'serverRevision': revision, 'clientRevision': manifest['clientRevision'], 'clientArchiveSha256': digest(pathlib.Path(args.client).read_bytes()), 'protocolVersion': '0.2.0', 'protocolArchiveSha256': digest(protocol_raw), 'persistenceVersion': provenance['version'], 'persistenceSha256': digest(raw), 'storageFormat': provenance['storageFormat'], 'files': {name: digest(data) for name, data in files.items()}}
+    if getattr(args, 'staging_test_sign_in', False): result['stagingTestSignIn'] = True
     (output / 'hosted-release.json').write_text(json.dumps(result, indent=2, sort_keys=True) + '\n')
     verify(output)
 
@@ -83,6 +87,10 @@ def verify(output):
         if path.is_symlink(): raise ValueError('Release contains a symlink')
         if path.is_file() and path.name != 'hosted-release.json': actual.add(str(path.relative_to(output)))
     if actual != set(manifest['files']): raise ValueError('Release file set differs')
+    staging_files = {name for name in actual if name.startswith('staging-test/')}
+    expected_staging = {'staging-test/routes.js', 'staging-test/admin.html', 'staging-test/admin.js', 'staging-test/sign-in.html'}
+    if staging_files != (expected_staging if manifest.get('stagingTestSignIn') is True else set()):
+        raise ValueError('Staging test sign-in files differ from release capability')
     for name, sha in manifest['files'].items():
         if digest((output / safe(name)).read_bytes()) != sha: raise ValueError('Release checksum differs')
     print(json.dumps({'verified': True, 'serverRevision': manifest['serverRevision'], 'clientRevision': manifest['clientRevision'], 'releaseSha256': digest((output / 'hosted-release.json').read_bytes())}))
@@ -90,7 +98,7 @@ def verify(output):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__); parser.add_argument('action', choices=['prepare', 'verify']); parser.add_argument('--release', required=True); parser.add_argument('--client')
-    args = parser.parse_args()
+    parser.add_argument('--staging-test-sign-in', action='store_true'); args = parser.parse_args()
     if args.action == 'prepare':
         if not args.client: parser.error('--client is required for preparation')
         prepare(args)
