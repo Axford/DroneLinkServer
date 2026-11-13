@@ -5,12 +5,14 @@ const decimal = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i;
 function routeCoordinates(text) {
     const rows = text.replace(/[ \t\r]/g, '').split('\n');
     const header = rows.shift().split(',');
+    if (header.length > 255) return;
     const columns = ['lon', 'lat', 'radius'].map(name => header.indexOf(name));
     if (columns.includes(-1) || columns.some(index => header.lastIndexOf(header[index]) !== index)) return;
     const coordinates = [];
     for (const row of rows) {
         if (!row) continue;
         const cells = row.split(',');
+        if (cells.length > 255) return;
         const values = columns.map(index => cells[index]);
         if (values.some(value => !value || value.length > 31 || !decimal.test(value))) return;
         const [longitude, latitude, radius] = values.map(value => Math.fround(Number(value)));
