@@ -33,6 +33,7 @@ function validateResult(data, args) {
 
 export default function createI2cDiagnostics(mesh, fetchNode = fetch) {
   const active = new Set();
+  const completed = new Map();
   async function run(requestedNode, transport, args) {
     const node = Number(requestedNode);
     if (!/^\d+$/.test(requestedNode) || !integer(node, 1, 254) || !['wifi', 'serial'].includes(transport)) {
@@ -41,6 +42,9 @@ export default function createI2cDiagnostics(mesh, fetchNode = fetch) {
     const address = deviceAddress(mesh, node, transport);
     if (!address) throw new FileError(503, 'I²C diagnostics require a direct Wi-Fi route to this node.');
     if (active.has(address) || active.size >= 8) throw new FileError(409, 'I²C diagnostics are busy. Try again shortly.');
+    for (const [peer, time] of completed) {
+      if (Date.now() - time >= 1200) completed.delete(peer);
+    }
     active.add(address);
     const signal = AbortSignal.timeout(10000);
     const assertRoute = () => {
@@ -52,6 +56,9 @@ export default function createI2cDiagnostics(mesh, fetchNode = fetch) {
       return readDeviceJson(fetchNode, address, '/i2cDiagnostic?' + queryString, { method, signal, headers: { 'X-DroneLink-Diagnostic': '1' } });
     };
     try {
+      // A node retains the completed job briefly so the final poll can read it.
+      const wait = (completed.get(address) ?? 0) + 1200 - Date.now();
+      if (wait > 0) await delay(wait, undefined, { signal });
       const first = await request(query, 'POST');
       const { job } = first.data;
       const check = data => data?.schemaVersion === 1 && data.node === node && data.job === job;
@@ -65,6 +72,7 @@ export default function createI2cDiagnostics(mesh, fetchNode = fetch) {
         const result = status === 200 && validateResult(data, args);
         if (!result) throw new Error('Invalid diagnostic result');
         assertRoute();
+        completed.set(address, Date.now());
         return { schemaVersion: 1, node, receivedAt: Date.now(), ...result };
       }
     } catch (error) {
