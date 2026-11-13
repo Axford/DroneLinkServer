@@ -92,9 +92,10 @@ async function run() {
                 assert.equal(result.status(), 302);
                 const page = await context.newPage();
                 await page.goto(origin + '/private/domain/' + fleet._id);
-                await page.locator('.node-selector select option[value="7"]').waitFor({ state: 'attached' });
-                await page.locator('.node-selector select').selectOption('7');
-                await page.getByRole('button', { name: 'Expand All', exact: true }).click();
+                await page.getByRole('button', { name: /^Inspect node 7:/ }).click();
+                const channel = page.locator('[data-inspector-focus="channel-4"]');
+                await channel.waitFor();
+                if (await channel.getAttribute('aria-expanded') === 'false') await channel.click();
                 await page.locator('.parameter-row .font-monospace').getByText('42', { exact: true }).waitFor();
                 return page;
             }
