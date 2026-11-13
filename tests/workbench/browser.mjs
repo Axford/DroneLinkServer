@@ -33,6 +33,11 @@ try {
   });
   const page = await context.newPage();
   page.on('pageerror', error => errors.push(error.message));
+  page.on('console', message => {
+    if (message.type() === 'error' && /access token|Workbench map rendering failed/i.test(message.text())) {
+      errors.push(message.text());
+    }
+  });
   const timeout = { timeout: 8000 };
   const connected = page.getByText('Local gateway connected', { exact: true });
   const waitForPublication = page.getByText('Waiting for publications.');
@@ -80,7 +85,7 @@ try {
   console.log(`PASS Chrome ${browser.version()}: local typed values, independent route and gateway recovery, reload, zero off-origin requests`);
 
   // Exercise the real map without making network calls to the tile provider.
-  const tile = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aO2QAAAAASUVORK5CYII=', 'base64');
+  const tile = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAIAAADTED8xAAACv0lEQVR4nO3TMQ0AMAzAsMIejT3DOxg9YskA8mTOfZA16wWwyACkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSPvL1BhSjgDtrAAAAABJRU5ErkJggg==', 'base64');
   await page.route('https://tile.openstreetmap.org/**', request => request.fulfill({
     contentType: 'image/png', headers: { 'Access-Control-Allow-Origin': '*' }, body: tile,
   }));
@@ -92,12 +97,13 @@ try {
   const tileRequest = page.waitForRequest('https://tile.openstreetmap.org/**', timeout);
   await page.getByRole('button', { name: 'Map', exact: true }).click();
   await tileRequest;
-  await page.locator('.mapboxgl-canvas').waitFor(timeout);
+  await page.locator('.maplibregl-canvas').waitFor(timeout);
   await page.getByRole('button', { name: 'Fit observed positions' }).click();
   const marker = page.getByRole('button', { name: /Node 11.*Binding 11>10.8/ });
   await marker.click(timeout);
   await page.getByText('Node 11 · Local · Wi-Fi', { exact: true }).waitFor(timeout);
   await page.getByRole('link', { name: 'OpenStreetMap contributors' }).waitFor(timeout);
+  assert.equal(await page.getByText('Basemap tiles unavailable').count(), 0);
   assert.deepEqual(offOrigin, []);
   assert.deepEqual(errors, []);
   console.log(`PASS Chrome ${browser.version()}: standalone map requests tiles, fits local GPS and selects its node without cloud API calls`);
