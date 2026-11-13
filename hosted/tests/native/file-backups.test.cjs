@@ -90,5 +90,18 @@ test('editable Cloud files are node and Domain scoped and protect concurrent edi
         const read = await editor.request(endpoint + '?path=%2Fconfig.ini');
         assert.deepEqual(read.json().data, update.json().data);
         assert.deepEqual((await editor.request(endpoint.replace('cloud-files', 'file-backups') + '?path=%2Fconfig.ini')).json().data, []);
+        const domainPath = '/api/domains/' + fleet._id;
+        const current = (await owner.request(domainPath)).json().data;
+        assert.equal((await owner.mutate(domainPath + '/archive', { revision: current.revision })).status, 200);
+        for (const reader of [owner, editor]) {
+            const listing = await reader.request(endpoint);
+            assert.equal(listing.status, 200);
+            assert.deepEqual(listing.json().data, [{ path: input.path, modifiedAt: update.json().data.modifiedAt }]);
+            const archivedFile = await reader.request(endpoint + '?path=%2Fconfig.ini');
+            assert.equal(archivedFile.status, 200);
+            assert.deepEqual(archivedFile.json().data, update.json().data);
+        }
+        assert.equal((await viewer.request(endpoint + '?path=%2Fconfig.ini')).status, 403);
+        assert.equal((await editor.mutate(endpoint, { ...input, revision: update.json().data.revision }, 'PUT')).status, 409);
     });
 });
