@@ -24,7 +24,11 @@ function mountStagingTestSignIn(app, { config, store, policy, ensureAuthenticate
         res.set('Referrer-Policy', 'no-referrer');
         next();
     });
-    app.get(page, sendPage('sign-in.html'));
+    app.get(page, (req, res) => {
+        // Chrome sends Origin: null for a form POST from a no-referrer page.
+        res.set('Referrer-Policy', 'same-origin');
+        sendPage('sign-in.html')(req, res);
+    });
     app.post(page, origin, limit, form, asyncHandler(async (req, res) => {
         if (req.isAuthenticated()) throw fault('conflict');
         if (!req.is('application/x-www-form-urlencoded')) throw fault('validation');

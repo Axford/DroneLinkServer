@@ -26,6 +26,9 @@ test('staging sign-in uses normal sessions, current roles and auditable one-use 
         });
         const audit = async id => (await admin.request(api + '/codes/' + id)).json().data;
 
+        const form = await (factories[0]()).request(page);
+        assert.equal(form.status, 200);
+        assert.equal(form.headers.get('referrer-policy'), 'same-origin');
         assert.equal((await admin.request(page + '/admin')).status, 200);
         assert.equal((await ordinary.request(page + '/admin')).status, 403);
         assert.equal((await ordinary.mutate(api + '/codes', { userId: 'staging-test-editor', recipient: 'WB.4' })).status, 403);
@@ -46,6 +49,7 @@ test('staging sign-in uses normal sessions, current roles and auditable one-use 
         const browserA = factories[0]();
         const browserB = factories[1]();
         assert.equal((await redeem(browserA, issued.code, 'https://wrong.example')).status, 403);
+        assert.equal((await redeem(browserA, issued.code, 'null')).status, 403);
         const competing = await Promise.all([redeem(browserA, issued.code), redeem(browserB, issued.code)]);
         assert.deepEqual(competing.map(response => response.status).sort(), [303, 410]);
         const browser = competing[0].status === 303 ? browserA : browserB;
