@@ -5,6 +5,7 @@ import { isAbsolute, join } from 'node:path';
 import { parseArgs } from 'node:util';
 import express from 'express';
 import { loadGatewayRelease } from './scripts/gateway-release.mjs';
+import createI2cDiagnostics from './workbench-i2c.mjs';
 import createCatalogue from './workbench-catalogue.mjs';
 import WorkbenchMesh from './workbench-mesh.mjs';
 import WorkbenchFiles, { FileError } from './workbench-files.mjs';
@@ -74,6 +75,7 @@ async function start() {
   const release = loadGatewayRelease({ releaseDir });
   if (releaseDir && !release.status.available) console.warn(release.status.warning);
   const catalogue = createCatalogue(mesh, release);
+  const i2c = createI2cDiagnostics(mesh);
   const connected = connectedConfig ? new ConnectedWorkbench(connectedConfig, mesh) : null;
   let ready = false;
   let heartbeatTimer;
@@ -92,7 +94,7 @@ async function start() {
     return true;
   }
 
-  connected?.mount(app, { localHost: origin.host, subscribe, available: () => ready, files, catalogue });
+  connected?.mount(app, { localHost: origin.host, subscribe, available: () => ready, files, catalogue, i2c });
 
   app.use((request, response, next) => {
     const requestOrigin = request.get('origin');
@@ -111,7 +113,7 @@ async function start() {
     response.set('Referrer-Policy', 'strict-origin-when-cross-origin');
     response.set('X-Content-Type-Options', 'nosniff');
     if (request.method !== 'GET' && request.method !== 'HEAD') {
-      const fileMutation = /^\/api\/workbench\/v1\/nodes\/\d+\/(file|restart)$/.test(request.path);
+      const fileMutation = /^\/api\/workbench\/v1\/nodes\/\d+\/(file|restart|i2c-scan|i2c-register)$/.test(request.path);
       if (!fileMutation || !['PUT', 'POST'].includes(request.method)) return response.sendStatus(405);
       if (requestOrigin !== localOrigin.origin) return response.sendStatus(403);
       if (!request.is('application/json')) return response.sendStatus(415);
@@ -142,6 +144,9 @@ async function start() {
       response.status(500).json({ error: 'The node file operation failed.' });
     }
   };
+  const diagnosticJson = express.json({ limit: '1kb', inflate: false });
+  app.post(`${nodeAPI}/i2c-scan`, diagnosticJson, handleFile(200, (node, transport, _path, body) => i2c.scan(node, transport, body)));
+  app.post(`${nodeAPI}/i2c-register`, diagnosticJson, handleFile(200, (node, transport, _path, body) => i2c.register(node, transport, body)));
   app.get(`${nodeAPI}/module-catalogue`, handleFile(200, catalogue));
   app.get(`${nodeAPI}/files`, handleFile(200, (node, transport, path) => files.list(node, transport, path)));
   app.get(`${nodeAPI}/file`, handleFile(200, (node, transport, path) => files.read(node, transport, path)));

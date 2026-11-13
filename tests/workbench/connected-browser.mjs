@@ -247,6 +247,12 @@ try {
     await page.getByRole('button', { name: 'Physical', exact: true }).click();
     await page.getByLabel('Motherboard').selectOption('v4');
     const physical = page.getByRole('region', { name: 'Physical wiring graph' });
+    await page.getByRole('button', { name: 'Scan I²C' }).click(timeout);
+    await page.getByText(/7\/8 channels complete/).waitFor(timeout);
+    canEdit = false;
+    await page.getByRole('button', { name: 'Scan I²C' }).click(timeout);
+    await page.getByRole('alert').filter({ hasText: /Cloud Workbench access was denied/ }).waitFor(timeout);
+    canEdit = true;
     await physical.getByRole('group', { name: 'Serial 1 RX · GPIO 13 to NMEA' }).waitFor({ state: 'attached', ...timeout });
     await page.getByLabel('Find wired module').selectOption('10');
     await page.getByLabel('GPS serial port').selectOption('2');

@@ -1,38 +1,11 @@
-import { isIPv4 } from 'node:net';
+import { deviceAddress, readDeviceJson } from './workbench-device-http.mjs';
 import { FileError } from './workbench-files.mjs';
 
 const typeName = /^[A-Za-z][A-Za-z0-9]{0,18}$/;
 const buildMarker = /^[0-9a-f]{4,40}$/;
-const maxResponseBytes = 8192;
-
-function lanAddress(address) {
-  if (!isIPv4(address)) return false;
-  const [a, b] = address.split('.').map(Number);
-  return a === 10 || (a === 172 && b >= 16 && b <= 31) ||
-    (a === 192 && b === 168) || (a === 169 && b === 254);
-}
 
 async function readSupport(address, node, fetchNode) {
-  const response = await fetchNode(`http://${address}/supportedModules`, {
-    redirect: 'error', signal: AbortSignal.timeout(2000),
-  });
-  if (!response.ok || !/^application\/json\b/i.test(response.headers.get('content-type') ?? '') || !response.body) {
-    await response.body?.cancel();
-    throw new Error('Unexpected capability response');
-  }
-  const chunks = [];
-  let bytes = 0;
-  const reader = response.body.getReader();
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      bytes += value.byteLength;
-      if (bytes > maxResponseBytes) throw new Error('Capability response too large');
-      chunks.push(value);
-    }
-  } finally { await reader.cancel().catch(() => {}); }
-  const data = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+  const { data } = await readDeviceJson(fetchNode, address, '/supportedModules', { signal: AbortSignal.timeout(2000) });
   if (data?.schemaVersion !== 1 || data.node !== node || typeof data.build !== 'string' || !buildMarker.test(data.build) ||
       !Array.isArray(data.types) || !data.types.length || data.types.length > 254 ||
       data.types.some(type => typeof type !== 'string' || !typeName.test(type)) || new Set(data.types).size !== data.types.length) {
@@ -65,10 +38,7 @@ export default function createCatalogue(mesh, release, fetchNode = fetch) {
     }
     let support;
     if (transport === 'wifi') {
-      const addressForNode = () => {
-        const route = mesh.fileRoute(node, transport).assertAvailable();
-        return route.nextHop === node && lanAddress(route.directHelloAddress) ? route.directHelloAddress : undefined;
-      };
+      const addressForNode = () => deviceAddress(mesh, node, transport);
       try {
         const address = addressForNode();
         if (address) {
