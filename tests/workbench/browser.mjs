@@ -186,6 +186,36 @@ try {
   assert.deepEqual(errors, []);
   console.log(`PASS Chrome ${browser.version()}: open stored file, upload byte-exact readback and separate confirmed Restart`);
 
+  await files.close();
+  await gateway.close();
+  const fixtureToken = 'pk.workbench.fixture';
+  gateway = await launch(build, undefined, undefined, { mapboxToken: fixtureToken });
+  await gateway.ready;
+  const cloudMap = await browser.newPage();
+  const cloudStylePath = '/styles/v1/axford/cm0bi93ot00qj01ph7m580lku';
+  let requestedToken;
+  await cloudMap.route('**/*', route => {
+    const url = new URL(route.request().url());
+    if (url.origin === gateway.origin) return route.continue();
+    if (url.origin === 'https://api.mapbox.com' && url.pathname === cloudStylePath) {
+      requestedToken = url.searchParams.get('access_token');
+      return route.fulfill({
+        json: { version: 8, sources: {}, layers: [{ id: 'background', type: 'background', paint: { 'background-color': '#222' } }] },
+        headers: { 'Access-Control-Allow-Origin': '*' },
+      });
+    }
+    return route.abort();
+  });
+  await cloudMap.goto(`${gateway.origin}/workbench/`);
+  const styleResponse = cloudMap.waitForResponse(response => new URL(response.url()).pathname === cloudStylePath && response.ok(), timeout);
+  await cloudMap.getByRole('button', { name: 'Map', exact: true }).click();
+  await styleResponse;
+  assert.equal(requestedToken, fixtureToken);
+  await cloudMap.locator('.mapboxgl-canvas').waitFor(timeout);
+  assert.equal(await cloudMap.getByText('Local fallback basemap').count(), 0);
+  await cloudMap.close();
+  console.log('PASS configured Workbench loads the exact hosted Mapbox style using a synthetic token');
+
 
 } finally {
   await browser?.close();

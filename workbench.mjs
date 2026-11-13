@@ -33,6 +33,13 @@ async function start() {
     'connected-config': { type: 'string' },
     'serial-port': { type: 'string' }, 'serial-address': { type: 'string' }, 'serial-only': { type: 'boolean' },
   } });
+  const mapboxAccessToken = process.env.DRONELINK_WORKBENCH_MAPBOX_TOKEN?.trim();
+  if (mapboxAccessToken && !/^pk\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(mapboxAccessToken)) {
+    throw new Error('DRONELINK_WORKBENCH_MAPBOX_TOKEN must be a public Mapbox token.');
+  }
+  const mapOrigins = mapboxAccessToken
+    ? 'https://api.mapbox.com https://events.mapbox.com https://*.tiles.mapbox.com'
+    : 'https://tile.openstreetmap.org';
   const node = readInteger(values['node-address'], '--node-address', 1, 254);
   const serialPort = values['serial-port'];
   const serialOnly = values['serial-only'];
@@ -90,7 +97,7 @@ async function start() {
       request.get('sec-fetch-mode') === 'navigate' && request.get('sec-fetch-dest') === 'document';
     if (request.get('host') !== origin.host || (requestOrigin && requestOrigin !== origin.origin) ||
         (fetchSite && fetchSite !== 'same-origin' && fetchSite !== 'none' && !workbenchNavigation)) return response.sendStatus(403);
-    response.set('Content-Security-Policy', "default-src 'self'; connect-src 'self' https://tile.openstreetmap.org; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://tile.openstreetmap.org; object-src 'none'; frame-ancestors 'none'; base-uri 'none'");
+    response.set('Content-Security-Policy', `default-src 'self'; connect-src 'self' ${mapOrigins}; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: ${mapOrigins}; object-src 'none'; frame-ancestors 'none'; base-uri 'none'`);
     response.set('Referrer-Policy', 'strict-origin-when-cross-origin');
     response.set('X-Content-Type-Options', 'nosniff');
     if (request.method !== 'GET' && request.method !== 'HEAD') {
@@ -100,6 +107,9 @@ async function start() {
       if (!request.is('application/json')) return response.sendStatus(415);
     }
     next();
+  });
+  app.get('/api/workbench/v1/map-config', (_request, response) => {
+    response.set('Cache-Control', 'no-store').json({ mapboxAccessToken: mapboxAccessToken || null });
   });
   app.head('/api/workbench/v1/events', (_request, response) => response.sendStatus(405));
   app.get('/api/workbench/v1/events', (request, response) => {

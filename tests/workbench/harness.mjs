@@ -13,7 +13,7 @@ async function availablePort(socket) {
   return port;
 }
 
-export async function launch(build, port, udpPort, { serialMode, serialAddress = 253, peerPort = '', connectedConfig, caFile } = {}) {
+export async function launch(build, port, udpPort, { serialMode, serialAddress = 253, peerPort = '', connectedConfig, caFile, mapboxToken } = {}) {
   port ??= await availablePort(net.createServer().listen(0, '127.0.0.1'));
   udpPort ??= await availablePort(dgram.createSocket('udp4').bind(0, '127.0.0.1'));
   const serialArgs = serialMode ? ['--serial-port', '/test/workbench-serial', ...(serialMode === 'only' ? ['--serial-only'] : ['--serial-address', String(serialAddress)])] : [];
@@ -23,7 +23,7 @@ export async function launch(build, port, udpPort, { serialMode, serialAddress =
     '--client-build', build, '--node-address', '254', '--port', String(port), ...serialArgs, ...(connectedConfig ? ['--connected-config', connectedConfig] : []),
   ], {
     execArgv,
-    env: { ...process.env, WB_TEST_UDP_PORT: String(udpPort), WB_TEST_PEER_PORT: String(peerPort), ...(caFile ? { NODE_EXTRA_CA_CERTS: caFile } : {}) },
+    env: { ...process.env, DRONELINK_WORKBENCH_MAPBOX_TOKEN: mapboxToken ?? '', WB_TEST_UDP_PORT: String(udpPort), WB_TEST_PEER_PORT: String(peerPort), ...(caFile ? { NODE_EXTRA_CA_CERTS: caFile } : {}) },
     silent: true,
   });
   let output = '';
