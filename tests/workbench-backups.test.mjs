@@ -15,7 +15,7 @@ test('queued verified bytes survive restart and retry in order for the same gate
   const first = new WorkbenchBackups(directory, scope, async entry => {
     sent.push(entry);
     fail();
-    return { ok: false };
+    return false;
   });
   let reopened;
   let different;
@@ -34,7 +34,7 @@ test('queued verified bytes survive restart and retry in order for the same gate
     reopened = new WorkbenchBackups(directory, scope, async entry => {
       sent.push(entry);
       if (entry.sequence === 2) finish();
-      return { ok: true };
+      return true;
     });
     await delivered;
     await setImmediate();

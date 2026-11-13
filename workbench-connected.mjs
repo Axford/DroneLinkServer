@@ -75,7 +75,10 @@ export default class ConnectedWorkbench {
     if (this.#backupAvailable) {
       try {
         this.#backups = new WorkbenchBackups(this.#settings.backupDirectory, [this.origin, this.#settings.domain, primary.address, localHost],
-          entry => this.#post('/gateway/workbench/file-backups', primary, entry));
+          async entry => {
+            const response = await this.#post('/gateway/workbench/file-backups', primary, entry);
+            return response.ok && (await response.json()).data?.status === 'saved';
+          });
       } catch { console.error('The Workbench backup queue is unavailable. Check the gateway configuration directory.'); }
     }
   }
@@ -154,23 +157,27 @@ export default class ConnectedWorkbench {
       res.once('close', () => clearInterval(timer));
     }));
     const nodeAPI = `${base}/nodes/:node`;
-    const fileOperation = (status, operation) => handle(async (req, res) => {
+    const fileOperation = (status, operation, checkAfterRead = false) => handle(async (req, res) => {
       if (!this.#backupAvailable) throw new FileError(404, 'Connected node files require a backup-enabled gateway.');
       const { node } = req.params;
       const { transport, path } = req.query;
       if (!['wifi', 'serial'].includes(transport)) throw new FileError(400, 'Select a valid local transport.');
-      await this.#authorize(req.get('X-Workbench-Grant'), 'node-files', transport);
+      const authorize = () => this.#authorize(req.get('X-Workbench-Grant'), 'node-files', transport);
+      await authorize();
       if (res.destroyed) return;
-      res.status(status).json(await operation(node, transport, path, req.body));
+      const result = await operation(node, transport, path, req.body, authorize);
+      if (checkAfterRead) await authorize();
+      res.status(status).json(result);
     });
     const fileBody = [ (req, res, next) => req.is('application/json') ? next() : res.sendStatus(415),
       express.json({ limit: '64kb', inflate: false }) ];
-    const snapshot = async (node, operation) => {
+    const snapshot = async (node, operation, authorize) => {
       const file = await operation;
+      if (authorize) await authorize();
       return { ...file, backup: this.#backups?.capture(node, file) ?? 'not-queued' };
     };
-    app.get(`${nodeAPI}/files`, fileOperation(200, (node, transport, path) => files.list(node, transport, path)));
-    app.get(`${nodeAPI}/file`, fileOperation(200, (node, transport, path) => snapshot(node, files.read(node, transport, path))));
+    app.get(`${nodeAPI}/files`, fileOperation(200, (node, transport, path) => files.list(node, transport, path), true));
+    app.get(`${nodeAPI}/file`, fileOperation(200, (node, transport, path, _body, authorize) => snapshot(node, files.read(node, transport, path), authorize)));
     app.put(`${nodeAPI}/file`, ...fileBody, fileOperation(200, (node, transport, _path, body) => snapshot(node, files.upload(node, transport, body))));
     app.post(`${nodeAPI}/restart`, ...fileBody, fileOperation(202, (node, transport) => files.restart(node, transport)));
     app.get(`${nodeAPI}/backup-status`, fileOperation(200, node => this.#backups?.status(node) ?? { pending: 0, unavailable: true }));

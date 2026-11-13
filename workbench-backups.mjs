@@ -78,8 +78,7 @@ export default class WorkbenchBackups {
     this.#running = true;
     let delay = 0;
     try {
-      const response = await this.#send(entry);
-      if (!response.ok) throw Error('Backup service rejected the snapshot');
+      if (!await this.#send(entry)) throw Error('Backup service rejected the snapshot');
       if (!this.#closed) this.#persist({ ...this.#state, queue: this.#state.queue.slice(1) });
       this.#delay = 1000;
       this.#error = false;
