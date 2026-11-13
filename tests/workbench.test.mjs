@@ -57,6 +57,15 @@ test('workbench serves only the local Client and routes validated UDP telemetry 
     });
     assert.equal(status, 403);
   }
+  const navigation = { 'Sec-Fetch-Site': 'cross-site', 'Sec-Fetch-Mode': 'navigate', 'Sec-Fetch-Dest': 'document' };
+  const navigationStatus = path => new Promise((resolve, reject) => {
+    request(`${origin}${path}`, { headers: navigation }, response => {
+      response.resume();
+      resolve(response.statusCode);
+    }).on('error', reject).end();
+  });
+  assert.equal(await navigationStatus('/workbench/'), 200);
+  assert.equal(await navigationStatus('/api/workbench/v1/events'), 403);
   for (const path of ['/routes', '/socket.io/', '/private/', '/api/user']) {
     assert.equal((await fetch(`${origin}${path}`)).status, 404);
   }

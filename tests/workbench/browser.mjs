@@ -1,3 +1,4 @@
+import { DRONE_LINK_MSG_TYPE_FLOAT, DRONE_LINK_MSG_TYPE_CHAR } from '../../public/modules/droneLinkMsg.mjs';
 import assert from 'node:assert/strict';
 import { filePeer } from './file-peer.mjs';
 import { createRequire } from 'node:module';
@@ -39,7 +40,8 @@ try {
 
   await page.goto(`${first.origin}/workbench/`);
   await connected.waitFor(timeout);
-  assert.equal(await page.getByRole('navigation', { name: 'Primary navigation' }).count(), 0);
+  const nav = page.getByRole('navigation', { name: 'Primary navigation' });
+  assert.equal(await nav.getByRole('link', { name: 'Workbench' }).getAttribute('aria-current'), 'page');
   await page.getByRole('heading', { name: 'Workbench', exact: true }).waitFor(timeout);
   await hello(gateway);
   await page.getByRole('button', { name: /Node 11 · Reachable/ }).click(timeout);
@@ -76,6 +78,29 @@ try {
   for (const request of apiRequests) assert.deepEqual(request, ['GET', '/api/workbench/v1/events']);
   assert.deepEqual(errors, []);
   console.log(`PASS Chrome ${browser.version()}: local typed values, independent route and gateway recovery, reload, zero off-origin requests`);
+
+  // Exercise the real map without making network calls to the tile provider.
+  const tile = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aO2QAAAAASUVORK5CYII=', 'base64');
+  await page.route('https://tile.openstreetmap.org/**', request => request.fulfill({
+    contentType: 'image/png', headers: { 'Access-Control-Allow-Origin': '*' }, body: tile,
+  }));
+  const payload = Buffer.alloc(12);
+  [-1.804, 51.575, 0].forEach((value, index) => payload.writeFloatLE(value, index * 4));
+  const type = Buffer.from('NMEA');
+  await publication(gateway, [11, 11, 10, 5, (DRONE_LINK_MSG_TYPE_CHAR << 4) | (type.length - 1), ...type]);
+  await publication(gateway, [11, 11, 10, 8, (DRONE_LINK_MSG_TYPE_FLOAT << 4) | (payload.length - 1), ...payload]);
+  const tileRequest = page.waitForRequest('https://tile.openstreetmap.org/**', timeout);
+  await page.getByRole('button', { name: 'Map', exact: true }).click();
+  await tileRequest;
+  await page.locator('.mapboxgl-canvas').waitFor(timeout);
+  await page.getByRole('button', { name: 'Fit observed positions' }).click();
+  const marker = page.getByRole('button', { name: /Node 11.*Binding 11>10.8/ });
+  await marker.click(timeout);
+  await page.getByText('Node 11 · Local · Wi-Fi', { exact: true }).waitFor(timeout);
+  await page.getByRole('link', { name: 'OpenStreetMap contributors' }).waitFor(timeout);
+  assert.deepEqual(offOrigin, []);
+  assert.deepEqual(errors, []);
+  console.log(`PASS Chrome ${browser.version()}: standalone map requests tiles, fits local GPS and selects its node without cloud API calls`);
 
   await page.close();
   await gateway.close();

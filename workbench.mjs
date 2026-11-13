@@ -85,9 +85,13 @@ async function start() {
   app.use((request, response, next) => {
     const requestOrigin = request.get('origin');
     const fetchSite = request.get('sec-fetch-site');
+    // A hosted Workbench shortcut may navigate to this document. Keep API and asset requests same-origin.
+    const workbenchNavigation = request.method === 'GET' && /^\/workbench\/?$/.test(request.path) &&
+      request.get('sec-fetch-mode') === 'navigate' && request.get('sec-fetch-dest') === 'document';
     if (request.get('host') !== origin.host || (requestOrigin && requestOrigin !== origin.origin) ||
-        (fetchSite && fetchSite !== 'same-origin' && fetchSite !== 'none')) return response.sendStatus(403);
-    response.set('Content-Security-Policy', "default-src 'self'; connect-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; frame-ancestors 'none'; base-uri 'none'");
+        (fetchSite && fetchSite !== 'same-origin' && fetchSite !== 'none' && !workbenchNavigation)) return response.sendStatus(403);
+    response.set('Content-Security-Policy', "default-src 'self'; connect-src 'self' https://tile.openstreetmap.org; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://tile.openstreetmap.org; object-src 'none'; frame-ancestors 'none'; base-uri 'none'");
+    response.set('Referrer-Policy', 'strict-origin-when-cross-origin');
     response.set('X-Content-Type-Options', 'nosniff');
     if (request.method !== 'GET' && request.method !== 'HEAD') {
       const fileMutation = /^\/api\/workbench\/v1\/nodes\/\d+\/(file|restart)$/.test(request.path);
