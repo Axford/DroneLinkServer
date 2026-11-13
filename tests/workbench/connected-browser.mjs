@@ -152,6 +152,7 @@ try {
   assert.equal((await standalone.json()).backup, undefined);
   assert.equal(snapshots.length, 0);
   await page.getByRole('tab', { name: 'Files' }).click();
+  await page.getByRole('button', { name: 'Full-window inspector' }).click();
   await page.getByRole('button', { name: 'List files' }).click(timeout);
   await page.getByRole('button', { name: /^sample.txt/ }).click(timeout);
   const editor = page.getByRole('textbox', { name: /Stored file/ });
