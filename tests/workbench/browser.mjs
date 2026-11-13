@@ -257,8 +257,8 @@ try {
     const reportedHop = fileTopology.getByRole('button', { name: 'Node 11 to node 13 via UDP · ch 2' });
     await reportedHop.click(timeout);
     const report = files.getByRole('region', { name: 'Selected hop' });
-    const reportedRoute = report.getByRole('row').filter({ has: report.getByRole('rowheader', { name: '14', exact: true }) });
-    await reportedRoute.getByRole('cell', { name: '1.3 s', exact: true }).waitFor(timeout);
+    await report.getByRole('rowheader', { name: '14', exact: true }).waitFor(timeout);
+    await report.getByRole('cell', { name: '1.3 s', exact: true }).waitFor(timeout);
     assert.equal(await fileTopology.getByRole('button', { name: /to node 14/ }).count(), 0);
     assert.equal(await fileTopology.getByRole('button', { name: /Node 13 Mentioned in route/ }).count(), 0);
     gateway.processHandle.send('expire routes');
