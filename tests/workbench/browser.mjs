@@ -98,9 +98,38 @@ try {
   await page.getByRole('button', { name: 'Map', exact: true }).click();
   await tileRequest;
   await page.locator('.maplibregl-canvas').waitFor(timeout);
+  const canvas = page.locator('.dw-map-canvas');
+  const lens = page.locator('.dw-map');
+  const cards = page.getByRole('region', { name: 'Observed nodes' });
+  const inspectorPanel = page.getByRole('region', { name: 'Node Inspector' });
+  const separator = page.getByRole('separator');
+  assert.ok((await canvas.boundingBox()).width > (await lens.boundingBox()).width);
+  const cardBox = await cards.boundingBox();
+  const lensBox = await lens.boundingBox();
+  assert.ok(cardBox.x > lensBox.x + lensBox.width / 2);
+  assert.equal(await cards.locator('li').first().evaluate(card => getComputedStyle(card).backdropFilter), 'blur(6px)');
+  // Switch to the short unopened Files view while keeping the same node selected.
+  await inspectorPanel.getByRole('tab', { name: 'Files' }).click();
+  const shortInspector = await inspectorPanel.boundingBox();
+  assert.ok(shortInspector.height < lensBox.height * 0.75, JSON.stringify({
+    shortInspector, lensBox, children: await inspectorPanel.evaluate(panel => Array.from(panel.children, el => ({
+      className: el.className, height: el.clientHeight, scrollHeight: el.scrollHeight,
+    }))),
+  }));
+  assert.equal(await inspectorPanel.evaluate(panel => getComputedStyle(panel).backdropFilter), 'blur(6px)');
+  assert.equal(await separator.evaluate(handle => getComputedStyle(handle).backgroundColor), 'rgba(0, 0, 0, 0)');
+  await separator.hover();
+  assert.notEqual(await separator.evaluate(handle => getComputedStyle(handle).backgroundColor), 'rgba(0, 0, 0, 0)');
+  const handleBox = await separator.boundingBox();
+  await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + 30);
+  await page.mouse.down();
+  await page.mouse.move(handleBox.x - 70, handleBox.y + 30, { steps: 6 });
+  await page.mouse.up();
+  assert.ok((await inspectorPanel.boundingBox()).width > shortInspector.width);
   await page.getByRole('button', { name: 'Fit observed positions' }).click();
   const marker = page.getByRole('button', { name: /Node 11.*Binding 11>10.8/ });
   await marker.click(timeout);
+  await inspectorPanel.getByRole('tab', { name: 'Modules' }).click();
   await page.getByText('Node 11 · Local · Wi-Fi', { exact: true }).waitFor(timeout);
   await page.getByRole('link', { name: 'OpenStreetMap contributors' }).waitFor(timeout);
   assert.equal(await page.getByText('Basemap tiles unavailable').count(), 0);
@@ -119,7 +148,11 @@ try {
   await dual.getByText('Serial · Up', { exact: true }).waitFor(timeout);
   await hello(gateway);
   serialHello(gateway);
-  await dual.getByRole('button', { name: /Node 11 · Reachable/ }).click(timeout);
+  const routes = dual.getByRole('table', { name: 'Local routes' });
+  const wifiRoute = routes.getByRole('row').filter({ has: dual.getByRole('button', { name: 'Inspect node 11 from Wi-Fi route' }) });
+  await wifiRoute.getByRole('cell', { name: 'Wi-Fi', exact: true }).click(timeout);
+  assert.equal(await wifiRoute.getAttribute('data-focused'), 'true');
+  assert.equal(await dual.getByRole('region', { name: 'Local nodes' }).count(), 0);
   await dual.getByText('Node 11 · Local · Serial', { exact: true }).waitFor(timeout);
   await publication(gateway, packet(46));
   serialPublication(gateway, packet(90));
@@ -171,8 +204,18 @@ try {
   assert.equal(await inspector.getByRole('tab', { name: 'Modules' }).getAttribute('aria-selected'), 'true');
   await inspector.getByRole('tab', { name: 'Files' }).click();
   assert.equal(await editor.inputValue(), 'Edited in the Workbench\n');
+  await files.route('https://tile.openstreetmap.org/**', request => request.fulfill({
+    contentType: 'image/png', headers: { 'Access-Control-Allow-Origin': '*' }, body: tile,
+  }));
+  await files.getByRole('button', { name: 'Map', exact: true }).click();
   await files.setViewportSize({ width: 390, height: 844 });
   assert.equal(await editor.inputValue(), 'Edited in the Workbench\n');
+  const scrollingPane = inspector.locator('.tab-content');
+  await files.waitForFunction(() => {
+    const pane = document.querySelector('.inspector-panel .tab-content');
+    return pane && pane.clientHeight > 0 && pane.scrollHeight > pane.clientHeight;
+  });
+  assert.equal(await scrollingPane.evaluate(pane => getComputedStyle(pane).overflowY), 'auto');
   await files.getByRole('button', { name: 'Upload to node' }).click();
   await files.getByText(/Stored file verified by readback/).waitFor(timeout);
   assert.equal(peer.files.get('/sample.txt').toString(), 'Edited in the Workbench\r\n');
