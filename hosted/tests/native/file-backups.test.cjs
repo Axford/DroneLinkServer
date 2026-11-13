@@ -58,3 +58,37 @@ test('connected files and hosted backup history enforce role, capability and Dom
         assert.equal((await save({ ...snapshot, sequence: 2, text: 'later' })).status, 401);
     });
 });
+
+test('editable Cloud files are node and Domain scoped and protect concurrent edits', async t => {
+    await fixture(t, async ({ agent }) => {
+        const owner = await agent('admin');
+        const editor = await agent('editor', 1);
+        const viewer = await agent('viewer', 1);
+        const fleet = await domain(owner);
+        const other = await domain(owner, 'Other Domain');
+        await join(owner, editor, fleet._id, 'editor', 'editor');
+        await join(owner, viewer, fleet._id, 'viewer', 'viewer');
+        const endpoint = '/api/domains/' + fleet._id + '/nodes/11/cloud-files';
+        const input = { path: '/config.ini', text: 'node = 11\r\n', revision: null };
+        assert.equal((await viewer.mutate(endpoint, input, 'PUT')).status, 403);
+        assert.equal((await editor.request(endpoint.replace(fleet._id, other._id))).status, 403);
+        assert.equal((await editor.request(endpoint, {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
+        })).status, 403);
+        const saved = await editor.mutate(endpoint, input, 'PUT');
+        assert.equal(saved.status, 200);
+        const { data: first } = saved.json();
+        assert.equal(first.text, input.text);
+        assert.ok(Date.parse(first.modifiedAt));
+        assert.deepEqual((await editor.request(endpoint)).json().data, [{ path: input.path, modifiedAt: first.modifiedAt }]);
+        assert.deepEqual((await editor.request(endpoint.replace('/11/', '/12/'))).json().data, []);
+        assert.equal((await viewer.request(endpoint)).status, 403);
+        assert.equal((await editor.mutate(endpoint, { ...input, text: 'stale' }, 'PUT')).status, 409);
+        const update = await editor.mutate(endpoint, { ...input, text: 'node = 11\r\n; edited\r\n', revision: first.revision }, 'PUT');
+        assert.equal(update.status, 200);
+        assert.notEqual(update.json().data.revision, first.revision);
+        const read = await editor.request(endpoint + '?path=%2Fconfig.ini');
+        assert.deepEqual(read.json().data, update.json().data);
+        assert.deepEqual((await editor.request(endpoint.replace('cloud-files', 'file-backups') + '?path=%2Fconfig.ini')).json().data, []);
+    });
+});

@@ -21,6 +21,8 @@ let canEdit = true;
 let gatewayRevoked = false;
 let backupUnavailable = false;
 const snapshots = [];
+let cloudFile = { path: '/config.ini', text: 'node = 11\r\n[Nav = 12]\r\n$location = @>10.9\r\n[NMEA = 10]\r\n',
+  modifiedAt: '2026-11-13T09:20:00.000Z', revision: 'a'.repeat(64) };
 let gateway, peer, browser, site;
 try {
   const cert = join(dir, 'cert');
@@ -46,6 +48,20 @@ try {
     if (pathname === '/api/session') return success({ csrfToken: 'fixture' });
     if (pathname === '/api/domains/bench') return success({ ...domain, canEdit });
     if (pathname === '/api/domains/bench/workbench-grant') return success({ grant: 'a'.repeat(64), expiresAt: Date.now() + 300000 });
+    if (pathname === '/api/domains/bench/nodes/11/cloud-files') {
+      if (!canEdit) return json(403, {});
+      if (req.method === 'PUT') {
+        const chunks = [];
+        for await (const chunk of req) chunks.push(chunk);
+        const { path, text, revision } = JSON.parse(Buffer.concat(chunks));
+        if (path !== cloudFile.path || revision !== cloudFile.revision) return json(409, {});
+        cloudFile = { ...cloudFile, text, modifiedAt: '2026-11-13T11:20:00.000Z', revision: 'b'.repeat(64) };
+        return success(cloudFile);
+      }
+      const query = new URL(req.url, 'https://127.0.0.1').searchParams;
+      if (query.has('path')) return success(cloudFile);
+      return success([{ path: cloudFile.path, modifiedAt: cloudFile.modifiedAt }]);
+    }
     if (pathname === '/api/domains/bench/nodes/11/file-backups') {
       return success(snapshots.map(({ text, ...version }) => version));
     }
@@ -137,7 +153,7 @@ try {
   assert.equal(snapshots.length, 0);
   await page.getByRole('tab', { name: 'Files' }).click();
   await page.getByRole('button', { name: 'List files' }).click(timeout);
-  await page.getByRole('button', { name: 'sample.txt' }).click(timeout);
+  await page.getByRole('button', { name: /^sample.txt/ }).click(timeout);
   const editor = page.getByRole('textbox', { name: /Stored file/ });
   const original = await editor.inputValue(timeout);
   await page.getByText('Cloud backup saved', { exact: true }).waitFor(timeout);
@@ -160,11 +176,36 @@ try {
   await page.getByRole('button', { name: 'Upload to node' }).click();
   await page.getByText(/Stored file verified by readback/).waitFor(timeout);
   assert.equal(peer.files.get('/sample.txt').toString().replaceAll('\r\n', '\n'), original);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: 'Browse files' }).click();
+  const picker = page.getByRole('dialog', { name: 'Files' });
+  await picker.getByRole('button', { name: 'Cloud', exact: true }).click();
+  const modified = picker.locator('time');
+  await modified.waitFor(timeout);
+  assert.equal(await modified.getAttribute('datetime'), cloudFile.modifiedAt);
+  assert.match(await modified.textContent(), /\d{1,2}:\d{2}/);
+  await picker.getByRole('button', { name: /config.ini/ }).click();
+  await picker.waitFor({ state: 'hidden', ...timeout });
+  const ace = page.locator('.ace_editor');
+  await ace.locator('.ace_support.ace_class').first().waitFor(timeout);
+  await ace.locator('.ace_content').click();
+  await page.keyboard.press(process.platform === 'darwin' ? 'Meta+Home' : 'Control+Home');
+  await page.keyboard.insertText('; Cloud edit\n');
+  await page.getByRole('button', { name: 'Save to Cloud' }).click();
+  await page.getByText('Saved to Cloud.', { exact: true }).waitFor(timeout);
+  assert.match(cloudFile.text, /; Cloud edit/);
+  assert.equal(peer.files.get('/config.ini').toString(), configuration);
+  await page.getByRole('button', { name: 'Load into node draft…' }).click();
+  await page.getByText(/Cloud file loaded into the draft/).waitFor(timeout);
+  assert.equal(peer.files.get('/config.ini').toString(), configuration);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.getByRole('tab', { name: 'Modules' }).click();
   const source = page.getByRole('combobox', { name: 'Node source' });
   await source.selectOption('cloud');
   await page.getByRole('button', { name: 'Query local value' }).waitFor({ state: 'detached', ...timeout });
   await source.selectOption('auto');
   await page.getByRole('tab', { name: 'Files' }).click();
+  page.once('dialog', dialog => dialog.accept());
   await page.getByRole('button', { name: 'Open node configuration' }).click();
   await page.getByText('Modules and subscriptions (2 modules)', { exact: true }).click();
   await page.getByRole('button', { name: 'Edit source for $location on channel 12' }).click();

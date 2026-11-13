@@ -108,10 +108,9 @@ try {
   const lensBox = await lens.boundingBox();
   assert.ok(cardBox.x > lensBox.x + lensBox.width / 2);
   assert.equal(await cards.locator('li').first().evaluate(card => getComputedStyle(card).backdropFilter), 'blur(6px)');
-  // Switch to the short unopened Files view while keeping the same node selected.
-  await inspectorPanel.getByRole('tab', { name: 'Files' }).click();
+  // Keep the Modules inspector floating on the map.
   const shortInspector = await inspectorPanel.boundingBox();
-  assert.ok(shortInspector.height < lensBox.height * 0.75, JSON.stringify({
+  assert.ok(shortInspector.height <= lensBox.height, JSON.stringify({
     shortInspector, lensBox, children: await inspectorPanel.evaluate(panel => Array.from(panel.children, el => ({
       className: el.className, height: el.clientHeight, scrollHeight: el.scrollHeight,
     }))),
@@ -134,7 +133,7 @@ try {
   assert.equal((await inspectorPanel.boundingBox()).width, (await restore.boundingBox()).width);
   assert.ok((await lens.boundingBox()).width > lensBox.width);
   await restore.press('Enter');
-  assert.equal(await inspectorPanel.getByRole('tab', { name: 'Files' }).getAttribute('aria-selected'), 'true');
+  assert.equal(await inspectorPanel.getByRole('tab', { name: 'Modules' }).getAttribute('aria-selected'), 'true');
   await page.getByRole('button', { name: 'Fit observed positions' }).click();
   const marker = page.getByRole('button', { name: /Node 11.*Binding 11>10.8/ });
   await marker.click(timeout);
@@ -210,7 +209,7 @@ try {
   assert.equal(await inspector.getByRole('tab', { name: 'Modules' }).getAttribute('aria-selected'), 'true');
   await inspector.getByRole('tab', { name: 'Files' }).click();
   await files.getByRole('button', { name: 'List files' }).click();
-  await files.getByRole('button', { name: 'sample.txt' }).click(timeout);
+  await files.getByRole('button', { name: /^sample\.txt/ }).click(timeout);
   const editor = files.getByRole('textbox', { name: /Stored file/ });
   assert.equal(await editor.inputValue(timeout), 'First line\n');
   await editor.fill('Edited in the Workbench\n');
@@ -232,16 +231,15 @@ try {
   await files.setViewportSize({ width: 390, height: 844 });
   assert.equal(await editor.inputValue(), 'Edited in the Workbench\n');
   const scrollingPane = inspector.locator('.tab-content');
-  await files.waitForFunction(() => {
-    const pane = document.querySelector('.inspector-panel .tab-content');
-    return pane && pane.clientHeight > 0 && pane.scrollHeight > pane.clientHeight;
-  });
+  assert.ok((await inspector.boundingBox()).width >= 385);
   assert.equal(await scrollingPane.evaluate(pane => getComputedStyle(pane).overflowY), 'auto');
   await files.getByRole('button', { name: 'Upload to node' }).click();
   await files.getByText(/Stored file verified by readback/).waitFor(timeout);
   assert.equal(peer.files.get('/sample.txt').toString(), 'Edited in the Workbench\r\n');
   assert.deepEqual(peer.actions, ['start', 'block', 'save']);
-  await files.getByRole('button', { name: 'Open node configuration' }).click();
+  await files.getByRole('button', { name: 'Browse files' }).click();
+  await files.getByRole('dialog', { name: 'Files' }).getByRole('button', { name: 'Open node configuration' }).click();
+  await files.locator('.ace_support.ace_class').first().waitFor(timeout);
   await files.getByText('Modules and subscriptions (2 modules)', { exact: true }).click();
   await files.getByText('Local: GPS (channel 10)', { exact: true }).waitFor(timeout);
   const editSource = files.getByRole('button', { name: 'Edit source for $location on channel 12' });
@@ -257,7 +255,8 @@ try {
   assert.equal(peer.files.get('/config.ini').toString(), configuration.replace('@>GPS.location', '@>10.8'));
   assert.ok(!peer.actions.includes('restart'));
   files.once('dialog', dialog => dialog.accept());
-  await files.getByRole('button', { name: 'Restart node' }).click();
+  await files.getByRole('button', { name: 'Node actions' }).click();
+  await files.getByText('Restart node', { exact: true }).click();
   await files.getByText(/Restart requested/).waitFor(timeout);
   for (let i = 0; i < 20 && peer.actions.at(-1) !== 'restart'; i++) await new Promise(resolve => setTimeout(resolve, 25));
   assert.equal(peer.actions.at(-1), 'restart');

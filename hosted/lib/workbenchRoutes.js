@@ -104,6 +104,20 @@ function mountWorkbenchRoutes(app, { config, store, ready, policy, ensureAuthent
         await policy.domain(req, roles);
         res.set('Cache-Control', 'private, no-store').json({ success: true, data });
     })];
+    const cloud = '/api/domains/:id/nodes/:node/cloud-files';
+    app.get(cloud, ready, ...read((actor, input) => input.path === undefined
+        ? store.fileBackups.listCloud(actor, input)
+        : store.fileBackups.getCloud(actor, input)));
+    app.put(cloud, ready, backupBody, ensureAuthenticated, asyncHandler(async (req, res) => {
+        const roles = ['owner', 'editor'];
+        const current = await policy.domain(req, roles, true);
+        if (!/^[1-9]\d{0,2}$/.test(req.params.node)) throw fault('validation');
+        const { path, text, revision } = req.body ?? {};
+        const data = await store.fileBackups.saveCloud(current.actor, {
+            domainId: req.params.id, nodeAddress: Number(req.params.node), path, text, revision,
+        });
+        res.set('Cache-Control', 'private, no-store').json({ success: true, data });
+    }));
     app.get(history, ...read((actor, input) => store.fileBackups.list(actor, input)));
     app.get(history + '/:versionId', ...read((actor, input) => store.fileBackups.get(actor, input)));
 
