@@ -196,6 +196,8 @@ try {
   await dual.close();
   await gateway.close();
   peer = await filePeer();
+  const configuration = 'node = 11\r\n[Nav = 12]\r\n $location = "@>GPS.location"  ; primary fix\r\n[NMEA = 10]\r\n name = GPS\r\n';
+  peer.files.set('/config.ini', Buffer.from(configuration));
   gateway = await launch(build, first.port, first.udpPort, { peerPort: peer.port });
   await gateway.ready;
   const files = await context.newPage();
@@ -239,6 +241,21 @@ try {
   await files.getByText(/Stored file verified by readback/).waitFor(timeout);
   assert.equal(peer.files.get('/sample.txt').toString(), 'Edited in the Workbench\r\n');
   assert.deepEqual(peer.actions, ['start', 'block', 'save']);
+  await files.getByRole('button', { name: 'Open node configuration' }).click();
+  await files.getByText('Modules and subscriptions (2 modules)', { exact: true }).click();
+  await files.getByText('Local: GPS (channel 10)', { exact: true }).waitFor(timeout);
+  const editSource = files.getByRole('button', { name: 'Edit source for $location on channel 12' });
+  await editSource.click();
+  const source = files.getByRole('textbox', { name: 'Source for $location' });
+  await source.fill('@>10.8');
+  await source.press('Enter');
+  assert.equal(await editSource.evaluate(button => button === document.activeElement), true);
+  assert.equal(peer.files.get('/config.ini').toString(), configuration);
+  assert.deepEqual(peer.actions, ['start', 'block', 'save']);
+  await files.getByRole('button', { name: 'Upload to node' }).click();
+  await files.getByText(/Stored file verified by readback/).waitFor(timeout);
+  assert.equal(peer.files.get('/config.ini').toString(), configuration.replace('@>GPS.location', '@>10.8'));
+  assert.ok(!peer.actions.includes('restart'));
   files.once('dialog', dialog => dialog.accept());
   await files.getByRole('button', { name: 'Restart node' }).click();
   await files.getByText(/Restart requested/).waitFor(timeout);
@@ -246,7 +263,7 @@ try {
   assert.equal(peer.actions.at(-1), 'restart');
   assert.deepEqual(offOrigin, []);
   assert.deepEqual(errors, []);
-  console.log(`PASS Chrome ${browser.version()}: open stored file, upload byte-exact readback and separate confirmed Restart`);
+  console.log(`PASS Chrome ${browser.version()}: open stored file, trace and edit draft binding, verify exact upload bytes and confirm Restart separately`);
 
   await files.close();
   await gateway.close();

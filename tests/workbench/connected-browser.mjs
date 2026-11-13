@@ -88,6 +88,8 @@ try {
   const connectedConfig = join(dir, 'gateway.json');
   await writeFile(connectedConfig, JSON.stringify({ origin, domain: 'bench', credentials: { wifi: gatewayCredential } }));
   peer = await filePeer();
+  const configuration = 'node = 11\n[Nav = 12]\n$location = @>10.8\n[NMEA = 10]\n';
+  peer.files.set('/config.ini', Buffer.from(configuration));
   gateway = await launch(build, undefined, undefined, { peerPort: peer.port, connectedConfig, caFile: cert });
   await gateway.ready;
   for (let i = 0; i < 25 && !gateway.pairingKey(); i++) await new Promise(resolve => setTimeout(resolve, 20));
@@ -162,14 +164,26 @@ try {
   await source.selectOption('cloud');
   await page.getByRole('button', { name: 'Query local value' }).waitFor({ state: 'detached', ...timeout });
   await source.selectOption('auto');
+  await page.getByRole('tab', { name: 'Files' }).click();
+  await page.getByRole('button', { name: 'Open node configuration' }).click();
+  await page.getByText('Modules and subscriptions (2 modules)', { exact: true }).click();
+  await page.getByRole('button', { name: 'Edit source for $location on channel 12' }).click();
+  await page.getByRole('textbox', { name: 'Source for $location' }).fill('@>10.9');
+  await page.getByRole('button', { name: 'Update draft' }).click();
+  assert.equal(peer.files.get('/config.ini').toString(), configuration);
+  const writes = peer.actions.filter(action => action === 'start').length;
   canEdit = false;
+  await page.getByRole('button', { name: 'Upload to node' }).click();
+  await page.getByRole('alert').filter({ hasText: /Cloud Workbench access was denied/ }).waitFor(timeout);
+  assert.equal(peer.actions.filter(action => action === 'start').length, writes);
+  assert.equal(peer.files.get('/config.ini').toString(), configuration);
   await page.getByRole('tab', { name: 'Modules' }).click();
   await page.getByRole('button', { name: 'Query local value' }).click();
-  await page.getByText(/Cloud Workbench access was denied/).waitFor(timeout);
+  await page.getByRole('tabpanel', { name: 'Modules' }).getByRole('alert').filter({ hasText: /Cloud Workbench access was denied/ }).waitFor(timeout);
   assert.equal(peer.actions.filter(action => action === 'query').length, 1);
   gatewayRevoked = true;
   await page.getByRole('button', { name: 'Disconnect local gateway' }).waitFor({ state: 'detached', timeout: 24000 });
-  console.log(`PASS Chrome ${browser.version()}: actual loopback permission, pairing, local observation, direct mesh query, source override, role denial, verified file backup/retry and editor-only restore`);
+  console.log(`PASS Chrome ${browser.version()}: actual loopback permission, pairing, local observation, direct mesh query, source override, query and configuration upload role denial, verified file backup/retry and editor-only restore`);
 } finally {
   await browser?.close();
   await gateway?.close();
