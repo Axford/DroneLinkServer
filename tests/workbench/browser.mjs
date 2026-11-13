@@ -321,7 +321,7 @@ try {
     await catalogue.getByRole('button', { name: 'Close Add module' }).click();
     await files.getByLabel('Find wired module').selectOption('20', timeout);
     await files.getByRole('button', { name: 'Identify device' }).click(timeout);
-    await files.getByText(/Signature matches INA3221/).waitFor(timeout);
+    await physical.getByRole('button', { name: /INA3221.*Signature matches INA3221/ }).waitFor(timeout);
     await files.getByText(/Register 0xFE · complete · 0x54 0x49/).waitFor(timeout);
     assert.equal(peer.files.get('/config.ini').toString(), base);
     console.log('PASS all-channel coverage, repeated address isolation, and matched and inconclusive register reads');
