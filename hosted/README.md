@@ -216,3 +216,7 @@ The recovery rehearsal retires pending commands in every fixture Domain, complet
 ### M2-B bridge polling
 
 The machine poll endpoint accepts up to 16 distinct peer addresses in the optional `peers` field. Persistence selects eligible HTTP targets within the authenticated Domain and atomically consumes across the polling node and its peers. Own-node polls use the same endpoint. Install this Server release before configuring upgraded bridges to advertise peers.
+
+### Verified Waypoint route geometry
+
+The Domain route preview returns geometry and backup capture time for the selected node's current observed Waypoint digest. The storage lookup is restricted to retained `/waypoint.csv` backups for that node. Domain Viewers can read the geometry. Existing file access rules cover backup history and raw text. See the [shared contract](../../DroneLinkDatastore/docs/contracts/workbench.md#verified-route-preview).
