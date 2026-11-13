@@ -1,6 +1,6 @@
 # Dronewright hosted backend
 
-The independent hosted service uses pinned native Firestore persistence 0.8.2. Install with Node22+ using `npm ci --omit=dev`; run `npm start`. No MongoDB, gateway, emulator, Java or sibling source is required in production.
+The independent hosted service uses pinned native Firestore persistence 0.10.1. Install with Node22+ using `npm ci --omit=dev`; run `npm start`. No MongoDB, gateway, emulator, Java or sibling source is required in production.
 
 Supply `GOOGLE_CLOUD_PROJECT`, `PUBLIC_ORIGIN`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SESSION_SECRET` (32+characters), optional `FIRESTORE_DATABASE` (default `(default)`), `MAPBOX_ACCESS_TOKEN`, `CLIENT_BUILD_DIR` and `PORT`. A local ignored hosted `config.json` may supply equivalent camelCase fields. Startup never creates configuration or downloads credentials. Production uses the service identity and Secret Manager values; no service-account key file. Client build defaults to hosted `private/build`; an explicit path must contain index.html/static. Validate a release before selection.
 

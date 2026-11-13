@@ -236,11 +236,13 @@ test('shared observation API follows persisted updates, enforces reset generatio
     await join(admin, viewer, fleet._id, 'viewer', 'viewer'); await join(admin, editor, fleet._id, 'editor', 'editor');
     const key = (await admin.request(path + '/key')).json().data.apiKey;
     const initial = await admin.request(path + '/observations'); assert.equal(initial.status, 200, initial.text); assert.deepEqual(initial.json().data.channels, []);
-    const response = await factories[0]().request('/addPacket', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain: fleet._id, apiKey: key, id: 254, packet: Buffer.from([7,7,1,1,0,10]).toString('base64') }) });
+    const response = await factories[0]().request('/addPacket', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain: fleet._id, apiKey: key, id: 254, packet: Buffer.from([7,7,1,129,0,10]).toString('base64') }) });
     assert.equal(response.status, 202, response.text);
     const changes = await collaborator.request(path + '/observations/updates?cursor=' + initial.json().data.startCursor + '&timeoutMs=3000');
     assert.equal(changes.status, 200, changes.text); assert.equal(changes.json().data.events[0].channels[0].params['1'].value.payload, 'Cg==');
+    assert.equal(changes.json().data.events[0].channels[0].params['1'].value.priority, 2);
     const saved = await viewer.request(path + '/observations'); assert.equal(saved.status, 200); assert.equal(saved.json().data.channels.length, 1); assertSafe(saved);
+    assert.equal(saved.json().data.channels[0].params['1'].value.priority, 2);
     assert.equal((await outsider.request(path + '/observations')).status, 403);
     assert.equal((await viewer.mutate(path + '/nodes/7/reset', { expectedGeneration: 0 })).status, 403);
     assert.equal((await admin.mutate(path + '/nodes/7/reset', { expectedGeneration: 0 }, 'POST', { 'X-CSRF-Token': '' })).status, 403);
