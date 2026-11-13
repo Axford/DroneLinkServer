@@ -24,6 +24,12 @@ globalThis.fetch = (url, options) => {
   if (target.pathname === '/supportedModules') {
     return Promise.resolve(Response.json({ schemaVersion: 1, node: 11, build, types: ['Management', 'NMEA', 'Nav', 'Probe', 'INA219', 'INA3221'] }));
   }
+  if (target.pathname === '/networkSnapshot') {
+    return Promise.resolve(Response.json({
+      schemaVersion: 1, node: 11, interfaces: [{ channel: 2, type: 'UDP', up: true, broadcast: true }],
+      routes: [], queue: { size: 12, utilisation: 3.5, kicked: 2, choked: 1 },
+    }));
+  }
   if (target.pathname !== '/i2cDiagnostic') return realFetch(url, options);
   if (options.method === 'POST') {
     const get = name => Number(target.searchParams.get(name));

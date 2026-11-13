@@ -6,6 +6,7 @@ import { parseArgs } from 'node:util';
 import express from 'express';
 import { loadGatewayRelease } from './scripts/gateway-release.mjs';
 import createI2cDiagnostics from './workbench-i2c.mjs';
+import createNodeNetwork from './workbench-network.mjs';
 import createCatalogue from './workbench-catalogue.mjs';
 import WorkbenchMesh from './workbench-mesh.mjs';
 import WorkbenchFiles, { FileError } from './workbench-files.mjs';
@@ -76,6 +77,7 @@ async function start() {
   if (releaseDir && !release.status.available) console.warn(release.status.warning);
   const catalogue = createCatalogue(mesh, release);
   const i2c = createI2cDiagnostics(mesh);
+  const nodeNetwork = createNodeNetwork(mesh);
   const connected = connectedConfig ? new ConnectedWorkbench(connectedConfig, mesh) : null;
   let ready = false;
   let heartbeatTimer;
@@ -94,7 +96,7 @@ async function start() {
     return true;
   }
 
-  connected?.mount(app, { localHost: origin.host, subscribe, available: () => ready, files, catalogue, i2c });
+  connected?.mount(app, { localHost: origin.host, subscribe, available: () => ready, files, catalogue, i2c, nodeNetwork });
 
   app.use((request, response, next) => {
     const requestOrigin = request.get('origin');
@@ -147,6 +149,7 @@ async function start() {
   const diagnosticJson = express.json({ limit: '1kb', inflate: false });
   app.post(`${nodeAPI}/i2c-scan`, diagnosticJson, handleFile(200, (node, transport, _path, body) => i2c.scan(node, transport, body)));
   app.post(`${nodeAPI}/i2c-register`, diagnosticJson, handleFile(200, (node, transport, _path, body) => i2c.register(node, transport, body)));
+  app.get(`${nodeAPI}/network`, handleFile(200, nodeNetwork));
   app.get(`${nodeAPI}/module-catalogue`, handleFile(200, catalogue));
   app.get(`${nodeAPI}/files`, handleFile(200, (node, transport, path) => files.list(node, transport, path)));
   app.get(`${nodeAPI}/file`, handleFile(200, (node, transport, path) => files.read(node, transport, path)));

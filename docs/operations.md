@@ -237,3 +237,7 @@ The hosted service keeps the latest 20 changed versions per Domain/node/path by 
 ### Workbench I²C diagnostics
 
 The Physical view can start a scan or reviewed register read through a direct Wi-Fi node route. Connected access uses the same current role and pairing checks as node files. The gateway forwards bounded jobs to the node and reports missing firmware support, changed routes and device timeouts. See the [I²C discovery contract](../../DroneLinkDatastore/docs/contracts/workbench.md#workbench-i²c-discovery).
+
+### Selected node network
+
+Select a node in the Workbench Network lens and refresh its network snapshot. A direct Wi-Fi route and firmware with the [network snapshot endpoint](../../DroneLinkDatastore/docs/contracts/workbench.md#selected-node-network-snapshot) are required. Connected reads use the current observation grant.

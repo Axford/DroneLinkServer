@@ -18,6 +18,7 @@ let offset = 0;
 Date.now = () => now() + offset;
 process.on('message', message => {
   if (message === 'expire routes') offset += 61_000;
+  if (message === 'restore clock') offset = 0;
 });
 process.channel?.unref();
 

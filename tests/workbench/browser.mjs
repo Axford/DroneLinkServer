@@ -232,6 +232,22 @@ try {
   await files.getByRole('button', { name: 'Network', exact: true }).click();
   await files.getByText('Wi-Fi · Up', { exact: true }).waitFor(timeout);
   await files.getByRole('button', { name: 'Inspect node 11 from Wi-Fi route' }).click();
+  if (catalogueFixture) {
+    const network = files.getByRole('region', { name: 'Selected node network' });
+    const refresh = network.getByRole('button', { name: 'Refresh node network' });
+    await refresh.click(timeout);
+    await network.getByText('UDP · Up', { exact: true }).waitFor(timeout);
+    await network.getByText('No routes reported by node 11.').waitFor(timeout);
+    await network.getByText(/3.5% utilization · 12 slots/).waitFor(timeout);
+    gateway.processHandle.send('expire routes');
+    await network.getByText(/^Last seen from node 11/).waitFor(timeout);
+    assert.ok(await refresh.isDisabled());
+    await new Promise((resolve, reject) => gateway.processHandle.send('restore clock', error => error ? reject(error) : resolve()));
+    peer.hello(gateway);
+    await refresh.click(timeout);
+    await network.getByText(/^Received from node 11/).waitFor(timeout);
+    console.log('PASS selected node network remains distinct from gateway routes through loss and recovery');
+  }
   assert.equal(await inspector.getByRole('tab', { name: 'Modules' }).getAttribute('aria-selected'), 'true');
   await inspector.getByRole('tab', { name: 'Files' }).click();
   assert.equal(await editor.inputValue(), 'Edited in the Workbench\n');

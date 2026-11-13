@@ -234,6 +234,22 @@ try {
   await page.getByRole('button', { name: 'Edit source for $location on channel 12' }).click();
   await page.getByRole('textbox', { name: 'Source for $location' }).fill('@>10.9');
   await page.getByRole('button', { name: 'Update draft' }).click();
+  if (catalogueFixture) {
+    const headers = { Origin: origin, 'X-Workbench-Key': pairingKey, 'X-Workbench-Grant': 'a'.repeat(64) };
+    const endpoint = `${gateway.origin}/api/workbench/v1/connected/nodes/11/network?transport=wifi`;
+    canEdit = false;
+    let response;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      response = await fetch(endpoint, { headers });
+      if (response.ok) break;
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    assert.equal(response.status, 200);
+    assert.equal((await response.json()).node, 11);
+    assert.equal((await fetch(endpoint, { headers: { ...headers, 'X-Workbench-Grant': 'b'.repeat(64) } })).status, 403);
+    canEdit = true;
+    console.log('PASS connected network snapshot honors observation grants independently of edit access');
+  }
   const writes = peer.actions.filter(action => action === 'start').length;
   if (catalogueFixture) {
     await page.getByRole('button', { name: 'Add module', exact: true }).click();

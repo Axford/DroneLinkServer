@@ -10,7 +10,7 @@ function lanAddress(address) {
     (a === 192 && b === 168) || (a === 169 && b === 254);
 }
 
-export async function readDeviceJson(fetchNode, address, path, { method, signal, headers }) {
+export async function readDeviceJson(fetchNode, address, path, { method, signal, headers, maxBytes = maxResponseBytes }) {
   const response = await fetchNode(`http://${address}${path}`, {
     redirect: 'error', method, signal, headers,
   });
@@ -37,7 +37,7 @@ export async function readDeviceJson(fetchNode, address, path, { method, signal,
       const { done, value } = await reader.read();
       if (done) break;
       bytes += value.byteLength;
-      if (bytes > maxResponseBytes) throw new Error('Capability response too large');
+      if (bytes > maxBytes) throw new Error('Capability response too large');
       chunks.push(value);
     }
   } finally { await reader.cancel().catch(() => {}); }

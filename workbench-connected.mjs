@@ -118,7 +118,7 @@ export default class ConnectedWorkbench {
     }
   }
 
-  mount(app, { localHost, subscribe, available, files, catalogue, i2c }) {
+  mount(app, { localHost, subscribe, available, files, catalogue, i2c, nodeNetwork }) {
     app.use(base, (req, res, next) => {
       if (req.get('host') !== localHost || req.get('origin') !== this.origin) return res.sendStatus(403);
       res.set({ 'Access-Control-Allow-Origin': this.origin, 'Cache-Control': 'no-store', Vary: 'Origin' });
@@ -157,6 +157,14 @@ export default class ConnectedWorkbench {
       res.once('close', () => clearInterval(timer));
     }));
     const nodeAPI = `${base}/nodes/:node`;
+    app.get(`${nodeAPI}/network`, handle(async (req, res) => {
+      const grant = req.get('X-Workbench-Grant');
+      await this.#authorize(grant, 'observe');
+      if (res.destroyed) return;
+      const result = await nodeNetwork(req.params.node, req.query.transport);
+      await this.#authorize(grant, 'observe');
+      res.json(result);
+    }));
     const fileOperation = (status, operation, checkAfterRead = false) => handle(async (req, res) => {
       if (!this.#backupAvailable) throw new FileError(404, 'Connected node files require a backup-enabled gateway.');
       const { node } = req.params;
