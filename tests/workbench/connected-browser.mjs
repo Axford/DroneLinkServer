@@ -123,7 +123,7 @@ try {
   await page.getByText('Cloud observation', { exact: true }).first().waitFor(timeout);
   await page.getByRole('button', { name: /Inspect node 11/ }).press('Enter', timeout);
   await publication(gateway, [11, 11, 5, 8, 0, 42]);
-  await page.getByRole('article', { name: 'Parameter 11>5.8' }).getByText('42').waitFor(timeout);
+  await page.getByRole('article', { name: 'Parameter 11>5.8' }).getByText('42', { exact: true }).waitFor(timeout);
   await page.getByRole('button', { name: 'Query local value' }).click();
   await page.getByText(/Local query queued/).waitFor(timeout);
   assert.ok(cloudRequests.some(([path, action]) => path.endsWith('/authorize') && action === 'query-value'));

@@ -2,6 +2,7 @@
 // Actual production app, installed native store, real OAuth state/profile parsing, isolated provider responses.
 const assert = require('node:assert/strict');
 const http = require('node:http'); const path = require('node:path');
+const { mkdir } = require('node:fs/promises');
 const { chromium } = require(process.env.DRONELINK_PLAYWRIGHT_MODULE || 'playwright');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const { createRequire } = require('node:module');
@@ -13,6 +14,8 @@ const { withFirestore } = require('../../tools/firestore.cjs');
 const { createApp } = hostedRequire('./app');
 const { DRONE_LINK_MSG_TYPE_CHAR: CHAR, DRONE_LINK_MSG_TYPE_FLOAT: FLOAT } = hostedRequire('@dronelink/protocol');
 async function run() {
+    const evidence = process.env.DRONELINK_UI_EVIDENCE_DIR;
+    if (evidence) await mkdir(evidence, { recursive: true });
     if (!process.env.CLIENT_BUILD_DIR) throw Error('Select an explicit built Client artifact');
     await withFirestore(async options => {
         const store = await openFirestoreStore({ ...options, flushIntervalMs: 10, observationEpoch: 'm1-c-1', observationFlushIntervalMs: 20 }); const operator = await openAccessOperatorStore({ ...options, databaseId: '(default)' });
@@ -31,7 +34,7 @@ async function run() {
                 return strategy;
             } });
             browser = await chromium.launch({ channel: process.env.DRONELINK_BROWSER_CHANNEL || 'chrome', headless: true, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
-            const ownerContext = await browser.newContext({ permissions: ['clipboard-read', 'clipboard-write'] }); const viewerContext = await browser.newContext();
+            const ownerContext = await browser.newContext({ viewport: { width: 1440, height: 900 }, permissions: ['clipboard-read', 'clipboard-write'] }); const viewerContext = await browser.newContext({ viewport: { width: 1440, height: 900 } });
             // Keep real Mapbox rendering/markers while serving an inert local style:
             // no external map service, real token or basemap acceptance is involved.
             for (const context of [ownerContext, viewerContext]) {
@@ -42,6 +45,7 @@ async function run() {
             await login(ownerContext, 'admin'); await login(viewerContext, 'viewer');
             const ownerPage = await ownerContext.newPage(); const viewerPage = await viewerContext.newPage();
             for (const page of [ownerPage, viewerPage]) {
+                page.setDefaultTimeout(15000);
                 page.on('pageerror', error => console.error('Browser page error:', error.message));
                 page.on('console', message => { if (message.type() === 'error') console.error('Browser console:', message.text()); });
             }
@@ -113,6 +117,7 @@ async function run() {
             await viewerPage.getByRole('button', { name: 'Domain settings' }).click(); assert.equal(await viewerPage.getByRole('button', { name: 'Show key' }).count(), 0);
             assert.equal((await viewerContext.request.get(origin + `/api/domains/${id}/key`)).status(), 403);
             await viewerPage.getByRole('button', { name: 'Close Domain settings', exact: true }).click();
+            console.log('Checking collaboration');
             await ownerPage.evaluate(() => window.dispatchEvent(new Event('focus')));
             const roleControl = ownerPage.getByLabel('Role for viewer@example.test');
             const memberRow = ownerPage.getByRole('row').filter({ has: roleControl });
@@ -126,11 +131,12 @@ async function run() {
             await viewerPage.getByRole('button', { name: 'Show key' }).click(); await viewerPage.getByRole('button', { name: 'Hide key' }).waitFor();
             await ownerPage.getByLabel('Role for viewer@example.test').selectOption('viewer'); await viewerPage.evaluate(() => window.dispatchEvent(new Event('focus')));
             await viewerPage.getByLabel('Domain role and status').getByText('viewer', { exact: true }).waitFor(); assert.equal(await viewerPage.getByRole('button', { name: 'Hide key' }).count(), 0);
+            console.log('Checking observation/reset');
             const pageRequests = [];
             for (const page of [ownerPage, viewerPage]) page.on('request', request => pageRequests.push(new URL(request.url()).pathname));
             const keyResponse = await ownerContext.request.get(origin + `/api/domains/${id}/key`); const key = (await keyResponse.json()).data.apiKey;
             const publish = async value => {
-                const response = await ownerContext.request.post(origin + '/addPacket', { data: { domain: id, id: 254, apiKey: key, packet: Buffer.from([7,7,1,1,0,value]).toString('base64') } });
+                const response = await ownerContext.request.post(origin + '/addPacket', { data: { domain: id, id: 254, apiKey: key, packet: Buffer.from([7,7,1,8,0,value]).toString('base64') } });
                 assert.equal(response.status(), 202);
             };
             assert.equal(await ownerPage.locator('.modal .dw-panel').count(), 4);
@@ -139,9 +145,11 @@ async function run() {
             assert.equal(await ownerPage.getByRole('button', { name: 'Domain settings' }).count(), 0);
             await publish(42);
             const select = async page => {
-                await page.locator('.node-selector select option[value="7"]').waitFor({ state: 'attached' });
-                await page.locator('.node-selector select').selectOption('7');
-                await page.getByRole('button', { name: 'Expand All', exact: true }).click();
+                await page.getByRole('button', { name: /^Inspect node 7:/ }).click();
+                const channel = page.locator('[data-inspector-focus="channel-1"]');
+                await channel.waitFor();
+                if (await channel.getAttribute('aria-expanded') === 'false') await channel.click();
+
             };
             const valueVisible = async (page, value) => page.locator('.parameter-row .font-monospace').getByText(String(value), { exact: true }).waitFor();
             await select(ownerPage); await select(viewerPage);
@@ -169,6 +177,7 @@ async function run() {
             assert.equal(await viewerPage.getByRole('button', { name: 'Reset node observations' }).count(), 0);
             await viewerPage.getByRole('button', { name: 'Close Inspector tools' }).click();
             console.log('PASS: two Chrome contexts share persisted observations, clear on reset, preserve identity/history, rebuild/reload and exclude Viewer reset');
+            console.log('Checking map/provenance');
             const packet = async (channel, param, type, values) => {
                 let payload;
                 if (type === CHAR) payload = Buffer.from(values);
@@ -184,7 +193,7 @@ async function run() {
                 await page.getByRole('button', { name: 'Fit observed positions', exact: true }).click();
                 await marker(page).waitFor().catch(async error => {
                     await page.screenshot({ path: '/tmp/m1-d-browser-failure.png', fullPage: true });
-                    console.error('Map fixture diagnostics:', await page.evaluate(() => ({ markerCount: document.querySelectorAll('.mapboxgl-marker').length, map: document.querySelector('[aria-label="Observed Drone map"]')?.innerHTML.slice(0, 500), status: Array.from(document.querySelectorAll('[role="status"]')).map(el => el.textContent), options: Array.from(document.querySelectorAll('.node-selector option')).map(el => el.textContent) })));
+                    console.error('Map fixture diagnostics:', await page.evaluate(() => ({ markerCount: document.querySelectorAll('.mapboxgl-marker').length, map: document.querySelector('[aria-label="Observed Drone map"]')?.innerHTML.slice(0, 500), status: Array.from(document.querySelectorAll('[role="status"]')).map(el => el.textContent), nodes: Array.from(document.querySelectorAll('.dw-node-select')).map(el => el.getAttribute('aria-label')) })));
                     throw error;
                 });
             }
@@ -197,8 +206,12 @@ async function run() {
             await packet(9, 5, CHAR, 'NMEA'); await packet(9, 8, FLOAT, [-2, 52, 0]);
             await packet(2, 10, FLOAT, [-2.1, 52.1, 0]);
             for (const page of [ownerPage, viewerPage]) {
-                await page.getByText('Channel 9', { exact: true }).click();
-                await page.locator('.channel-card').filter({ has: page.getByText('Channel 9', { exact: true }) }).locator('.font-monospace').getByText('-2, 52, 0', { exact: true }).waitFor();
+                const channel = page.locator('[data-inspector-focus="channel-9"]');
+                if (await channel.getAttribute('aria-expanded') === 'false') await channel.click();
+                await page.locator('.channel-card').filter({ has: page.getByText('Channel 9', { exact: true }) }).getByRole('button', { name: 'Parameters', exact: true }).click();
+                const values = page.getByRole('article', { name: 'Parameter 7>9.8' }).locator('.font-monospace');
+                await values.first().waitFor();
+                assert.deepEqual(await values.allTextContents(), ['-2.0000', '52.0000', '0.0000']);
                 await page.getByRole('button', { name: /Binding 7>4.8.*priority 3/ }).waitFor();
                 assert.equal(await marker(page).count(), 1);
                 await page.getByRole('button', { name: 'Fit observed positions', exact: true }).click();
@@ -223,13 +236,23 @@ async function run() {
             await viewerPage.getByText(/Drone: .*Singleton master: Node 7/).waitFor();
             await viewerPage.getByRole('button', { name: 'Close Node details' }).click();
             assert.equal(await viewerPage.getByRole('button', { name: 'Reset node observations' }).count(), 0);
-            await ownerPage.screenshot({ path: '/tmp/m1-d-operator.png', fullPage: true });
-            // Domain switch removes markers and selection, even for the same browser session.
+            if (evidence) await ownerPage.screenshot({ path: path.join(evidence, 'desktop-1440.png'), animations: 'disabled' });
+            // Switching Domains clears the old marker even when the next Domain uses the same numeric address.
             await ownerPage.goto(origin + '/private'); await ownerPage.getByRole('button', { name: 'New Domain', exact: true }).click();
             await ownerPage.getByLabel('Domain Name', { exact: true }).fill('Empty Operator Domain');
             await ownerPage.getByRole('button', { name: 'Create Domain', exact: true }).click();
             await ownerPage.getByRole('link', { name: 'Empty Operator Domain', exact: true }).click();
-            await ownerPage.getByText('No nodes discovered', { exact: true }).waitFor(); assert.equal(await marker(ownerPage).count(), 0);
+            await ownerPage.getByText('No nodes discovered', { exact: true }).waitFor();
+            const otherId = ownerPage.url().split('/').at(-1);
+            const otherKey = (await (await ownerContext.request.get(origin + `/api/domains/${otherId}/key`)).json()).data.apiKey;
+            assert.equal((await ownerContext.request.post(origin + '/addPacket', {
+                data: { domain: otherId, id: 254, apiKey: otherKey, packet: Buffer.from([7, 7, 1, 8, 0, 91]).toString('base64') }
+            })).status(), 202);
+            await select(ownerPage);
+            await valueVisible(ownerPage, 91);
+            assert.equal(await marker(ownerPage).count(), 0);
+            assert.equal(await ownerPage.getByRole('button', { name: 'Locate node 7' }).isDisabled(), true);
+            assert.equal(await ownerPage.getByText('43', { exact: true }).count(), 0);
             await ownerPage.goto(origin + '/private/domain/' + id); await ownerPage.getByRole('button', { name: 'Fit observed positions', exact: true }).click(); await marker(ownerPage).click();
             await ownerPage.getByRole('button', { name: 'Inspector tools' }).click();
             await ownerPage.getByRole('button', { name: 'Reset node observations' }).click();
@@ -255,15 +278,26 @@ async function run() {
             await ownerPage.getByRole('tab', { name: 'Active domains', exact: true }).click();
             await adminCard.getByRole('link', { name: 'Browser Fleet', exact: true }).click();
             await viewerPage.reload(); assert.equal(await viewerPage.getByText('Archived domain · Read-only retained history.', { exact: false }).count(), 0);
+            console.log('Checking narrow layout');
             // Responsive surfaces use the same typography, retain account navigation and avoid horizontal overflow.
             await ownerPage.setViewportSize({ width: 390, height: 844 });
-            await ownerPage.locator('.sidebar-container.collapsed').waitFor();
+            await ownerPage.getByRole('navigation', { name: 'Primary navigation' }).waitFor();
             assert.equal(await ownerPage.getByRole('button', { name: 'Expand navigation' }).count(), 0);
-            assert.equal(await ownerPage.getByLabel('Workspace navigation').evaluate(element => Math.round(element.getBoundingClientRect().width)), 56);
             await ownerPage.locator('[data-panel-group][data-panel-group-direction="vertical"]').waitFor();
             assert.equal(await ownerPage.locator('main').evaluate(element => element.scrollWidth <= element.clientWidth), true);
             assert.equal(await ownerPage.locator('.inspector-panel').evaluate(element => getComputedStyle(element).fontSize), '14px');
-            await ownerPage.screenshot({ path: '/tmp/dw-mobile-operations.png', fullPage: true });
+            await packet(4, 8, FLOAT, [-1.96, 51.66, 0]);
+            await packet(4, 5, CHAR, 'NMEA');
+            const openNodes = ownerPage.getByRole('button', { name: 'Expand node list' });
+            await openNodes.focus();
+            await openNodes.press('Enter');
+            const nodePicker = ownerPage.getByRole('dialog', { name: 'Observed nodes' });
+            await nodePicker.getByRole('button', { name: /^Inspect node 7:/ }).press('Enter');
+            await nodePicker.waitFor({ state: 'hidden' });
+            await ownerPage.getByRole('button', { name: 'Node details' }).waitFor();
+            if (evidence) await ownerPage.screenshot({ path: path.join(evidence, 'narrow-390.png'), fullPage: true, animations: 'disabled' });
+            const navigation = ownerPage.getByRole('button', { name: 'Open navigation' });
+            if (await navigation.count()) await navigation.click();
             await ownerPage.getByRole('link', { name: 'Home', exact: true }).click();
             await ownerPage.getByRole('button', { name: 'New Domain', exact: true }).waitFor();
             assert.equal(await ownerPage.locator('main').evaluate(element => getComputedStyle(element).paddingLeft), '12px');
