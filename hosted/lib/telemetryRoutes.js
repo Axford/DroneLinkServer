@@ -41,9 +41,9 @@ function mountTelemetryRoutes(app, { store, ready, policy, ensureAuthenticated }
         await policy.domain(req, ['owner']); res.json({ success: true, data: result.items, pagination: { nextCursor: result.nextCursor } });
     }));
     app.post('/api/domains/:id/gateways', ...wrap(async (req, res) => {
-        if (!req.body || Object.keys(req.body).some(key => !['name', 'nodeAddress'].includes(key))) throw fault('validation');
+        if (!req.body || Object.keys(req.body).some(key => !['name', 'nodeAddress', 'fileBackup'].includes(key)) || (req.body.fileBackup !== undefined && typeof req.body.fileBackup !== 'boolean')) throw fault('validation');
         const current = await policy.domain(req, ['owner'], true); const secret = crypto.randomBytes(32).toString('base64url');
-        const row = await store.telemetry.issueGateway(current.actor, { domainId: req.params.id, name: req.body.name, nodeAddress: req.body.nodeAddress, secretHash: crypto.createHash('sha256').update(secret).digest('hex') });
+        const row = await store.telemetry.issueGateway(current.actor, { domainId: req.params.id, name: req.body.name, nodeAddress: req.body.nodeAddress, fileBackup: req.body.fileBackup, secretHash: crypto.createHash('sha256').update(secret).digest('hex') });
         await policy.domain(req, ['owner']); res.status(201).json({ success: true, data: { gateway: row, credential: row._id + '.' + secret } });
     }));
     app.delete('/api/domains/:id/gateways/:gatewayId', ...wrap(async (req, res) => {

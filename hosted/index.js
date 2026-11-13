@@ -10,6 +10,7 @@ function loadConfig(serviceDir = __dirname) {
     const local = fs.existsSync(filename) ? JSON.parse(fs.readFileSync(filename, 'utf8')) : {};
     const values = { port: Number(process.env.PORT || local.port || 8003),
         projectId: process.env.GOOGLE_CLOUD_PROJECT || local.projectId,
+        fileBackupLimit: process.env.WORKBENCH_FILE_BACKUP_LIMIT === undefined ? undefined : Number(process.env.WORKBENCH_FILE_BACKUP_LIMIT),
         stagingTestSignIn: process.env.STAGING_TEST_SIGN_IN === '1',
         databaseId: process.env.FIRESTORE_DATABASE || local.databaseId || '(default)',
         observationEpoch: 'm1-c-1',
@@ -37,7 +38,7 @@ async function startHosted({ config, storeFactory = openFirestoreStore, appFacto
         ({ mountStagingTestSignIn } = require('./staging-test/routes'));
     }
     resolveClientBuildDir(config.clientBuildDir);
-    const store = await storeFactory({ projectId: config.projectId, databaseId: config.databaseId, commandContract: 'm2-a-1', stagingTestSignIn: Boolean(mountStagingTestSignIn), observationEpoch: config.observationEpoch, ...(config.emulatorHost ? { emulatorHost: config.emulatorHost } : {}) });
+    const store = await storeFactory({ projectId: config.projectId, databaseId: config.databaseId, commandContract: 'm2-a-1', stagingTestSignIn: Boolean(mountStagingTestSignIn), observationEpoch: config.observationEpoch, ...(config.fileBackupLimit === undefined ? {} : { fileBackupLimit: config.fileBackupLimit }), ...(config.emulatorHost ? { emulatorHost: config.emulatorHost } : {}) });
     let server;
     try {
         await store.access.getControl();

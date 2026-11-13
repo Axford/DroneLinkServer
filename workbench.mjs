@@ -80,7 +80,7 @@ async function start() {
     return true;
   }
 
-  connected?.mount(app, { localHost: origin.host, subscribe, available: () => ready });
+  connected?.mount(app, { localHost: origin.host, subscribe, available: () => ready, files });
 
   app.use((request, response, next) => {
     const requestOrigin = request.get('origin');
@@ -131,6 +131,7 @@ async function start() {
     if (stopping) return;
     stopping = true;
     clearInterval(heartbeatTimer);
+    connected?.close();
     mesh.close();
     for (const response of streams.keys()) response.end();
     server.close();
@@ -138,9 +139,9 @@ async function start() {
   }
 
   try {
-    await connected?.verify();
     server.listen(port, host);
     await once(server, 'listening');
+    await connected?.verify(origin.host);
     await mesh.start({ udpAddress, serialAddress, serialPort, connected });
     ready = true;
     heartbeatTimer = setInterval(() => {

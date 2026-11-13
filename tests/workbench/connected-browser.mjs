@@ -19,6 +19,8 @@ const domain = { _id: 'bench', name: 'Bench Domain', status: 'active', canEdit: 
 const cloudRequests = [];
 let canEdit = true;
 let gatewayRevoked = false;
+let backupUnavailable = false;
+const snapshots = [];
 let gateway, peer, browser, site;
 try {
   const cert = join(dir, 'cert');
@@ -44,6 +46,10 @@ try {
     if (pathname === '/api/session') return success({ csrfToken: 'fixture' });
     if (pathname === '/api/domains/bench') return success({ ...domain, canEdit });
     if (pathname === '/api/domains/bench/workbench-grant') return success({ grant: 'a'.repeat(64), expiresAt: Date.now() + 300000 });
+    if (pathname === '/api/domains/bench/nodes/11/file-backups') {
+      return success(snapshots.map(({ text, ...version }) => version));
+    }
+    if (pathname === '/api/domains/bench/nodes/11/file-backups/first') return success(snapshots[0]);
     const received = new Date().toISOString();
     const nodes = [{ nodeAddress: 12, generation: 0, revision: 1, resetAt: null, droneId: 'cloud-drone', lastReceivedAt: received }];
     const channels = [{ nodeAddress: 12, generation: 0, revision: 1, channel: 5, lastReceivedAt: received, params: { 8: { value: {
@@ -56,16 +62,21 @@ try {
       if (timeout !== '0') await new Promise(resolve => setTimeout(resolve, 500));
       return success({ events: [], cursor: 'b', caughtUp: true });
     }
-    if (pathname === '/gateway/verify' || pathname === '/gateway/workbench/authorize' || pathname === '/addPacket') {
+    if (pathname === '/gateway/verify' || pathname === '/gateway/workbench/authorize' || pathname === '/addPacket' || pathname === '/gateway/workbench/file-backups') {
       if (req.headers.authorization !== `Bearer ${gatewayCredential}` || gatewayRevoked) return json(401, {});
       const chunks = [];
       for await (const chunk of req) chunks.push(chunk);
       const body = JSON.parse(Buffer.concat(chunks));
       if (body.domain !== 'bench' || body.id !== 254) return json(401, {});
       cloudRequests.push([pathname, body.action]);
-      if (pathname === '/gateway/verify') return success({ domainId: 'bench', nodeAddress: 254, capabilities: ['telemetry'] });
+      if (pathname === '/gateway/verify') return success({ domainId: 'bench', nodeAddress: 254, capabilities: ['telemetry', 'file-backup'] });
+      if (pathname === '/gateway/workbench/file-backups') {
+        if (backupUnavailable) return json(503, {});
+        snapshots.push({ id: snapshots.length ? 'second' : 'first', text: body.text, savedAt: new Date().toISOString() });
+        return success({ status: 'saved' });
+      }
       if (pathname === '/addPacket') return json(202, {});
-      if (body.grant !== 'a'.repeat(64) || (body.action === 'query-value' && !canEdit)) return json(403, {});
+      if (body.grant !== 'a'.repeat(64) || (body.action !== 'observe' && !canEdit)) return json(403, {});
       return success({ domainId: 'bench', canQuery: canEdit });
     }
     json(404, {});
@@ -118,6 +129,34 @@ try {
   assert.ok(cloudRequests.some(([path, action]) => path.endsWith('/authorize') && action === 'query-value'));
   for (let i = 0; i < 20 && !peer.actions.includes('query'); i++) await new Promise(resolve => setTimeout(resolve, 25));
   assert.equal(peer.actions.filter(action => action === 'query').length, 1);
+  const standalone = await fetch(`${gateway.origin}/api/workbench/v1/nodes/11/file?transport=wifi&path=%2Fsample.txt`);
+  assert.equal(standalone.status, 200);
+  assert.equal((await standalone.json()).backup, undefined);
+  assert.equal(snapshots.length, 0);
+  await page.getByRole('button', { name: 'List files' }).click(timeout);
+  await page.getByRole('button', { name: 'sample.txt' }).click(timeout);
+  const editor = page.getByRole('textbox', { name: /Stored file/ });
+  const original = await editor.inputValue(timeout);
+  await page.getByText('Cloud backup saved', { exact: true }).waitFor(timeout);
+  assert.equal(snapshots.length, 1);
+  backupUnavailable = true;
+  await editor.fill('Changed in connected Workbench\n');
+  assert.equal(snapshots.length, 1);
+  await page.getByRole('button', { name: 'Upload to node' }).click();
+  await page.getByText(/Stored file verified by readback/).waitFor(timeout);
+  await page.getByText(/Cloud backup pending/).waitFor(timeout);
+  assert.equal(peer.files.get('/sample.txt').toString(), 'Changed in connected Workbench\r\n');
+  backupUnavailable = false;
+  await page.getByText('Cloud backup saved', { exact: true }).waitFor({ timeout: 16000 });
+  await page.getByRole('button', { name: 'Backup history' }).click();
+  await page.getByRole('button', { name: /Load backup/ }).first().click(timeout);
+  await page.getByText(/Backup loaded into the editor/).waitFor(timeout);
+  assert.equal(await editor.inputValue(), original);
+  assert.equal(peer.files.get('/sample.txt').toString(), 'Changed in connected Workbench\r\n');
+  assert.equal(peer.actions.filter(action => action === 'restart').length, 0);
+  await page.getByRole('button', { name: 'Upload to node' }).click();
+  await page.getByText(/Stored file verified by readback/).waitFor(timeout);
+  assert.equal(peer.files.get('/sample.txt').toString().replaceAll('\r\n', '\n'), original);
   const source = page.getByRole('combobox', { name: 'Node source' });
   await source.selectOption('cloud');
   await page.getByRole('button', { name: 'Query local value' }).waitFor({ state: 'detached', ...timeout });
@@ -128,7 +167,7 @@ try {
   assert.equal(peer.actions.filter(action => action === 'query').length, 1);
   gatewayRevoked = true;
   await page.getByRole('button', { name: 'Disconnect local gateway' }).waitFor({ state: 'detached', timeout: 24000 });
-  console.log(`PASS Chrome ${browser.version()}: actual loopback permission, pairing, local observation, direct mesh query, source override and role denial`);
+  console.log(`PASS Chrome ${browser.version()}: actual loopback permission, pairing, local observation, direct mesh query, source override, role denial, verified file backup/retry and editor-only restore`);
 } finally {
   await browser?.close();
   await gateway?.close();

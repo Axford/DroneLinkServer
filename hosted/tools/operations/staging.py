@@ -23,6 +23,8 @@ def settings(path):
     for field in ['googleSecret', 'sessionSecret']:
         if not re.fullmatch(r'[a-zA-Z0-9_-]+:[1-9][0-9]*', config[field]): raise ValueError('Pin a numbered Secret Manager version')
     if config['serviceAccount'] != f'{SERVICE}@{PROJECT}.iam.gserviceaccount.com': raise ValueError('Unexpected service identity')
+    limit = config.get('workbenchFileBackupLimit', 20)
+    if type(limit) is not int or not 1 <= limit <= 50: raise ValueError('Workbench backup limit must be from 1 through 50')
     return config
 
 def route_compatible_revision(revision_name):
@@ -65,6 +67,7 @@ def deploy(args):
     run('run', 'services', 'update-traffic', SERVICE, '--project', PROJECT, '--region', REGION, '--clear-tags', '--quiet')
     env = {'GOOGLE_CLOUD_PROJECT': PROJECT, 'FIRESTORE_DATABASE': '(default)', 'PUBLIC_ORIGIN': config['publicOrigin'], 'GOOGLE_CLIENT_ID': config['googleClientID'], 'MAPBOX_ACCESS_TOKEN': config.get('mapboxAccessToken', '')}
     if enable_test_sign_in: env['STAGING_TEST_SIGN_IN'] = '1'
+    if 'workbenchFileBackupLimit' in config: env['WORKBENCH_FILE_BACKUP_LIMIT'] = str(config['workbenchFileBackupLimit'])
     with tempfile.TemporaryDirectory(prefix='dronewright-deploy-') as temporary:
         envfile = pathlib.Path(temporary) / 'env.json'; envfile.write_text(json.dumps(env))
         run('run', 'deploy', SERVICE, '--project', PROJECT, '--region', REGION, '--image', image, '--service-account', config['serviceAccount'], '--no-cpu-throttling', '--min', '0', '--max', '1', '--cpu', '1', '--memory', '512Mi', '--concurrency', '32', '--timeout', '60', '--port', '8080', '--ingress', 'internal', '--no-traffic', '--allow-unauthenticated', '--env-vars-file', str(envfile), '--set-secrets', f'GOOGLE_CLIENT_SECRET={config["googleSecret"]},SESSION_SECRET={config["sessionSecret"]}', '--quiet')

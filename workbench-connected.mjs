@@ -1,8 +1,9 @@
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
-import { isAbsolute } from 'node:path';
+import { dirname, isAbsolute, join } from 'node:path';
 import express from 'express';
 import { DroneLinkMsg, DRONE_LINK_MSG_TYPE_QUERY } from './public/modules/droneLinkMsg.mjs';
+import WorkbenchBackups from './workbench-backups.mjs';
 import { FileError } from './workbench-files.mjs';
 
 const base = '/api/workbench/v1/connected';
@@ -26,7 +27,7 @@ export async function readConnectedConfig(path, addresses) {
     if (typeof credential !== 'string' || !credentialPattern.test(credential)) throw new Error(`Missing or invalid ${transport} gateway credential`);
     return { transport, address, credential };
   });
-  return { origin, domain, links };
+  return { origin, domain, links, backupDirectory: join(dirname(path), 'workbench-backups') };
 }
 
 export default class ConnectedWorkbench {
@@ -34,6 +35,8 @@ export default class ConnectedWorkbench {
   #key = randomBytes(18).toString('base64url');
   #mesh;
   #gatewayId;
+  #backups;
+  #backupAvailable = false;
   #queryTimes = new Map();
 
   constructor(settings, mesh) {
@@ -57,16 +60,27 @@ export default class ConnectedWorkbench {
     });
   }
 
-  async verify() {
-    await Promise.all(this.#settings.links.map(async link => {
+  async verify(localHost) {
+    const capabilities = await Promise.all(this.#settings.links.map(async link => {
       const response = await this.#post('/gateway/verify', link, {});
       if (!response.ok) throw new Error(`Cloud rejected ${link.transport} gateway association (${response.status})`);
       const { data } = await response.json();
       if (data?.domainId !== this.#settings.domain || data.nodeAddress !== link.address || !data.capabilities?.includes('telemetry')) {
         throw new Error('Cloud gateway association does not match the configured Domain and address');
       }
+      return data.capabilities;
     }));
+    const primary = this.#settings.links[0];
+    this.#backupAvailable = capabilities[0].includes('file-backup');
+    if (this.#backupAvailable) {
+      try {
+        this.#backups = new WorkbenchBackups(this.#settings.backupDirectory, [this.origin, this.#settings.domain, primary.address, localHost],
+          entry => this.#post('/gateway/workbench/file-backups', primary, entry));
+      } catch { console.error('The Workbench backup queue is unavailable. Check the gateway configuration directory.'); }
+    }
   }
+
+  close() { this.#backups?.close(); }
 
   relay(transport) {
     const link = this.#settings.links.find(link => link.transport === transport);
@@ -93,7 +107,7 @@ export default class ConnectedWorkbench {
       throw new FileError(403, 'Cloud Workbench access was denied or expired.');
     }
     const { data } = await response.json();
-    if (data?.domainId !== this.#settings.domain || (action === 'query-value' && !data.canQuery)) throw new FileError(403, 'Current edit access is required.');
+    if (data?.domainId !== this.#settings.domain || (action !== 'observe' && !data.canQuery)) throw new FileError(403, 'Current edit access is required.');
     const additional = this.#settings.links.slice(1).filter(link => transport === undefined || link.transport === transport);
     for (const link of additional) {
       const verified = await this.#post('/gateway/verify', link, {}).catch(() => null);
@@ -101,12 +115,12 @@ export default class ConnectedWorkbench {
     }
   }
 
-  mount(app, { localHost, subscribe, available }) {
+  mount(app, { localHost, subscribe, available, files }) {
     app.use(base, (req, res, next) => {
       if (req.get('host') !== localHost || req.get('origin') !== this.origin) return res.sendStatus(403);
       res.set({ 'Access-Control-Allow-Origin': this.origin, 'Cache-Control': 'no-store', Vary: 'Origin' });
       if (req.method === 'OPTIONS') {
-        res.set({ 'Access-Control-Allow-Methods': 'GET, POST', 'Access-Control-Allow-Headers': 'Content-Type, X-Workbench-Key, X-Workbench-Grant' });
+        res.set({ 'Access-Control-Allow-Methods': 'GET, POST, PUT', 'Access-Control-Allow-Headers': 'Content-Type, X-Workbench-Key, X-Workbench-Grant' });
         return res.sendStatus(204);
       }
       if (!available()) return res.sendStatus(503);
@@ -121,7 +135,7 @@ export default class ConnectedWorkbench {
       }
     };
     app.get(`${base}/identity`, handle(async (_req, res) => {
-      res.json({ domainId: this.#settings.domain, gatewayId: this.#gatewayId });
+      res.json({ domainId: this.#settings.domain, gatewayId: this.#gatewayId, fileBackups: this.#backupAvailable });
     }));
     app.get(`${base}/events`, handle(async (req, res) => {
       const grant = req.get('X-Workbench-Grant');
@@ -139,6 +153,30 @@ export default class ConnectedWorkbench {
       }, permissionIntervalMs);
       res.once('close', () => clearInterval(timer));
     }));
+    const nodeAPI = `${base}/nodes/:node`;
+    const fileOperation = (status, operation) => handle(async (req, res) => {
+      if (!this.#backupAvailable) throw new FileError(404, 'Connected node files require a backup-enabled gateway.');
+      const { node } = req.params;
+      const { transport, path } = req.query;
+      if (!['wifi', 'serial'].includes(transport)) throw new FileError(400, 'Select a valid local transport.');
+      await this.#authorize(req.get('X-Workbench-Grant'), 'node-files', transport);
+      if (res.destroyed) return;
+      res.status(status).json(await operation(node, transport, path, req.body));
+    });
+    const fileBody = [ (req, res, next) => req.is('application/json') ? next() : res.sendStatus(415),
+      express.json({ limit: '64kb', inflate: false }) ];
+    const snapshot = async (node, operation) => {
+      const file = await operation;
+      return { ...file, backup: this.#backups?.capture(node, file) ?? 'not-queued' };
+    };
+    app.get(`${nodeAPI}/files`, fileOperation(200, (node, transport, path) => files.list(node, transport, path)));
+    app.get(`${nodeAPI}/file`, fileOperation(200, (node, transport, path) => snapshot(node, files.read(node, transport, path))));
+    app.put(`${nodeAPI}/file`, ...fileBody, fileOperation(200, (node, transport, _path, body) => snapshot(node, files.upload(node, transport, body))));
+    app.post(`${nodeAPI}/restart`, ...fileBody, fileOperation(202, (node, transport) => files.restart(node, transport)));
+    app.get(`${nodeAPI}/backup-status`, fileOperation(200, node => this.#backups?.status(node) ?? { pending: 0, unavailable: true }));
+    app.use(nodeAPI, (error, _req, res, _next) => {
+      res.status(error.status || 400).json({ error: 'Invalid node file request body.' });
+    });
     app.post(`${base}/query-value`, (req, res, next) => {
       if (!req.is('application/json')) return res.sendStatus(415);
       next();
