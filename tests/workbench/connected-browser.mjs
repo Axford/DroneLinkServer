@@ -133,6 +133,7 @@ try {
   assert.equal(standalone.status, 200);
   assert.equal((await standalone.json()).backup, undefined);
   assert.equal(snapshots.length, 0);
+  await page.getByRole('tab', { name: 'Files' }).click();
   await page.getByRole('button', { name: 'List files' }).click(timeout);
   await page.getByRole('button', { name: 'sample.txt' }).click(timeout);
   const editor = page.getByRole('textbox', { name: /Stored file/ });
@@ -162,6 +163,7 @@ try {
   await page.getByRole('button', { name: 'Query local value' }).waitFor({ state: 'detached', ...timeout });
   await source.selectOption('auto');
   canEdit = false;
+  await page.getByRole('tab', { name: 'Modules' }).click();
   await page.getByRole('button', { name: 'Query local value' }).click();
   await page.getByText(/Cloud Workbench access was denied/).waitFor(timeout);
   assert.equal(peer.actions.filter(action => action === 'query').length, 1);

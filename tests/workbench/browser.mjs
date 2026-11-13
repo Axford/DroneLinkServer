@@ -39,6 +39,8 @@ try {
 
   await page.goto(`${first.origin}/workbench/`);
   await connected.waitFor(timeout);
+  assert.equal(await page.getByRole('navigation', { name: 'Primary navigation' }).count(), 0);
+  await page.getByRole('heading', { name: 'Workbench', exact: true }).waitFor(timeout);
   await hello(gateway);
   await page.getByRole('button', { name: /Node 11 · Reachable/ }).click(timeout);
   await waitForPublication.waitFor(timeout);
@@ -82,6 +84,7 @@ try {
   const dual = await context.newPage();
   dual.on('pageerror', error => errors.push(error.message));
   await dual.goto(`${first.origin}/workbench/`);
+  await dual.getByRole('button', { name: 'Network', exact: true }).click();
   await dual.getByText('Serial · Up', { exact: true }).waitFor(timeout);
   await hello(gateway);
   serialHello(gateway);
@@ -119,14 +122,26 @@ try {
   const files = await context.newPage();
   files.on('pageerror', error => errors.push(error.message));
   await files.goto(`${first.origin}/workbench/`);
-  await files.getByText('Wi-Fi · Up', { exact: true }).waitFor(timeout);
+  await files.getByRole('status').filter({ hasText: 'Local gateway connected' }).waitFor(timeout);
   peer.hello(gateway);
   await files.getByRole('button', { name: /Node 11 · Reachable/ }).click(timeout);
+  const inspector = files.getByRole('region', { name: 'Node Inspector' });
+  assert.equal(await inspector.getByRole('tab', { name: 'Modules' }).getAttribute('aria-selected'), 'true');
+  await inspector.getByRole('tab', { name: 'Files' }).click();
   await files.getByRole('button', { name: 'List files' }).click();
   await files.getByRole('button', { name: 'sample.txt' }).click(timeout);
   const editor = files.getByRole('textbox', { name: /Stored file/ });
   assert.equal(await editor.inputValue(timeout), 'First line\n');
   await editor.fill('Edited in the Workbench\n');
+  await inspector.getByRole('tab', { name: 'Modules' }).click();
+  await files.getByRole('button', { name: 'Network', exact: true }).click();
+  await files.getByText('Wi-Fi · Up', { exact: true }).waitFor(timeout);
+  await files.getByRole('button', { name: 'Inspect node 11 from Wi-Fi route' }).click();
+  assert.equal(await inspector.getByRole('tab', { name: 'Modules' }).getAttribute('aria-selected'), 'true');
+  await inspector.getByRole('tab', { name: 'Files' }).click();
+  assert.equal(await editor.inputValue(), 'Edited in the Workbench\n');
+  await files.setViewportSize({ width: 390, height: 844 });
+  assert.equal(await editor.inputValue(), 'Edited in the Workbench\n');
   await files.getByRole('button', { name: 'Upload to node' }).click();
   await files.getByText(/Stored file verified by readback/).waitFor(timeout);
   assert.equal(peer.files.get('/sample.txt').toString(), 'Edited in the Workbench\r\n');
