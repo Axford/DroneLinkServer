@@ -4,6 +4,8 @@ import { createServer } from 'node:http';
 import { isAbsolute, join } from 'node:path';
 import { parseArgs } from 'node:util';
 import express from 'express';
+import { loadGatewayRelease } from './scripts/gateway-release.mjs';
+import createCatalogue from './workbench-catalogue.mjs';
 import WorkbenchMesh from './workbench-mesh.mjs';
 import WorkbenchFiles, { FileError } from './workbench-files.mjs';
 import ConnectedWorkbench, { readConnectedConfig } from './workbench-connected.mjs';
@@ -30,7 +32,7 @@ async function start() {
   const { values } = parseArgs({ options: {
     'client-build': { type: 'string' }, 'node-address': { type: 'string' },
     port: { type: 'string', default: '8002' },
-    'connected-config': { type: 'string' },
+    'connected-config': { type: 'string' }, 'release-dir': { type: 'string' },
     'serial-port': { type: 'string' }, 'serial-address': { type: 'string' }, 'serial-only': { type: 'boolean' },
   } });
   const mapboxAccessToken = process.env.DRONELINK_WORKBENCH_MAPBOX_TOKEN?.trim();
@@ -67,6 +69,11 @@ async function start() {
     }
   });
   const files = new WorkbenchFiles(mesh);
+  const releaseDir = values['release-dir'];
+  if (releaseDir !== undefined && !isAbsolute(releaseDir)) throw new Error('--release-dir must be an absolute SEP-05 release directory');
+  const release = loadGatewayRelease({ releaseDir });
+  if (releaseDir && !release.status.available) console.warn(release.status.warning);
+  const catalogue = createCatalogue(mesh, release);
   const connected = connectedConfig ? new ConnectedWorkbench(connectedConfig, mesh) : null;
   let ready = false;
   let heartbeatTimer;
@@ -85,7 +92,7 @@ async function start() {
     return true;
   }
 
-  connected?.mount(app, { localHost: origin.host, subscribe, available: () => ready, files });
+  connected?.mount(app, { localHost: origin.host, subscribe, available: () => ready, files, catalogue });
 
   app.use((request, response, next) => {
     const requestOrigin = request.get('origin');
@@ -135,6 +142,7 @@ async function start() {
       response.status(500).json({ error: 'The node file operation failed.' });
     }
   };
+  app.get(`${nodeAPI}/module-catalogue`, handleFile(200, catalogue));
   app.get(`${nodeAPI}/files`, handleFile(200, (node, transport, path) => files.list(node, transport, path)));
   app.get(`${nodeAPI}/file`, handleFile(200, (node, transport, path) => files.read(node, transport, path)));
   app.put(`${nodeAPI}/file`, json, handleFile(200, (node, transport, _path, body) => files.upload(node, transport, body)));

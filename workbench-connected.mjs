@@ -118,7 +118,7 @@ export default class ConnectedWorkbench {
     }
   }
 
-  mount(app, { localHost, subscribe, available, files }) {
+  mount(app, { localHost, subscribe, available, files, catalogue }) {
     app.use(base, (req, res, next) => {
       if (req.get('host') !== localHost || req.get('origin') !== this.origin) return res.sendStatus(403);
       res.set({ 'Access-Control-Allow-Origin': this.origin, 'Cache-Control': 'no-store', Vary: 'Origin' });
@@ -176,6 +176,7 @@ export default class ConnectedWorkbench {
       if (authorize) await authorize();
       return { ...file, backup: this.#backups?.capture(node, file) ?? 'not-queued' };
     };
+    app.get(`${nodeAPI}/module-catalogue`, fileOperation(200, catalogue, true));
     app.get(`${nodeAPI}/files`, fileOperation(200, (node, transport, path) => files.list(node, transport, path), true));
     app.get(`${nodeAPI}/file`, fileOperation(200, (node, transport, path, _body, authorize) => snapshot(node, files.read(node, transport, path), authorize)));
     app.put(`${nodeAPI}/file`, ...fileBody, fileOperation(200, (node, transport, _path, body) => snapshot(node, files.upload(node, transport, body))));

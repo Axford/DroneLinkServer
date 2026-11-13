@@ -10,6 +10,12 @@ import { filePeer } from './file-peer.mjs';
 import { launch, publication } from './harness.mjs';
 
 const build = process.env.CLIENT_BUILD_DIR;
+// Optional full catalogue acceptance against prepared SEP-05 release 739fc899… (build c017040).
+const catalogueFixture = process.env.WORKBENCH_CATALOGUE_FIXTURE;
+if (catalogueFixture) {
+  const { verifyRelease } = await import('../../scripts/release.mjs');
+  assert.equal(verifyRelease(catalogueFixture).identity, '739fc899479974550361f72c86c3d3c6a5570d102c660e38c2d704df653f21ff');
+}
 if (!build) throw new Error('Set CLIENT_BUILD_DIR to the verified Client build');
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.DRONELINK_PLAYWRIGHT_MODULE || 'playwright');
@@ -106,7 +112,7 @@ try {
   peer = await filePeer();
   const configuration = 'node = 11\n[Nav = 12]\n$location = @>10.8\n[NMEA = 10]\n';
   peer.files.set('/config.ini', Buffer.from(configuration));
-  gateway = await launch(build, undefined, undefined, { peerPort: peer.port, connectedConfig, caFile: cert });
+  gateway = await launch(build, undefined, undefined, { peerPort: peer.port, connectedConfig, caFile: cert, catalogueFixture });
   await gateway.ready;
   for (let i = 0; i < 25 && !gateway.pairingKey(); i++) await new Promise(resolve => setTimeout(resolve, 20));
   const pairingKey = gateway.pairingKey();
@@ -229,7 +235,25 @@ try {
   await page.getByRole('textbox', { name: 'Source for $location' }).fill('@>10.9');
   await page.getByRole('button', { name: 'Update draft' }).click();
   const writes = peer.actions.filter(action => action === 'start').length;
+  if (catalogueFixture) {
+    await page.getByRole('button', { name: 'Add module', exact: true }).click();
+    const catalogue = page.getByRole('dialog', { name: 'Add module' });
+    await catalogue.getByRole('searchbox').fill('pilot');
+    await catalogue.getByRole('button', { name: 'Add Pilot' }).click(timeout);
+    await page.getByRole('button', { name: 'Code', exact: true }).click();
+    assert.equal(await readCode(), configuration.replace('@>10.8', '@>10.9') + '\n[Nav = 2]\n  name = Pilot\n');
+    await page.getByRole('button', { name: 'Logical', exact: true }).click();
+    await graph.getByRole('button', { name: 'Pilot', exact: true }).waitFor(timeout);
+  }
   canEdit = false;
+  if (catalogueFixture) {
+    await page.getByRole('button', { name: 'Add module', exact: true }).click();
+    const catalogue = page.getByRole('dialog', { name: 'Add module' });
+    await catalogue.getByText(/Module support on this node is unknown/).waitFor(timeout);
+    assert.equal(await catalogue.getByRole('button', { name: 'Add GPS' }).count(), 0);
+    await catalogue.getByRole('button', { name: 'Close Add module' }).click();
+    console.log('PASS connected catalogue, Logical append and current role denial');
+  }
   await page.getByRole('button', { name: 'Upload to node' }).click();
   await page.getByRole('alert').filter({ hasText: /Cloud Workbench access was denied/ }).waitFor(timeout);
   assert.equal(peer.actions.filter(action => action === 'start').length, writes);

@@ -6,6 +6,12 @@ import { isAbsolute } from 'node:path';
 import { hello, launch, publication, serialFrame, serialHello, serialPublication } from './harness.mjs';
 
 const build = process.env.CLIENT_BUILD_DIR;
+// Optional full catalogue acceptance against prepared SEP-05 release 739fc899… (build c017040).
+const catalogueFixture = process.env.WORKBENCH_CATALOGUE_FIXTURE;
+if (catalogueFixture) {
+  const { verifyRelease } = await import('../../scripts/release.mjs');
+  assert.equal(verifyRelease(catalogueFixture).identity, '739fc899479974550361f72c86c3d3c6a5570d102c660e38c2d704df653f21ff');
+}
 if (!build || !isAbsolute(build)) throw new Error('Select a verified Client build with CLIENT_BUILD_DIR');
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.DRONELINK_PLAYWRIGHT_MODULE || 'playwright');
@@ -197,7 +203,7 @@ try {
   peer = await filePeer();
   const configuration = 'node = 11\r\n[Nav = 12]\r\n $location = "@>GPS.location"  ; primary fix\r\n[NMEA = 10]\r\n name = GPS\r\n[NMEA = 14]\r\n name = BackupGPS\r\n';
   peer.files.set('/config.ini', Buffer.from(configuration));
-  gateway = await launch(build, first.port, first.udpPort, { peerPort: peer.port });
+  gateway = await launch(build, first.port, first.udpPort, { peerPort: peer.port, catalogueFixture });
   await gateway.ready;
   const files = await context.newPage();
   files.on('pageerror', error => errors.push(error.message));
@@ -286,6 +292,40 @@ try {
   await files.getByText(/Stored file verified by readback/).waitFor(timeout);
   assert.equal(peer.files.get('/config.ini').toString(), configuration.replace('@>GPS.location', '@>14.8'));
   assert.ok(!peer.actions.includes('restart'));
+  if (catalogueFixture) {
+    await files.getByRole('button', { name: 'Code', exact: true }).click();
+    await files.getByRole('button', { name: 'Add module', exact: true }).click();
+    const catalogue = files.getByRole('dialog', { name: 'Add module' });
+    await catalogue.getByRole('searchbox').fill('gps');
+    await catalogue.getByRole('button', { name: 'Add GPS' }).click(timeout);
+    const base = configuration.replace('@>GPS.location', '@>14.8');
+    assert.equal(await readCode(), (base + '\r\n[NMEA = 2]\r\n  name = GPS2\r\n').replaceAll('\r\n', '\n'));
+    await files.getByRole('button', { name: 'Logical', exact: true }).click();
+    await files.getByLabel('GPS serial port').selectOption('2');
+    await graph.getByRole('button', { name: 'Nav', exact: true }).click(timeout);
+    await files.getByLabel('Pilot location source').selectOption('2', timeout);
+    await files.getByRole('button', { name: 'Review connection' }).click();
+    assert.match(await files.getByLabel('Connection changes').textContent(), /publish = location/);
+    assert.equal(peer.files.get('/config.ini').toString(), base);
+    await files.getByRole('button', { name: 'Apply connection to draft' }).click();
+    await graph.getByRole('group', { name: /Local: GPS2.*to channel 12/ }).waitFor({ state: 'attached', ...timeout });
+    await files.getByRole('button', { name: 'Code', exact: true }).click();
+    const expected = base.replace('@>14.8', '@>2.8') + '\r\n[NMEA = 2]\r\n  name = GPS2\r\n  port = 2\r\n  publish = location\r\n';
+    assert.equal(await readCode(), expected.replaceAll('\r\n', '\n'));
+    await files.getByRole('button', { name: 'Upload to node' }).click();
+    await files.getByText(/Stored file verified by readback/).waitFor(timeout);
+    assert.equal(peer.files.get('/config.ini').toString(), expected);
+    gateway.processHandle.send('different catalogue build');
+    await files.getByRole('button', { name: 'Add module', exact: true }).click();
+    await catalogue.getByText('Catalogue metadata is from a different build.', { exact: false }).waitFor(timeout);
+    await catalogue.getByRole('searchbox').fill('GPS');
+    assert.ok(await catalogue.getByRole('button', { name: 'Add GPS' }).isEnabled());
+    await catalogue.getByRole('button', { name: 'Close Add module' }).click();
+    await files.getByRole('button', { name: 'Logical', exact: true }).click();
+    await graph.getByRole('button', { name: 'Nav', exact: true }).click(timeout);
+    assert.equal(await files.getByLabel('Pilot location source').count(), 0);
+    console.log('PASS pinned catalogue, GPS append and port edit, reviewed location publication and exact upload');
+  }
   files.once('dialog', dialog => dialog.accept());
   await files.getByRole('button', { name: 'Node actions' }).click();
   await files.getByText('Restart node', { exact: true }).click();

@@ -1009,7 +1009,7 @@ export default class DroneLinkManager {
 
             // pass to appropriate receive handler
             switch (msg.getPayloadType()) {
-              case DMM.DRONE_MESH_MSG_TYPE_HELLO: this.receiveHello(netInterface, msg, metric); break;
+              case DMM.DRONE_MESH_MSG_TYPE_HELLO: this.receiveHello(netInterface, msg, metric, interfaceAddress); break;
 
               case DMM.DRONE_MESH_MSG_TYPE_SUBSCRIPTION_RESPONSE: this.receiveSubscriptionResponse(netInterface, msg, metric); break;
 
@@ -1107,7 +1107,7 @@ export default class DroneLinkManager {
   }
 
 
-  receiveHello(netInterface, msg, metric) {
+  receiveHello(netInterface, msg, metric, interfaceAddress) {
 
     // ignore anything that is about us!
     if (msg.srcNode == this.node) return;
@@ -1184,6 +1184,9 @@ export default class DroneLinkManager {
         nodeInfo.helloMetric = helloMetric;
         nodeInfo.netInterface = netInterface;
         nodeInfo.nextHop = msg.txNode;
+        // Device HTTP must use the sender of the accepted direct Wi-Fi HELLO,
+        // rather than the address last seen on an arbitrary mesh packet.
+        nodeInfo.directHelloAddress = msg.srcNode === msg.txNode && netInterface.typeCode === 0 ? interfaceAddress : undefined;
         nodeInfo.uptime = newUptime;
 
         // generate subscription?

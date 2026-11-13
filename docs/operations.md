@@ -197,6 +197,12 @@ Select a node and local transport, then open **Node files** and select **List fi
 
 Use one file-writing gateway per node. If Save cannot be verified, reopen the stored file and inspect the reserved scratch path before retrying. The editor keeps its draft on failure. **Restart node** is a separate confirmed action. The runtime uptime shown in the panel comes from node telemetry. See the [WB.3 plan](../../DroneLinkDatastore/docs/planning/workbench.md#wb3--standalone-node-files).
 
+### Module catalogue
+
+Pass `--release-dir /absolute/prepared-sep05-release` to supply verified module descriptions and parameter metadata to standalone and connected Workbench. Workbench checks the selected node's compiled types over device HTTP on a direct Wi-Fi route. Older firmware, serial or relayed routes, and nodes with unreachable device HTTP leave support unknown. Guided GPS settings and location wiring require matching build markers. Manual editing remains available. See the [catalogue contract](../../DroneLinkDatastore/docs/contracts/workbench.md#workbench-module-catalogue).
+
+Set `WORKBENCH_CATALOGUE_FIXTURE` to the prepared SEP-05 fixture with release identity `739fc899479974550361f72c86c3d3c6a5570d102c660e38c2d704df653f21ff` (build `c017040`) to exercise the catalogue in both Workbench browser suites. The fixture simulates the device HTTP response and verifies the pinned release with the production verifier.
+
 ### Connected Workbench
 
 Use a matched hosted release and the gateway from the same Workbench implementation. As a Domain Owner, issue a gateway credential for each mesh address you will use. Store the credential in a private file outside Git. For a Wi-Fi gateway, the configuration has this shape:

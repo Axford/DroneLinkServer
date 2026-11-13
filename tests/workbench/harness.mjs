@@ -13,14 +13,16 @@ async function availablePort(socket) {
   return port;
 }
 
-export async function launch(build, port, udpPort, { serialMode, serialAddress = 253, peerPort = '', connectedConfig, caFile, mapboxToken } = {}) {
+export async function launch(build, port, udpPort, { serialMode, serialAddress = 253, peerPort = '', connectedConfig, caFile, mapboxToken, catalogueFixture } = {}) {
   port ??= await availablePort(net.createServer().listen(0, '127.0.0.1'));
   udpPort ??= await availablePort(dgram.createSocket('udp4').bind(0, '127.0.0.1'));
   const serialArgs = serialMode ? ['--serial-port', '/test/workbench-serial', ...(serialMode === 'only' ? ['--serial-only'] : ['--serial-address', String(serialAddress)])] : [];
   const execArgv = ['--import', fileURLToPath(new URL('./loopback-udp.mjs', import.meta.url))];
+  if (catalogueFixture) execArgv.push('--import', fileURLToPath(new URL('./node-capabilities.mjs', import.meta.url)));
   if (serialMode) execArgv.push('--import', fileURLToPath(new URL('./serial-preload.mjs', import.meta.url)));
   const processHandle = fork(fileURLToPath(new URL('../../workbench.mjs', import.meta.url)), [
-    '--client-build', build, '--node-address', '254', '--port', String(port), ...serialArgs, ...(connectedConfig ? ['--connected-config', connectedConfig] : []),
+    '--client-build', build, '--node-address', '254', '--port', String(port), ...serialArgs,
+    ...(catalogueFixture ? ['--release-dir', catalogueFixture] : []), ...(connectedConfig ? ['--connected-config', connectedConfig] : []),
   ], {
     execArgv,
     env: { ...process.env, DRONELINK_WORKBENCH_MAPBOX_TOKEN: mapboxToken ?? '', WB_TEST_UDP_PORT: String(udpPort), WB_TEST_PEER_PORT: String(peerPort), ...(caFile ? { NODE_EXTRA_CA_CERTS: caFile } : {}) },
