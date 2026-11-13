@@ -244,6 +244,16 @@ try {
     assert.equal(await readCode(), configuration.replace('@>10.8', '@>10.9') + '\n[Nav = 2]\n  name = Pilot\n');
     await page.getByRole('button', { name: 'Logical', exact: true }).click();
     await graph.getByRole('button', { name: 'Pilot', exact: true }).waitFor(timeout);
+    await page.getByRole('button', { name: 'Physical', exact: true }).click();
+    await page.getByLabel('Motherboard').selectOption('v4');
+    const physical = page.getByRole('region', { name: 'Physical wiring graph' });
+    await physical.getByRole('group', { name: 'Serial 1 RX · GPIO 13 to NMEA' }).waitFor({ state: 'attached', ...timeout });
+    await page.getByLabel('Find wired module').selectOption('10');
+    await page.getByLabel('GPS serial port').selectOption('2');
+    await physical.getByRole('group', { name: 'Serial 2 RX · GPIO 16 to NMEA' }).waitFor({ state: 'attached', ...timeout });
+    await page.getByRole('button', { name: 'Code', exact: true }).click();
+    assert.match(await readCode(), /\[NMEA = 10\]\n  port = 2/);
+    await page.getByRole('button', { name: 'Logical', exact: true }).click();
   }
   canEdit = false;
   if (catalogueFixture) {
