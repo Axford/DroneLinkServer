@@ -12,6 +12,7 @@ dgram.createSocket = function (...args) {
   return socket;
 };
 let build = 'c017040';
+let networkReads = 0;
 process.on('message', message => {
   if (message === 'different catalogue build') build = '456abcd';
 });
@@ -25,9 +26,11 @@ globalThis.fetch = (url, options) => {
     return Promise.resolve(Response.json({ schemaVersion: 1, node: 11, build, types: ['Management', 'NMEA', 'Nav', 'Probe', 'INA219', 'INA3221'] }));
   }
   if (target.pathname === '/networkSnapshot') {
+    networkReads++;
     return Promise.resolve(Response.json({
       schemaVersion: 1, node: 11, interfaces: [{ channel: 2, type: 'UDP', up: true, broadcast: true }],
-      routes: [], queue: { size: 12, utilisation: 3.5, kicked: 2, choked: 1 },
+      routes: networkReads === 1 ? [] : [{ destination: 14, nextHop: 13, channel: 2, cost: 7, ageMs: 1250 }],
+      queue: { size: 12, utilisation: 3.5, kicked: 1 + networkReads, choked: 1 },
     }));
   }
   if (target.pathname !== '/i2cDiagnostic') return realFetch(url, options);
