@@ -1,4 +1,5 @@
 'use strict';
+const { routeCoordinates } = require('./route-preview');
 const crypto = require('node:crypto');
 const express = require('express');
 const { asyncHandler } = require('../middleware/errorHandler');
@@ -77,6 +78,21 @@ function mountWorkbenchRoutes(app, { config, store, ready, policy, ensureAuthent
             throw error;
         }
     }));
+    app.get('/api/domains/:id/nodes/:node/route-preview', ensureAuthenticated, asyncHandler(async (req, res) => {
+        const current = await policy.domain(req);
+        if (!/^[1-9]\d{0,2}$/.test(req.params.node) || typeof req.query.channel !== 'string' ||
+            !/^[1-9]\d{0,2}$/.test(req.query.channel)) throw fault('validation');
+        const match = await store.fileBackups.route(current.actor, {
+            domainId: req.params.id, nodeAddress: Number(req.params.node),
+            channel: Number(req.query.channel), digest: req.query.digest,
+        });
+        const coordinates = match.status === 'matched' ? routeCoordinates(match.text) : undefined;
+        const data = coordinates ? { status: 'matched', coordinates, capturedAt: match.capturedAt }
+            : { status: match.status === 'matched' ? 'unavailable' : match.status };
+        await policy.domain(req);
+        res.set('Cache-Control', 'private, no-store').json({ success: true, data });
+    }));
+
     const history = '/api/domains/:id/nodes/:node/file-backups';
     const read = operation => [ensureAuthenticated, asyncHandler(async (req, res) => {
         const roles = ['owner', 'editor'];
