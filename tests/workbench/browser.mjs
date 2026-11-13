@@ -192,11 +192,14 @@ try {
   gateway = await launch(build, undefined, undefined, { mapboxToken: fixtureToken });
   await gateway.ready;
   const cloudMap = await browser.newPage();
+  const localhostOrigin = gateway.origin.replace('127.0.0.1', 'localhost');
+  const ipConfig = await fetch(`${gateway.origin}/api/workbench/v1/map-config`);
+  assert.equal((await ipConfig.json()).mapboxAccessToken, null);
   const cloudStylePath = '/styles/v1/axford/cm0bi93ot00qj01ph7m580lku';
   let requestedToken;
   await cloudMap.route('**/*', route => {
     const url = new URL(route.request().url());
-    if (url.origin === gateway.origin) return route.continue();
+    if (url.origin === localhostOrigin) return route.continue();
     if (url.origin === 'https://api.mapbox.com' && url.pathname === cloudStylePath) {
       requestedToken = url.searchParams.get('access_token');
       return route.fulfill({
@@ -206,7 +209,7 @@ try {
     }
     return route.abort();
   });
-  await cloudMap.goto(`${gateway.origin}/workbench/`);
+  await cloudMap.goto(`${localhostOrigin}/workbench/`);
   const styleResponse = cloudMap.waitForResponse(response => new URL(response.url()).pathname === cloudStylePath && response.ok(), timeout);
   await cloudMap.getByRole('button', { name: 'Map', exact: true }).click();
   await styleResponse;

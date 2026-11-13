@@ -37,9 +37,6 @@ async function start() {
   if (mapboxAccessToken && !/^pk\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(mapboxAccessToken)) {
     throw new Error('DRONELINK_WORKBENCH_MAPBOX_TOKEN must be a public Mapbox token.');
   }
-  const mapOrigins = mapboxAccessToken
-    ? 'https://api.mapbox.com https://events.mapbox.com https://*.tiles.mapbox.com'
-    : 'https://tile.openstreetmap.org';
   const node = readInteger(values['node-address'], '--node-address', 1, 254);
   const serialPort = values['serial-port'];
   const serialOnly = values['serial-only'];
@@ -58,6 +55,7 @@ async function start() {
   if (!html?.isFile() || !assets?.isDirectory()) throw new Error(`Client build is incomplete at ${build}`);
 
   const origin = new URL(`http://${host}:${port}`);
+  const standaloneOrigin = new URL(`http://localhost:${port}`);
   const app = express();
   app.disable('x-powered-by');
   const server = createServer(app);
@@ -95,21 +93,27 @@ async function start() {
     // A hosted Workbench shortcut may navigate to this document. Keep API and asset requests same-origin.
     const workbenchNavigation = request.method === 'GET' && /^\/workbench\/?$/.test(request.path) &&
       request.get('sec-fetch-mode') === 'navigate' && request.get('sec-fetch-dest') === 'document';
-    if (request.get('host') !== origin.host || (requestOrigin && requestOrigin !== origin.origin) ||
+    const requestHost = request.get('host');
+    const localOrigin = requestHost === standaloneOrigin.host ? standaloneOrigin : origin;
+    if (requestHost !== localOrigin.host || (requestOrigin && requestOrigin !== localOrigin.origin) ||
         (fetchSite && fetchSite !== 'same-origin' && fetchSite !== 'none' && !workbenchNavigation)) return response.sendStatus(403);
+    const mapOrigins = mapboxAccessToken && localOrigin === standaloneOrigin
+      ? 'https://api.mapbox.com https://events.mapbox.com https://*.tiles.mapbox.com'
+      : 'https://tile.openstreetmap.org';
     response.set('Content-Security-Policy', `default-src 'self'; connect-src 'self' ${mapOrigins}; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: ${mapOrigins}; object-src 'none'; frame-ancestors 'none'; base-uri 'none'`);
     response.set('Referrer-Policy', 'strict-origin-when-cross-origin');
     response.set('X-Content-Type-Options', 'nosniff');
     if (request.method !== 'GET' && request.method !== 'HEAD') {
       const fileMutation = /^\/api\/workbench\/v1\/nodes\/\d+\/(file|restart)$/.test(request.path);
       if (!fileMutation || !['PUT', 'POST'].includes(request.method)) return response.sendStatus(405);
-      if (requestOrigin !== origin.origin) return response.sendStatus(403);
+      if (requestOrigin !== localOrigin.origin) return response.sendStatus(403);
       if (!request.is('application/json')) return response.sendStatus(415);
     }
     next();
   });
-  app.get('/api/workbench/v1/map-config', (_request, response) => {
-    response.set('Cache-Control', 'no-store').json({ mapboxAccessToken: mapboxAccessToken || null });
+  app.get('/api/workbench/v1/map-config', (request, response) => {
+    const onLocalhost = request.get('host') === standaloneOrigin.host;
+    response.set('Cache-Control', 'no-store').json({ mapboxAccessToken: onLocalhost ? mapboxAccessToken || null : null });
   });
   app.head('/api/workbench/v1/events', (_request, response) => response.sendStatus(405));
   app.get('/api/workbench/v1/events', (request, response) => {
