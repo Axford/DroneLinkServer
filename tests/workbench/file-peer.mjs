@@ -12,6 +12,7 @@ export async function filePeer() {
   const actions = [];
   let staging;
   let traceSeq = 80;
+  let parameterValue = 42;
   let replyToTrace = true;
   let rejectBlock = false;
   let loseSaveReply = false;
@@ -92,6 +93,16 @@ export async function filePeer() {
     }
     if (type === Mesh.DRONE_MESH_MSG_TYPE_DRONELINKMSG) {
       const msg = new DroneLinkMsg(bytes);
+      if (msg.channel === 5 && msg.param === 8) {
+        if (msg.msgType === 0) {
+          parameterValue = msg.valueArray()[0];
+          actions.push('parameter-write');
+        }
+        if (msg.msgType === 7) {
+          send(remote.port, packet.srcNode, Mesh.DRONE_MESH_MSG_TYPE_DRONELINKMSG,
+            [11, 11, 5, 8, 128, parameterValue], undefined, traceSeq++);
+        }
+      }
       if (msg.msgType === 7 && msg.node === 11 && msg.channel === 1 && msg.param === 13) actions.push('query');
       if (msg.node === 11 && msg.channel === 1 && msg.param === 10 && msg.valueArray()[0] === 1) actions.push('restart');
     }

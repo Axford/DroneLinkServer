@@ -146,8 +146,19 @@ try {
   await page.getByRole('button', { name: /Inspect node 12/ }).press('Enter', timeout);
   await page.getByText('Cloud observation', { exact: true }).first().waitFor(timeout);
   await page.getByRole('button', { name: /Inspect node 11/ }).press('Enter', timeout);
-  await publication(gateway, [11, 11, 5, 8, 0, 42]);
+  await publication(gateway, [11, 11, 5, 8, 128, 42]);
   await page.getByRole('article', { name: 'Parameter 11>5.8' }).getByText('42', { exact: true }).waitFor(timeout);
+  const parameter = page.getByRole('article', { name: 'Parameter 11>5.8' });
+  await parameter.getByRole('button', { name: 'Edit parameter value' }).click(timeout);
+  const editor = page.getByRole('dialog', { name: /Edit value/ });
+  await editor.getByRole('textbox', { name: 'Value 1' }).fill('43');
+  await editor.getByRole('button', { name: 'Submit write' }).click();
+  await editor.getByText('Newer observation matches').waitFor(timeout);
+  assert.equal(peer.actions.filter(action => action === 'parameter-write').length, 1);
+  assert.ok(cloudRequests.some(([path, action]) => path.endsWith('/authorize') && action === 'write-parameter'));
+  await editor.getByRole('button', { name: 'Close editor' }).click();
+  // The existing per-node manual query cooldown also covers scheduled parameter readback.
+  await page.waitForTimeout(800);
   await page.getByRole('button', { name: 'Query local value' }).click();
   await page.getByText(/Local query queued/).waitFor(timeout);
   assert.ok(cloudRequests.some(([path, action]) => path.endsWith('/authorize') && action === 'query-value'));
@@ -284,6 +295,14 @@ try {
   }
   canEdit = false;
   const traceEndpoint = `${gateway.origin}/api/workbench/v1/connected/nodes/11/trace-route?transport=wifi`;
+  const deniedWrite = await fetch(`${gateway.origin}/api/workbench/v1/connected/nodes/11/parameter-write?transport=wifi`, {
+    method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json',
+      'X-Workbench-Key': pairingKey, 'X-Workbench-Grant': 'a'.repeat(64) },
+    body: JSON.stringify({ target: { nodeAddress: 11, channel: 5, param: 8 },
+      expected: { msgType: 0, payloadBytes: 1 }, payload: { values: [44] } }),
+  });
+  assert.equal(deniedWrite.status, 403);
+  assert.equal(peer.actions.filter(action => action === 'parameter-write').length, 1);
   const deniedTrace = await fetch(traceEndpoint, {
     method: 'POST', body: '{}', headers: { Origin: origin, 'Content-Type': 'application/json',
       'X-Workbench-Key': pairingKey, 'X-Workbench-Grant': 'a'.repeat(64) },
@@ -309,7 +328,7 @@ try {
   assert.equal(peer.actions.filter(action => action === 'query').length, 1);
   gatewayRevoked = true;
   await page.getByRole('button', { name: 'Disconnect local gateway' }).waitFor({ state: 'detached', timeout: 24000 });
-  console.log(`PASS Chrome ${browser.version()}: actual loopback permission, pairing, local observation, direct mesh query, source override, query and configuration upload role denial, verified file backup/retry and editor-only restore`);
+  console.log(`PASS Chrome ${browser.version()}: actual loopback permission, pairing, local observation, direct mesh query and parameter write with readback, source override, query and configuration upload role denial, verified file backup/retry and editor-only restore`);
 } finally {
   await browser?.close();
   await gateway?.close();
