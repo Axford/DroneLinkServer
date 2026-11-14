@@ -129,6 +129,7 @@ try {
   const permission = { permission: { name: 'loopback-network' }, origin, browserContextId: browserContextIds[0] };
   const timeout = { timeout: 8000 };
   await page.goto(`${origin}/private/domain/bench`);
+  await page.getByRole('button', { name: /Shared updates:/ }).click(timeout);
   await page.getByRole('button', { name: 'Connect local gateway' }).click(timeout);
   const pair = async () => {
     await page.getByLabel('Gateway port').fill(new URL(gateway.origin).port);
@@ -141,7 +142,9 @@ try {
   assert.ok(!cloudRequests.some(([path]) => path.endsWith('/authorize')));
   await cdp.send('Browser.setPermission', { ...permission, setting: 'granted' });
   await pair();
-  await page.getByText('Local gateway connected', { exact: true }).waitFor(timeout);
+  const gatewayDialog = page.getByRole('dialog', { name: 'Local gateway' });
+  await gatewayDialog.getByText('Local gateway connected', { exact: true }).waitFor(timeout);
+  await gatewayDialog.getByRole('button', { name: 'Close Local gateway' }).click();
   peer.hello(gateway);
   await page.getByRole('button', { name: /Inspect node 12/ }).press('Enter', timeout);
   await page.getByText('Cloud observation', { exact: true }).first().waitFor(timeout);
@@ -327,7 +330,7 @@ try {
   await page.getByRole('tabpanel', { name: 'Modules' }).getByRole('alert').filter({ hasText: /Cloud Workbench access was denied/ }).waitFor(timeout);
   assert.equal(peer.actions.filter(action => action === 'query').length, 1);
   gatewayRevoked = true;
-  await page.getByRole('button', { name: 'Disconnect local gateway' }).waitFor({ state: 'detached', timeout: 24000 });
+  await page.getByRole('combobox', { name: 'Node source' }).waitFor({ state: 'detached', timeout: 24000 });
   console.log(`PASS Chrome ${browser.version()}: actual loopback permission, pairing, local observation, direct mesh query and parameter write with readback, source override, query and configuration upload role denial, verified file backup/retry and editor-only restore`);
 } finally {
   await browser?.close();
