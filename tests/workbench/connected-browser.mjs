@@ -150,13 +150,13 @@ try {
   await page.getByRole('article', { name: 'Parameter 11>5.8' }).getByText('42', { exact: true }).waitFor(timeout);
   const parameter = page.getByRole('article', { name: 'Parameter 11>5.8' });
   await parameter.getByRole('button', { name: 'Edit parameter value' }).click(timeout);
-  const editor = page.getByRole('dialog', { name: /Edit value/ });
-  await editor.getByRole('textbox', { name: 'Value 1' }).fill('43');
-  await editor.getByRole('button', { name: 'Submit write' }).click();
-  await editor.getByText('Newer observation matches').waitFor(timeout);
+  const parameterEditor = page.getByRole('dialog', { name: /Edit value/ });
+  await parameterEditor.getByRole('textbox', { name: 'Value 1' }).fill('43');
+  await parameterEditor.getByRole('button', { name: 'Submit write' }).click();
+  await parameterEditor.getByText('Newer observation matches').waitFor(timeout);
   assert.equal(peer.actions.filter(action => action === 'parameter-write').length, 1);
   assert.ok(cloudRequests.some(([path, action]) => path.endsWith('/authorize') && action === 'write-parameter'));
-  await editor.getByRole('button', { name: 'Close editor' }).click();
+  await parameterEditor.getByRole('button', { name: 'Close editor' }).click();
   // The existing per-node manual query cooldown also covers scheduled parameter readback.
   await page.waitForTimeout(800);
   await page.getByRole('button', { name: 'Query local value' }).click();

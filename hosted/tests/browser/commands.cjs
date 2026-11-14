@@ -96,7 +96,7 @@ async function run() {
                 const channel = page.locator('[data-inspector-focus="channel-4"]');
                 await channel.waitFor();
                 if (await channel.getAttribute('aria-expanded') === 'false') await channel.click();
-                await page.locator('.parameter-row .font-monospace').getByText('42', { exact: true }).waitFor();
+                await page.getByRole('article', { name: 'Parameter 7>4.8' }).getByText('42', { exact: true }).waitFor();
                 return page;
             }
             const owner = await enter('admin');
@@ -138,7 +138,7 @@ async function run() {
             assert.equal(await collaborator.getByRole('button', { name: 'Save command lifetime' }).count(), 0);
             assert.equal(await collaborator.getByRole('button', { name: /Cancel Write/ }).count(), 0);
             assert.deepEqual(captured.payload, { values: [77] });
-            await owner.locator('.parameter-row .font-monospace').getByText('42', { exact: true }).waitFor();
+            await owner.getByRole('article', { name: 'Parameter 7>4.8' }).getByText('42', { exact: true }).waitFor();
             if (nodeProbe) {
                 await owner.getByRole('button', { name: 'Domain commands', exact: true }).click();
                 await owner.getByRole('textbox', { name: 'Query channel' }).fill('4');
@@ -171,13 +171,13 @@ async function run() {
                 assert.equal(poll.status, 200);
                 const { data } = await poll.json();
                 assert.deepEqual([...Buffer.from(data.packets, 'base64')], [7, 7, 4, 200, 0, 77]);
-                await owner.locator('.parameter-row .font-monospace').getByText('42', { exact: true }).waitFor();
+                await owner.getByRole('article', { name: 'Parameter 7>4.8' }).getByText('42', { exact: true }).waitFor();
                 await publish(77);
             }
             assert.equal((await (await post('/commands/poll', { ...machine, limit: 32 })).json()).data.count, 0);
             await collaborator.getByLabel('Command view').selectOption('history');
             await collaborator.getByText('Write · retrieved', { exact: true }).waitFor();
-            await owner.locator('.parameter-row .font-monospace').getByText('77', { exact: true }).waitFor();
+            await owner.getByRole('article', { name: 'Parameter 7>4.8' }).getByText('77', { exact: true }).waitFor();
             await collaborator.getByRole('button', { name: 'Close Domain commands' }).click();
             await collaborator.getByRole('button', { name: 'Node details' }).click();
             await collaborator.getByText('Command transport: HTTP', { exact: true }).waitFor();
