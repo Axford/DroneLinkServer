@@ -315,26 +315,33 @@ try {
   const draftWire = wiring.getByRole('group', { name: 'Serial 1 RX · GPIO 13 to GPS', exact: true });
   await motherboard.waitFor(timeout);
   await draftWire.waitFor(timeout);
-  const visibility = motherboard.evaluate(image => new Promise(resolve => {
-    const started = performance.now();
-    let hidden = false;
-    function sample() {
-      hidden ||= !image.isConnected || getComputedStyle(image).visibility !== 'visible';
-      if (performance.now() - started < 1300) requestAnimationFrame(sample);
-      else resolve(!hidden);
+  async function staysVisibleDuringTelemetry(element) {
+    const visibility = element.evaluate(image => new Promise(resolve => {
+      const started = performance.now();
+      let hidden = false;
+      function sample() {
+        hidden ||= !image.isConnected || getComputedStyle(image).visibility !== 'visible';
+        if (performance.now() - started < 1300) requestAnimationFrame(sample);
+        else resolve(!hidden);
+      }
+      requestAnimationFrame(sample);
+    }));
+    for (let value = 0; value < 60; value++) {
+      await publication(gateway, packet(value));
+      await new Promise(resolve => setTimeout(resolve, 18));
     }
-    requestAnimationFrame(sample);
-  }));
-  for (let value = 0; value < 60; value++) {
-    await publication(gateway, packet(value));
-    await new Promise(resolve => setTimeout(resolve, 18));
+    return visibility;
   }
-  assert.ok(await visibility, 'The V4 motherboard must remain visible during telemetry updates.');
+  assert.ok(await staysVisibleDuringTelemetry(motherboard), 'The V4 motherboard must remain visible during telemetry updates.');
   await draftWire.waitFor(timeout);
   await files.getByRole('button', { name: 'Logical', exact: true }).click();
   console.log('PASS V4 motherboard and wiring stay visible while telemetry updates');
   const graph = files.getByRole('region', { name: 'Subscription graph' });
   await graph.locator('.react-flow__edge-path').waitFor({ state: 'attached', ...timeout });
+  const gps = graph.getByRole('button', { name: 'GPS', exact: true });
+  assert.ok(await staysVisibleDuringTelemetry(gps), 'Logical module cards must remain visible during telemetry updates.');
+  await graph.locator('.react-flow__edge-path').first().waitFor(timeout);
+  console.log('PASS Logical cards and subscriptions stay visible while telemetry updates');
   await graph.getByRole('button', { name: '$location', exact: true }).click(timeout);
   await files.getByText('Local: GPS (channel 10)', { exact: true }).waitFor(timeout);
   const editSource = files.getByRole('button', { name: 'Edit source for $location on channel 12' });
