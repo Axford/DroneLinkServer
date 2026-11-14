@@ -307,6 +307,32 @@ try {
   assert.deepEqual(peer.actions.filter(action => action !== 'trace'), ['start', 'block', 'save']);
   await files.getByRole('button', { name: 'Browse files' }).click();
   await files.getByRole('dialog', { name: 'Files' }).getByRole('button', { name: 'Open node configuration' }).click();
+  await files.getByRole('dialog', { name: 'Files' }).waitFor({ state: 'hidden', ...timeout });
+  await files.getByRole('button', { name: 'Physical', exact: true }).click(timeout);
+  await files.getByLabel('Motherboard').selectOption('v4');
+  const wiring = files.getByRole('region', { name: 'Physical wiring graph' });
+  const motherboard = wiring.getByRole('img', { name: 'DroneLink V4 motherboard connector diagram' });
+  const draftWire = wiring.getByRole('group', { name: 'Serial 1 RX · GPIO 13 to GPS', exact: true });
+  await motherboard.waitFor(timeout);
+  await draftWire.waitFor(timeout);
+  const visibility = motherboard.evaluate(image => new Promise(resolve => {
+    const started = performance.now();
+    let hidden = false;
+    function sample() {
+      hidden ||= !image.isConnected || getComputedStyle(image).visibility !== 'visible';
+      if (performance.now() - started < 1300) requestAnimationFrame(sample);
+      else resolve(!hidden);
+    }
+    requestAnimationFrame(sample);
+  }));
+  for (let value = 0; value < 60; value++) {
+    await publication(gateway, packet(value));
+    await new Promise(resolve => setTimeout(resolve, 18));
+  }
+  assert.ok(await visibility, 'The V4 motherboard must remain visible during telemetry updates.');
+  await draftWire.waitFor(timeout);
+  await files.getByRole('button', { name: 'Logical', exact: true }).click();
+  console.log('PASS V4 motherboard and wiring stay visible while telemetry updates');
   const graph = files.getByRole('region', { name: 'Subscription graph' });
   await graph.locator('.react-flow__edge-path').waitFor({ state: 'attached', ...timeout });
   await graph.getByRole('button', { name: '$location', exact: true }).click(timeout);
