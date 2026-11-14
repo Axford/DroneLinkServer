@@ -340,7 +340,9 @@ try {
   await graph.locator('.react-flow__edge-path').waitFor({ state: 'attached', ...timeout });
   const gps = graph.getByRole('button', { name: 'GPS', exact: true });
   assert.ok(await staysVisibleDuringTelemetry(gps), 'Logical module cards must remain visible during telemetry updates.');
-  await graph.locator('.react-flow__edge-path').first().waitFor(timeout);
+  const subscriptionWire = graph.locator('.react-flow__edge-path').first();
+  await subscriptionWire.waitFor({ state: 'attached', ...timeout });
+  assert.ok(await subscriptionWire.evaluate(path => getComputedStyle(path).visibility === 'visible' && path.getTotalLength() > 0));
   console.log('PASS Logical cards and subscriptions stay visible while telemetry updates');
   await graph.getByRole('button', { name: '$location', exact: true }).click(timeout);
   await files.getByText('Local: GPS (channel 10)', { exact: true }).waitFor(timeout);
