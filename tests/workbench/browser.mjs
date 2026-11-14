@@ -355,7 +355,7 @@ try {
   await files.getByRole('button', { name: 'Code', exact: true }).click();
   await files.locator('.ace_support.ace_class').first().waitFor(timeout);
   const code = files.getByRole('textbox', { name: 'Stored file /config.ini' });
-  const readCode = () => files.locator('.ace_editor:visible').evaluate(editor => editor.env.editor.getValue(), undefined, timeout);
+  const readCode = () => files.locator('.dw-config-editor.ace_editor:visible').evaluate(editor => editor.env.editor.getValue(), undefined, timeout);
   assert.equal(await readCode(), configuration.replace('@>GPS.location', '@>14.8').replaceAll('\r\n', '\n'));
   const replaceCode = async text => {
     await code.focus();
@@ -388,16 +388,20 @@ try {
   const addDialog = files.getByRole('dialog', { name: 'Add module' });
   await addDialog.getByRole('searchbox').fill('gps');
   await addDialog.getByRole('button', { name: 'Add GPS' }).click(timeout);
+  await addDialog.waitFor({ state: 'hidden', ...timeout });
   const template = await readCode();
   assert.ok(template.startsWith(base.replaceAll('\r\n', '\n') + '\n[NMEA = 2]\n  name = GPS2\n'));
   assert.match(template, /^  ; baud = 9600$/m);
   assert.match(template, /^  ; \$correction = /m);
-  await files.locator('.ace_editor:visible').evaluate(editor => {
-    editor.env.editor.navigateFileEnd();
-    editor.env.editor.focus();
+  await files.locator('.dw-config-editor.ace_editor:visible').evaluate(editor => {
+    const ace = editor.env.editor;
+    ace.moveCursorTo(ace.session.getLength() - 1, 0);
+    ace.clearSelection();
+    ace.focus();
   });
-  await files.keyboard.type('ba');
-  await files.locator('.ace_autocomplete').getByText('baud', { exact: true }).waitFor(timeout);
+  await files.keyboard.press('b');
+  await files.keyboard.press('a');
+  await files.locator('.ace_autocomplete').getByText(/^baud/).waitFor(timeout);
   await files.keyboard.press('Enter');
   assert.match(await readCode(), /^baud = 9600$/m);
   await replaceCode(template);
