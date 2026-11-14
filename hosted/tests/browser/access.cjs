@@ -151,7 +151,7 @@ async function run() {
                 if (await channel.getAttribute('aria-expanded') === 'false') await channel.click();
 
             };
-            const valueVisible = async (page, value) => page.locator('.parameter-row .font-monospace').getByText(String(value), { exact: true }).waitFor();
+            const valueVisible = async (page, value) => page.locator('[aria-label^="Parameter "] .dw-parameter-values').getByText(String(value), { exact: true }).waitFor();
             await select(ownerPage); await select(viewerPage);
             await valueVisible(ownerPage, 42); await valueVisible(viewerPage, 42);
             const identityBefore = await (await ownerContext.request.get(origin + `/api/domains/${id}/identities`)).json();
@@ -159,7 +159,7 @@ async function run() {
             await ownerPage.getByRole('button', { name: 'Inspector tools' }).click();
             await ownerPage.getByRole('button', { name: 'Reset node observations' }).click();
             await ownerPage.getByRole('button', { name: 'Close Inspector tools' }).click();
-            for (const page of [ownerPage, viewerPage]) await page.waitForFunction(() => document.querySelectorAll('.parameter-row').length === 0);
+            for (const page of [ownerPage, viewerPage]) await page.waitForFunction(() => document.querySelectorAll('.dw-parameter-tile').length === 0);
             const identityAfter = await (await ownerContext.request.get(origin + `/api/domains/${id}/identities`)).json(); assert.deepEqual(identityAfter, identityBefore);
             await publish(43);
             // Expansion remains controlled while the node structure rebuilds.
@@ -208,8 +208,8 @@ async function run() {
             for (const page of [ownerPage, viewerPage]) {
                 const channel = page.locator('[data-inspector-focus="channel-9"]');
                 if (await channel.getAttribute('aria-expanded') === 'false') await channel.click();
-                await page.locator('.channel-card').filter({ has: page.getByText('Channel 9', { exact: true }) }).getByRole('button', { name: 'Parameters', exact: true }).click();
-                const values = page.getByRole('article', { name: 'Parameter 7>9.8' }).locator('.font-monospace');
+                await page.getByRole('button', { name: 'Show Parameters', exact: true }).and(page.locator('[data-inspector-focus="view-9"]')).click();
+                const values = page.getByRole('article', { name: 'Parameter 7>9.8' }).locator('.dw-parameter-values > span');
                 await values.first().waitFor();
                 assert.deepEqual(await values.allTextContents(), ['-2.0000', '52.0000', '0.0000']);
                 await page.getByRole('button', { name: /Binding 7>4.8.*priority 3/ }).waitFor();
@@ -226,11 +226,11 @@ async function run() {
             // Reconnect keeps the saved map while update requests fail, then catches up.
             await viewerPage.route('**/observations/updates?**', route => route.abort('failed'));
             await packet(4, 8, FLOAT, [-1.95, 51.65, 0]);
-            await viewerPage.getByText('Shared updates: retrying', { exact: true }).waitFor({ timeout: 35000 });
+            await viewerPage.getByRole('button', { name: 'Shared updates: retrying', exact: true }).waitFor({ timeout: 35000 });
             assert.equal(await marker(viewerPage).count(), 1);
             await viewerPage.unroute('**/observations/updates?**');
             await packet(4, 8, FLOAT, [-1.96, 51.66, 0]);
-            await viewerPage.getByText('Shared updates: ready', { exact: true }).waitFor({ timeout: 35000 });
+            await viewerPage.getByRole('button', { name: 'Shared updates: ready', exact: true }).waitFor({ timeout: 35000 });
             await viewerPage.reload(); await viewerPage.getByRole('button', { name: 'Fit observed positions', exact: true }).click(); await marker(viewerPage).click();
             await viewerPage.getByRole('button', { name: 'Node details' }).click();
             await viewerPage.getByText(/Drone: .*Singleton master: Node 7/).waitFor();
@@ -270,19 +270,26 @@ async function run() {
             await ownerPage.screenshot({ path: '/tmp/dw-danger-settings.png', fullPage: true, animations: 'disabled' });
             await ownerPage.getByRole('dialog', { name: 'Domain settings' }).getByRole('button', { name: 'Archive domain' }).click();
             await adminCard.waitFor({ state: 'detached' });
-            await viewerPage.reload(); await viewerPage.getByText('Archived domain · Read-only retained history.', { exact: false }).waitFor();
+            await viewerPage.reload();
+            const archiveStatus = viewerPage.getByRole('button', { name: 'Archived · Read-only', exact: true });
+            await archiveStatus.click();
+            await viewerPage.getByText('Archived domain · Read-only retained history.', { exact: false }).waitFor();
+            await viewerPage.keyboard.press('Escape');
+            assert.equal(await archiveStatus.getAttribute('aria-expanded'), 'false');
             await ownerPage.getByRole('tab', { name: 'Archived domains', exact: true }).click();
             await adminCard.getByRole('button', { name: 'Domain settings' }).click();
             await ownerPage.getByRole('dialog', { name: 'Domain settings' }).getByRole('button', { name: 'Restore domain' }).click();
             await adminCard.waitFor({ state: 'detached' });
             await ownerPage.getByRole('tab', { name: 'Active domains', exact: true }).click();
             await adminCard.getByRole('link', { name: 'Browser Fleet', exact: true }).click();
-            await viewerPage.reload(); assert.equal(await viewerPage.getByText('Archived domain · Read-only retained history.', { exact: false }).count(), 0);
+            await viewerPage.reload();
+            await viewerPage.getByRole('button', { name: 'Shared updates: ready', exact: true }).waitFor();
+            assert.equal(await archiveStatus.count(), 0);
             console.log('Checking narrow layout');
             // Responsive surfaces use the same typography, retain account navigation and avoid horizontal overflow.
             await ownerPage.setViewportSize({ width: 390, height: 844 });
             await ownerPage.getByRole('navigation', { name: 'Primary navigation' }).waitFor();
-            assert.equal(await ownerPage.getByRole('button', { name: 'Expand navigation' }).count(), 0);
+            await ownerPage.getByRole('button', { name: 'Open navigation', exact: true }).waitFor();
             await ownerPage.locator('[data-panel-group][data-panel-group-direction="vertical"]').waitFor();
             assert.equal(await ownerPage.locator('main').evaluate(element => element.scrollWidth <= element.clientWidth), true);
             assert.equal(await ownerPage.locator('.inspector-panel').evaluate(element => getComputedStyle(element).fontSize), '14px');
