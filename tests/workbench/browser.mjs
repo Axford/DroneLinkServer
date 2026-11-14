@@ -393,14 +393,17 @@ try {
   assert.ok(template.startsWith(base.replaceAll('\r\n', '\n') + '\n[NMEA = 2]\n  name = GPS2\n'));
   assert.match(template, /^  ; baud = 9600$/m);
   assert.match(template, /^  ; \$correction = /m);
-  await files.locator('.dw-config-editor.ace_editor:visible').evaluate(editor => {
+  const codeEditor = files.locator('.dw-config-editor.ace_editor:visible');
+  await codeEditor.scrollIntoViewIfNeeded();
+  await codeEditor.evaluate(async editor => {
+    // Let the editor finish jumping to the inserted module header first.
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     const ace = editor.env.editor;
     ace.moveCursorTo(ace.session.getLength() - 1, 0);
     ace.clearSelection();
     ace.focus();
+    ace.execCommand('insertstring', 'baud');
   });
-  await files.keyboard.press('b');
-  await files.keyboard.press('a');
   await files.locator('.ace_autocomplete').getByText(/^baud/).waitFor(timeout);
   await files.keyboard.press('Enter');
   assert.match(await readCode(), /^baud = 9600$/m);
