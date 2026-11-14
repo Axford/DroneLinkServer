@@ -84,3 +84,7 @@ Hosted M2 commands use the existing access policy for browser requests and nativ
 ## Shared visualization settings with M2
 
 The hosted visualization settings routes reuse Domain authentication, permissions and CSRF. The pinned persistence library validates the INA219 channel's observation generation and the settings revision. The settings route and the M2 command routes are available in the same hosted release. INA219 settings writes affect display preferences. M2 parameter writes retain their separate observation and command lifecycle.
+
+## Workbench live parameter operations
+
+The root gateway owns the direct parameter operation, including per-transport observed metadata and mesh dispatch. Connected writes additionally use the hosted Workbench grant checked against the current Domain role. See the [shared Workbench contract](../../DroneLinkDatastore/docs/contracts/workbench.md#live-parameter-operations).

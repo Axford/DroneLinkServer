@@ -221,6 +221,7 @@ export default class DroneLinkManager {
       buffer.msg.netInterface = ni;
       buffer.created = Date.now();
       buffer.attempts = 0;
+      buffer.onReceipt = undefined;
     } else {
       this.choked++;
       isChoked = true;
@@ -602,7 +603,7 @@ export default class DroneLinkManager {
   }
 
 
-  generateDroneLinkMessage(ni, dlmMsg, nextHop) {
+  generateDroneLinkMessage(ni, dlmMsg, nextHop, onReceipt) {
     var p = DMM.DRONE_MESH_MSG_PRIORITY_MEDIUM;
     var g = DMM.DRONE_MESH_MSG_NOT_GUARANTEED;
     if (dlmMsg.msgType < DLM.DRONE_LINK_MSG_TYPE_NAME) {
@@ -614,6 +615,7 @@ export default class DroneLinkManager {
 
     var buffer = this.getTransmitBuffer(ni, p);
     if (buffer) {
+      buffer.onReceipt = onReceipt;
       var msg = buffer.msg;
       var payloadSize = dlmMsg.totalSize();
 
@@ -990,7 +992,7 @@ export default class DroneLinkManager {
           }
 
           if (msg.isAck()) {
-            this.receiveAck(msg);
+            this.receiveAck(msg, netInterface);
 
           } else {
             if (msg.isGuaranteed()) {
@@ -1048,8 +1050,9 @@ export default class DroneLinkManager {
   }
 
 
-  receiveAck(msg) {
+  receiveAck(msg, netInterface) {
     // search tx queue for a matching waiting buffer
+    const receipts = [];
     for (var i=0; i< this.txQueue.length; i++) {
       var b = this.txQueue[i];
 
@@ -1064,6 +1067,9 @@ export default class DroneLinkManager {
              b.msg.destNode == msg.srcNode) {
           // clear waiting buffer
           b.state = DMTB.DRONE_MESH_MSG_BUFFER_STATE_EMPTY;
+          const onReceipt = b.onReceipt;
+          if (onReceipt && b.netInterface === netInterface) receipts.push(() => onReceipt(msg.txNode));
+          b.onReceipt = undefined;
 
           // update stats on nextNode
           var nextNodeInfo = this.getNodeInfo(msg.txNode, false);
@@ -1076,6 +1082,7 @@ export default class DroneLinkManager {
         }
       }
     }
+    for (const receipt of receipts) receipt();
   }
 
 
@@ -1273,7 +1280,7 @@ export default class DroneLinkManager {
           this.clog('    ' + dlmMsg.asString());
 
         // Publish only after validation and address checks.
-        this.observeLinkMessage?.(dlmMsg, loopTime);
+        this.observeLinkMessage?.(dlmMsg, loopTime, msg.srcNode);
         if (this.io) this.io.emit('DLM.msg', dlmMsg.encodeUnframed());
 
         return this.sendRxPacketToCloud(dlmMsg);

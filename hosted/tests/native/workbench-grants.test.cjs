@@ -45,6 +45,7 @@ test('Workbench grants bind an existing human session, Domain and current gatewa
     const authorize = (body = {}, header = machine) => post('/gateway/workbench/authorize', { domain: 'domain', id: 254, grant, action: 'observe', ...body }, header);
     assert.equal((await authorize()).status, 200);
     assert.equal((await authorize({ action: 'query-value' })).status, 200);
+    assert.equal((await authorize({ action: 'write-parameter' })).status, 200);
     assert.equal((await authorize({ domain: 'other' })).status, 401);
     assert.equal((await authorize({ id: 253 })).status, 401);
     assert.equal((await authorize({}, `Bearer other.${'a'.repeat(43)}`)).status, 401);
@@ -53,6 +54,7 @@ test('Workbench grants bind an existing human session, Domain and current gatewa
     role = 'viewer';
     assert.equal((await (await authorize()).json()).data.canQuery, false);
     assert.equal((await authorize({ action: 'query-value' })).status, 403);
+    assert.equal((await authorize({ action: 'write-parameter' })).status, 403);
     role = null;
     assert.equal((await authorize()).status, 403);
     role = 'editor';

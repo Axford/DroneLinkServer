@@ -21,6 +21,7 @@ function bareRoute({ node, nextHop, lastHeardAtMs }) {
 
 export default class WorkbenchMesh {
   #paths = new Map();
+  #parameterMetadata = new Map();
   #selected = new Map();
   #interfaces = new Map();
   #links = [];
@@ -59,10 +60,17 @@ export default class WorkbenchMesh {
     const link = { transport, address, manager, events, adapter: undefined, wasUp: false };
     this.#links.push(link);
     link.adapter = makeInterface(manager);
-    manager.observeLinkMessage = (message, receivedAtMs) => {
+    manager.observeLinkMessage = (message, receivedAtMs, source) => {
       if (message.msgType > DRONE_LINK_MSG_TYPE_NAME) return;
       this.refresh();
       if (!this.#paths.has(`${message.node}:${transport}`)) return;
+      if (message.msgType < DRONE_LINK_MSG_TYPE_NAME && message.node === source && message.source === source) {
+        const { node, channel, param, writable, msgType, msgLength } = message;
+        const key = `${transport}:${node}:${channel}:${param}`;
+        this.#parameterMetadata.delete(key);
+        this.#parameterMetadata.set(key, { writable, msgType, msgLength });
+        if (this.#parameterMetadata.size > 32768) this.#parameterMetadata.delete(this.#parameterMetadata.keys().next().value);
+      }
       const reading = { packetBase64: Buffer.from(message.encodeUnframed()).toString('base64'), receivedAtMs };
       this.#emit('observation', { ...reading, transport }, this.#selected.get(message.node)?.transport === transport ? reading : null);
     };
@@ -126,6 +134,10 @@ export default class WorkbenchMesh {
     const routes = [...this.#selected.values()];
     if (!enhanced) return { routes: routes.map(bareRoute) };
     return { routes, paths: [...this.#paths.values()], interfaces: [...this.#interfaces.values()] };
+  }
+
+  parameterMetadata(transport, { node, channel, param }) {
+    return this.#parameterMetadata.get(`${transport}:${node}:${channel}:${param}`);
   }
 
   fileRoute(node, transport) {

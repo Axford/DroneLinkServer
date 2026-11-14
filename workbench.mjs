@@ -7,6 +7,7 @@ import express from 'express';
 import { loadGatewayRelease } from './scripts/gateway-release.mjs';
 import createI2cDiagnostics from './workbench-i2c.mjs';
 import createNodeNetwork from './workbench-network.mjs';
+import createParameterOperations from './workbench-parameters.mjs';
 import createTraceRoute from './workbench-trace.mjs';
 import createCatalogue from './workbench-catalogue.mjs';
 import WorkbenchMesh from './workbench-mesh.mjs';
@@ -80,6 +81,7 @@ async function start() {
   const i2c = createI2cDiagnostics(mesh);
   const nodeNetwork = createNodeNetwork(mesh);
   const traceRoute = createTraceRoute(mesh);
+  const parameterOperation = createParameterOperations(mesh);
   const connected = connectedConfig ? new ConnectedWorkbench(connectedConfig, mesh) : null;
   let ready = false;
   let heartbeatTimer;
@@ -98,7 +100,7 @@ async function start() {
     return true;
   }
 
-  connected?.mount(app, { localHost: origin.host, subscribe, available: () => ready, files, catalogue, i2c, nodeNetwork, traceRoute });
+  connected?.mount(app, { localHost: origin.host, subscribe, available: () => ready, files, catalogue, i2c, nodeNetwork, traceRoute, parameterOperation });
 
   app.use((request, response, next) => {
     const requestOrigin = request.get('origin');
@@ -117,7 +119,7 @@ async function start() {
     response.set('Referrer-Policy', 'strict-origin-when-cross-origin');
     response.set('X-Content-Type-Options', 'nosniff');
     if (request.method !== 'GET' && request.method !== 'HEAD') {
-      const fileMutation = /^\/api\/workbench\/v1\/nodes\/\d+\/(file|restart|i2c-scan|i2c-register|trace-route)$/.test(request.path);
+      const fileMutation = /^\/api\/workbench\/v1\/nodes\/\d+\/(file|restart|i2c-scan|i2c-register|trace-route|parameter-write|parameter-query)$/.test(request.path);
       if (!fileMutation || !['PUT', 'POST'].includes(request.method)) return response.sendStatus(405);
       if (requestOrigin !== localOrigin.origin) return response.sendStatus(403);
       if (!request.is('application/json')) return response.sendStatus(415);
@@ -154,6 +156,12 @@ async function start() {
   app.post(`${nodeAPI}/i2c-scan`, diagnosticJson, handleFile(200, (node, transport, _path, body) => i2c.scan(node, transport, body)));
   app.post(`${nodeAPI}/i2c-register`, diagnosticJson, handleFile(200, (node, transport, _path, body) => i2c.register(node, transport, body)));
   app.post(`${nodeAPI}/trace-route`, diagnosticJson, handleFile(200, (node, transport, _path, body, response) => traceRoute(node, transport, body, response)));
+  for (const [endpoint, action] of [['parameter-write', 'write'], ['parameter-query', 'query-value']]) {
+    app.post(`${nodeAPI}/${endpoint}`, diagnosticJson, handleFile(202, (node, transport, _path, body) => {
+      if (Number(node) !== body?.target?.nodeAddress) throw new FileError(400, 'The parameter target does not match the node.');
+      return parameterOperation(action, transport, body);
+    }));
+  }
   app.get(`${nodeAPI}/network`, handleFile(200, nodeNetwork));
   app.get(`${nodeAPI}/module-catalogue`, handleFile(200, catalogue));
   app.get(`${nodeAPI}/files`, handleFile(200, (node, transport, path) => files.list(node, transport, path)));

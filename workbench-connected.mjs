@@ -2,7 +2,6 @@ import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join } from 'node:path';
 import express from 'express';
-import { DroneLinkMsg, DRONE_LINK_MSG_TYPE_QUERY } from './public/modules/droneLinkMsg.mjs';
 import WorkbenchBackups from './workbench-backups.mjs';
 import { FileError } from './workbench-files.mjs';
 
@@ -37,7 +36,6 @@ export default class ConnectedWorkbench {
   #gatewayId;
   #backups;
   #backupAvailable = false;
-  #queryTimes = new Map();
 
   constructor(settings, mesh) {
     this.#settings = settings;
@@ -118,7 +116,7 @@ export default class ConnectedWorkbench {
     }
   }
 
-  mount(app, { localHost, subscribe, available, files, catalogue, i2c, nodeNetwork, traceRoute }) {
+  mount(app, { localHost, subscribe, available, files, catalogue, i2c, nodeNetwork, traceRoute, parameterOperation }) {
     app.use(base, (req, res, next) => {
       if (req.get('host') !== localHost || req.get('origin') !== this.origin) return res.sendStatus(403);
       res.set({ 'Access-Control-Allow-Origin': this.origin, 'Cache-Control': 'no-store', Vary: 'Origin' });
@@ -208,6 +206,17 @@ export default class ConnectedWorkbench {
     app.use(nodeAPI, (error, _req, res, _next) => {
       res.status(error.status || 400).json({ error: 'Invalid node file request body.' });
     });
+    for (const [endpoint, action, authorization] of [
+      ['parameter-write', 'write', 'write-parameter'], ['parameter-query', 'query-value', 'query-value'],
+    ]) {
+      app.post(`${nodeAPI}/${endpoint}`, ...diagnosticBody, handle(async (req, res) => {
+        const { transport } = req.query;
+        if (!['wifi', 'serial'].includes(transport) || Number(req.params.node) !== req.body?.target?.nodeAddress)
+          throw new FileError(400, 'Select a valid local parameter and transport.');
+        await this.#authorize(req.get('X-Workbench-Grant'), authorization, transport);
+        if (!res.destroyed) res.status(202).json(parameterOperation(action, transport, req.body));
+      }));
+    }
     app.post(`${base}/query-value`, (req, res, next) => {
       if (!req.is('application/json')) return res.sendStatus(415);
       next();
@@ -219,17 +228,9 @@ export default class ConnectedWorkbench {
       }
       await this.#authorize(req.get('X-Workbench-Grant'), 'query-value', transport);
       if (res.destroyed) return;
-      const { manager, assertAvailable } = this.#mesh.fileRoute(node, transport);
-      const route = assertAvailable();
-      const now = Date.now();
-      if (now - (this.#queryTimes.get(node) ?? 0) < 750) throw new FileError(429, 'Wait before querying the same node again.');
-      const query = new DroneLinkMsg();
-      Object.assign(query, { source: manager.node, node, channel, param: parameter });
-      query.setUint8([0]);
-      query.msgType = DRONE_LINK_MSG_TYPE_QUERY;
-      if (!manager.generateDroneLinkMessage(route.netInterface, query, route.nextHop)) throw new FileError(503, 'The local query could not be queued.');
-      this.#queryTimes.set(node, now);
-      res.status(202).json({ status: 'queued' });
+      res.status(202).json(parameterOperation('query-value', transport, {
+        target: { nodeAddress: node, channel, param: parameter },
+      }));
     }));
   }
 }

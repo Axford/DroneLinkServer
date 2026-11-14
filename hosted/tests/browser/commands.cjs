@@ -109,7 +109,6 @@ async function run() {
             await owner.waitForFunction(async url => (await (await fetch(url)).json()).data.httpLifetimeSeconds === 60, scope + '/command-settings');
             await owner.getByRole('button', { name: 'Close Domain commands' }).click();
 
-            await collaborator.getByRole('button', { name: 'Parameter details: Param 8' }).click();
             await collaborator.getByRole('button', { name: 'Edit parameter value' }).click();
             await collaborator.getByRole('textbox', { name: 'Value 1' }).fill('77');
             const pattern = '**' + scope + '/commands';
@@ -125,7 +124,7 @@ async function run() {
             await collaborator.getByRole('button', { name: 'Submit write' }).click();
             await collaborator.getByRole('button', { name: 'Retry same request' }).waitFor();
             await collaborator.unroute(pattern, lost);
-            await collaborator.getByRole('button', { name: 'Close Parameter details: Param 8' }).click();
+            await collaborator.getByRole('button', { name: 'Close editor' }).click();
             await collaborator.getByRole('button', { name: 'Domain commands', exact: true }).click();
 
             const current = await store.domains.getById(fleet._id);

@@ -46,7 +46,7 @@ function mountWorkbenchRoutes(app, { config, store, ready, policy, ensureAuthent
         res.set('Cache-Control', 'private, no-store');
         const machine = credential(req);
         const { domain, id, grant, action } = req.body || {};
-        if (machine.kind !== 'gateway' || !['observe', 'query-value', 'node-files'].includes(action)) throw fault('unauthenticated');
+        if (machine.kind !== 'gateway' || !['observe', 'query-value', 'node-files', 'write-parameter'].includes(action)) throw fault('unauthenticated');
         const proof = open(grant);
         if (proof.expiresAt <= Date.now() || proof.gatewayId !== machine.id || proof.domainId !== domain) throw fault('unauthenticated');
         try {
