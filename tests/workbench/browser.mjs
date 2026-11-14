@@ -70,7 +70,7 @@ try {
   await row.getByText('43', { exact: true }).waitFor(timeout);
 
   await gateway.close();
-  await page.getByText(/Local gateway disconnected/).waitFor(timeout);
+  await page.getByRole('status').filter({ hasText: 'Reconnecting' }).waitFor(timeout);
   gateway = await launch(build, first.port, first.udpPort);
   await gateway.ready;
   await connected.waitFor(timeout);
@@ -116,11 +116,13 @@ try {
   assert.equal(await cards.locator('li').first().evaluate(card => getComputedStyle(card).backdropFilter), 'blur(6px)');
   // Keep the Modules inspector floating on the map.
   const shortInspector = await inspectorPanel.boundingBox();
-  assert.ok(shortInspector.height <= lensBox.height, JSON.stringify({
-    shortInspector, lensBox, children: await inspectorPanel.evaluate(panel => Array.from(panel.children, el => ({
-      className: el.className, height: el.clientHeight, scrollHeight: el.scrollHeight,
-    }))),
-  }));
+  const availableInspectorHeight = await inspectorPanel.evaluate(panel => {
+    const frame = panel.parentElement;
+    const { paddingTop, paddingBottom } = getComputedStyle(frame);
+    return frame.clientHeight - parseFloat(paddingTop) - parseFloat(paddingBottom);
+  });
+  assert.ok(shortInspector.height < availableInspectorHeight - 16,
+    `Short Map Inspector should fit its contents: panel=${shortInspector.height}px, available=${availableInspectorHeight}px`);
   assert.equal(await inspectorPanel.evaluate(panel => getComputedStyle(panel).backdropFilter), 'blur(6px)');
   assert.equal(await separator.evaluate(handle => getComputedStyle(handle).backgroundColor), 'rgba(0, 0, 0, 0)');
   await separator.hover();
