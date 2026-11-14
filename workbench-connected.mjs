@@ -118,7 +118,7 @@ export default class ConnectedWorkbench {
     }
   }
 
-  mount(app, { localHost, subscribe, available, files, catalogue, i2c, nodeNetwork }) {
+  mount(app, { localHost, subscribe, available, files, catalogue, i2c, nodeNetwork, traceRoute }) {
     app.use(base, (req, res, next) => {
       if (req.get('host') !== localHost || req.get('origin') !== this.origin) return res.sendStatus(403);
       res.set({ 'Access-Control-Allow-Origin': this.origin, 'Cache-Control': 'no-store', Vary: 'Origin' });
@@ -133,6 +133,7 @@ export default class ConnectedWorkbench {
     const handle = operation => async (req, res) => {
       try { this.#pair(req); await operation(req, res); }
       catch (error) {
+        if (res.destroyed) return;
         if (!res.headersSent) res.status(error instanceof FileError ? error.status : 503).json({ error: error instanceof FileError ? error.message : 'Connected Workbench is unavailable.' });
         else res.end();
       }
@@ -185,6 +186,17 @@ export default class ConnectedWorkbench {
       return { ...file, backup: this.#backups?.capture(node, file) ?? 'not-queued' };
     };
     const diagnosticBody = [fileBody[0], express.json({ limit: '1kb', inflate: false })];
+    app.post(`${nodeAPI}/trace-route`, ...diagnosticBody, handle(async (req, res) => {
+      const { transport } = req.query;
+      if (!['wifi', 'serial'].includes(transport)) throw new FileError(400, 'Select a valid local transport.');
+      const authorize = () => this.#authorize(req.get('X-Workbench-Grant'), 'query-value', transport);
+      await authorize();
+      if (res.destroyed) return;
+      const result = await traceRoute(req.params.node, transport, req.body, res);
+      if (res.destroyed) return;
+      await authorize();
+      res.json(result);
+    }));
     app.post(`${nodeAPI}/i2c-scan`, ...diagnosticBody, fileOperation(200, (node, transport, _path, body) => i2c.scan(node, transport, body), true));
     app.post(`${nodeAPI}/i2c-register`, ...diagnosticBody, fileOperation(200, (node, transport, _path, body) => i2c.register(node, transport, body), true));
     app.get(`${nodeAPI}/module-catalogue`, fileOperation(200, catalogue, true));

@@ -504,8 +504,8 @@ export default class DroneLinkManager {
   }
 
 
-  generateTracerouteRequest(ni, target, nextHop) {
-    var buffer = this.getTransmitBuffer(ni, DMM.DRONE_MESH_MSG_PRIORITY_HIGH);
+  generateTracerouteRequest(ni, target, nextHop, prefix = Uint8Array.of(this.node), priority = DMM.DRONE_MESH_MSG_PRIORITY_HIGH) {
+    var buffer = this.getTransmitBuffer(ni, priority);
 
     if (buffer) {
       var msg = buffer.msg;
@@ -513,16 +513,16 @@ export default class DroneLinkManager {
         this.clog(('generate Traceroute Request for '+target));
 
       // populate
-      msg.typeGuaranteeSize = DMM.DRONE_MESH_MSG_GUARANTEED | 0;  // payload is 1 bytes... sent as n-1
+      msg.typeGuaranteeSize = DMM.DRONE_MESH_MSG_GUARANTEED;
+      msg.setPayloadSize(prefix.length);
       msg.txNode = this.node;
       msg.srcNode = this.node;
       msg.nextNode = nextHop;
       msg.destNode = target;
       msg.seq = this.gSeq;
-      msg.setPriorityAndType(DMM.DRONE_MESH_MSG_PRIORITY_HIGH, DMM.DRONE_MESH_MSG_TYPE_TRACEROUTE_REQUEST);
-
-      // padding
-      msg.uint8_tPayload[0] = this.node;
+      msg.setPriorityAndType(priority, DMM.DRONE_MESH_MSG_TYPE_TRACEROUTE_REQUEST);
+      msg.metric = 0;
+      msg.uint8_tPayload.set(prefix);
 
       this.gSeq++;
       if (this.gSeq > 255) this.gSeq = 0;
@@ -1298,7 +1298,10 @@ export default class DroneLinkManager {
       this.clog(('  Traceroute Response from '+msg.srcNode).green);
 
     // are we the destination?
-    if (msg.destNode == this.node) {
+    if (msg.destNode === this.node && msg.nextNode === this.node) {
+      const txInfo = this.getNodeInfo(msg.txNode, false);
+      const receivingMetric = txInfo ? this.getMetricFromNodeInfo(txInfo) : metric;
+      this.observeTracerouteResponse?.(netInterface, msg, receivingMetric);
 
       try {
         // add our receiving metric info to complete the trace
@@ -1309,16 +1312,7 @@ export default class DroneLinkManager {
           // calc index of insertion point
           var p = payloadLen;
 
-          // lookup txNode and get avgAttempts value as metric
-          var m = metric;
-
-          var txInfo = this.getNodeInfo(msg.txNode, false);
-          if (txInfo) {
-            m = this.getMetricFromNodeInfo(txInfo.avgAttempts);
-          }
-
-          // add our info
-          msg.uint8_tPayload[p] = m;
+          msg.uint8_tPayload[p] = receivingMetric;
           msg.uint8_tPayload[p+1] = this.node;
 
           // update payload size

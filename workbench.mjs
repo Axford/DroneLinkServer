@@ -7,6 +7,7 @@ import express from 'express';
 import { loadGatewayRelease } from './scripts/gateway-release.mjs';
 import createI2cDiagnostics from './workbench-i2c.mjs';
 import createNodeNetwork from './workbench-network.mjs';
+import createTraceRoute from './workbench-trace.mjs';
 import createCatalogue from './workbench-catalogue.mjs';
 import WorkbenchMesh from './workbench-mesh.mjs';
 import WorkbenchFiles, { FileError } from './workbench-files.mjs';
@@ -78,6 +79,7 @@ async function start() {
   const catalogue = createCatalogue(mesh, release);
   const i2c = createI2cDiagnostics(mesh);
   const nodeNetwork = createNodeNetwork(mesh);
+  const traceRoute = createTraceRoute(mesh);
   const connected = connectedConfig ? new ConnectedWorkbench(connectedConfig, mesh) : null;
   let ready = false;
   let heartbeatTimer;
@@ -96,7 +98,7 @@ async function start() {
     return true;
   }
 
-  connected?.mount(app, { localHost: origin.host, subscribe, available: () => ready, files, catalogue, i2c, nodeNetwork });
+  connected?.mount(app, { localHost: origin.host, subscribe, available: () => ready, files, catalogue, i2c, nodeNetwork, traceRoute });
 
   app.use((request, response, next) => {
     const requestOrigin = request.get('origin');
@@ -115,7 +117,7 @@ async function start() {
     response.set('Referrer-Policy', 'strict-origin-when-cross-origin');
     response.set('X-Content-Type-Options', 'nosniff');
     if (request.method !== 'GET' && request.method !== 'HEAD') {
-      const fileMutation = /^\/api\/workbench\/v1\/nodes\/\d+\/(file|restart|i2c-scan|i2c-register)$/.test(request.path);
+      const fileMutation = /^\/api\/workbench\/v1\/nodes\/\d+\/(file|restart|i2c-scan|i2c-register|trace-route)$/.test(request.path);
       if (!fileMutation || !['PUT', 'POST'].includes(request.method)) return response.sendStatus(405);
       if (requestOrigin !== localOrigin.origin) return response.sendStatus(403);
       if (!request.is('application/json')) return response.sendStatus(415);
@@ -138,9 +140,11 @@ async function start() {
     try {
       const { node } = request.params;
       const { transport, path } = request.query;
-      const result = await operation(node, transport, path, request.body);
+      const result = await operation(node, transport, path, request.body, response);
+      if (response.destroyed) return;
       response.status(status).json(result);
     } catch (error) {
+      if (response.destroyed) return;
       if (error instanceof FileError) return response.status(error.status).json({ error: error.message });
       console.error('Unexpected Workbench file error:', error);
       response.status(500).json({ error: 'The node file operation failed.' });
@@ -149,6 +153,7 @@ async function start() {
   const diagnosticJson = express.json({ limit: '1kb', inflate: false });
   app.post(`${nodeAPI}/i2c-scan`, diagnosticJson, handleFile(200, (node, transport, _path, body) => i2c.scan(node, transport, body)));
   app.post(`${nodeAPI}/i2c-register`, diagnosticJson, handleFile(200, (node, transport, _path, body) => i2c.register(node, transport, body)));
+  app.post(`${nodeAPI}/trace-route`, diagnosticJson, handleFile(200, (node, transport, _path, body, response) => traceRoute(node, transport, body, response)));
   app.get(`${nodeAPI}/network`, handleFile(200, nodeNetwork));
   app.get(`${nodeAPI}/module-catalogue`, handleFile(200, catalogue));
   app.get(`${nodeAPI}/files`, handleFile(200, (node, transport, path) => files.list(node, transport, path)));

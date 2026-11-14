@@ -11,17 +11,20 @@ export async function filePeer() {
   const files = new Map([['/sample.txt', Buffer.from('First line\r\n')], ['/nested/test.txt', Buffer.from('nested\n')]]);
   const actions = [];
   let staging;
+  let traceSeq = 80;
+  let replyToTrace = true;
   let rejectBlock = false;
   let loseSaveReply = false;
   const paths = () => ['/', '/nested/', ...files.keys()];
   const children = directory => paths().filter(path => path !== directory && path.startsWith(directory) && !path.slice(directory.length).replace(/\/$/, '').includes('/'));
 
-  function send(port, destination, type, payload, ack) {
+  function send(port, destination, type, payload, ack, seq = ack?.seq ?? 0) {
     const packet = new Mesh.DroneMeshMsg();
-    Object.assign(packet, { txNode: 11, srcNode: 11, nextNode: destination, destNode: destination, seq: ack?.seq ?? 0 });
+    Object.assign(packet, { txNode: 11, srcNode: 11, nextNode: destination, destNode: destination, seq });
     packet.setPayloadType(type);
     packet.setPayloadSize(payload.length);
     if (ack) packet.setPacketType(Mesh.DRONE_MESH_MSG_ACK);
+    if (type === Mesh.DRONE_MESH_MSG_TYPE_TRACEROUTE_RESPONSE) packet.typeGuaranteeSize |= Mesh.DRONE_MESH_MSG_GUARANTEED;
     packet.uint8_tPayload.set(payload);
     socket.send(packet.encode(), port, '127.0.0.1');
   }
@@ -33,6 +36,13 @@ export async function filePeer() {
     if (packet.isGuaranteed()) send(remote.port, packet.srcNode, type, [0], packet);
     const bytes = new Uint8Array(packet.rawPayload, 0, packet.getPayloadSize());
     const reply = (responseType, response) => send(remote.port, packet.srcNode, responseType, response.encode());
+    if (type === Mesh.DRONE_MESH_MSG_TYPE_TRACEROUTE_REQUEST) {
+      actions.push('trace');
+      if (replyToTrace) {
+        // Reply sequence belongs to the responder. The echoed prefix binds the reply to this request.
+        send(remote.port, packet.srcNode, Mesh.DRONE_MESH_MSG_TYPE_TRACEROUTE_RESPONSE, [...bytes, 3, 11], undefined, traceSeq++);
+      }
+    }
     if (type === Mesh.DRONE_MESH_MSG_TYPE_FS_FILE_REQUEST) {
       const request = new FS.DroneMeshFSFileRequest(bytes);
       const path = request.flags === FS.DRONE_MESH_MSG_FS_FLAG_INDEX_INFO ? children(request.path)[request.id] : request.path;
@@ -88,6 +98,7 @@ export async function filePeer() {
   });
   return {
     port: socket.address().port, files, actions,
+    suppressTraceReply() { replyToTrace = false; },
     rejectBlock() { rejectBlock = true; },
     loseSaveReply() { loseSaveReply = true; },
     hello(gateway) { send(gateway.udpPort, 0, Mesh.DRONE_MESH_MSG_TYPE_HELLO, [1, 1, 0, 0, 0]); },

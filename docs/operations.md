@@ -241,3 +241,7 @@ The Physical view can start a scan or reviewed register read through a direct Wi
 ### Selected node network
 
 Select a node in the Workbench Network lens and refresh its network snapshot. A direct Wi-Fi route and firmware with the [network snapshot endpoint](../../DroneLinkDatastore/docs/contracts/workbench.md#selected-node-network-snapshot) are required. Connected reads use the current observation grant.
+
+### On-demand route trace
+
+Choose a reachable local node in **Network** and select **Trace route**. The gateway sends a single low-priority trace on the selected Wi-Fi or Serial route, with a four-second reply deadline and a gateway-wide four-second interval between accepted requests. Connected Workbench uses the current edit-authorized parameter-query grant. The [Workbench contract](../../DroneLinkDatastore/docs/contracts/workbench.md#on-demand-route-trace) describes reply matching and incomplete hop records.

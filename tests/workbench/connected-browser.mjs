@@ -153,6 +153,10 @@ try {
   assert.ok(cloudRequests.some(([path, action]) => path.endsWith('/authorize') && action === 'query-value'));
   for (let i = 0; i < 20 && !peer.actions.includes('query'); i++) await new Promise(resolve => setTimeout(resolve, 25));
   assert.equal(peer.actions.filter(action => action === 'query').length, 1);
+  await page.getByRole('button', { name: 'Network', exact: true }).click();
+  await page.getByRole('button', { name: 'Trace route', exact: true }).click(timeout);
+  await page.getByRole('region', { name: 'Route trace' }).getByText(/Node 11 · Wi-Fi · \d+ ms round trip/).waitFor(timeout);
+  assert.equal(peer.actions.filter(action => action === 'trace').length, 1);
   const standalone = await fetch(`${gateway.origin}/api/workbench/v1/nodes/11/file?transport=wifi&path=%2Fsample.txt`);
   assert.equal(standalone.status, 200);
   assert.equal((await standalone.json()).backup, undefined);
@@ -278,6 +282,14 @@ try {
     await page.getByRole('button', { name: 'Logical', exact: true }).click();
   }
   canEdit = false;
+  const traceEndpoint = `${gateway.origin}/api/workbench/v1/connected/nodes/11/trace-route?transport=wifi`;
+  const deniedTrace = await fetch(traceEndpoint, {
+    method: 'POST', body: '{}', headers: { Origin: origin, 'Content-Type': 'application/json',
+      'X-Workbench-Key': pairingKey, 'X-Workbench-Grant': 'a'.repeat(64) },
+  });
+  assert.equal(deniedTrace.status, 403);
+  assert.equal(peer.actions.filter(action => action === 'trace').length, 1);
+
   if (catalogueFixture) {
     await page.getByRole('button', { name: 'Add module', exact: true }).click();
     const catalogue = page.getByRole('dialog', { name: 'Add module' });

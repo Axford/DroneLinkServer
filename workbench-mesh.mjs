@@ -53,6 +53,9 @@ export default class WorkbenchMesh {
     manager.logOptions.DroneLinkMsg = false;
     const events = new EventEmitter();
     manager.io = events;
+    manager.observeTracerouteResponse = (iface, message, metric) => {
+      if (iface === link.adapter) events.emit('workbench.trace-reply', message, metric);
+    };
     const link = { transport, address, manager, events, adapter: undefined, wasUp: false };
     this.#links.push(link);
     link.adapter = makeInterface(manager);

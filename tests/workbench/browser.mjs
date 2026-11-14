@@ -244,6 +244,21 @@ try {
   await fileTopology.getByRole('button', { name: 'Gateway Connected' }).click(timeout);
   await files.getByRole('region', { name: 'Wi-Fi interface' }).getByText('Wi-Fi · Up', { exact: true }).waitFor(timeout);
   await fileTopology.getByRole('button', { name: /^Node 11/ }).click(timeout);
+  const trace = fileTopology.getByRole('button', { name: 'Trace route' });
+  assert.equal(peer.actions.filter(action => action === 'trace').length, 0);
+  await trace.click(timeout);
+  const traceDetails = files.getByRole('region', { name: 'Route trace' });
+  await traceDetails.getByText(/Node 11 · Wi-Fi · \d+ ms round trip/).waitFor(timeout);
+  await traceDetails.getByText('Outbound', { exact: true }).waitFor(timeout);
+  await traceDetails.getByText('Return', { exact: true }).waitFor(timeout);
+  await fileTopology.getByRole('button', { name: /Outbound trace from/ }).waitFor(timeout);
+  assert.equal(peer.actions.filter(action => action === 'trace').length, 1);
+  assert.ok(await trace.isDisabled());
+  peer.suppressTraceReply();
+  await trace.click({ timeout: 10000 });
+  await traceDetails.getByRole('alert').getByText('No trace reply reached the gateway.').waitFor(timeout);
+  assert.equal(peer.actions.filter(action => action === 'trace').length, 2);
+  console.log('PASS on-demand trace, directional overlay, cooldown and timeout');
   if (catalogueFixture) {
     const network = files.getByRole('region', { name: 'Selected node network' });
     const refresh = fileTopology.getByRole('button', { name: 'Refresh node network' });
@@ -289,7 +304,7 @@ try {
   await files.getByRole('button', { name: 'Upload to node' }).click();
   await files.getByText(/Stored file verified by readback/).waitFor(timeout);
   assert.equal(peer.files.get('/sample.txt').toString(), 'Edited in the Workbench\r\n');
-  assert.deepEqual(peer.actions, ['start', 'block', 'save']);
+  assert.deepEqual(peer.actions.filter(action => action !== 'trace'), ['start', 'block', 'save']);
   await files.getByRole('button', { name: 'Browse files' }).click();
   await files.getByRole('dialog', { name: 'Files' }).getByRole('button', { name: 'Open node configuration' }).click();
   const graph = files.getByRole('region', { name: 'Subscription graph' });
@@ -326,7 +341,7 @@ try {
   await source.fill('@>14.8');
   await source.press('Enter');
   assert.equal(peer.files.get('/config.ini').toString(), configuration);
-  assert.deepEqual(peer.actions, ['start', 'block', 'save']);
+  assert.deepEqual(peer.actions.filter(action => action !== 'trace'), ['start', 'block', 'save']);
   await files.getByRole('button', { name: 'Upload to node' }).click();
   await files.getByText(/Stored file verified by readback/).waitFor(timeout);
   assert.equal(peer.files.get('/config.ini').toString(), configuration.replace('@>GPS.location', '@>14.8'));
