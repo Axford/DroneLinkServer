@@ -203,6 +203,8 @@ Pass `--release-dir /absolute/prepared-sep05-release` to supply verified module 
 
 Set `WORKBENCH_CATALOGUE_FIXTURE` to the prepared SEP-05 fixture with release identity `739fc899479974550361f72c86c3d3c6a5570d102c660e38c2d704df653f21ff` (build `c017040`) to exercise the catalogue in both Workbench browser suites. The fixture simulates the device HTTP response and verifies the pinned release with the production verifier.
 
+Verified release metadata supplies startup setting names and documented defaults or examples for Workbench templates and Code completion. See the [catalogue contract](../../DroneLinkDatastore/docs/contracts/workbench.md#workbench-module-catalogue).
+
 ### Connected Workbench
 
 Use a matched hosted release and the gateway from the same Workbench implementation. As a Domain Owner, issue a gateway credential for each mesh address you will use. Store the credential in a private file outside Git. For a Wi-Fi gateway, the configuration has this shape:

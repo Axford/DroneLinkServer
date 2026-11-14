@@ -261,7 +261,8 @@ try {
     await catalogue.getByRole('searchbox').fill('pilot');
     await catalogue.getByRole('button', { name: 'Add Pilot' }).click(timeout);
     await page.getByRole('button', { name: 'Code', exact: true }).click();
-    assert.equal(await readCode(), configuration.replace('@>10.8', '@>10.9') + '\n[Nav = 2]\n  name = Pilot\n');
+    assert.ok((await readCode()).startsWith(configuration.replace('@>10.8', '@>10.9') + '\n[Nav = 2]\n  name = Pilot\n'));
+    assert.match(await readCode(), /^  ; \$location = /m);
     await page.getByRole('button', { name: 'Logical', exact: true }).click();
     await graph.getByRole('button', { name: 'Pilot', exact: true }).waitFor(timeout);
     await page.getByRole('button', { name: 'Physical', exact: true }).click();

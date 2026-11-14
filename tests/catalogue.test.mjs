@@ -52,3 +52,26 @@ test('uses only a direct LAN Wi-Fi route and rejects a route that changes during
   assert.equal(requests, 1);
   await assert.rejects(catalogue('255', 'wifi'), { status: 400 });
 });
+
+test('projects inherited startup keys and examples without treating telemetry as settings', async () => {
+  const catalogue = createCatalogue(mesh, { status: {}, assets: new Map([
+    ['moduleInfo.json', Buffer.from(JSON.stringify({
+      Drone: { pub: [{ name: 'interval', type: 'u32', writeable: true }] },
+      NMEA: {
+        inherits: ['Drone'],
+        default: [{ param: 'interval', values: ['1000'] }],
+        config: ['[NMEA=7]\n  port=2'],
+        pub: [{ name: 'location', type: 'f', numValues: 3, writeable: false }],
+        sub: [{ name: 'correction', type: 'f', numValues: 3 }],
+      },
+    }))],
+  ]) }, async () => reply());
+  const { settings } = (await catalogue('11', 'wifi')).entries.find(entry => entry.type === 'NMEA');
+  const values = Object.fromEntries(settings.map(({ name, value }) => [name, value]));
+  assert.equal(values.interval, '1000');
+  assert.equal(values.port, '2');
+  assert.equal(values.correction, '0, 0, 0');
+  assert.equal(values.$correction, '@>GPS.location');
+  assert.equal(values.location, undefined);
+  assert.match(values.publish, /location/);
+});

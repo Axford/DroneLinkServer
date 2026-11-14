@@ -13,12 +13,12 @@ async function availablePort(socket) {
   return port;
 }
 
-export async function launch(build, port, udpPort, { serialMode, serialAddress = 253, peerPort = '', connectedConfig, caFile, mapboxToken, catalogueFixture } = {}) {
+export async function launch(build, port, udpPort, { serialMode, serialAddress = 253, peerPort = '', connectedConfig, caFile, mapboxToken, catalogueFixture, nodeCapabilities } = {}) {
   port ??= await availablePort(net.createServer().listen(0, '127.0.0.1'));
   udpPort ??= await availablePort(dgram.createSocket('udp4').bind(0, '127.0.0.1'));
   const serialArgs = serialMode ? ['--serial-port', '/test/workbench-serial', ...(serialMode === 'only' ? ['--serial-only'] : ['--serial-address', String(serialAddress)])] : [];
   const execArgv = ['--import', fileURLToPath(new URL('./loopback-udp.mjs', import.meta.url))];
-  if (catalogueFixture) execArgv.push('--import', fileURLToPath(new URL('./node-capabilities.mjs', import.meta.url)));
+  if (catalogueFixture || nodeCapabilities) execArgv.push('--import', fileURLToPath(new URL('./node-capabilities.mjs', import.meta.url)));
   if (serialMode) execArgv.push('--import', fileURLToPath(new URL('./serial-preload.mjs', import.meta.url)));
   const processHandle = fork(fileURLToPath(new URL('../../workbench.mjs', import.meta.url)), [
     '--client-build', build, '--node-address', '254', '--port', String(port), ...serialArgs,

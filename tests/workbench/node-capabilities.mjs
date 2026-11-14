@@ -23,7 +23,7 @@ globalThis.fetch = (url, options) => {
   const target = new URL(url);
   if (target.origin !== 'http://192.168.50.11') return realFetch(url, options);
   if (target.pathname === '/supportedModules') {
-    return Promise.resolve(Response.json({ schemaVersion: 1, node: 11, build, types: ['Management', 'NMEA', 'Nav', 'Probe', 'INA219', 'INA3221'] }));
+    return Promise.resolve(Response.json({ schemaVersion: 1, node: 11, build, types: ['Management', 'NMEA', 'Nav', 'Probe', 'INA219', 'INA3221', 'CMPS12'] }));
   }
   if (target.pathname === '/networkSnapshot') {
     networkReads++;
@@ -41,7 +41,7 @@ globalThis.fetch = (url, options) => {
       multiplexer: 0x77,
       channels: Array.from({ length: 8 }, (_, channel) => ({
         channel, status: channel === 3 ? 'selection-failed' : 'complete',
-        addresses: channel === 1 || channel === 5 ? [64] : channel === 2 ? [118] : [],
+        addresses: channel === 1 || channel === 5 ? [64] : channel === 2 ? [118, 96] : [],
       })),
     } : { channel: get('channel'), address: get('address'), register: get('register'), length: get('length'),
       status: get('channel') === 5 ? 'complete' : 'short-read',
