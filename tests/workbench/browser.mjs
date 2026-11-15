@@ -67,7 +67,7 @@ try {
   await page.getByRole('heading', { name: 'Workbench', exact: true }).waitFor(timeout);
   await hello(gateway);
   await page.getByRole('button', { name: /Node 11 · Reachable/ }).click(timeout);
-  await inspectorPanel.getByRole('button', { name: 'Normal inspector' }).click();
+  assert.equal(await inspectorPanel.getAttribute('data-size'), 'normal');
   await waitForPublication.waitFor(timeout);
   await publication(gateway, packet(42));
   await row.getByText('42', { exact: true }).waitFor(timeout);
@@ -93,7 +93,7 @@ try {
 
   await page.reload();
   await page.getByRole('button', { name: /Node 11 · Reachable/ }).click(timeout);
-  await inspectorPanel.getByRole('button', { name: 'Normal inspector' }).click();
+  assert.equal(await inspectorPanel.getAttribute('data-size'), 'normal');
   await waitForPublication.waitFor(timeout);
   await publication(gateway, packet(45));
   await row.getByText('45', { exact: true }).waitFor(timeout);
@@ -110,8 +110,19 @@ try {
   const payload = Buffer.alloc(12);
   [-1.804, 51.575, 0].forEach((value, index) => payload.writeFloatLE(value, index * 4));
   const type = Buffer.from('NMEA');
-  await publication(gateway, [11, 11, 10, 5, (DRONE_LINK_MSG_TYPE_CHAR << 4) | (type.length - 1), ...type]);
   await publication(gateway, [11, 11, 10, 8, (DRONE_LINK_MSG_TYPE_FLOAT << 4) | (payload.length - 1), ...payload]);
+  const gpsCard = inspectorPanel.locator('.channel-card').filter({ has: page.locator('[data-inspector-focus="channel-10"]') });
+  await gpsCard.getByRole('article', { name: 'Parameter 11>10.8' }).waitFor(timeout);
+  const genericHeader = await gpsCard.locator('.dw-channel-toggle').elementHandle();
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await publication(gateway, [11, 11, 10, 5, (DRONE_LINK_MSG_TYPE_CHAR << 4) | (type.length - 1), ...type]);
+  await gpsCard.getByRole('button', { name: 'Show Parameters' }).waitFor(timeout);
+  assert.equal(await gpsCard.locator('.dw-channel-toggle').evaluate((header, oldHeader) => header === oldHeader, genericHeader), true,
+    'The first module type receipt keeps the existing card header mounted');
+  const initialOutgoing = gpsCard.locator('.dw-motion-view[data-motion-exit]');
+  assert.equal(await initialOutgoing.getAttribute('inert'), '');
+  await initialOutgoing.waitFor({ state: 'detached', ...timeout });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.locator('.maplibregl-canvas').waitFor(timeout);
   const canvas = page.locator('.dw-map-canvas');
   const lens = page.locator('.dw-map');
@@ -172,10 +183,41 @@ try {
   assert.equal(await exitingNode.getAttribute('inert'), '');
   assert.ok(await motionRunning(exitingNode), 'Node card leaves at the shared timing');
   await exitingNode.waitFor({ state: 'detached', ...timeout });
-  await inspectorPanel.getByRole('button', { name: 'Collapse inspector' }).click();
-  assert.ok(await motionRunning(inspectorPanel), 'Floating Inspector animates its bounds');
-  await inspectorPanel.getByRole('button', { name: 'Normal inspector' }).click();
-  const gpsCard = inspectorPanel.locator('.channel-card').filter({ has: page.locator('[data-inspector-focus="channel-10"]') });
+  const sizeLabels = {
+    normal: 'Normal inspector', collapsed: 'Collapse inspector', 'full-window': 'Full-window inspector',
+  };
+  for (const size of ['full-window', 'normal', 'collapsed', 'full-window', 'collapsed', 'normal']) {
+    const measurement = await inspectorPanel.evaluate(async (panel, label) => {
+      const control = panel.querySelector('.dw-inspector-size button');
+      const start = panel.getBoundingClientRect().toJSON();
+      const width = control.getBoundingClientRect().width;
+      panel.querySelector(`button[aria-label="${label}"]`).click();
+      await new Promise(requestAnimationFrame);
+      const animation = panel.getAnimations().find(candidate => candidate.effect.getTiming().duration === 500);
+      if (!animation) return;
+      animation.pause();
+      animation.currentTime = 0;
+      const first = panel.getBoundingClientRect().toJSON();
+      const firstControlWidth = control.getBoundingClientRect().width;
+      animation.currentTime = 250;
+      const middle = panel.getBoundingClientRect().toJSON();
+      animation.currentTime = 499;
+      const last = panel.getBoundingClientRect().toJSON();
+      animation.finish();
+      await animation.finished;
+      await new Promise(requestAnimationFrame);
+      return { start, first, middle, last, end: panel.getBoundingClientRect().toJSON(), width, firstControlWidth };
+    }, sizeLabels[size]);
+    assert.ok(measurement, `${size} transition runs`);
+    for (const key of ['x', 'y', 'width', 'height']) {
+      assert.ok(Math.abs(measurement.start[key] - measurement.first[key]) < 2, `${size} transition starts at its current ${key}`);
+      assert.ok(Math.abs(measurement.end[key] - measurement.last[key]) < 2, `${size} transition ends at its target ${key}`);
+    }
+    assert.ok(Math.abs(measurement.width - measurement.firstControlWidth) < 2, `${size} keeps the control at its original size`);
+    const { start, middle, end } = measurement;
+    assert.ok(middle.width > Math.min(start.width, end.width) && middle.width < Math.max(start.width, end.width),
+      `${size} progresses between the two widths`);
+  }
   await gpsCard.getByRole('button', { name: 'Show Parameters' }).click();
   const exitingView = gpsCard.locator('.dw-motion-view[data-motion-exit]');
   assert.equal(await exitingView.getAttribute('inert'), '');
@@ -215,7 +257,6 @@ try {
   await topology.getByRole('button', { name: 'Node 11 Gateway route' }).click(timeout);
   assert.equal(await wifiRoute.getAttribute('data-focused'), 'true');
   assert.equal(await dual.getByRole('region', { name: 'Local nodes' }).count(), 0);
-  await dual.getByRole('button', { name: 'Normal inspector' }).click();
   await dual.getByText('Node 11 · Local · Serial', { exact: true }).waitFor(timeout);
   const name = Buffer.from('BenchTest');
   await publication(gateway, [11, 11, 1, 8, (DRONE_LINK_MSG_TYPE_CHAR << 4) | (name.length - 1), ...name]);

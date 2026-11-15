@@ -148,7 +148,7 @@ try {
   peer.hello(gateway);
   assert.equal(await page.getByRole('region', { name: 'Node Inspector' }).getAttribute('data-size'), 'collapsed');
   await page.getByRole('button', { name: /Inspect node 12/ }).press('Enter', timeout);
-  await page.getByRole('button', { name: 'Normal inspector' }).click();
+  assert.equal(await page.getByRole('region', { name: 'Node Inspector' }).getAttribute('data-size'), 'normal');
   await page.getByText('Cloud observation', { exact: true }).first().waitFor(timeout);
   await page.getByRole('button', { name: /Inspect node 11/ }).press('Enter', timeout);
   await publication(gateway, [11, 11, 5, 8, 128, 42]);
