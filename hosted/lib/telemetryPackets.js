@@ -2,6 +2,10 @@
 const protocol = require('@dronelink/protocol');
 const { fault } = require('./accessPolicy');
 const nodeAddress = value => Number.isInteger(value) && value >= 1 && value <= 254;
+const isPublication = ({ msgType, source, node }) =>
+    msgType < protocol.DRONE_LINK_MSG_TYPE_NAMEQUERY && (source === 0 || source === node);
+const hasPublicationAddress = ({ node, channel, param }) => nodeAddress(node) && nodeAddress(channel) && param > 0;
+
 function decodePacket(body) {
     if (!body || typeof body !== 'object' || Array.isArray(body) || !nodeAddress(body.id)) throw fault('validation');
     const encoded = body.packet;
@@ -14,9 +18,9 @@ function decodePacket(body) {
     if (source === 255 || node === 255 || channel === 255) throw fault('validation');
     const meta = { id: body.id, node, channel, param, msgType, source };
     for (const key of ['node', 'channel', 'param', 'msgType']) if (Object.hasOwn(body, key) && body[key] !== meta[key]) throw fault('validation');
-    const publication = msgType < protocol.DRONE_LINK_MSG_TYPE_NAMEQUERY && (source === 0 || source === node);
-    if (publication && (!nodeAddress(node) || channel === 0 || param === 0)) throw fault('validation');
+    const publication = isPublication(meta);
+    if (publication && !hasPublicationAddress(meta)) throw fault('validation');
     return { packet, meta, ...(publication ? { nodeAddress: node } : {}) };
 }
 
-module.exports = { decodePacket, nodeAddress };
+module.exports = { decodePacket, nodeAddress, isPublication, hasPublicationAddress };

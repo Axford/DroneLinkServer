@@ -24,6 +24,12 @@ npm run test:operations
 
 Preparation explicitly downloads the pinned official Firestore emulator1.22.0 (Java21); tests never download it. Each native HTTP test owns an isolated disposable loopback emulator. A construction-only Google provider adapter exercises actual Passport/session composition without Google consent or production data. Historical application/Mongo fixtures remain for earlier evidence and are excluded from the native gate; intentional API changes are in the [HTTP contract](../../DroneLinkDatastore/docs/contracts/http.md). Production installs exclude test tooling.
 
+## Replay reconstruction
+
+`lib/replayHistory.js` provides the internal `buildReplayFrame(packets, {domainId, from, until})` operation. Inject the existing persistence `packets` interface. Times are integer Unix milliseconds. A frame covers `[from, until)`. Pass that frame in place of `from` to continue from its exclusive cutoff. Frames carry a schema version, Domain ID, cutoff and observed channels. Parameter name and value payloads remain base64 so the operation preserves exact protocol bytes. The operation takes a trusted frame from the backend and does not expose a route.
+
+The [Cloud Replay plan](../../DroneLinkDatastore/docs/planning/m4-cloud-replay.md) records the remaining storage and Client work.
+
 ## Manual staging operations
 
 All cloud commands require the explicit agreed `--project dronelink-25dbc`; cloud mutations default to dry run and require `--apply`. Use a deliberate durable private archive directory outside Git. No command creates production resources or runs automatic releases.
