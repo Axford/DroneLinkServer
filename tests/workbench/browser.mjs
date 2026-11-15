@@ -23,7 +23,7 @@ let peer;
 try {
   await gateway.ready;
   browser = await chromium.launch({ channel: process.env.DRONELINK_BROWSER_CHANNEL || 'chrome', headless: true });
-  const context = await browser.newContext();
+  const context = await browser.newContext({ reducedMotion: 'reduce' });
   const offOrigin = [];
   const apiRequests = [];
   const errors = [];
@@ -36,6 +36,12 @@ try {
     }
     if (url.pathname.startsWith('/api/')) apiRequests.push([request.method(), url.pathname]);
     return route.continue();
+  });
+  const tile = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAIAAADTED8xAAACv0lEQVR4nO3TMQ0AMAzAsMIejT3DOxg9YskA8mTOfZA16wWwyACkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSPvL1BhSjgDtrAAAAABJRU5ErkJggg==', 'base64');
+  let tileRequests = 0;
+  await context.route('https://tile.openstreetmap.org/**', request => {
+    tileRequests += 1;
+    return request.fulfill({ contentType: 'image/png', headers: { 'Access-Control-Allow-Origin': '*' }, body: tile });
   });
   const page = await context.newPage();
   page.on('pageerror', error => errors.push(error.message));
@@ -50,12 +56,18 @@ try {
   const row = page.getByRole('article', { name: 'Parameter 11>5.8' });
 
   await page.goto(`${first.origin}/workbench/`);
+  const lenses = page.getByRole('navigation', { name: 'Domain lenses' });
+  assert.equal(await lenses.getByRole('button', { name: 'Map' }).getAttribute('aria-current'), 'page');
+  assert.equal(await lenses.getByRole('button', { name: 'Nodes', exact: true }).count(), 0);
+  const inspectorPanel = page.getByRole('region', { name: 'Node Inspector' });
+  assert.equal(await inspectorPanel.getAttribute('data-size'), 'collapsed');
   await connected.waitFor(timeout);
   const nav = page.getByRole('navigation', { name: 'Primary navigation' });
   assert.equal(await nav.getByRole('link', { name: 'Workbench' }).getAttribute('aria-current'), 'page');
   await page.getByRole('heading', { name: 'Workbench', exact: true }).waitFor(timeout);
   await hello(gateway);
   await page.getByRole('button', { name: /Node 11 · Reachable/ }).click(timeout);
+  await inspectorPanel.getByRole('button', { name: 'Normal inspector' }).click();
   await waitForPublication.waitFor(timeout);
   await publication(gateway, packet(42));
   await row.getByText('42', { exact: true }).waitFor(timeout);
@@ -81,33 +93,29 @@ try {
 
   await page.reload();
   await page.getByRole('button', { name: /Node 11 · Reachable/ }).click(timeout);
+  await inspectorPanel.getByRole('button', { name: 'Normal inspector' }).click();
   await waitForPublication.waitFor(timeout);
   await publication(gateway, packet(45));
   await row.getByText('45', { exact: true }).waitFor(timeout);
   assert.deepEqual(offOrigin, []);
   assert.ok(apiRequests.length >= 3);
-  for (const request of apiRequests) assert.deepEqual(request, ['GET', '/api/workbench/v1/events']);
+  for (const [method, path] of apiRequests) {
+    assert.equal(method, 'GET');
+    assert.ok(['/api/workbench/v1/events', '/api/workbench/v1/map-config'].includes(path), path);
+  }
   assert.deepEqual(errors, []);
-  console.log(`PASS Chrome ${browser.version()}: local typed values, independent route and gateway recovery, reload, zero off-origin requests`);
+  console.log(`PASS Chrome ${browser.version()}: local typed values, independent route and gateway recovery, reload and no cloud API requests`);
 
   // Exercise the real map without making network calls to the tile provider.
-  const tile = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAIAAADTED8xAAACv0lEQVR4nO3TMQ0AMAzAsMIejT3DOxg9YskA8mTOfZA16wWwyACkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSDMAaQYgzQCkGYA0A5BmANIMQJoBSPvL1BhSjgDtrAAAAABJRU5ErkJggg==', 'base64');
-  await page.route('https://tile.openstreetmap.org/**', request => request.fulfill({
-    contentType: 'image/png', headers: { 'Access-Control-Allow-Origin': '*' }, body: tile,
-  }));
   const payload = Buffer.alloc(12);
   [-1.804, 51.575, 0].forEach((value, index) => payload.writeFloatLE(value, index * 4));
   const type = Buffer.from('NMEA');
   await publication(gateway, [11, 11, 10, 5, (DRONE_LINK_MSG_TYPE_CHAR << 4) | (type.length - 1), ...type]);
   await publication(gateway, [11, 11, 10, 8, (DRONE_LINK_MSG_TYPE_FLOAT << 4) | (payload.length - 1), ...payload]);
-  const tileRequest = page.waitForRequest('https://tile.openstreetmap.org/**', timeout);
-  await page.getByRole('button', { name: 'Map', exact: true }).click();
-  await tileRequest;
   await page.locator('.maplibregl-canvas').waitFor(timeout);
   const canvas = page.locator('.dw-map-canvas');
   const lens = page.locator('.dw-map');
-  const cards = page.getByRole('region', { name: 'Observed nodes' });
-  const inspectorPanel = page.getByRole('region', { name: 'Node Inspector' });
+  const cards = page.getByRole('region', { name: 'Local nodes' });
   const separator = page.getByRole('separator');
   assert.ok((await canvas.boundingBox()).width > (await lens.boundingBox()).width);
   const cardBox = await cards.boundingBox();
@@ -149,9 +157,37 @@ try {
   await page.getByText('Node 11 · Local · Wi-Fi', { exact: true }).waitFor(timeout);
   await page.getByRole('link', { name: 'OpenStreetMap contributors' }).waitFor(timeout);
   assert.equal(await page.getByText('Basemap tiles unavailable').count(), 0);
+  assert.ok(tileRequests > 0);
   assert.deepEqual(offOrigin, []);
   assert.deepEqual(errors, []);
   console.log(`PASS Chrome ${browser.version()}: standalone map requests tiles, fits local GPS and selects its node without cloud API calls`);
+
+  const motionRunning = locator => locator.evaluate(element => element.getAnimations({ subtree: true }).some(animation => {
+    const { duration, easing } = animation.effect.getTiming();
+    return duration === 500 && (easing === 'ease-out' || animation.effect.getKeyframes().some(frame => frame.easing === 'ease-out'));
+  }));
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await cards.getByRole('button', { name: 'Collapse node list' }).click();
+  const exitingNode = cards.locator('[data-motion-exit]');
+  assert.equal(await exitingNode.getAttribute('inert'), '');
+  assert.ok(await motionRunning(exitingNode), 'Node card leaves at the shared timing');
+  await exitingNode.waitFor({ state: 'detached', ...timeout });
+  await inspectorPanel.getByRole('button', { name: 'Collapse inspector' }).click();
+  assert.ok(await motionRunning(inspectorPanel), 'Floating Inspector animates its bounds');
+  await inspectorPanel.getByRole('button', { name: 'Normal inspector' }).click();
+  const gpsCard = inspectorPanel.locator('.channel-card').filter({ has: page.locator('[data-inspector-focus="channel-10"]') });
+  await gpsCard.getByRole('button', { name: 'Show Parameters' }).click();
+  const exitingView = gpsCard.locator('.dw-motion-view[data-motion-exit]');
+  assert.equal(await exitingView.getAttribute('inert'), '');
+  assert.ok(await motionRunning(gpsCard), 'Summary and Parameters cross-fade at the shared timing');
+  await exitingView.waitFor({ state: 'detached', ...timeout });
+  await gpsCard.getByRole('button', { name: 'Show Summary' }).click();
+  assert.ok(await motionRunning(gpsCard), 'The reverse view change also animates');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await exitingView.waitFor({ state: 'detached', ...timeout });
+  await inspectorPanel.getByRole('button', { name: 'Collapse inspector' }).click();
+  assert.equal(await motionRunning(inspectorPanel), false, 'Reduced motion skips the floating transition');
+  console.log('PASS Workbench motion: overlay exit, floating Inspector, cross-fade both ways and reduced motion');
 
   await page.close();
   await gateway.close();
@@ -179,6 +215,7 @@ try {
   await topology.getByRole('button', { name: 'Node 11 Gateway route' }).click(timeout);
   assert.equal(await wifiRoute.getAttribute('data-focused'), 'true');
   assert.equal(await dual.getByRole('region', { name: 'Local nodes' }).count(), 0);
+  await dual.getByRole('button', { name: 'Normal inspector' }).click();
   await dual.getByText('Node 11 · Local · Serial', { exact: true }).waitFor(timeout);
   const name = Buffer.from('BenchTest');
   await publication(gateway, [11, 11, 1, 8, (DRONE_LINK_MSG_TYPE_CHAR << 4) | (name.length - 1), ...name]);
@@ -224,6 +261,8 @@ try {
   peer.hello(gateway);
   await files.getByRole('button', { name: /Node 11 · Reachable/ }).click(timeout);
   const inspector = files.getByRole('region', { name: 'Node Inspector' });
+  await files.getByRole('button', { name: 'Network', exact: true }).click();
+  await inspector.getByRole('button', { name: 'Normal inspector' }).click();
   assert.equal(await inspector.getByRole('tab', { name: 'Modules' }).getAttribute('aria-selected'), 'true');
   const normalSize = await inspector.boundingBox();
   await inspector.getByRole('tab', { name: 'Files' }).click();
@@ -291,9 +330,6 @@ try {
   assert.equal(await inspector.getByRole('tab', { name: 'Modules' }).getAttribute('aria-selected'), 'true');
   await inspector.getByRole('tab', { name: 'Files' }).click();
   assert.equal(await editor.inputValue(), 'Edited in the Workbench\n');
-  await files.route('https://tile.openstreetmap.org/**', request => request.fulfill({
-    contentType: 'image/png', headers: { 'Access-Control-Allow-Origin': '*' }, body: tile,
-  }));
   await files.getByRole('button', { name: 'Map', exact: true }).click();
   await files.setViewportSize({ width: 390, height: 844 });
   assert.equal(await editor.inputValue(), 'Edited in the Workbench\n');
@@ -545,10 +581,10 @@ try {
     }
     return route.abort();
   });
-  await cloudMap.goto(`${localhostOrigin}/workbench/`);
-  const styleResponse = cloudMap.waitForResponse(response => new URL(response.url()).pathname === cloudStylePath && response.ok(), timeout);
-  await cloudMap.getByRole('button', { name: 'Map', exact: true }).click();
-  await styleResponse;
+  await Promise.all([
+    cloudMap.waitForResponse(response => new URL(response.url()).pathname === cloudStylePath && response.ok(), timeout),
+    cloudMap.goto(`${localhostOrigin}/workbench/`),
+  ]);
   assert.equal(requestedToken, fixtureToken);
   await cloudMap.locator('.mapboxgl-canvas').waitFor(timeout);
   assert.equal(await cloudMap.getByText('Local fallback basemap').count(), 0);
