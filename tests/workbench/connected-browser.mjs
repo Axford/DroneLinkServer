@@ -237,7 +237,7 @@ try {
   await page.getByRole('button', { name: 'Open node configuration' }).click();
   const graph = page.getByRole('region', { name: 'Subscription graph' });
   await graph.locator('.react-flow__edge-path').waitFor({ state: 'attached', ...timeout });
-  await graph.getByRole('button', { name: '$location', exact: true }).click(timeout);
+  await graph.getByRole('button', { name: 'Edit source for $location on channel 12', exact: true }).click(timeout);
   await page.getByRole('textbox', { name: 'Source for $location' }).fill('@>10.9');
   await page.getByRole('button', { name: 'Update draft' }).click();
   assert.equal(peer.files.get('/config.ini').toString(), configuration);

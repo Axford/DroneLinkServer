@@ -1,8 +1,18 @@
+import { readFileSync } from 'node:fs';
 import { deviceAddress, readDeviceJson } from './workbench-device-http.mjs';
 import { FileError } from './workbench-files.mjs';
 
 const typeName = /^[A-Za-z][A-Za-z0-9]{0,18}$/;
 const buildMarker = /^[0-9a-f]{4,40}$/;
+
+const help = JSON.parse(readFileSync(new URL('./public/moduleInfo.json', import.meta.url), 'utf8'));
+const descriptions = new Map(Object.entries(help).map(([type, item]) => [type, descriptionOf(item)]));
+descriptions.set('CloudTelemetry', 'Sends selected node and peer telemetry over HTTPS.');
+descriptions.set('Probe', 'Reads selected free inputs to help diagnose wiring.');
+
+function descriptionOf(item) {
+  return Array.isArray(item.description) ? item.description.filter(line => typeof line === 'string').join(' ').trim() : '';
+}
 
 async function readSupport(address, node, fetchNode) {
   const { data } = await readDeviceJson(fetchNode, address, '/supportedModules', { signal: AbortSignal.timeout(2000) });
@@ -70,7 +80,7 @@ export default function createCatalogue(mesh, release, fetchNode = fetch) {
   const entries = Object.entries(moduleInfo).filter(([type]) => typeName.test(type)).map(([type, item]) => ({
     type,
     settings: settingsFor(moduleInfo, type),
-    description: Array.isArray(item.description) ? item.description.filter(line => typeof line === 'string').join(' ') : '',
+    description: descriptionOf(item) || descriptions.get(type) || '',
     category: typeof item.category?.[0] === 'string' ? item.category[0] : '',
     ...(type === 'NMEA' ? { locationOutput: parameter(item.pub?.find(p => p.name === 'location')),
       serialPort: parameter(item.pub?.find(p => p.name === 'port' && p.writeable)) } : {}),
@@ -105,7 +115,7 @@ export default function createCatalogue(mesh, release, fetchNode = fetch) {
     return {
       schemaVersion: 1, node, supportKnown, build: support?.build, metadataStatus,
       release: release.status.identity,
-      entries: [...entries, ...[...(support?.types ?? [])].filter(type => !known.has(type)).map(type => ({ type, description: '', category: '' }))]
+      entries: [...entries, ...[...(support?.types ?? [])].filter(type => !known.has(type)).map(type => ({ type, description: descriptions.get(type) || '', category: '' }))]
         .map(entry => ({ ...entry, support: !support ? 'unknown' : support.types.has(entry.type) ? 'supported' : 'unsupported' }))
         .sort((a, b) => a.type.localeCompare(b.type)),
     };

@@ -431,6 +431,15 @@ try {
   await files.getByRole('button', { name: 'Logical', exact: true }).click();
   console.log('PASS V4 motherboard and wiring stay visible while telemetry updates');
   const graph = files.getByRole('region', { name: 'Subscription graph' });
+  assert.ok(await graph.evaluate(canvas => canvas.clientHeight >= window.innerHeight * 0.59));
+  assert.ok(await files.getByRole('group', { name: 'Configuration views' }).evaluate(tabs => {
+    const tabBar = tabs.parentElement;
+    return getComputedStyle(tabBar).borderBottomStyle === 'solid' &&
+      tabBar.getBoundingClientRect().width === tabBar.parentElement.clientWidth -
+        parseFloat(getComputedStyle(tabBar.parentElement).paddingLeft) - parseFloat(getComputedStyle(tabBar.parentElement).paddingRight);
+  }));
+  assert.equal(await files.locator('.dw-file-header').getByText('Node 11 · Wi-Fi').count(), 0);
+
   await graph.locator('.react-flow__edge-path').waitFor({ state: 'attached', ...timeout });
   const gps = graph.getByRole('button', { name: 'GPS', exact: true });
   assert.ok(await staysVisibleDuringTelemetry(gps), 'Logical module cards must remain visible during telemetry updates.');
@@ -438,12 +447,13 @@ try {
   await subscriptionWire.waitFor({ state: 'attached', ...timeout });
   assert.ok(await subscriptionWire.evaluate(path => getComputedStyle(path).visibility === 'visible' && path.getTotalLength() > 0));
   console.log('PASS Logical cards and subscriptions stay visible while telemetry updates');
-  await graph.getByRole('button', { name: '$location', exact: true }).click(timeout);
+  await graph.getByRole('button', { name: 'Edit source for $location on channel 12', exact: true }).click(timeout);
   await files.getByText('Local: GPS (channel 10)', { exact: true }).waitFor(timeout);
   const editSource = files.getByRole('button', { name: 'Edit source for $location on channel 12' });
   const source = files.getByRole('textbox', { name: 'Source for $location' });
   await source.fill('@>14.8');
   await source.press('Enter');
+  await files.getByRole('dialog', { name: 'Edit source' }).waitFor({ state: 'hidden', ...timeout });
   assert.equal(await editSource.evaluate(button => button === document.activeElement), true);
   await graph.getByRole('group', { name: /Local: BackupGPS.*to channel 12/ }).waitFor({ state: 'attached', ...timeout });
   await files.getByRole('button', { name: 'Code', exact: true }).click();
@@ -481,7 +491,12 @@ try {
   await files.getByRole('button', { name: 'Add module', exact: true }).click();
   const addDialog = files.getByRole('dialog', { name: 'Add module' });
   await addDialog.getByRole('searchbox').fill('gps');
-  await addDialog.getByRole('button', { name: 'Add GPS' }).click(timeout);
+  const addGps = addDialog.getByRole('button', { name: 'Add GPS' });
+  await addGps.waitFor(timeout);
+  assert.equal(await addGps.textContent(), '+');
+  assert.match(await addGps.locator('..').textContent(), /GPS.+NMEA.+GPS/i);
+  assert.equal(await addDialog.getByText(/Templates include|reported its supported types/).count(), 0);
+  await addGps.click(timeout);
   await addDialog.waitFor({ state: 'hidden', ...timeout });
   const template = await readCode();
   assert.ok(template.startsWith(base.replaceAll('\r\n', '\n') + '\n[NMEA = 2]\n  name = GPS2\n'));
@@ -579,12 +594,14 @@ try {
     await files.getByRole('button', { name: 'Logical', exact: true }).click();
     await graph.getByRole('button', { name: 'GPS2', exact: true }).press('Enter', timeout);
     assert.equal(await files.getByLabel('GPS serial port').inputValue(), '2');
+    await files.getByRole('button', { name: 'Close Module settings' }).click(timeout);
     await graph.getByRole('button', { name: 'Nav', exact: true }).click(timeout);
     await files.getByLabel('Pilot location source').selectOption('2', timeout);
     await files.getByRole('button', { name: 'Review connection' }).click();
     assert.match(await files.getByLabel('Connection changes').textContent(), /publish = location/);
     assert.equal(peer.files.get('/config.ini').toString(), base);
     await files.getByRole('button', { name: 'Apply connection to draft' }).click();
+    await files.getByRole('button', { name: 'Close Module settings' }).click(timeout);
     await graph.getByRole('group', { name: /Local: GPS2.*to channel 12/ }).waitFor({ state: 'attached', ...timeout });
     await files.getByRole('button', { name: 'Code', exact: true }).click();
     const expected = base.replace('@>14.8', '@>2.8').replace('pin32 = digital', 'pin32 = serial,19200').replace('bus = 3', 'bus = 5') + addedTemplate + '  port = 2\r\n  publish = location\r\n';
@@ -595,13 +612,14 @@ try {
     gateway.processHandle.send('different catalogue build');
     await files.getByRole('button', { name: 'Add module', exact: true }).click();
     await catalogue.getByRole('button', { name: 'Refresh catalogue' }).click(timeout);
-    await catalogue.getByText('Catalogue metadata is from a different build.', { exact: false }).waitFor(timeout);
     await catalogue.getByRole('searchbox').fill('GPS');
     assert.ok(await catalogue.getByRole('button', { name: 'Add GPS' }).isEnabled());
     await catalogue.getByRole('button', { name: 'Close Add module' }).click();
     await files.getByRole('button', { name: 'Logical', exact: true }).click();
     await graph.getByRole('button', { name: 'Nav', exact: true }).click(timeout);
+    await files.getByText('Guided settings require the node’s supported types and matching catalogue build marker.').waitFor(timeout);
     assert.equal(await files.getByLabel('Pilot location source').count(), 0);
+    await files.getByRole('button', { name: 'Close Module settings' }).click(timeout);
     console.log('PASS pinned catalogue, Physical serial and I²C rewiring, GPIO waiting/live/occupied/stale, and exact cross-view upload');
   }
   files.once('dialog', dialog => dialog.accept());

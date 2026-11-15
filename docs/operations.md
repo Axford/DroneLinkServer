@@ -199,7 +199,7 @@ Use one file-writing gateway per node. If Save cannot be verified, reopen the st
 
 ### Module catalogue
 
-Pass `--release-dir /absolute/prepared-sep05-release` to supply verified module descriptions and parameter metadata to standalone and connected Workbench. Workbench checks the selected node's compiled types over device HTTP on a direct Wi-Fi route. Older firmware, serial or relayed routes, and nodes with unreachable device HTTP leave support unknown. Guided GPS settings and location wiring require matching build markers. Manual editing remains available. See the [catalogue contract](../../DroneLinkDatastore/docs/contracts/workbench.md#workbench-module-catalogue).
+Pass `--release-dir /absolute/prepared-sep05-release` to supply verified module descriptions and parameter metadata to standalone and connected Workbench. When a reported type lacks a release description, the gateway can use its bundled module help text. Workbench checks the selected node's compiled types over device HTTP on a direct Wi-Fi route. Older firmware, serial or relayed routes, and nodes with unreachable device HTTP leave support unknown. Guided GPS settings and location wiring require matching build markers. Manual editing remains available. See the [catalogue contract](../../DroneLinkDatastore/docs/contracts/workbench.md#workbench-module-catalogue).
 
 Set `WORKBENCH_CATALOGUE_FIXTURE` to the prepared SEP-05 fixture with release identity `739fc899479974550361f72c86c3d3c6a5570d102c660e38c2d704df653f21ff` (build `c017040`) to exercise the catalogue in both Workbench browser suites. The fixture simulates the device HTTP response and verifies the pinned release with the production verifier.
 

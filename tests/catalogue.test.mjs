@@ -75,3 +75,16 @@ test('projects inherited startup keys and examples without treating telemetry as
   assert.equal(values.location, undefined);
   assert.match(values.publish, /location/);
 });
+
+test('supplies descriptions for reported types without granting release metadata or support', async () => {
+  const catalogue = createCatalogue(mesh, { status: {}, assets: new Map() },
+    async () => reply({ types: ['ADS1015', 'Probe', 'FutureModule'] }));
+  const result = await catalogue('11', 'wifi');
+  const entries = Object.fromEntries(result.entries.map(entry => [entry.type, entry]));
+  assert.equal(result.metadataStatus, 'unavailable');
+  assert.match(entries.ADS1015.description, /12-bit ADC/);
+  assert.match(entries.Probe.description, /diagnose wiring/);
+  assert.equal(entries.ADS1015.settings, undefined);
+  assert.equal(entries.FutureModule.description, '');
+  assert.deepEqual((await catalogue('11', 'serial')).entries, []);
+});
