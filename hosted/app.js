@@ -11,6 +11,7 @@ const { mountVisualizationSettingsRoutes } = require('./lib/visualizationSetting
 const { mountDroneGroupingRoutes } = require('./lib/droneGroupingRoutes');
 const { mountTelemetryRoutes } = require('./lib/telemetryRoutes');
 const { mountWorkbenchRoutes, machinePath } = require('./lib/workbenchRoutes');
+const { mountWorkbenchBootstrap, exchangePath, isWorkbenchReturn } = require('./lib/workbenchBootstrap');
 const { mountPackedTelemetry } = require('./lib/packedTelemetry');
 const { createAccessPolicy, fault } = require('./lib/accessPolicy');
 const { mountAccessRoutes } = require('./lib/accessRoutes');
@@ -104,10 +105,10 @@ const createApp = ({ config, store, replayWorker, mountStagingTestSignIn, google
         resave: false, saveUninitialized: false,
         cookie: { secure: config.publicOrigin?.startsWith('https:') === true, httpOnly: true, sameSite: 'lax', maxAge: 600000 }
     });
-    app.use((req, res, next) => ['/addPacket', '/gateway/verify', machinePath].includes(req.path) ? next() : browserSession(req, res, next));
+    app.use((req, res, next) => ['/addPacket', '/gateway/verify', machinePath, exchangePath].includes(req.path) ? next() : browserSession(req, res, next));
     app.use(passport.initialize());
     const restoreSession = passport.session();
-    app.use((req, res, next) => ['/addPacket', '/gateway/verify', machinePath].includes(req.path) ? next() : restoreSession(req, res, next));
+    app.use((req, res, next) => ['/addPacket', '/gateway/verify', machinePath, exchangePath].includes(req.path) ? next() : restoreSession(req, res, next));
 
     // Serve static files
     app.use('/public', express.static(path.join(__dirname, 'public')));
@@ -146,7 +147,7 @@ const createApp = ({ config, store, replayWorker, mountStagingTestSignIn, google
     });
     app.get('/auth/google', (req, res, next) => {
         const target = req.query.returnTo;
-        if (target !== undefined && (typeof target !== 'string' || !/^\/invite\/[A-Za-z0-9_-]{1,200}\.[A-Za-z0-9_-]{43}$/.test(target))) return next(fault('validation'));
+        if (target !== undefined && (typeof target !== 'string' || (!/^\/invite\/[A-Za-z0-9_-]{1,200}\.[A-Za-z0-9_-]{43}$/.test(target) && !isWorkbenchReturn(target)))) return next(fault('validation'));
         req.session.inviteReturn = target ? { path: target, expiresAt: Date.now() + 600000 } : null;
         next();
     }, passport.authenticate('google', { scope: ['profile', 'email'] }));
@@ -172,6 +173,7 @@ const createApp = ({ config, store, replayWorker, mountStagingTestSignIn, google
     mountStagingTestSignIn?.(app, { config, store, policy, ensureAuthenticated });
     mountCommandRoutes(app, { store, policy, ensureAuthenticated, ready });
     mountWorkbenchRoutes(app, { config, store, ready, policy, ensureAuthenticated });
+    mountWorkbenchBootstrap(app, { store, ready, policy, ensureAuthenticated });
     app.use(express.json({ limit: '10mb' }));
     app.post('/auth/logout', ensureAuthenticated, (req, res, next) => req.logout(error => {
         if (error) return next(error);

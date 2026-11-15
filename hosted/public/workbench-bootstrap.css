@@ -1,0 +1,30 @@
+:root {
+    color-scheme: dark;
+    font: 16px/1.55 system-ui, sans-serif;
+    color: #e7edf6;
+    background: #151b22;
+}
+main {
+    max-width: 34rem;
+    margin: min(12vh, 5rem) auto;
+    padding: 2rem;
+}
+h1 {
+    font-size: clamp(1.6rem, 5vw, 2.25rem);
+    line-height: 1.2;
+}
+a { color: #9cc7ff; }
+button {
+    font: inherit;
+    color: inherit;
+    background: transparent;
+    border: 1px solid #778596;
+    border-radius: 0.4rem;
+    padding: 0.55rem 0.9rem;
+    cursor: pointer;
+}
+#authorize {
+    background: #284e81;
+    border-color: #9cc7ff;
+}
+button:disabled { opacity: 0.6; }
