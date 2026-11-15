@@ -75,7 +75,7 @@ try {
   assert.ok(await row.locator('time').getAttribute('datetime'));
 
   gateway.processHandle.send('expire routes');
-  await page.getByText('Node 11 · Local · Wi-Fi · Last seen').waitFor(timeout);
+  await page.getByText('Local · Wi-Fi · Last seen').waitFor(timeout);
   await hello(gateway);
   await waitForPublication.waitFor(timeout);
   await publication(gateway, packet(43));
@@ -135,6 +135,14 @@ try {
   assert.equal(await cards.locator('li').first().evaluate(card => getComputedStyle(card).backdropFilter), 'blur(6px)');
   // Keep the Modules inspector floating on the map.
   const shortInspector = await inspectorPanel.boundingBox();
+  const overlayStyle = await inspectorPanel.evaluate(panel => {
+    const { backgroundColor, paddingLeft } = getComputedStyle(panel);
+    return { backgroundColor, paddingLeft };
+  });
+  assert.equal(overlayStyle.paddingLeft, '0px');
+  assert.match(overlayStyle.backgroundColor, /^rgba\(\d+, \d+, \d+, 0\.6\)$/);
+  assert.equal(await page.locator('.dw-map-toolbar').getByText(/last-known positions/).count(), 0);
+  assert.equal(await cards.getByText(/Reachable/).count(), 0);
   const availableInspectorHeight = await inspectorPanel.evaluate(panel => {
     const frame = panel.parentElement;
     const { paddingTop, paddingBottom } = getComputedStyle(frame);
@@ -165,7 +173,7 @@ try {
   const marker = page.getByRole('button', { name: /Node 11.*Binding 11>10.8/ });
   await marker.click(timeout);
   await inspectorPanel.getByRole('tab', { name: 'Modules' }).click();
-  await page.getByText('Node 11 · Local · Wi-Fi', { exact: true }).waitFor(timeout);
+  await page.getByText('Local · Wi-Fi', { exact: true }).waitFor(timeout);
   await page.getByRole('link', { name: 'OpenStreetMap contributors' }).waitFor(timeout);
   assert.equal(await page.getByText('Basemap tiles unavailable').count(), 0);
   assert.ok(tileRequests > 0);
@@ -257,11 +265,17 @@ try {
   await topology.getByRole('button', { name: 'Node 11 Gateway route' }).click(timeout);
   assert.equal(await wifiRoute.getAttribute('data-focused'), 'true');
   assert.equal(await dual.getByRole('region', { name: 'Local nodes' }).count(), 0);
-  await dual.getByText('Node 11 · Local · Serial', { exact: true }).waitFor(timeout);
+  await dual.getByText('Local · Serial', { exact: true }).waitFor(timeout);
   const name = Buffer.from('BenchTest');
-  await publication(gateway, [11, 11, 1, 8, (DRONE_LINK_MSG_TYPE_CHAR << 4) | (name.length - 1), ...name]);
+  const namePacket = [11, 11, 1, 8, (DRONE_LINK_MSG_TYPE_CHAR << 4) | (name.length - 1), ...name];
+  await publication(gateway, namePacket);
+  serialPublication(gateway, namePacket);
   const namedRoute = wifiRoute.getByRole('button', { name: 'Inspect node 11 from Wi-Fi route: BenchTest' });
   await namedRoute.waitFor(timeout);
+  const namedInspector = dual.getByRole('region', { name: 'Node Inspector' });
+  await namedInspector.getByRole('heading', { name: '11 BenchTest', exact: true }).waitFor(timeout);
+  assert.equal(await namedInspector.locator('.dw-inspector-title-arrow').textContent(), '▶');
+  assert.ok(await namedInspector.evaluate(panel => parseFloat(getComputedStyle(panel).paddingLeft) > 0));
   assert.equal(await namedRoute.textContent(), '11 BenchTest');
   assert.equal(await namedRoute.evaluate(button => getComputedStyle(button).textDecorationLine), 'none');
   await publication(gateway, packet(46));
@@ -274,10 +288,10 @@ try {
   await selector.selectOption('serial');
   await dual.getByText(/Hidden by transport selection/).waitFor(timeout);
   gateway.processHandle.send({ serial: 'detach' });
-  await dual.getByText('Node 11 · Local · Serial · Last seen', { exact: true }).waitFor(timeout);
+  await dual.getByText('Local · Serial · Last seen', { exact: true }).waitFor(timeout);
   await serialRow.getByText('90', { exact: true }).waitFor(timeout);
   await selector.selectOption('auto');
-  await dual.getByText('Node 11 · Local · Wi-Fi', { exact: true }).waitFor(timeout);
+  await dual.getByText('Local · Wi-Fi', { exact: true }).waitFor(timeout);
   await serialRow.getByText('46', { exact: true }).waitFor(timeout);
   await dual.getByText('Serial · Up', { exact: true }).waitFor({ timeout: 14000 });
   serialHello(gateway);
@@ -379,6 +393,7 @@ try {
   assert.ok(normalMapSize.width < 390);
   await full.click();
   assert.ok((await inspector.boundingBox()).width >= 385);
+  assert.ok(await inspector.evaluate(panel => parseFloat(getComputedStyle(panel).paddingLeft) > 0));
   assert.equal(await scrollingPane.evaluate(pane => getComputedStyle(pane).overflowY), 'auto');
   await files.getByRole('button', { name: 'Upload to node' }).click();
   await files.getByText(/Stored file verified by readback/).waitFor(timeout);
