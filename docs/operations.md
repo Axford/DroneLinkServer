@@ -197,6 +197,10 @@ Select a node and local transport, then open **Node files** and select **List fi
 
 Use one file-writing gateway per node. If Save cannot be verified, reopen the stored file and inspect the reserved scratch path before retrying. The editor keeps its draft on failure. **Restart node** is a separate confirmed action. The runtime uptime shown in the panel comes from node telemetry. See the [WB.3 plan](../../DroneLinkDatastore/docs/planning/workbench.md#wb3--standalone-node-files).
 
+### Motherboard version
+
+The Physical view can read the selected node's boot-time motherboard result over direct Wi-Fi. The gateway uses the private device address from that node's direct HELLO. Older firmware and serial or relayed routes leave automatic selection unavailable. Connected reads require the current node-file grant. See the [motherboard version contract](../../DroneLinkDatastore/docs/contracts/workbench.md#motherboard-version).
+
 ### Module catalogue
 
 Pass `--release-dir /absolute/prepared-sep05-release` to supply verified module descriptions and parameter metadata to standalone and connected Workbench. When a reported type lacks a release description, the gateway can use its bundled module help text. Workbench checks the selected node's compiled types over device HTTP on a direct Wi-Fi route. Older firmware, serial or relayed routes, and nodes with unreachable device HTTP leave support unknown. Guided GPS settings and location wiring require matching build markers. Manual editing remains available. See the [catalogue contract](../../DroneLinkDatastore/docs/contracts/workbench.md#workbench-module-catalogue).

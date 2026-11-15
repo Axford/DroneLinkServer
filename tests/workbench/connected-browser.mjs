@@ -112,7 +112,7 @@ try {
   peer = await filePeer();
   const configuration = 'node = 11\n[Nav = 12]\n$location = @>10.8\n[NMEA = 10]\n';
   peer.files.set('/config.ini', Buffer.from(configuration));
-  gateway = await launch(build, undefined, undefined, { peerPort: peer.port, connectedConfig, caFile: cert, catalogueFixture });
+  gateway = await launch(build, undefined, undefined, { peerPort: peer.port, connectedConfig, caFile: cert, catalogueFixture, nodeCapabilities: true });
   await gateway.ready;
   for (let i = 0; i < 25 && !gateway.pairingKey(); i++) await new Promise(resolve => setTimeout(resolve, 20));
   const pairingKey = gateway.pairingKey();
@@ -236,6 +236,16 @@ try {
   page.once('dialog', dialog => dialog.accept());
   await page.getByRole('button', { name: 'Open node configuration' }).click();
   const graph = page.getByRole('region', { name: 'Subscription graph' });
+  await graph.locator('.react-flow__edge-path').waitFor({ state: 'attached', ...timeout });
+  await page.getByRole('button', { name: 'Physical', exact: true }).click();
+  await page.getByLabel('Motherboard').getByRole('option', { name: 'DroneLink V4 (detected)' }).waitFor({ state: 'attached', ...timeout });
+  await page.getByRole('region', { name: 'Physical wiring graph' }).waitFor(timeout);
+  const boardEndpoint = `${gateway.origin}/api/workbench/v1/connected/nodes/11/motherboard?transport=wifi`;
+  const boardHeaders = { Origin: origin, 'X-Workbench-Key': pairingKey, 'X-Workbench-Grant': 'a'.repeat(64) };
+  canEdit = false;
+  assert.equal((await fetch(boardEndpoint, { headers: boardHeaders })).status, 403);
+  canEdit = true;
+  await page.getByRole('button', { name: 'Logical', exact: true }).click();
   await graph.locator('.react-flow__edge-path').waitFor({ state: 'attached', ...timeout });
   await graph.getByRole('button', { name: 'Edit source for $location on channel 12', exact: true }).click(timeout);
   await page.getByRole('textbox', { name: 'Source for $location' }).fill('@>10.9');

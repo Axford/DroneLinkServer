@@ -22,6 +22,9 @@ let job = 40;
 globalThis.fetch = (url, options) => {
   const target = new URL(url);
   if (target.origin !== 'http://192.168.50.11') return realFetch(url, options);
+  if (target.pathname === '/motherboard') {
+    return Promise.resolve(Response.json({ schemaVersion: 1, node: 11, version: 4 }));
+  }
   if (target.pathname === '/supportedModules') {
     return Promise.resolve(Response.json({ schemaVersion: 1, node: 11, build, types: ['Management', 'NMEA', 'Nav', 'Probe', 'INA219', 'INA3221', 'CMPS12'] }));
   }

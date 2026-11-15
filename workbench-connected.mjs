@@ -116,7 +116,7 @@ export default class ConnectedWorkbench {
     }
   }
 
-  mount(app, { localHost, subscribe, available, files, catalogue, i2c, nodeNetwork, traceRoute, parameterOperation }) {
+  mount(app, { localHost, subscribe, available, files, catalogue, motherboard, i2c, nodeNetwork, traceRoute, parameterOperation }) {
     app.use(base, (req, res, next) => {
       if (req.get('host') !== localHost || req.get('origin') !== this.origin) return res.sendStatus(403);
       res.set({ 'Access-Control-Allow-Origin': this.origin, 'Cache-Control': 'no-store', Vary: 'Origin' });
@@ -197,6 +197,7 @@ export default class ConnectedWorkbench {
     }));
     app.post(`${nodeAPI}/i2c-scan`, ...diagnosticBody, fileOperation(200, (node, transport, _path, body) => i2c.scan(node, transport, body), true));
     app.post(`${nodeAPI}/i2c-register`, ...diagnosticBody, fileOperation(200, (node, transport, _path, body) => i2c.register(node, transport, body), true));
+    app.get(`${nodeAPI}/motherboard`, fileOperation(200, motherboard, true));
     app.get(`${nodeAPI}/module-catalogue`, fileOperation(200, catalogue, true));
     app.get(`${nodeAPI}/files`, fileOperation(200, (node, transport, path) => files.list(node, transport, path), true));
     app.get(`${nodeAPI}/file`, fileOperation(200, (node, transport, path, _body, authorize) => snapshot(node, files.read(node, transport, path), authorize)));

@@ -403,8 +403,20 @@ try {
   await files.getByRole('dialog', { name: 'Files' }).getByRole('button', { name: 'Open node configuration' }).click();
   await files.getByRole('dialog', { name: 'Files' }).waitFor({ state: 'hidden', ...timeout });
   await files.getByRole('button', { name: 'Physical', exact: true }).click(timeout);
-  await files.getByLabel('Motherboard').selectOption('v4');
+  const boardSelect = files.getByLabel('Motherboard');
   const wiring = files.getByRole('region', { name: 'Physical wiring graph' });
+  await boardSelect.getByRole('option', { name: 'DroneLink V4 (detected)' }).waitFor({ state: 'attached', ...timeout });
+  assert.equal(await boardSelect.inputValue(), 'auto');
+  await wiring.waitFor(timeout);
+  await boardSelect.selectOption('none');
+  await wiring.waitFor({ state: 'hidden', ...timeout });
+  await boardSelect.selectOption('v4');
+  await wiring.waitFor(timeout);
+  await files.getByRole('button', { name: 'Logical', exact: true }).click();
+  await files.getByRole('button', { name: 'Physical', exact: true }).click();
+  assert.equal(await boardSelect.inputValue(), 'v4');
+  await boardSelect.selectOption('auto');
+  await wiring.waitFor(timeout);
   const motherboard = wiring.getByRole('img', { name: 'DroneLink V4 motherboard connector diagram' });
   const draftWire = wiring.getByRole('group', { name: 'Serial 1 RX · GPIO 13 to GPS', exact: true });
   await motherboard.waitFor(timeout);
@@ -429,7 +441,7 @@ try {
   assert.ok(await staysVisibleDuringTelemetry(motherboard), 'The V4 motherboard must remain visible during telemetry updates.');
   await draftWire.waitFor(timeout);
   await files.getByRole('button', { name: 'Logical', exact: true }).click();
-  console.log('PASS V4 motherboard and wiring stay visible while telemetry updates');
+  console.log('PASS V4 boot detection, manual override and wiring through telemetry updates');
   const graph = files.getByRole('region', { name: 'Subscription graph' });
   assert.ok(await graph.evaluate(canvas => canvas.clientHeight >= window.innerHeight * 0.59));
   assert.ok(await files.getByRole('group', { name: 'Configuration views' }).evaluate(tabs => {

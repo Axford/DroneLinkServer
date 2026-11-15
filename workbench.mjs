@@ -9,6 +9,7 @@ import createI2cDiagnostics from './workbench-i2c.mjs';
 import createNodeNetwork from './workbench-network.mjs';
 import createParameterOperations from './workbench-parameters.mjs';
 import createTraceRoute from './workbench-trace.mjs';
+import createMotherboardReader from './workbench-motherboard.mjs';
 import createCatalogue from './workbench-catalogue.mjs';
 import WorkbenchMesh from './workbench-mesh.mjs';
 import WorkbenchFiles, { FileError } from './workbench-files.mjs';
@@ -78,6 +79,7 @@ async function start() {
   const release = loadGatewayRelease({ releaseDir });
   if (releaseDir && !release.status.available) console.warn(release.status.warning);
   const catalogue = createCatalogue(mesh, release);
+  const motherboard = createMotherboardReader(mesh);
   const i2c = createI2cDiagnostics(mesh);
   const nodeNetwork = createNodeNetwork(mesh);
   const traceRoute = createTraceRoute(mesh);
@@ -100,7 +102,7 @@ async function start() {
     return true;
   }
 
-  connected?.mount(app, { localHost: origin.host, subscribe, available: () => ready, files, catalogue, i2c, nodeNetwork, traceRoute, parameterOperation });
+  connected?.mount(app, { localHost: origin.host, subscribe, available: () => ready, files, catalogue, motherboard, i2c, nodeNetwork, traceRoute, parameterOperation });
 
   app.use((request, response, next) => {
     const requestOrigin = request.get('origin');
@@ -163,6 +165,7 @@ async function start() {
     }));
   }
   app.get(`${nodeAPI}/network`, handleFile(200, nodeNetwork));
+  app.get(`${nodeAPI}/motherboard`, handleFile(200, motherboard));
   app.get(`${nodeAPI}/module-catalogue`, handleFile(200, catalogue));
   app.get(`${nodeAPI}/files`, handleFile(200, (node, transport, path) => files.list(node, transport, path)));
   app.get(`${nodeAPI}/file`, handleFile(200, (node, transport, path) => files.read(node, transport, path)));
