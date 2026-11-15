@@ -1,6 +1,6 @@
 # Dronewright hosted backend
 
-The independent hosted service uses pinned native Firestore persistence 0.10.2. Install with Node22+ using `npm ci --omit=dev`; run `npm start`. No MongoDB, gateway, emulator, Java or sibling source is required in production.
+The independent hosted service uses pinned native Firestore persistence 0.11.1. Install with Node22+ using `npm ci --omit=dev`; run `npm start`. No MongoDB, gateway, emulator, Java or sibling source is required in production.
 
 Supply `GOOGLE_CLOUD_PROJECT`, `PUBLIC_ORIGIN`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SESSION_SECRET` (32+characters), optional `FIRESTORE_DATABASE` (default `(default)`), `MAPBOX_ACCESS_TOKEN`, `CLIENT_BUILD_DIR` and `PORT`. A local ignored hosted `config.json` may supply equivalent camelCase fields. Startup never creates configuration or downloads credentials. Production uses the service identity and Secret Manager values; no service-account key file. Client build defaults to hosted `private/build`; an explicit path must contain index.html/static. Validate a release before selection.
 
@@ -26,7 +26,7 @@ Preparation explicitly downloads the pinned official Firestore emulator1.22.0 (J
 
 ## Replay reconstruction
 
-`lib/replayHistory.js` provides the internal `buildReplayFrame(packets, {domainId, from, until})` operation. Inject the existing persistence `packets` interface. Times are integer Unix milliseconds. A frame covers `[from, until)`. Pass that frame in place of `from` to continue from its exclusive cutoff. Frames carry a schema version, Domain ID, cutoff and observed channels. Parameter name and value payloads remain base64 so the operation preserves exact protocol bytes. The operation takes a trusted frame from the backend and does not expose a route.
+`lib/replayHistory.js` provides the internal `buildReplayFrame(packets, {domainId, from, until})` operation. Inject the existing persistence `packets` interface. Times are integer Unix milliseconds. A frame covers `[from, until)`. Pass that frame in place of `from` to continue from its exclusive cutoff. Frames carry a schema version, Domain ID, cutoff and observed channels. Parameter name and value payloads remain base64 so the operation preserves exact protocol bytes. The operation takes a trusted frame from the backend. Cloud Replay uses it through authenticated Domain routes. The hosted process runs a worker for persisted Replay requests and scheduled key frames. Rollout requires the matched persistence index manifest. Set `replayAlwaysOn: true` in staging deployment settings to keep one instance available for catch-up and scheduled captures when the workspace is idle. Verify the worker and index readiness before rollout.
 
 The [Cloud Replay plan](../../DroneLinkDatastore/docs/planning/m4-cloud-replay.md) records the remaining storage and Client work.
 

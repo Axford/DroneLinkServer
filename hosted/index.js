@@ -1,3 +1,4 @@
+const { startReplayWorker } = require('./lib/replayWorker');
 const fs = require('node:fs');
 const path = require('node:path');
 const http = require('node:http');
@@ -39,10 +40,11 @@ async function startHosted({ config, storeFactory = openFirestoreStore, appFacto
     }
     resolveClientBuildDir(config.clientBuildDir);
     const store = await storeFactory({ projectId: config.projectId, databaseId: config.databaseId, commandContract: 'm2-a-1', stagingTestSignIn: Boolean(mountStagingTestSignIn), observationEpoch: config.observationEpoch, ...(config.fileBackupLimit === undefined ? {} : { fileBackupLimit: config.fileBackupLimit }), ...(config.emulatorHost ? { emulatorHost: config.emulatorHost } : {}) });
-    let server;
+    let server, replayWorker;
     try {
         await store.access.getControl();
-        const app = appFactory({ config, store, mountStagingTestSignIn });
+        replayWorker = startReplayWorker(store);
+        const app = appFactory({ config, store, mountStagingTestSignIn, replayWorker });
         server = http.createServer(app);
         await new Promise((resolve, reject) => {
             server.once('error', reject);
@@ -51,6 +53,7 @@ async function startHosted({ config, storeFactory = openFirestoreStore, appFacto
     } catch (error) {
         server?.closeAllConnections();
         if (server?.listening) await new Promise(resolve => server.close(resolve));
+        await replayWorker?.close();
         await store.close();
         throw error;
     }
@@ -61,7 +64,7 @@ async function startHosted({ config, storeFactory = openFirestoreStore, appFacto
             deadline.unref();
             try {
                 const drained = new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
-                await Promise.all([drained, store.close()]);
+                await Promise.all([drained, replayWorker.close().then(() => store.close())]);
             } finally { clearTimeout(deadline); }
         })();
         return closing;

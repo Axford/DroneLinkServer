@@ -14,6 +14,7 @@ const { mountPackedTelemetry } = require('./lib/packedTelemetry');
 const { createAccessPolicy, fault } = require('./lib/accessPolicy');
 const { mountAccessRoutes } = require('./lib/accessRoutes');
 const { sendErrorResponse, asyncHandler, errorHandler } = require('./middleware/errorHandler');
+const { mountReplayRoutes } = require('./lib/replayRoutes');
 const { mountClientHosting } = require('./lib/clientHosting');
 
 const defaultGoogleStrategyFactory = (options, verify) => new GoogleStrategy(options, verify);
@@ -21,7 +22,7 @@ const defaultGoogleStrategyFactory = (options, verify) => new GoogleStrategy(opt
 // Construct an application without loading configuration, connecting a database
 // or opening a listener. Tests provide adapters through this composition seam;
 // the production entrypoint always supplies real storage and the default provider.
-const createApp = ({ config, store, mountStagingTestSignIn, googleStrategyFactory = defaultGoogleStrategyFactory }) => {
+const createApp = ({ config, store, replayWorker, mountStagingTestSignIn, googleStrategyFactory = defaultGoogleStrategyFactory }) => {
     const { users } = store;
     const policy = createAccessPolicy(store, Boolean(mountStagingTestSignIn));
     const passport = new Passport();
@@ -192,6 +193,7 @@ const createApp = ({ config, store, mountStagingTestSignIn, googleStrategyFactor
     mountTelemetryRoutes(app, { store, ready, policy, ensureAuthenticated });
     mountObservationRoutes(app, { store, policy, ensureAuthenticated });
     mountVisualizationSettingsRoutes(app, { store, policy, ensureAuthenticated });
+    mountReplayRoutes(app, { store, policy, ensureAuthenticated, replayWorker });
     app.use(errorHandler);
     return app;
 };

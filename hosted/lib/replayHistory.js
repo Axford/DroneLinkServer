@@ -32,7 +32,8 @@ function applyPublication(channels, packet) {
         ? bytes.toString('latin1').split('\0', 1)[0] : undefined;
 
     let state = channels.get(key);
-    if (!state || (moduleType && state.moduleType && state.moduleType !== moduleType)) {
+    const reassigned = Boolean(moduleType && state?.moduleType && state.moduleType !== moduleType);
+    if (!state || reassigned) {
         state = { nodeAddress: node, channel, params: {} };
         channels.set(key, state);
     }
@@ -41,32 +42,64 @@ function applyPublication(channels, packet) {
     const facets = state.params[param] ||= {};
     if (msgType === DRONE_LINK_MSG_TYPE_NAME) facets.name = { payload };
     else facets.value = { msgType, payload };
+    return reassigned;
 }
 
-// Trusted backend call. The start is inclusive and the cutoff is exclusive,
-// so all packets sharing the cutoff millisecond go into the continuation.
+function decodeState(domainId, until, payload) {
+    return { schemaVersion: SCHEMA_VERSION, domainId, until, channels: payload ? JSON.parse(payload.toString('utf8')) : [] };
+}
+
+const encodeState = frame => Buffer.from(JSON.stringify(frame.channels));
+
+async function replayPage(packets, { domainId, from, until, cursor, limit = PAGE_SIZE }) {
+    const page = await packets.readPage({
+        domainId, from: new Date(from), until: new Date(until), limit, ...(cursor ? { cursor } : {})
+    });
+    const publications = page.items.flatMap(entry => {
+        const packet = decodePublication(entry.packet);
+        return packet ? [{ at: entry.time.getTime(), packet }] : [];
+    });
+    return { publications, nextCursor: page.nextCursor, lastReceipt: page.items.at(-1)?.time.getTime() };
+}
+
+function advanceReplayFrame(frame, publications, until) {
+    const channels = new Map(frame.channels.map(channel => [channelKey(channel), structuredClone(channel)]));
+    for (const { packet } of publications) applyPublication(channels, packet);
+    return { ...frame, until, channels: [...channels.values()].sort((a, b) => channelKey(a) - channelKey(b)) };
+}
+
+async function advanceReplayStep(frame, page, until, boundaryAt, saveBoundary) {
+    const channels = new Map(frame.channels.map(channel => [channelKey(channel), structuredClone(channel)]));
+    const state = cutoff => ({
+        ...frame, until: cutoff, channels: [...channels.values()].sort((a, b) => channelKey(a) - channelKey(b))
+    });
+    async function completeBoundary() {
+        await saveBoundary(boundaryAt + 1, encodeState(state(boundaryAt + 1)));
+        boundaryAt = null;
+    }
+    for (const { at, packet } of page.publications) {
+        if (boundaryAt !== null && at > boundaryAt) await completeBoundary();
+        if (applyPublication(channels, packet)) boundaryAt = at;
+    }
+    if (boundaryAt !== null && (!page.nextCursor || page.lastReceipt > boundaryAt)) await completeBoundary();
+    return { frame: state(until), boundaryAt };
+}
+
+// Trusted backend call. The start is inclusive and the cutoff is exclusive.
 async function buildReplayFrame(packets, { domainId, from, until, frame }) {
     if (frame && (from !== undefined || frame.domainId !== domainId || frame.schemaVersion !== SCHEMA_VERSION ||
-        !Array.isArray(frame.channels))) {
-        throw new RangeError('Invalid replay frame');
-    }
+        !Array.isArray(frame.channels))) throw new RangeError('Invalid replay frame');
     const start = frame ? frame.until : from;
     if (!validTime(start) || !validTime(until) || start >= until) throw new RangeError('Invalid replay time range');
 
-    const channels = new Map((frame?.channels ?? []).map(channel => [channelKey(channel), structuredClone(channel)]));
+    let current = frame || decodeState(domainId, start, null);
     let cursor;
     do {
-        const page = await packets.readPage({
-            domainId, from: new Date(start), until: new Date(until), limit: PAGE_SIZE, ...(cursor ? { cursor } : {})
-        });
-        for (const entry of page.items) {
-            const packet = decodePublication(entry.packet);
-            if (packet) applyPublication(channels, packet);
-        }
+        const page = await replayPage(packets, { domainId, from: start, until, cursor });
+        current = advanceReplayFrame(current, page.publications, until);
         cursor = page.nextCursor;
     } while (cursor);
-
-    return { schemaVersion: SCHEMA_VERSION, domainId, until, channels: [...channels.values()].sort((a, b) => channelKey(a) - channelKey(b)) };
+    return current;
 }
 
-module.exports = { buildReplayFrame };
+module.exports = { buildReplayFrame, replayPage, advanceReplayFrame, advanceReplayStep, encodeState, decodeState };

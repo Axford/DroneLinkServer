@@ -40,7 +40,7 @@ def prepare(args):
     if lock['resolved'] != pin or lock['integrity'] != 'sha512-' + base64.b64encode(hashlib.sha512(raw).digest()).decode(): raise ValueError('Persistence lock integrity differs')
     with tarfile.open(fileobj=io.BytesIO(raw), mode='r:gz') as tar: provenance = json.load(tar.extractfile('package/provenance.json'))
     version = provenance.get('version')
-    if version not in ('0.8.0', '0.8.1', '0.8.2', '0.9.0', '0.9.1', '0.10.1', '0.10.2') or archive.name != f'dronelink-persistence-{version}.tgz':
+    if version not in ('0.8.0', '0.8.1', '0.8.2', '0.9.0', '0.9.1', '0.10.1', '0.10.2', '0.11.0', '0.11.1') or archive.name != f'dronelink-persistence-{version}.tgz':
         raise ValueError('Unsupported M2 persistence release')
     command_format = provenance.get('storageFormat', {})
     if (command_format.get('commandContract') != 'm2-a-1' or command_format.get('commandMutationAPIs') is not True
@@ -52,7 +52,7 @@ def prepare(args):
     tracked = git('ls-files', '--', 'app.js', 'index.js', 'lib', 'middleware', 'public', 'package.json', 'package-lock.json').splitlines()
     for name in tracked: files[name] = (ROOT / name).read_bytes()
     if getattr(args, 'staging_test_sign_in', False):
-        if version not in ('0.8.2', '0.9.0', '0.9.1', '0.10.1', '0.10.2'): raise ValueError('Staging test sign-in requires a compatible persistence release')
+        if version not in ('0.8.2', '0.9.0', '0.9.1', '0.10.1', '0.10.2', '0.11.0', '0.11.1'): raise ValueError('Staging test sign-in requires a compatible persistence release')
         for name in git('ls-files', '--', 'staging-test').splitlines(): files[name] = (ROOT / name).read_bytes()
     files[pin[5:]] = raw
     protocol_pin = package['dependencies'].get('@dronelink/protocol')

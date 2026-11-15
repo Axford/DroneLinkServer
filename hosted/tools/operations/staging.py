@@ -25,6 +25,7 @@ def settings(path):
     if config['serviceAccount'] != f'{SERVICE}@{PROJECT}.iam.gserviceaccount.com': raise ValueError('Unexpected service identity')
     limit = config.get('workbenchFileBackupLimit', 20)
     if type(limit) is not int or not 1 <= limit <= 50: raise ValueError('Workbench backup limit must be from 1 through 50')
+    if type(config.get('replayAlwaysOn', False)) is not bool: raise ValueError('replayAlwaysOn must be a boolean')
     return config
 
 def route_compatible_revision(revision_name):
@@ -36,11 +37,12 @@ def route_compatible_revision(revision_name):
 
 def deploy(args):
     manifest = verify(args.release); config = settings(args.settings)
+    minimum_instances = 1 if config.get('replayAlwaysOn') else 0
     enable_test_sign_in = manifest.get('stagingTestSignIn') is True
     image = f'{REGION}-docker.pkg.dev/{PROJECT}/dronewright/hosted:{manifest["serverRevision"][:12]}-{manifest["clientRevision"][:12]}'
     if enable_test_sign_in: image += '-staging-test'
     if not args.apply:
-        print(json.dumps({'dryRun': True, 'project': PROJECT, 'region': REGION, 'service': SERVICE, 'image': image, 'billing': 'instance', 'min': 0, 'max': 1, 'cpu': 1, 'memory': '512Mi', 'concurrency': 32, 'stagingTestSignIn': enable_test_sign_in})); return
+        print(json.dumps({'dryRun': True, 'project': PROJECT, 'region': REGION, 'service': SERVICE, 'image': image, 'billing': 'instance', 'min': minimum_instances, 'max': 1, 'cpu': 1, 'memory': '512Mi', 'concurrency': 32, 'stagingTestSignIn': enable_test_sign_in})); return
     if not args.maintenance: raise ValueError('M1 deployment requires explicit --maintenance for the old-runtime traffic cutover')
     evidence = pathlib.Path(args.evidence)
     if evidence.exists(): raise ValueError('Evidence destination already exists')
@@ -70,7 +72,7 @@ def deploy(args):
     if 'workbenchFileBackupLimit' in config: env['WORKBENCH_FILE_BACKUP_LIMIT'] = str(config['workbenchFileBackupLimit'])
     with tempfile.TemporaryDirectory(prefix='dronewright-deploy-') as temporary:
         envfile = pathlib.Path(temporary) / 'env.json'; envfile.write_text(json.dumps(env))
-        run('run', 'deploy', SERVICE, '--project', PROJECT, '--region', REGION, '--image', image, '--service-account', config['serviceAccount'], '--no-cpu-throttling', '--min', '0', '--max', '1', '--cpu', '1', '--memory', '512Mi', '--concurrency', '32', '--timeout', '60', '--port', '8080', '--ingress', 'internal', '--no-traffic', '--allow-unauthenticated', '--env-vars-file', str(envfile), '--set-secrets', f'GOOGLE_CLIENT_SECRET={config["googleSecret"]},SESSION_SECRET={config["sessionSecret"]}', '--quiet')
+        run('run', 'deploy', SERVICE, '--project', PROJECT, '--region', REGION, '--image', image, '--service-account', config['serviceAccount'], '--no-cpu-throttling', '--min', str(minimum_instances), '--max', '1', '--cpu', '1', '--memory', '512Mi', '--concurrency', '32', '--timeout', '60', '--port', '8080', '--ingress', 'internal', '--no-traffic', '--allow-unauthenticated', '--env-vars-file', str(envfile), '--set-secrets', f'GOOGLE_CLIENT_SECRET={config["googleSecret"]},SESSION_SECRET={config["sessionSecret"]}', '--quiet')
     service = json.loads(run('run', 'services', 'describe', SERVICE, '--project', PROJECT, '--region', REGION, '--format=json'))
     revision_name = service['status']['latestCreatedRevisionName']
     revision = json.loads(run('run', 'revisions', 'describe', revision_name, '--project', PROJECT, '--region', REGION, '--format=json'))
