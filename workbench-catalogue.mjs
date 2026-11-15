@@ -28,6 +28,40 @@ function parameter(parameter) {
   return parameter && { name: parameter.name, address: parameter.address, type: parameter.type, count: parameter.numValues };
 }
 
+// Parameter addresses and writable capabilities come from the verified release.
+function parametersFor(catalogue, type) {
+  const parameters = new Map();
+  const defaults = new Map();
+  const alwaysPublished = new Set();
+  const visited = new Set();
+  function visit(name) {
+    if (visited.has(name) || !Object.hasOwn(catalogue, name)) return;
+    visited.add(name);
+    const item = catalogue[name];
+    for (const parent of item.inherits ?? []) visit(parent);
+    for (const published of item.publish ?? []) alwaysPublished.add(published);
+    for (const entry of item.default ?? []) {
+      if (Array.isArray(entry?.values)) defaults.set(entry.param, entry.values.join(', '));
+    }
+    for (const entry of item.pub ?? []) {
+      parameters.set(entry.name, { ...parameter(entry), configurable: entry.writeable === true });
+    }
+    for (const entry of item.sub ?? []) {
+      parameters.set(entry.name, { ...parameter(entry), configurable: true, sourceAddress: entry.addrAddress });
+    }
+  }
+  visit(type);
+  return [...parameters.values()].filter(entry => /^[A-Za-z][A-Za-z0-9_]{0,18}$/.test(entry.name) &&
+      Number.isInteger(entry.address) && Number.isInteger(entry.count))
+    .sort((a, b) => a.address - b.address)
+    .map(entry => {
+      // The guarded target-drag command has no startup configuration semantics.
+      const runtimeOnly = type === 'Nav' && entry.name === 'moveTarget';
+      return { ...entry, configurable: entry.configurable && !runtimeOnly, runtimeOnly,
+        alwaysPublished: alwaysPublished.has(entry.name), defaultValue: defaults.get(entry.name) };
+    });
+}
+
 // Project startup settings from the verified release metadata. Read-only
 // publications are options for publish, rather than standalone assignments.
 function settingsFor(catalogue, type) {
@@ -80,6 +114,7 @@ export default function createCatalogue(mesh, release, fetchNode = fetch) {
   const entries = Object.entries(moduleInfo).filter(([type]) => typeName.test(type)).map(([type, item]) => ({
     type,
     settings: settingsFor(moduleInfo, type),
+    parameters: parametersFor(moduleInfo, type),
     description: descriptionOf(item) || descriptions.get(type) || '',
     category: typeof item.category?.[0] === 'string' ? item.category[0] : '',
     ...(type === 'NMEA' ? { locationOutput: parameter(item.pub?.find(p => p.name === 'location')),

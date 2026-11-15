@@ -56,17 +56,17 @@ test('uses only a direct LAN Wi-Fi route and rejects a route that changes during
 test('projects inherited startup keys and examples without treating telemetry as settings', async () => {
   const catalogue = createCatalogue(mesh, { status: {}, assets: new Map([
     ['moduleInfo.json', Buffer.from(JSON.stringify({
-      Drone: { pub: [{ name: 'interval', type: 'u32', writeable: true }] },
+      Drone: { publish: ['interval'], pub: [{ name: 'interval', type: 'u32', address: 6, numValues: 1, writeable: true }] },
       NMEA: {
         inherits: ['Drone'],
         default: [{ param: 'interval', values: ['1000'] }],
         config: ['[NMEA=7]\n  port=2'],
-        pub: [{ name: 'location', type: 'f', numValues: 3, writeable: false }],
-        sub: [{ name: 'correction', type: 'f', numValues: 3 }],
+        pub: [{ name: 'location', type: 'f', address: 8, numValues: 3, writeable: false }],
+        sub: [{ name: 'correction', type: 'f', numValues: 3, address: 20, addrAddress: 21 }],
       },
     }))],
   ]) }, async () => reply());
-  const { settings } = (await catalogue('11', 'wifi')).entries.find(entry => entry.type === 'NMEA');
+  const { settings, parameters } = (await catalogue('11', 'wifi')).entries.find(entry => entry.type === 'NMEA');
   const values = Object.fromEntries(settings.map(({ name, value }) => [name, value]));
   assert.equal(values.interval, '1000');
   assert.equal(values.port, '2');
@@ -74,6 +74,12 @@ test('projects inherited startup keys and examples without treating telemetry as
   assert.equal(values.$correction, '@>GPS.location');
   assert.equal(values.location, undefined);
   assert.match(values.publish, /location/);
+  assert.deepEqual(parameters, [
+    { name: 'interval', address: 6, type: 'u32', count: 1, configurable: true, alwaysPublished: true, runtimeOnly: false, defaultValue: '1000' },
+    { name: 'location', address: 8, type: 'f', count: 3, configurable: false, alwaysPublished: false, runtimeOnly: false, defaultValue: undefined },
+    { name: 'correction', address: 20, sourceAddress: 21, type: 'f', count: 3, configurable: true, alwaysPublished: false, runtimeOnly: false, defaultValue: undefined },
+  ]);
+
 });
 
 test('supplies descriptions for reported types without granting release metadata or support', async () => {
