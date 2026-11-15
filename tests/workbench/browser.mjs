@@ -459,14 +459,24 @@ try {
   await subscriptionWire.waitFor({ state: 'attached', ...timeout });
   assert.ok(await subscriptionWire.evaluate(path => getComputedStyle(path).visibility === 'visible' && path.getTotalLength() > 0));
   console.log('PASS Logical cards and subscriptions stay visible while telemetry updates');
-  await graph.getByRole('button', { name: 'Edit source for $location on channel 12', exact: true }).click(timeout);
+  const editLocation = async () => {
+    if (catalogueFixture) {
+      const source = graph.getByRole('textbox', { name: 'Nav location source' });
+      await source.fill('@>14.8', timeout);
+      await source.press('Enter');
+      assert.equal(await source.evaluate(input => input === document.activeElement), true);
+    } else {
+      const edit = graph.getByRole('button', { name: 'Edit source for $location on channel 12', exact: true });
+      await edit.click(timeout);
+      const source = files.getByRole('textbox', { name: 'Source for $location' });
+      await source.fill('@>14.8');
+      await source.press('Enter');
+      await files.getByRole('dialog', { name: 'Edit source' }).waitFor({ state: 'hidden', ...timeout });
+      assert.equal(await edit.evaluate(button => button === document.activeElement), true);
+    }
+  };
   await files.getByText('Local: GPS (channel 10)', { exact: true }).waitFor(timeout);
-  const editSource = files.getByRole('button', { name: 'Edit source for $location on channel 12' });
-  const source = files.getByRole('textbox', { name: 'Source for $location' });
-  await source.fill('@>14.8');
-  await source.press('Enter');
-  await files.getByRole('dialog', { name: 'Edit source' }).waitFor({ state: 'hidden', ...timeout });
-  assert.equal(await editSource.evaluate(button => button === document.activeElement), true);
+  await editLocation();
   await graph.getByRole('group', { name: /Local: BackupGPS.*to channel 12/ }).waitFor({ state: 'attached', ...timeout });
   await files.getByRole('button', { name: 'Code', exact: true }).click();
   await files.locator('.ace_support.ace_class').first().waitFor(timeout);
@@ -487,10 +497,12 @@ try {
   await replaceCode(configuration.replaceAll('\r\n', '\n'));
   await files.getByRole('button', { name: 'Logical', exact: true }).click();
   await graph.getByRole('group', { name: /Local: GPS.*to channel 12/ }).waitFor({ state: 'attached', ...timeout });
-  await files.getByText('@>GPS.location', { exact: true }).waitFor(timeout);
-  await editSource.click();
-  await source.fill('@>14.8');
-  await source.press('Enter');
+  if (catalogueFixture) {
+    assert.equal(await graph.getByRole('textbox', { name: 'Nav location source' }).inputValue(timeout), '@>GPS.location');
+  } else {
+    await files.getByText('@>GPS.location', { exact: true }).waitFor(timeout);
+  }
+  await editLocation();
   assert.equal(peer.files.get('/config.ini').toString(), configuration);
   assert.deepEqual(peer.actions.filter(action => action !== 'trace'), ['start', 'block', 'save']);
   await files.getByRole('button', { name: 'Upload to node' }).click();

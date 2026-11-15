@@ -8,6 +8,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { filePeer } from './file-peer.mjs';
 import { launch, publication } from './harness.mjs';
+import { DRONE_LINK_MSG_TYPE_CHAR, DRONE_MODULE_PARAM_NAME } from '../../public/modules/droneLinkMsg.mjs';
 
 const build = process.env.CLIENT_BUILD_DIR;
 // Optional full catalogue acceptance against prepared SEP-05 release 739fc899… (build c017040).
@@ -74,10 +75,20 @@ try {
     if (pathname === '/api/domains/bench/nodes/11/file-backups/first') return success(snapshots[0]);
     const received = new Date().toISOString();
     const nodes = [{ nodeAddress: 12, generation: 0, revision: 1, resetAt: null, droneId: 'cloud-drone', lastReceivedAt: received }];
-    const channels = [{ nodeAddress: 12, generation: 0, revision: 1, channel: 5, lastReceivedAt: received, params: { 8: { value: {
-      payload: Buffer.from([99]).toString('base64'), msgType: 0, writable: false,
-      lastReceivedAt: received, valueLastChangedAt: received, origin: { kind: 'http', forwarderAddress: 12, sourceAddress: 12 },
-    } } } }];
+    const origin = { kind: 'http', forwarderAddress: 12, sourceAddress: 12 };
+    const valueFacet = (payload, msgType) => ({
+      payload: Buffer.from(payload).toString('base64'), msgType, writable: false,
+      lastReceivedAt: received, valueLastChangedAt: received, origin,
+    });
+    const channelRow = (channel, params) => ({ nodeAddress: 12, generation: 0, revision: 1, channel, lastReceivedAt: received, params });
+    const channels = [
+      channelRow(1, { 8: { value: valueFacet('RaceMark', DRONE_LINK_MSG_TYPE_CHAR) } }),
+      channelRow(5, {
+        [DRONE_MODULE_PARAM_NAME]: { value: valueFacet('Course', DRONE_LINK_MSG_TYPE_CHAR) },
+        8: { value: valueFacet([99], 0),
+          name: { payload: Buffer.from('target').toString('base64'), lastReceivedAt: received, nameLastChangedAt: received, origin } },
+      }),
+    ];
     if (pathname === '/api/domains/bench/observations') return json(200, { data: { schemaVersion: 1, activationEpoch: 'm1-c-1', startCursor: 'a', catchUpCursor: 'b', nodes, channels }, pagination: { nextCursor: null } });
     if (pathname === '/api/domains/bench/observations/updates') {
       const timeout = new URL(req.url, 'https://127.0.0.1').searchParams.get('timeoutMs');
@@ -110,7 +121,7 @@ try {
   const connectedConfig = join(dir, 'gateway.json');
   await writeFile(connectedConfig, JSON.stringify({ origin, domain: 'bench', credentials: { wifi: gatewayCredential } }));
   peer = await filePeer();
-  const configuration = 'node = 11\n[Nav = 12]\n$location = @>10.8\n[NMEA = 10]\n';
+  const configuration = 'node = 11\n[Nav = 12]\n$location = @>10.8\n$target = 12>5.8\n[NMEA = 10]\n';
   peer.files.set('/config.ini', Buffer.from(configuration));
   gateway = await launch(build, undefined, undefined, { peerPort: peer.port, connectedConfig, caFile: cert, catalogueFixture, nodeCapabilities: true });
   await gateway.ready;
@@ -151,8 +162,16 @@ try {
   assert.equal(await page.getByRole('region', { name: 'Node Inspector' }).getAttribute('data-size'), 'normal');
   await page.getByText('Cloud observation', { exact: true }).first().waitFor(timeout);
   await page.getByRole('button', { name: /Inspect node 11/ }).press('Enter', timeout);
-  await publication(gateway, [11, 11, 5, 8, 128, 42]);
-  await page.getByRole('article', { name: 'Parameter 11>5.8' }).getByText('42', { exact: true }).waitFor(timeout);
+  const firstReading = page.getByRole('article', { name: 'Parameter 11>5.8' }).getByText('42', { exact: true });
+  // A real peer announces its route and publishes periodically while the browser pairs.
+  const publicationDeadline = Date.now() + timeout.timeout;
+  do {
+    peer.hello(gateway);
+    await publication(gateway, [11, 11, 5, 8, 128, 42]);
+    if (await firstReading.isVisible()) break;
+    await new Promise(resolve => setTimeout(resolve, 200));
+  } while (Date.now() < publicationDeadline);
+  await firstReading.waitFor(timeout);
   const parameter = page.getByRole('article', { name: 'Parameter 11>5.8' });
   await parameter.getByRole('button', { name: 'Edit parameter value' }).click(timeout);
   const parameterEditor = page.getByRole('dialog', { name: /Edit value/ });
@@ -247,9 +266,19 @@ try {
   canEdit = true;
   await page.getByRole('button', { name: 'Logical', exact: true }).click();
   await graph.locator('.react-flow__edge-path').waitFor({ state: 'attached', ...timeout });
-  await graph.getByRole('button', { name: 'Edit source for $location on channel 12', exact: true }).click(timeout);
-  await page.getByRole('textbox', { name: 'Source for $location' }).fill('@>10.9');
-  await page.getByRole('button', { name: 'Update draft' }).click();
+  await graph.getByText('RaceMark > Course.target', { exact: true }).waitFor(timeout);
+  const editLocation = async () => {
+    if (catalogueFixture) {
+      const source = graph.getByRole('textbox', { name: 'Nav location source' });
+      await source.fill('@>10.9', timeout);
+      await source.press('Enter');
+    } else {
+      await graph.getByRole('button', { name: 'Edit source for $location on channel 12', exact: true }).click(timeout);
+      await page.getByRole('textbox', { name: 'Source for $location' }).fill('@>10.9');
+      await page.getByRole('button', { name: 'Update draft' }).click();
+    }
+  };
+  await editLocation();
   assert.equal(peer.files.get('/config.ini').toString(), configuration);
   await page.getByRole('button', { name: 'Code', exact: true }).click();
   const code = page.getByRole('textbox', { name: 'Stored file /config.ini' });
@@ -260,10 +289,12 @@ try {
   await code.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A');
   await page.keyboard.insertText(configuration);
   await page.getByRole('button', { name: 'Logical', exact: true }).click();
-  await page.getByText('@>10.8', { exact: true }).waitFor(timeout);
-  await page.getByRole('button', { name: 'Edit source for $location on channel 12' }).click();
-  await page.getByRole('textbox', { name: 'Source for $location' }).fill('@>10.9');
-  await page.getByRole('button', { name: 'Update draft' }).click();
+  if (catalogueFixture) {
+    assert.equal(await graph.getByRole('textbox', { name: 'Nav location source' }).inputValue(timeout), '@>10.8');
+  } else {
+    await page.getByText('@>10.8', { exact: true }).waitFor(timeout);
+  }
+  await editLocation();
   if (catalogueFixture) {
     const headers = { Origin: origin, 'X-Workbench-Key': pairingKey, 'X-Workbench-Grant': 'a'.repeat(64) };
     const endpoint = `${gateway.origin}/api/workbench/v1/connected/nodes/11/network?transport=wifi`;
