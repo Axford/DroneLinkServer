@@ -2,7 +2,17 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { fixture, domain, join } = require('./support.cjs');
-const { runReplayStep } = require('../../lib/replayWorker');
+const { execFile } = require('node:child_process');
+const { promisify } = require('node:util');
+const run = promisify(execFile);
+
+async function runCatchUp({ projectId, emulatorHost }) {
+    const { stdout } = await run(process.execPath, [require.resolve('../../lib/replayCatchUp')], {
+        env: { ...process.env, GOOGLE_CLOUD_PROJECT: projectId, FIRESTORE_DATABASE: '(default)', REPLAY_FIRESTORE_EMULATOR_HOST: emulatorHost },
+        timeout: 15000
+    });
+    return JSON.parse(stdout);
+}
 
 test('Cloud Replay prepares retained windows for Viewers and stores an Editor bookmark frame', t => fixture(t, async context => {
     const admin = await context.agent('admin');
@@ -30,8 +40,8 @@ test('Cloud Replay prepares retained windows for Viewers and stores an Editor bo
     const path = base + '/window?from=' + middle + '&until=' + (last + 1);
     assert.equal((await viewer.request(path)).status, 202);
     assert.equal((await viewer.mutate(base + '/prepare', { at: middle })).status, 202);
-    assert.equal(await runReplayStep(context.two), true);
-    assert.equal(await runReplayStep(context.two), false);
+    assert.deepEqual(await runCatchUp(context.options), { event: 'replay-catch-up', steps: 1, result: 'no-due-work' });
+    assert.deepEqual(await runCatchUp(context.options), { event: 'replay-catch-up', steps: 0, result: 'no-due-work' });
     const result = (await viewer.request(path)).json().data;
     assert.equal(result.ready, true);
     assert.equal(result.frame.until, middle);
@@ -49,11 +59,33 @@ test('Cloud Replay prepares retained windows for Viewers and stores an Editor bo
     assert.equal(latest.status, 201, latest.text);
     assert.equal(latest.json().data.bookmark.at, last);
     assert.equal(latest.json().data.ready, false);
-    assert.equal(await runReplayStep(context.two), true);
+    assert.deepEqual(await runCatchUp(context.options), { event: 'replay-catch-up', steps: 1, result: 'no-due-work' });
     assert.equal((await viewer.request(base + '/progress?at=' + last)).json().data.ready, true);
     const boundary = await viewer.request(base + '/window?from=' + (middle + 6) + '&until=' + (last + 1));
     assert.equal(boundary.json().data.frame.channels[0].moduleType, 'INA219');
     assert.equal(boundary.json().data.frame.channels[0].params[8], undefined);
+    const followRequest = await viewer.mutate(base + '/prepare', { at: last, follow: true });
+    assert.ok([200, 202].includes(followRequest.status), followRequest.text);
+    await runCatchUp(context.options);
+    const work = context.db.collection('replayWork').doc(fleet._id);
+    const follow = (await work.get()).data();
+    assert.equal(follow.follow, true);
+    assert.equal(follow.preparedUntil, last + 1);
+    const cutoff = follow.lastCapture + 24 * 60 * 60 * 1000;
+    const later = cutoff + 60 * 60 * 1000;
+    await context.one.packets.enqueue({ domain: fleet._id, time: new Date(cutoff - 1), packet: Buffer.from([0, 11, 7, 8, 0, 20]), meta: {} });
+    await context.one.packets.enqueue({ domain: fleet._id, time: new Date(later), packet: Buffer.from([0, 11, 7, 8, 0, 21]), meta: {} });
+    const flushDeadline = Date.now() + 5000;
+    do {
+        info = (await viewer.request(base)).json().data;
+        if (info.last !== later) await new Promise(resolve => setTimeout(resolve, 25));
+    } while (info.last !== later && Date.now() < flushDeadline);
+    assert.equal(info.last, later);
+    // Advance the worker's eligibility without waiting for the 24-hour Domain interval.
+    await work.update({ dueAt: Date.now() });
+    assert.deepEqual(await runCatchUp(context.options), { event: 'replay-catch-up', steps: 2, result: 'no-due-work' });
+    assert.equal((await work.get()).data().preparedUntil, later + 1);
+    assert.equal((await context.db.collection('domains').doc(fleet._id).collection('replayFrames').doc(String(cutoff)).get()).exists, true);
     const protectedPage = await viewer.request('/private/domain/' + fleet._id + '/replay');
     assert.equal(protectedPage.status, 200);
 }));

@@ -26,13 +26,36 @@ Preparation explicitly downloads the pinned official Firestore emulator1.22.0 (J
 
 ## Replay reconstruction
 
-`lib/replayHistory.js` provides the internal `buildReplayFrame(packets, {domainId, from, until})` operation. Inject the existing persistence `packets` interface. Times are integer Unix milliseconds. A frame covers `[from, until)`. Pass that frame in place of `from` to continue from its exclusive cutoff. Frames carry a schema version, Domain ID, cutoff and observed channels. Parameter name and value payloads remain base64 so the operation preserves exact protocol bytes. The operation takes a trusted frame from the backend. Cloud Replay uses it through authenticated Domain routes. The hosted process runs a worker for persisted Replay requests and scheduled key frames. Rollout requires the matched persistence index manifest. Set `replayAlwaysOn: true` in staging deployment settings to keep one instance available for catch-up and scheduled captures when the workspace is idle. Verify the worker and index readiness before rollout.
+`lib/replayHistory.js` provides the internal `buildReplayFrame(packets, {domainId, from, until})` operation. Inject the existing persistence `packets` interface. Times are integer Unix milliseconds. A frame covers `[from, until)`. Pass that frame in place of `from` to continue from its exclusive cutoff. Frames carry a schema version, Domain ID, cutoff and observed channels. Parameter name and value payloads remain base64 so the operation preserves exact protocol bytes. The operation takes a trusted frame from the backend. Cloud Replay uses it through authenticated Domain routes. The hosted process runs a worker for persisted Replay requests and scheduled key frames. Rollout requires the matched persistence index manifest. The staged rollout uses [scheduled Replay catch-up](#scheduled-replay-catch-up) with a minimum of zero web instances.
 
-The [Cloud Replay plan](../../DroneLinkDatastore/docs/planning/m4-cloud-replay.md) records the remaining storage and Client work.
+The [Cloud Replay plan](../../DroneLinkDatastore/docs/planning/m4-cloud-replay.md) records local evidence and the remaining managed acceptance.
+
+## Scheduled Replay catch-up
+
+Keep `replayAlwaysOn` false or omit it in staging settings. While the hosted service is running, its worker handles user-driven work and checks for due captures. Cloud Scheduler starts a separate Cloud Run Job at 00:00 and 12:00 UTC, so an idle service can scale to zero. Eligibility still follows each Domain's interval. When the web service is idle, eligible work can wait up to 12 hours for the next scheduled start. Both processes use the same persisted leases and checkpoints. The Job stops when there is no claimable work or after its five-minute work budget, finishing the current step. The next execution or active web worker can resume pending work.
+
+After deploying the matched Replay release and checking that the Firestore indexes are ready, select the immutable image digest from the deployment evidence. Enable the Cloud Scheduler API and use a dedicated Scheduler service account in the staging project. The scheduler identity needs `roles/run.invoker` on the Job. The Job uses the hosted runtime identity for Firestore and only needs the database configuration.
+
+```sh
+gcloud run jobs deploy dronewright-staging-replay --project dronelink-25dbc --region europe-west1 \
+  --image "$replay_image_digest" --service-account dronewright-staging@dronelink-25dbc.iam.gserviceaccount.com \
+  --command node --args lib/replayCatchUp.js --tasks 1 --parallelism 1 --cpu 1 --memory 512Mi \
+  --task-timeout 10m --max-retries 0 --set-env-vars 'GOOGLE_CLOUD_PROJECT=dronelink-25dbc,FIRESTORE_DATABASE=(default)'
+gcloud run jobs add-iam-policy-binding dronewright-staging-replay --project dronelink-25dbc --region europe-west1 \
+  --member "serviceAccount:$replay_scheduler_identity" --role roles/run.invoker
+gcloud scheduler jobs create http dronewright-staging-replay --project dronelink-25dbc --location europe-west1 \
+  --schedule '0 0,12 * * *' --time-zone UTC --http-method POST \
+  --uri 'https://run.googleapis.com/v2/projects/dronelink-25dbc/locations/europe-west1/jobs/dronewright-staging-replay:run' \
+  --oauth-service-account-email "$replay_scheduler_identity"
+```
+
+Run the Job manually with `gcloud run jobs execute dronewright-staging-replay --project dronelink-25dbc --region europe-west1 --wait`. Verify a successful execution and the structured `replay-catch-up` log. On a disposable staging Domain with due Replay work, use `gcloud scheduler jobs run dronewright-staging-replay --project dronelink-25dbc --location europe-west1` and verify that the Cloud Run execution completes and advances stored progress. Scheduler success records submission of the execution. Check Cloud Run execution status for completion and the log for exhausted work budgets.
+
+Pause the Scheduler entry before rolling back the hosted service. Wait for any active execution to finish or cancel it. On later releases, deploy the Job from the matching immutable image before resuming its schedule.
 
 ## Manual staging operations
 
-All cloud commands require the explicit agreed `--project dronelink-25dbc`; cloud mutations default to dry run and require `--apply`. Use a deliberate durable private archive directory outside Git. No command creates production resources or runs automatic releases.
+The scripts below require `--project dronelink-25dbc`. Their cloud mutations default to dry run and require `--apply`. Use a deliberate durable private archive directory outside Git. No command creates production resources or runs automatic releases.
 
 ```sh
 npm run legacy:archive -- --project dronelink-25dbc --archive /private/archive/new-name --export-bucket gs://PRIVATE_EU_BUCKET
