@@ -181,7 +181,7 @@ const createApp = ({ config, store, replayWorker, mountStagingTestSignIn, google
         });
     }));
     app.get('/auth/logout', (req, res) => res.status(405).set('Allow', 'POST').json({ success: false, code: 'method-not-allowed', message: 'Use the protected sign-out action' }));
-    app.use(['/api/domains', '/api/invite', '/api/send'], ready);
+    app.use(['/api/domains', '/api/invite', '/api/user/invitations', '/api/send'], ready);
     app.use('/invite', (req, res, next) => { res.set('Referrer-Policy', 'no-referrer'); res.set('Cache-Control', 'private, no-store'); next(); });
     mountClientHosting(app, { clientBuildDir: config.clientBuildDir, ensureAuthenticated });
     app.use('/api/domains/:id', asyncHandler(async (req, res, next) => {

@@ -30,6 +30,17 @@ function mountAccessRoutes(app, { store, policy, ensureAuthenticated, config }) 
     const secret = () => { const token = crypto.randomBytes(32).toString('base64url'); return { token, tokenHash: crypto.createHash('sha256').update(token).digest('hex') }; };
     const invitationResult = (invitation, token) => ({ invitation, shareUrl: new URL('/invite/' + invitation._id + '.' + token, config.publicOrigin).href });
     app.get('/api/user', ...wrap(async (req, res) => res.json(policy.self(await policy.identity(req)))));
+    app.get('/api/user/invitations', ...wrap(async (req, res) => {
+        const options = paging(req);
+        const result = await invitations.listPending(policy.actor(await policy.identity(req)), options);
+        await policy.identity(req);
+        page(res, result, options.limit);
+    }));
+    app.post('/api/user/invitations/:invitationId/accept', ...wrap(async (req, res) => {
+        const { revision } = body(req, ['revision']);
+        const actor = policy.actor(await policy.identity(req));
+        ok(res, await invitations.acceptPending(actor, { invitationId: req.params.invitationId, revision }));
+    }));
     app.get('/api/session', ...wrap(async (req, res) => ok(res, { csrfToken: policy.csrf(req) })));
     app.put('/api/user/map-state', ...wrap(async (req, res) => {
         const state = body(req, ['lng', 'lat', 'zoom']);
