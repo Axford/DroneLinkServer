@@ -1,6 +1,6 @@
 # Dronewright hosted backend
 
-The independent hosted service uses pinned native Firestore persistence 0.12.2. Install with Node22+ using `npm ci --omit=dev`; run `npm start`. No MongoDB, gateway, emulator, Java or sibling source is required in production.
+The independent hosted service uses pinned native Firestore persistence 0.13.2. Install with Node22+ using `npm ci --omit=dev`; run `npm start`. No MongoDB, gateway, emulator, Java or sibling source is required in production.
 
 Supply `GOOGLE_CLOUD_PROJECT`, `PUBLIC_ORIGIN`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SESSION_SECRET` (32+characters), optional `FIRESTORE_DATABASE` (default `(default)`), `MAPBOX_ACCESS_TOKEN`, `CLIENT_BUILD_DIR` and `PORT`. A local ignored hosted `config.json` may supply equivalent camelCase fields. Startup never creates configuration or downloads credentials. Production uses the service identity and Secret Manager values; no service-account key file. Client build defaults to hosted `private/build`; an explicit path must contain index.html/static. Validate a release before selection.
 
@@ -253,3 +253,9 @@ The machine poll endpoint accepts up to 16 distinct peer addresses in the option
 ### Verified Waypoint route geometry
 
 The Domain route preview returns geometry and backup capture time for the selected node's current observed Waypoint digest. The storage lookup is restricted to retained `/waypoint.csv` backups for that node. Domain Viewers can read the geometry. Existing file access rules cover backup history and raw text. See the [shared contract](../../DroneLinkDatastore/docs/contracts/workbench.md#verified-route-preview).
+
+### Dreamer model revisions
+
+The protected Dreamer models workspace uses Domain-scoped model and revision endpoints. Each save commits a complete immutable snapshot. Reopen any retained revision from the model library. Owners, Editors and Platform Admins can create revisions in active Domains. Viewers and archived Domains have read access.
+
+The [shared model revision contract](../../DroneLinkDatastore/docs/contracts/workbench.md#dreamer-model-revisions) defines the snapshot identity and save limits. Run `CLIENT_BUILD_DIR=<built-client> node --test tests/browser/dreamer-models.cjs` from `hosted` to verify the workspace with a prepared Firestore emulator and a Playwright installation. Set `DRONELINK_PLAYWRIGHT_MODULE` if Playwright is installed separately.

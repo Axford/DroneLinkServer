@@ -10,6 +10,7 @@ const { mountObservationRoutes } = require('./lib/observationRoutes');
 const { mountVisualizationSettingsRoutes } = require('./lib/visualizationSettingsRoutes');
 const { mountDroneGroupingRoutes } = require('./lib/droneGroupingRoutes');
 const { mountTelemetryRoutes } = require('./lib/telemetryRoutes');
+const { mountDreamerRoutes } = require('./lib/dreamerRoutes');
 const { mountWorkbenchRoutes, machinePath } = require('./lib/workbenchRoutes');
 const { mountWorkbenchBootstrap, exchangePath, isWorkbenchReturn } = require('./lib/workbenchBootstrap');
 const { mountPackedTelemetry } = require('./lib/packedTelemetry');
@@ -174,6 +175,7 @@ const createApp = ({ config, store, replayWorker, mountStagingTestSignIn, google
     mountCommandRoutes(app, { store, policy, ensureAuthenticated, ready });
     mountWorkbenchRoutes(app, { config, store, ready, policy, ensureAuthenticated });
     mountWorkbenchBootstrap(app, { store, ready, policy, ensureAuthenticated });
+    mountDreamerRoutes(app, { store, ready, policy, ensureAuthenticated });
     app.use(express.json({ limit: '10mb' }));
     app.post('/auth/logout', ensureAuthenticated, (req, res, next) => req.logout(error => {
         if (error) return next(error);

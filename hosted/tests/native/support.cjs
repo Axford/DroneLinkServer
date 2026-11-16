@@ -17,7 +17,7 @@ class GoogleFixture extends Strategy {
         this.verify('provider-access', 'provider-refresh', profile, (error, user) => error ? this.error(error) : this.success(user));
     }
 }
-async function fixture(t, run, { ready = true, observations = false, commands = false, stagingTestSignIn = false } = {}) {
+async function fixture(t, run, { ready = true, observations = false, commands = false, stagingTestSignIn = false, browserOrigin = false } = {}) {
     return withFirestore(async options => {
         const mountStagingTestSignIn = stagingTestSignIn ? require('../../staging-test/routes').mountStagingTestSignIn : undefined;
         const one = await openFirestoreStore({ ...options, stagingTestSignIn, flushIntervalMs: 10, ...(commands ? { commandContract: 'm2-a-1' } : {}), ...(observations ? { observationEpoch: 'm1-c-1', observationFlushIntervalMs: 20 } : {}) }); const two = await openFirestoreStore({ ...options, stagingTestSignIn, flushIntervalMs: 10, ...(commands ? { commandContract: 'm2-a-1' } : {}), ...(observations ? { observationEpoch: 'm1-c-1', observationFlushIntervalMs: 20 } : {}) });
@@ -31,11 +31,17 @@ async function fixture(t, run, { ready = true, observations = false, commands = 
             const person = await one.users.findByGoogleId('admin'); let control = await one.access.getControl();
             await operator.grantSoleAdmin({ userId: person._id, googleId: 'admin', expectedControlRevision: control.revision });
             if (ready) { control = await one.access.getControl(); await operator.activate({ planDigest: plan.digest, expectedControlRevision: control.revision }); }
-            for (const store of [one, two]) factories.push(await serve(t, createApp({ config, store, mountStagingTestSignIn, googleStrategyFactory: (opts, verify) => new GoogleFixture(opts, verify) })));
+            for (const store of [one, two]) {
+                let app;
+                const factory = await serve(t, (req, res) => app(req, res));
+                const instanceConfig = browserOrigin ? { ...config, publicOrigin: factory().origin } : config;
+                app = createApp({ config: instanceConfig, store, mountStagingTestSignIn, googleStrategyFactory: (opts, verify) => new GoogleFixture(opts, verify) });
+                factories.push(factory);
+            }
             const agent = async (name, instance = 0) => {
                 const raw = factories[instance](); const login = await raw.login(name); assert.equal(login.status, 302, login.text);
                 const token = (await raw.request('/api/session')).json().data.csrfToken;
-                return { ...raw, request: (url, options = {}) => raw.request(url, options), mutate: (url, body = {}, method = 'POST', headers = {}) => raw.request(url, { method, headers: { Origin: config.publicOrigin, 'Content-Type': 'application/json', 'X-CSRF-Token': token, ...headers }, body: JSON.stringify(body) }), token, raw };
+                return { ...raw, request: (url, options = {}) => raw.request(url, options), mutate: (url, body = {}, method = 'POST', headers = {}) => raw.request(url, { method, headers: { Origin: browserOrigin ? raw.origin : config.publicOrigin, 'Content-Type': 'application/json', 'X-CSRF-Token': token, ...headers }, body: JSON.stringify(body) }), token, raw };
             };
             await run({ one, two, operator, db, agent, factories, plan, config, options });
         } finally { await one.close(); await two.close(); await operator.close(); await db.terminate(); }
