@@ -266,3 +266,31 @@ Set `nodeRecoveryDomain` to the isolated Domain ID in canonical staging deployme
 ### Staging configuration repair
 
 Within the configured `nodeRecoveryDomain`, the operator stages exact config bytes, retries with the staged file, and confirms the trial from Cloud Node details. The enrolled node pulls actions through HTTPS. The current repair row tracks the device's reports and keeps activation against a fresh recovery boot. The [staging contract](../../DroneLinkDatastore/docs/contracts/http.md#remote-configuration-repair-staging-contract) describes expiry, authorization and device confirmation.
+
+### Dreamer model revisions
+
+The protected Dreamer models workspace uses Domain-scoped model and revision endpoints. Each save commits a complete immutable snapshot. The optional boolean simulationEnabled on each part defaults to enabled when absent. Reopen any retained revision from the model library. Owners, Editors and Platform Admins can create revisions in active Domains. Viewers and archived Domains have read access.
+
+The [shared model revision contract](../../DroneLinkDatastore/docs/contracts/workbench.md#dreamer-model-revisions) defines the snapshot identity and save limits. Run `CLIENT_BUILD_DIR=<built-client> node --test tests/browser/dreamer-models.cjs` from `hosted` to verify the workspace with a prepared Firestore emulator and a Playwright installation. Set `DRONELINK_PLAYWRIGHT_MODULE` if Playwright is installed separately.
+
+### Dreamer hydrostatics solver
+
+`lib/dreamer/hydrostatics.js` exposes `analyzeHydrostatics(model, options)` for a saved version-1 boat definition. Choose `water: 'salt-water'` (the default, 1,025 kg/m³) or `water: 'freshwater'` (1,000 kg/m³). Optional `heel` and `pitch` settings accept minimum, maximum and step in degrees. `proxies` maps a hull's part ID to a closed, unweighted Visual only part ID in the same model. This substitutes only the hull's displacement.
+
+The solver omits disabled parts and only accepts enabled parts as displacement proxies. The result includes waterline and draft in metres, displaced volume in cubic metres, and equilibrium and signed curve moments in N·m. The waterline is measured from the rotated model datum and draft from the lowest displacement point. Positive heel puts starboard down and positive pitch raises the bow. Positive moment increases the plotted angle. An unresolved equilibrium returns diagnostics. An unresolved sweep point has a diagnostic instead of a moment.
+
+The solver accepts separate sealed shells with disjoint bounding-box interiors in boat axes. This conservative check can reject separated geometry with overlapping bounds. Edge and vertex checks catch open or non-manifold surfaces. Use clean sealed CAD solids to avoid self-intersecting geometry. The solver works with flat water and neutral joints. The hosted analysis route runs it in a worker with a bounded runtime, then saves both curves under the source revision.
+
+Run `node --test tests/dreamer/hydrostatics.test.cjs` from `hosted` for the analytic fixtures.
+
+Open the latest or an earlier boat revision, then select the **Stability** tab in the model editor. Run the local browser workflow with `CLIENT_BUILD_DIR=<built-client> node --test tests/browser/dreamer-stability.cjs` and the emulator and Playwright setup above.
+
+### Dreamer manual sailing smoke
+
+The **Sail** tab runs manual physics in the browser from a saved boat revision. To verify movement, steering controls, force vectors and deterministic replay, supply the matching Client build and its reference sloop fixture:
+
+```sh
+CLIENT_BUILD_DIR=<built-client> DRONELINK_SAILING_FIXTURE=<client-source>/src/dreamer/sailing/__fixtures__/sloop.json node --test tests/browser/dreamer-sailing.cjs
+```
+
+Use the same prepared Firestore emulator and Playwright installation as the Stability check. The test owns a disposable Domain and uses the fixture's saved revision.

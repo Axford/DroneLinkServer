@@ -34,7 +34,7 @@ const mountClientHosting = (app, { clientBuildDir, ensureAuthenticated }) => {
     }
     app.use('/private', ensureAuthenticated, express.static(buildDir));
     app.get('/invite/:token', (req, res) => res.sendFile(path.join(buildDir, 'index.html')));
-    app.get(['/private/domain/:domainId', '/private/domain/:domainId/replay'], ensureAuthenticated, (req, res) => {
+    app.get(['/private/domain/:domainId', '/private/domain/:domainId/replay', '/private/domain/:domainId/dreamer'], ensureAuthenticated, (req, res) => {
         res.sendFile(path.join(buildDir, 'index.html'));
     });
 };
