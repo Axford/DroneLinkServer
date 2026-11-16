@@ -32,7 +32,10 @@ test('Chrome runs, displays and reopens both stability curves against a historic
             const openOriginal = async page => {
                 await page.getByRole('button', { name: 'Revisions', exact: true }).click();
                 await page.getByRole('button', { name: 'Stability for revision 1', exact: true }).click();
-                await page.getByText('Reference barge · Revision 1', { exact: true }).waitFor();
+                await page.getByRole('heading', { name: 'Dreamer model editor' }).waitFor();
+                await page.getByText(/^Reference barge · Revision 1/).waitFor();
+                assert.equal(await page.getByRole('tab', { name: 'Stability' }).getAttribute('aria-selected'), 'true');
+                assert.deepEqual(await page.getByRole('tab').allTextContents(), ['Import', 'Orient', 'Configure', 'Stability']);
             };
             const charts = async page => {
                 for (const title of ['Righting moment', 'Pitch restoring moment']) {
@@ -50,14 +53,55 @@ test('Chrome runs, displays and reopens both stability curves against a historic
             await page.getByText('Analysis saved to revision 1.', { exact: true }).waitFor();
             await charts(page);
             await page.getByText('487.8 mm', { exact: true }).waitFor();
+            const history = page.getByRole('heading', { name: 'Saved analyses' });
+            const analysis = page.getByRole('region', { name: 'Analysis result' });
+            assert.ok((await history.boundingBox()).y < (await analysis.boundingBox()).y);
+            const preview = page.getByRole('region', { name: 'Hydrostatic preview' });
+            const attitude = preview.getByLabel('Preview attitude');
+            const canvas = preview.locator('canvas');
+            await canvas.waitFor();
+            await page.waitForFunction(() => document.querySelector('.dreamer-hydrostatic-canvas canvas')?.width > 300);
+            const originalDrawing = await canvas.evaluate(element => element.toDataURL());
+            await preview.getByText(/Weight ↓/).waitFor();
+            await preview.getByText(/Buoyancy ↑/).waitFor();
+            await preview.getByText(/Waterline .* mm from the model datum/).waitFor();
+
+            const hover = async (chart, sample) => {
+                const plot = page.getByRole('img', { name: new RegExp('^' + chart + ' chart') }).locator('canvas').first();
+                await plot.hover({ position: { x: (await plot.boundingBox()).width - 65, y: 92 } });
+                await attitude.filter({ hasText: new RegExp('^' + sample + ' sample') }).waitFor();
+            };
+            await hover('Righting moment', 'Heel');
+            assert.match(await attitude.textContent(), /Heel [1-9][0-9]*° · Pitch 0°/);
+            await page.waitForFunction(image => document.querySelector('.dreamer-hydrostatic-canvas canvas').toDataURL() !== image, originalDrawing);
+            const heelDrawing = await canvas.evaluate(element => element.toDataURL());
+            await hover('Pitch restoring moment', 'Pitch');
+            assert.match(await attitude.textContent(), /Heel 0° · Pitch [1-9][0-9]*°/);
+            await page.waitForFunction(image => document.querySelector('.dreamer-hydrostatic-canvas canvas').toDataURL() !== image, heelDrawing);
+
+            const scrubber = preview.getByRole('slider', { name: 'Sample angle' });
+            await scrubber.focus();
+            await scrubber.press('End');
+            assert.match(await attitude.textContent(), /Pitch 30°/);
+            await preview.getByRole('button', { name: 'Equilibrium', exact: true }).click();
+            await attitude.filter({ hasText: /^Equilibrium · Heel 0° · Pitch 0°/ }).waitFor();
+            if (process.env.DRONELINK_STABILITY_SCREENSHOT) await preview.screenshot({ path: process.env.DRONELINK_STABILITY_SCREENSHOT });
             await water.selectOption('freshwater');
             await run.click();
             await page.getByText('Analysis saved to revision 1.', { exact: true }).waitFor();
             await page.getByText('500 mm', { exact: true }).waitFor();
 
             await page.reload();
-            await page.getByRole('button', { name: 'Stability', exact: true }).click();
+            await page.getByRole('button', { name: 'Open latest', exact: true }).click();
+            assert.equal(await page.getByRole('tab', { name: 'Configure', exact: true }).getAttribute('aria-selected'), 'true');
+            await page.getByLabel('Mass (kg)', { exact: true }).fill('5400');
+            await page.getByRole('tab', { name: 'Stability', exact: true }).click();
+            await page.getByText(/Stability uses saved revision 2/).waitFor();
+            await page.getByRole('tab', { name: 'Configure', exact: true }).click();
+            assert.equal(await page.getByLabel('Mass (kg)', { exact: true }).inputValue(), '5400');
+            await page.getByRole('tab', { name: 'Stability', exact: true }).click();
             await page.getByText('No saved analyses for this revision.', { exact: true }).waitFor();
+            page.once('dialog', dialog => dialog.accept());
             await page.getByRole('button', { name: 'Back to models' }).click();
             await openOriginal(page);
             const salt = page.locator('li').filter({ hasText: /Salt water · 1,025/ });
