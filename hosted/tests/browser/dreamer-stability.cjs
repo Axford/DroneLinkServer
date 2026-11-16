@@ -19,8 +19,8 @@ test('Chrome runs, displays and reopens both stability curves against a historic
         const browser = await chromium.launch({ channel: process.env.DRONELINK_BROWSER_CHANNEL || 'chrome' });
         const errors = [];
         try {
-            const openPage = async identity => {
-                const context = await browser.newContext({ viewport: { width: 1440, height: 960 }, locale: 'en-GB' });
+            const openPage = async (identity, hasTouch = false) => {
+                const context = await browser.newContext({ viewport: { width: 1440, height: 960 }, locale: 'en-GB', hasTouch });
                 const login = await context.request.get(owner.origin + '/auth/google/callback?identity=' + identity, { maxRedirects: 0 });
                 assert.equal(login.status(), 302);
                 const page = await context.newPage();
@@ -44,6 +44,16 @@ test('Chrome runs, displays and reopens both stability curves against a historic
                     assert.ok((await plot.boundingBox()).width > 240);
                 }
             };
+            async function scrollTab(page, target) {
+                const main = page.getByRole('main');
+                await target.hover();
+                const before = await main.evaluate(element => ({ top: element.scrollTop, max: element.scrollHeight - element.clientHeight }));
+                assert.ok(before.max > 0, 'The tab fixture must extend beyond the viewport');
+                const delta = before.max - before.top < 120 ? -120 : 120;
+                await page.mouse.wheel(0, delta);
+                await page.waitForFunction(({ top, delta }) => (document.querySelector('main').scrollTop - top) * delta > 0,
+                    { top: before.top, delta }, { timeout: 2000 });
+            }
             const page = await openPage('admin');
             await openOriginal(page);
             const water = page.getByLabel('Water density', { exact: true });
@@ -65,6 +75,17 @@ test('Chrome runs, displays and reopens both stability curves against a historic
             await preview.getByText(/Weight ↓/).waitFor();
             await preview.getByText(/Buoyancy ↑/).waitFor();
             await preview.getByText(/Waterline .* mm from the model datum/).waitFor();
+            await scrollTab(page, page.getByRole('heading', { name: 'Saved analyses' }));
+            await scrollTab(page, page.getByRole('img', { name: /^Righting moment chart/ }).locator('canvas').first());
+            await scrollTab(page, canvas);
+            await canvas.hover();
+            const beforeZoom = await page.getByRole('main').evaluate(element => element.scrollTop);
+            const imageBeforeZoom = await canvas.evaluate(element => element.toDataURL());
+            await page.keyboard.down('Alt');
+            try { await page.mouse.wheel(0, -100); }
+            finally { await page.keyboard.up('Alt'); }
+            await page.waitForFunction(image => document.querySelector('.dreamer-hydrostatic-canvas canvas').toDataURL() !== image, imageBeforeZoom);
+            assert.equal(await page.getByRole('main').evaluate(element => element.scrollTop), beforeZoom);
 
             const hover = async (chart, sample) => {
                 const plot = page.getByRole('img', { name: new RegExp('^' + chart + ' chart') }).locator('canvas').first();
@@ -94,6 +115,13 @@ test('Chrome runs, displays and reopens both stability curves against a historic
             await page.reload();
             await page.getByRole('button', { name: 'Open latest', exact: true }).click();
             assert.equal(await page.getByRole('tab', { name: 'Configure', exact: true }).getAttribute('aria-selected'), 'true');
+            await page.setViewportSize({ width: 1050, height: 565 });
+            const assembly = page.getByLabel(/^3D boat assembly/);
+            await scrollTab(page, assembly);
+            await page.getByRole('tab', { name: 'Orient' }).click();
+            await scrollTab(page, assembly);
+            await page.getByRole('tab', { name: 'Configure' }).click();
+            await page.setViewportSize({ width: 1440, height: 960 });
             await page.getByLabel('Mass (kg)', { exact: true }).fill('5400');
             await page.getByRole('tab', { name: 'Stability', exact: true }).click();
             await page.getByText(/Stability uses saved revision 2/).waitFor();
@@ -109,7 +137,7 @@ test('Chrome runs, displays and reopens both stability curves against a historic
             await page.getByText('487.8 mm', { exact: true }).waitFor();
             await charts(page);
 
-            const viewerPage = await openPage('viewer');
+            const viewerPage = await openPage('viewer', true);
             await openOriginal(viewerPage);
             assert.equal(await viewerPage.getByRole('button', { name: 'Run and save' }).count(), 0);
             await viewerPage.locator('li').filter({ hasText: /Freshwater · 1,000/ }).getByRole('button', { name: 'Open analysis' }).click();
@@ -117,6 +145,20 @@ test('Chrome runs, displays and reopens both stability curves against a historic
             await charts(viewerPage);
             await viewerPage.setViewportSize({ width: 430, height: 900 });
             await charts(viewerPage);
+            const touchCanvas = viewerPage.getByLabel(/^3D hydrostatic preview/);
+            await touchCanvas.scrollIntoViewIfNeeded();
+            const box = await touchCanvas.boundingBox();
+            const touchMain = viewerPage.getByRole('main');
+            const touchBefore = await touchMain.evaluate(element => element.scrollTop);
+            assert.ok(touchBefore > 120);
+            const touch = await viewerPage.context().newCDPSession(viewerPage);
+            const x = Math.round(box.x + box.width / 2), y = Math.round(box.y + box.height / 3);
+            await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+            for (let step = 1; step <= 5; step++)
+                await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: y + step*18 }] });
+            await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+            await viewerPage.waitForFunction(top => document.querySelector('main').scrollTop < top, touchBefore);
+            await touch.detach();
             const overflow = await viewerPage.evaluate(() => document.documentElement.scrollWidth > innerWidth);
             assert.equal(overflow, false);
             assert.deepEqual(errors, []);
