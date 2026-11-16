@@ -270,7 +270,7 @@ The solver accepts separate sealed shells with disjoint bounding-box interiors i
 
 Run `node --test tests/dreamer/hydrostatics.test.cjs` from `hosted` for the analytic fixtures.
 
-Choose **Stability** from the Dreamer model library for the latest revision, or open **Revisions** and choose the analysis entry for an earlier revision. Run the local browser workflow with `CLIENT_BUILD_DIR=<built-client> node --test tests/browser/dreamer-stability.cjs` and the emulator and Playwright setup above.
+Open the latest or an earlier boat revision, then select the **Stability** tab in the model editor. Run the local browser workflow with `CLIENT_BUILD_DIR=<built-client> node --test tests/browser/dreamer-stability.cjs` and the emulator and Playwright setup above.
 
 ### Dreamer manual sailing smoke
 

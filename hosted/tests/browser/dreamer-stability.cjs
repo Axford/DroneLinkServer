@@ -31,7 +31,9 @@ test('Chrome runs, displays and reopens both stability curves against a historic
             };
             const openOriginal = async page => {
                 await page.getByRole('button', { name: 'Revisions', exact: true }).click();
-                await page.getByRole('button', { name: 'Stability for revision 1', exact: true }).click();
+                assert.equal(await page.getByRole('button', { name: /^Stability/ }).count(), 0);
+                await page.getByRole('button', { name: 'Open revision 1', exact: true }).click();
+                await page.getByRole('tab', { name: 'Stability', exact: true }).click();
                 await page.getByRole('heading', { name: 'Dreamer model editor' }).waitFor();
                 await page.getByText(/^Reference barge · Revision 1/).waitFor();
                 assert.equal(await page.getByRole('tab', { name: 'Stability' }).getAttribute('aria-selected'), 'true');

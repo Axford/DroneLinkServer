@@ -37,11 +37,27 @@ test('Chrome sails a saved revision with live 3D and replays its manual inputs',
             assert.equal(await rudder.getAttribute('max'), '35');
             assert.equal(await sail.inputValue(), '0');
             await page.getByText('Sea grid · 1 m').waitFor();
+            await page.getByText('Hull waterline', { exact: true }).waitFor();
+            await controls.getByRole('checkbox', { name: 'Override wind speed' }).check();
+            const speedInput = controls.getByLabel('Wind speed (m/s)');
+            await speedInput.fill('4.5');
+            await speedInput.press('Enter');
+            await instruments.getByText(/^4\.5 m\/s from/).waitFor();
             const vectors = page.getByRole('group', { name: 'Vectors' });
             for (const label of ['True wind', 'Apparent wind', 'Air forces', 'Water forces'])
                 assert.ok(await vectors.getByRole('checkbox', { name: label, exact: true }).isChecked());
-            await vectors.getByRole('checkbox', { name: 'Air forces' }).uncheck();
-            await vectors.getByRole('checkbox', { name: 'Air forces' }).check();
+            for (const toggle of await vectors.getByRole('checkbox').all()) await toggle.uncheck();
+            await page.waitForFunction(() => {
+                const canvas = document.querySelector('.dreamer-sailing-canvas canvas');
+                const context = canvas?.getContext('2d');
+                if (!context || !canvas.width) return false;
+                const pixels = context.getImageData(canvas.width*0.3,canvas.height*0.3,canvas.width*0.4,canvas.height*0.45).data;
+                let count = 0;
+                for (let i=0; i<pixels.length; i+=4)
+                    if (pixels[i] === 130 && pixels[i+1] === 183 && pixels[i+2] === 255) count++;
+                return count > 8;
+            });
+            for (const toggle of await vectors.getByRole('checkbox').all()) await toggle.check();
             const stationary = await canvas.evaluate(element => element.toDataURL());
             await controls.getByRole('button', { name: 'Run', exact: true }).click();
             await page.waitForFunction(() => {
@@ -65,6 +81,7 @@ test('Chrome sails a saved revision with live 3D and replays its manual inputs',
             await controls.getByRole('button', { name: 'Replay inputs' }).click();
             await controls.getByText('Replay complete.', { exact: true }).waitFor({ timeout: 18000 });
             assert.deepEqual(await instruments.locator('dd').allTextContents(), finish);
+            assert.equal(await speedInput.inputValue(), '4.5');
             await controls.getByRole('combobox', { name: /^Conditions/ }).selectOption('Chop · gusting wind');
             await controls.getByLabel('Weather seed').fill('29');
             assert.equal(await controls.getByLabel('Weather seed').inputValue(), '29');
