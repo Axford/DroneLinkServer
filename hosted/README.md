@@ -1,6 +1,6 @@
 # Dronewright hosted backend
 
-The independent hosted service uses pinned native Firestore persistence 0.13.2. Install with Node22+ using `npm ci --omit=dev`; run `npm start`. No MongoDB, gateway, emulator, Java or sibling source is required in production.
+The independent hosted service uses pinned native Firestore persistence 0.13.3. Install with Node22+ using `npm ci --omit=dev`; run `npm start`. No MongoDB, gateway, emulator, Java or sibling source is required in production.
 
 Supply `GOOGLE_CLOUD_PROJECT`, `PUBLIC_ORIGIN`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SESSION_SECRET` (32+characters), optional `FIRESTORE_DATABASE` (default `(default)`), `MAPBOX_ACCESS_TOKEN`, `CLIENT_BUILD_DIR` and `PORT`. A local ignored hosted `config.json` may supply equivalent camelCase fields. Startup never creates configuration or downloads credentials. Production uses the service identity and Secret Manager values; no service-account key file. Client build defaults to hosted `private/build`; an explicit path must contain index.html/static. Validate a release before selection.
 
@@ -266,6 +266,8 @@ The [shared model revision contract](../../DroneLinkDatastore/docs/contracts/wor
 
 The result includes waterline and draft in metres, displaced volume in cubic metres, and equilibrium and signed curve moments in N·m. The waterline is measured from the rotated model datum and draft from the lowest displacement point. Positive heel puts starboard down and positive pitch raises the bow. Positive moment increases the plotted angle. An unresolved equilibrium returns diagnostics. An unresolved sweep point has a diagnostic instead of a moment.
 
-The solver accepts separate sealed shells with disjoint bounding-box interiors in boat axes. This conservative check can reject separated geometry with overlapping bounds. Edge and vertex checks catch open or non-manifold surfaces. Use clean sealed CAD solids to avoid self-intersecting geometry. The solver works with flat water and neutral joints. It is a synchronous calculation module for worker integration in the later hosted analysis flow.
+The solver accepts separate sealed shells with disjoint bounding-box interiors in boat axes. This conservative check can reject separated geometry with overlapping bounds. Edge and vertex checks catch open or non-manifold surfaces. Use clean sealed CAD solids to avoid self-intersecting geometry. The solver works with flat water and neutral joints. The hosted analysis route runs it in a worker with a bounded runtime, then saves both curves under the source revision.
 
 Run `node --test tests/dreamer/hydrostatics.test.cjs` from `hosted` for the analytic fixtures.
+
+Choose **Stability** from the Dreamer model library for the latest revision, or open **Revisions** and choose the analysis entry for an earlier revision. Run the local browser workflow with `CLIENT_BUILD_DIR=<built-client> node --test tests/browser/dreamer-stability.cjs` and the emulator and Playwright setup above.

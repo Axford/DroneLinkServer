@@ -3,10 +3,15 @@ const express = require('express');
 const Joi = require('joi');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { fault } = require('./accessPolicy');
+const { defaultWater, waterDensities } = require('./dreamer/hydrostatics');
+const { runStability } = require('./dreamer/stability');
 
 const endpoint = '/api/domains/:id/dreamer-models';
 const editRoles = ['owner', 'editor'];
 const uuid = Joi.string().guid({ version: ['uuidv4'], separator: '-' }).lowercase();
+const stabilityInput = Joi.object({
+    water: Joi.string().valid(...Object.keys(waterDensities)).default(defaultWater),
+}).required();
 const axis = Joi.string().valid('+X', '-X', '+Y', '-Y', '+Z', '-Z');
 const vector = Joi.array().length(3).items(Joi.number().required());
 const requiredVector = vector.required();
@@ -67,7 +72,7 @@ function mountDreamerRoutes(app, { store, ready, policy, ensureAuthenticated }) 
     const input = req => ({ domainId: req.params.id, modelId: req.params.modelId, revisionId: req.params.revisionId });
     const read = fn => [ready, ensureAuthenticated, asyncHandler(async (req, res) => {
         const current = await policy.domain(req);
-        const data = await fn(current.actor, { ...input(req), after: req.query.after });
+        const data = await fn(current.actor, { ...input(req), after: req.query.after }, req);
         await policy.domain(req);
         res.json(data);
     })];
@@ -80,6 +85,40 @@ function mountDreamerRoutes(app, { store, ready, policy, ensureAuthenticated }) 
         req.dreamerActor = (await policy.domain(req, editRoles, true)).actor;
         next();
     });
+    const stability = revision + '/stability';
+    const analysis = stability + '/:analysisId';
+    const analysisTarget = (req, target) => ({ ...target, analysisId: req.params.analysisId });
+    app.get(stability, ...read((actor, target) => models.listStability(actor, target)));
+    app.get(analysis, ...read(async (actor, target, req) => ({ data: await models.getStability(actor, analysisTarget(req, target)) })));
+    app.put(analysis, ready, ensureAuthenticated, editDomain, express.json({ limit: '2kb', inflate: false }),
+        asyncHandler(async (req, res) => {
+            const target = analysisTarget(req, input(req));
+            const { error, value } = stabilityInput.validate(req.body, { convert: false });
+            if (error || uuid.validate(target.analysisId, { convert: false }).error) throw fault('validation');
+            const { water } = value;
+            const actor = req.dreamerActor;
+            const existing = await models.getStability(actor, target).catch(issue => {
+                if (issue.code !== 'not-found') throw issue;
+                return null;
+            });
+            if (existing) {
+                if (existing.water !== water) throw fault('conflict');
+                await policy.domain(req, editRoles, true);
+                return res.json({ data: existing });
+            }
+            const snapshot = await models.get(actor, target);
+            const result = await runStability(snapshot.model, water);
+            if (!result.equilibrium) {
+                await policy.domain(req, editRoles, true);
+                const names = new Map(snapshot.model.parts.map(part => [part.id, part.name]));
+                const diagnostics = result.diagnostics.map(issue => ({
+                    ...issue, partName: names.get(issue.partId), otherPartName: names.get(issue.otherPartId),
+                }));
+                return res.json({ data: null, result: { ...result, diagnostics } });
+            }
+            const data = await models.saveStability(actor, { ...target, water, result });
+            res.json({ data });
+        }));
     app.put(revision, ready, ensureAuthenticated, editDomain, express.json({ limit: '10mb', inflate: false }),
         asyncHandler(async (req, res) => {
             const target = input(req);
