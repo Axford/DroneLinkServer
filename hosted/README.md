@@ -1,6 +1,6 @@
 # Dronewright hosted backend
 
-The independent hosted service uses pinned native Firestore persistence 0.11.1. Install with Node22+ using `npm ci --omit=dev`; run `npm start`. No MongoDB, gateway, emulator, Java or sibling source is required in production.
+The independent hosted service uses pinned native Firestore persistence 0.12.0. Install with Node22+ using `npm ci --omit=dev`; run `npm start`. No MongoDB, gateway, emulator, Java or sibling source is required in production.
 
 Supply `GOOGLE_CLOUD_PROJECT`, `PUBLIC_ORIGIN`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SESSION_SECRET` (32+characters), optional `FIRESTORE_DATABASE` (default `(default)`), `MAPBOX_ACCESS_TOKEN`, `CLIENT_BUILD_DIR` and `PORT`. A local ignored hosted `config.json` may supply equivalent camelCase fields. Startup never creates configuration or downloads credentials. Production uses the service identity and Secret Manager values; no service-account key file. Client build defaults to hosted `private/build`; an explicit path must contain index.html/static. Validate a release before selection.
 
@@ -23,6 +23,10 @@ npm run test:operations
 ```
 
 Preparation explicitly downloads the pinned official Firestore emulator1.22.0 (Java21); tests never download it. Each native HTTP test owns an isolated disposable loopback emulator. A construction-only Google provider adapter exercises actual Passport/session composition without Google consent or production data. Historical application/Mongo fixtures remain for earlier evidence and are excluded from the native gate; intentional API changes are in the [HTTP contract](../../DroneLinkDatastore/docs/contracts/http.md). Production installs exclude test tooling.
+
+## Drone grouping
+
+The hosted Domain API exposes grouping edits, master selection, change history and restoration candidates. Browser writes use the current Editor, Owner or Platform Admin policy and require the session CSRF token. Authorized archived readers can read the history and current composition. Use the shared [M3.5 HTTP contract](../../DroneLinkDatastore/docs/contracts/http.md#m35-drone-grouping) for request and response shapes. Grouping-aware Client adoption is tracked separately in the M3.5 plan.
 
 ## Replay reconstruction
 

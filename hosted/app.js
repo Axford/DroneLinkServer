@@ -8,6 +8,7 @@ const path = require('path');
 const { mountCommandRoutes, mountCommandPoll } = require('./lib/commandRoutes');
 const { mountObservationRoutes } = require('./lib/observationRoutes');
 const { mountVisualizationSettingsRoutes } = require('./lib/visualizationSettingsRoutes');
+const { mountDroneGroupingRoutes } = require('./lib/droneGroupingRoutes');
 const { mountTelemetryRoutes } = require('./lib/telemetryRoutes');
 const { mountWorkbenchRoutes, machinePath } = require('./lib/workbenchRoutes');
 const { mountPackedTelemetry } = require('./lib/packedTelemetry');
@@ -191,6 +192,7 @@ const createApp = ({ config, store, replayWorker, mountStagingTestSignIn, google
     mountAccessRoutes(app, { store, policy, ensureAuthenticated, config });
     app.get('/profile', ensureAuthenticated, (req, res) => res.redirect('/private'));
     mountTelemetryRoutes(app, { store, ready, policy, ensureAuthenticated });
+    mountDroneGroupingRoutes(app, { store, policy, ensureAuthenticated });
     mountObservationRoutes(app, { store, policy, ensureAuthenticated });
     mountVisualizationSettingsRoutes(app, { store, policy, ensureAuthenticated });
     mountReplayRoutes(app, { store, policy, ensureAuthenticated, replayWorker });

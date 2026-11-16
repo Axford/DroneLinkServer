@@ -23,7 +23,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@dronelink/persistence": "file:vendor/dronelink-persistence-0.11.1.tgz",
+    "@dronelink/persistence": "file:vendor/dronelink-persistence-0.12.0.tgz",
     "@dronelink/protocol": "file:vendor/dronelink-protocol-0.2.0.tgz",
     "crypto": "^1.0.1",
     "express": "^5.1.0",
