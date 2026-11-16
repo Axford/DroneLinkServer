@@ -255,3 +255,14 @@ The machine poll endpoint accepts up to 16 distinct peer addresses in the option
 ### Verified Waypoint route geometry
 
 The Domain route preview returns geometry and backup capture time for the selected node's current observed Waypoint digest. The storage lookup is restricted to retained `/waypoint.csv` backups for that node. Domain Viewers can read the geometry. Existing file access rules cover backup history and raw text. See the [shared contract](../../DroneLinkDatastore/docs/contracts/workbench.md#verified-route-preview).
+### HTTPS boot recovery bench
+
+For a disposable test service, set the programmatic `createApp` configuration option `recoveryBenchTarget` to the single allowed `<Domain ID>/<node address>`. The default hosted entrypoint leaves it unset. Serve the machine routes behind HTTPS trusted by the bench device. Recovery uses the existing packed telemetry and command routes with persistence 0.13.0. See the [shared bench contract](../../DroneLinkDatastore/docs/contracts/http.md#https-boot-recovery-bench-contract).
+
+### Node enrollment bench
+
+Set `nodeRecoveryDomain` to the isolated Domain ID in canonical staging deployment settings. The machine challenge, token, telemetry, and recovery poll are scoped to that Domain. Use the pinned persistence release. Cloud Node details offers claim issuance and revocation to Domain Owners and Platform Admins. The signed-in API is also available at `/api/domains/:id/node-credentials/:address`, with POST `/claim` and `/revoke`. Use the USB tool in DroneNode to redeem the claim over verified HTTPS and install the recovery profile. Production startup leaves the routes disabled by default.
+
+### Staging configuration repair
+
+Within the configured `nodeRecoveryDomain`, the operator stages exact config bytes, retries with the staged file, and confirms the trial from Cloud Node details. The enrolled node pulls actions through HTTPS. The current repair row tracks the device's reports and keeps activation against a fresh recovery boot. The [staging contract](../../DroneLinkDatastore/docs/contracts/http.md#remote-configuration-repair-staging-contract) describes expiry, authorization and device confirmation.

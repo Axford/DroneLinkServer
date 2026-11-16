@@ -1,16 +1,18 @@
 'use strict';
 const crypto = require('node:crypto');
 const express = require('express');
+const { nodeBearer } = require('./nodeCredentials');
+const { exact } = require('./commandPayload');
 const { fault } = require('./accessPolicy');
 const { decodePacket, nodeAddress } = require('./telemetryPackets');
 const { asyncHandler } = require('../middleware/errorHandler');
 
-function decodeBatch(body) {
-    if (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).length !== 4 ||
-        !['domain', 'id', 'apiKey', 'packets'].every(key => Object.hasOwn(body, key)) || !nodeAddress(body.id)) throw fault('validation');
+function decodeBatch(body, bearer) {
+    exact(body, ['domain', 'id', ...(bearer ? [] : ['apiKey']), 'packets']);
+    if (!nodeAddress(body.id)) throw fault('validation');
     if (typeof body.domain !== 'string' || !body.domain || Buffer.byteLength(body.domain) > 200 ||
         body.domain.includes('/') || body.domain === '.' || body.domain === '..' || /^__.*__$/.test(body.domain) ||
-        typeof body.apiKey !== 'string' || !body.apiKey || Buffer.byteLength(body.apiKey) > 512) throw fault('validation');
+        (!bearer && (typeof body.apiKey !== 'string' || !body.apiKey || Buffer.byteLength(body.apiKey) > 512))) throw fault('validation');
     if (typeof body.packets !== 'string' || body.packets.length < 8 || body.packets.length > 896) throw fault('validation');
     const bytes = Buffer.from(body.packets, 'base64');
     if (bytes.toString('base64') !== body.packets || bytes.length > 672) throw fault('validation');
@@ -26,12 +28,18 @@ function decodeBatch(body) {
         facets.add(facet); packets.push(decoded); offset = end;
     }
     if (!packets.length) throw fault('validation');
+    if (bearer && (packets.length !== 1 || !isOwnRecoveryStatus(packets[0].packet, body.id))) throw fault('forbidden');
     return packets;
+}
+
+function isOwnRecoveryStatus(bytes, node) {
+    return bytes.length === 19 && bytes[0] === node && bytes[1] === node &&
+        bytes[2] === 1 && bytes[3] === 23 && bytes[4] === 13 && bytes[5] === 1 && bytes[6] <= 3;
 }
 
 // Mount before the general JSON parser and browser sessions. This route owns its
 // wire/materialization bound and does not acquire browser administration authority.
-function mountPackedTelemetry(app, { store, ready }) {
+function mountPackedTelemetry(app, { store, ready, nodeRecoveryAllowed }) {
     const parse = express.json({ limit: 4096, inflate: false, strict: true });
     const parseError = (error, req, res, next) => next(error.type ? fault('validation') : error);
     const authenticate = async input => {
@@ -42,10 +50,11 @@ function mountPackedTelemetry(app, { store, ready }) {
         if (!res.destroyed && !res.headersSent) res.status(status).json(body);
     };
     app.post('/addPackets', parse, parseError, ready, asyncHandler(async (req, res) => {
-        const packets = decodeBatch(req.body);
-        if (req.get('Authorization') !== undefined) throw fault('unauthenticated');
+        const bearer = nodeBearer(req);
+        if (bearer && !nodeRecoveryAllowed(req.body?.domain)) throw fault('unauthenticated');
+        const packets = decodeBatch(req.body, bearer);
         const input = { domainId: req.body.domain, forwarderAddress: req.body.id,
-            credential: { kind: 'domain', secret: req.body.apiKey }, receivedAt: new Date() };
+            credential: bearer || { kind: 'domain', secret: req.body.apiKey }, receivedAt: new Date() };
         // No carried node: authenticates/readiness-checks without discovering the uploader.
         await authenticate(input);
         let admitted = 0;

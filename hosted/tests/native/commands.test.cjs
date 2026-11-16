@@ -171,3 +171,102 @@ test('authority, bounded parsers, terminal conflicts and uncertain HTTP response
     assert.equal((await viewer.request(root + '/commands?view=history')).status, 200);
     assert.equal((await editor.mutate('/api/send', request)).status, 501);
 }, config));
+
+test('bench recovery polls use the existing batch format with isolated boot-bound commands', t => fixture(t, async f => {
+    const { admin, fleet, root, machine, prepare, publish } = await setup(f);
+    await activate(f, fleet);
+
+    const { createApp } = require('../../app');
+    const { serve } = require('../application/support.cjs');
+    const bench = (await serve(t, createApp({ config: { ...f.config, recoveryBenchTarget: fleet._id + '/7' }, store: f.one })))();
+    const bootId = '0011223344556677';
+    const send = async (url, data) => {
+        const response = await fetch(bench.origin + url, { method: 'POST', headers: {
+            'Content-Type': 'application/json', Origin: f.config.publicOrigin,
+            Cookie: admin.raw.cookie, 'X-CSRF-Token': admin.token
+        }, body: JSON.stringify(data) });
+        return { status: response.status, body: await response.json() };
+    };
+    const intent = { submissionId: await prepare(), target: { nodeAddress: 7, channel: 1, param: 24 }, operation: 'retry-normal', bootId };
+    assert.equal((await admin.mutate(root + '/commands', intent)).status, 403);
+    await publish(23, 0, Buffer.from('01020605f0f0' + bootId, 'hex'), false);
+    let result;
+    for (let i = 0; i < 30; i++) {
+        result = await send(root + '/commands', intent);
+        if (result.status !== 409) break;
+        await delay(50);
+    }
+    assert.equal(result.status, 201);
+    assert.deepEqual(result.body.data.requested, { bootId });
+    const poll = extra => post(bench, '/commands/poll', { ...machine, limit: 1, ...extra });
+    assert.equal((await poll()).json().data.count, 0);
+    assert.equal((await poll({ recoveryBoot: bootId, peers: [] })).status, 400);
+    assert.equal((await poll({ recoveryBoot: bootId, id: 8 })).status, 503);
+    const response = (await poll({ recoveryBoot: bootId })).json().data;
+    assert.equal(response.count, 1);
+    assert.equal(Buffer.from(response.packets, 'base64').toString('hex'), '070701d80801' + bootId);
+    assert.equal((await poll({ recoveryBoot: bootId })).json().data.count, 0);
+}, config));
+
+test('node recovery identity resists scope escalation, challenge replay and cached-token use after revocation', t => fixture(t, async f => {
+    const { generateKeyPairSync, sign } = require('node:crypto');
+    const { createApp } = require('../../app');
+    const { serve } = require('../application/support.cjs');
+    const { admin, fleet, root, machine, publish } = await setup(f);
+    await activate(f, fleet);
+    await publish(13, 0, [1], false, 7);
+    await publish(13, 0, [1], false, 8);
+    const bench = (await serve(t, createApp({
+        config: { ...f.config, nodeRecoveryDomain: fleet._id, recoveryBenchTarget: fleet._id + '/7' }, store: f.one
+    })))();
+    const owner = (path, data) => post(bench, root + '/node-credentials/7' + path, data,
+        { Origin: f.config.publicOrigin, Cookie: admin.raw.cookie, 'X-CSRF-Token': admin.token });
+    const publicPost = (path, data, bearer) => post(bench, path, data,
+        bearer ? { Authorization: 'Bearer ' + bearer } : {});
+    const { privateKey, publicKey } = generateKeyPairSync('ec', { namedCurve: 'prime256v1' });
+    const encoded = publicKey.export({ type: 'spki', format: 'der' }).subarray(-64).toString('hex');
+    const { claim } = (await owner('/claim', {})).json().data;
+    const scope = { domain: fleet._id, id: 7 };
+    const registration = { ...scope, claim, publicKey: encoded };
+    const enrolled = (await publicPost('/node-auth/enroll', registration)).json().data;
+    assert.equal((await publicPost('/node-auth/enroll', registration)).json().data.enrollmentId, enrolled.enrollmentId);
+    const key2 = generateKeyPairSync('ec', { namedCurve: 'prime256v1' }).publicKey;
+    assert.equal((await publicPost('/node-auth/enroll', { ...registration, publicKey: key2.export({ type: 'spki', format: 'der' }).subarray(-64).toString('hex') })).status, 401);
+    const identity = { ...scope, enrollmentId: enrolled.enrollmentId };
+    const outside = await domain(admin, 'Outside recovery scope');
+    assert.equal((await publicPost('/node-auth/challenge', { ...identity, domain: outside._id })).status, 404);
+    const { nonce } = (await publicPost('/node-auth/challenge', identity)).json().data;
+    const proof = { ...identity, nonce, signature: sign('sha256', Buffer.from(nonce, 'ascii'),
+        { key: privateKey, dsaEncoding: 'ieee-p1363' }).toString('hex') };
+    const { token, expiresIn } = (await publicPost('/node-auth/renew', proof)).json().data;
+    assert.equal(expiresIn, 3600);
+    assert.equal((await publicPost('/node-auth/renew', proof)).status, 401);
+    const poll = { ...scope, limit: 1, recoveryBoot: '0011223344556677' };
+    assert.equal((await publicPost('/commands/poll', { ...poll, id: 8 }, token)).status, 401);
+    assert.equal((await publicPost('/commands/poll', { ...scope, limit: 1 }, token)).status, 401);
+    assert.equal((await publicPost('/commands/poll', { ...poll, peers: [8] }, token)).status, 400);
+    assert.equal((await publicPost('/commands/poll', { ...poll, apiKey: machine.apiKey })).status, 401);
+    assert.equal((await publicPost('/commands/poll', poll, token)).status, 200);
+    const status = Buffer.from('070701170d01020605f0f00011223344556677', 'hex');
+    assert.equal((await publicPost('/addPackets', { ...scope, packets: status.toString('base64') }, token)).status, 202);
+    status[2] = 2;
+    assert.equal((await publicPost('/addPackets', { ...scope, packets: status.toString('base64') }, token)).status, 403);
+    const operatorPost = (path, data) => post(bench, root + path, data,
+        { Origin: f.config.publicOrigin, Cookie: admin.raw.cookie, 'X-CSRF-Token': admin.token });
+    const reservation = await operatorPost('/command-submissions', {});
+    assert.equal(reservation.status, 201);
+    const intent = { submissionId: reservation.json().data.submissionId,
+        target: { nodeAddress: 7, channel: 1, param: 24 }, operation: 'retry-normal', bootId: poll.recoveryBoot };
+    let queued;
+    for (let i = 0; i < 40; ++i) {
+        queued = await operatorPost('/commands', intent);
+        if (queued.status !== 409) break;
+        await delay(50);
+    }
+    assert.equal(queued.status, 201, queued.text);
+    assert.equal((await publicPost('/commands/poll', { ...poll, id: 8 }, token)).status, 401);
+    assert.equal((await publicPost('/commands/poll', poll, token)).json().data.count, 1);
+    assert.equal((await owner('/revoke', { enrollmentId: enrolled.enrollmentId })).status, 200);
+    assert.equal((await publicPost('/commands/poll', poll, token)).status, 401);
+    assert.equal((await publicPost('/node-auth/challenge', identity)).status, 401);
+}, config));

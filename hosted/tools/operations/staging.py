@@ -26,6 +26,9 @@ def settings(path):
     limit = config.get('workbenchFileBackupLimit', 20)
     if type(limit) is not int or not 1 <= limit <= 50: raise ValueError('Workbench backup limit must be from 1 through 50')
     if type(config.get('replayAlwaysOn', False)) is not bool: raise ValueError('replayAlwaysOn must be a boolean')
+    recovery_domain = config.get('nodeRecoveryDomain')
+    if recovery_domain is not None and (not isinstance(recovery_domain, str) or not re.fullmatch(r'[A-Za-z0-9-]{1,100}', recovery_domain)):
+        raise ValueError('Node recovery requires a valid isolated staging Domain ID')
     return config
 
 def route_compatible_revision(revision_name):
@@ -42,7 +45,7 @@ def deploy(args):
     image = f'{REGION}-docker.pkg.dev/{PROJECT}/dronewright/hosted:{manifest["serverRevision"][:12]}-{manifest["clientRevision"][:12]}'
     if enable_test_sign_in: image += '-staging-test'
     if not args.apply:
-        print(json.dumps({'dryRun': True, 'project': PROJECT, 'region': REGION, 'service': SERVICE, 'image': image, 'billing': 'instance', 'min': minimum_instances, 'max': 1, 'cpu': 1, 'memory': '512Mi', 'concurrency': 32, 'stagingTestSignIn': enable_test_sign_in})); return
+        print(json.dumps({'dryRun': True, 'project': PROJECT, 'region': REGION, 'service': SERVICE, 'image': image, 'billing': 'instance', 'min': minimum_instances, 'max': 1, 'cpu': 1, 'memory': '512Mi', 'concurrency': 32, 'stagingTestSignIn': enable_test_sign_in, 'nodeRecoveryDomain': config.get('nodeRecoveryDomain')})); return
     if not args.maintenance: raise ValueError('M1 deployment requires explicit --maintenance for the old-runtime traffic cutover')
     evidence = pathlib.Path(args.evidence)
     if evidence.exists(): raise ValueError('Evidence destination already exists')
@@ -69,6 +72,7 @@ def deploy(args):
     run('run', 'services', 'update-traffic', SERVICE, '--project', PROJECT, '--region', REGION, '--clear-tags', '--quiet')
     env = {'GOOGLE_CLOUD_PROJECT': PROJECT, 'FIRESTORE_DATABASE': '(default)', 'PUBLIC_ORIGIN': config['publicOrigin'], 'GOOGLE_CLIENT_ID': config['googleClientID'], 'MAPBOX_ACCESS_TOKEN': config.get('mapboxAccessToken', '')}
     if enable_test_sign_in: env['STAGING_TEST_SIGN_IN'] = '1'
+    if config.get('nodeRecoveryDomain'): env['STAGING_NODE_RECOVERY_DOMAIN'] = config['nodeRecoveryDomain']
     if 'workbenchFileBackupLimit' in config: env['WORKBENCH_FILE_BACKUP_LIMIT'] = str(config['workbenchFileBackupLimit'])
     with tempfile.TemporaryDirectory(prefix='dronewright-deploy-') as temporary:
         envfile = pathlib.Path(temporary) / 'env.json'; envfile.write_text(json.dumps(env))

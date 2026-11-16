@@ -5,7 +5,9 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const { FirestoreSessions } = require('./lib/firestoreSessions');
 const helmet = require('helmet');
 const path = require('path');
-const { mountCommandRoutes, mountCommandPoll } = require('./lib/commandRoutes');
+const { mountCommandRoutes, mountCommandPoll, boundedCommandBody } = require('./lib/commandRoutes');
+const { mountConfigRepairMachine, mountConfigRepairOperators } = require('./lib/configRepairRoutes');
+const { mountNodeMachines, mountNodeOperators } = require('./lib/nodeCredentials');
 const { mountObservationRoutes } = require('./lib/observationRoutes');
 const { mountVisualizationSettingsRoutes } = require('./lib/visualizationSettingsRoutes');
 const { mountDroneGroupingRoutes } = require('./lib/droneGroupingRoutes');
@@ -92,8 +94,13 @@ const createApp = ({ config, store, replayWorker, mountStagingTestSignIn, google
     }));
 
     // Middleware
-    mountPackedTelemetry(app, { store, ready });
-    mountCommandPoll(app, { store });
+    const nodeRecoveryAllowed = domain => config.nodeRecoveryDomain ?
+        domain === config.nodeRecoveryDomain : config.nodeRecoveryEnabled === true;
+    const repairAllowed = domain => Boolean(config.nodeRecoveryDomain && nodeRecoveryAllowed(domain));
+    mountConfigRepairMachine(app, { store, parse: boundedCommandBody, repairAllowed });
+    mountNodeMachines(app, { store, parse: boundedCommandBody, nodeRecoveryAllowed });
+    mountPackedTelemetry(app, { store, ready, nodeRecoveryAllowed });
+    mountCommandPoll(app, { store, recoveryBenchTarget: config.recoveryBenchTarget, nodeRecoveryAllowed });
     app.set('trust proxy', 1);
     app.use((req, res, next) => {
         if (/^\/api\//i.test(req.path) || req.path.startsWith('/auth/') || req.path.startsWith('/private')) res.set('Cache-Control', 'private, no-store');
@@ -170,7 +177,9 @@ const createApp = ({ config, store, replayWorker, mountStagingTestSignIn, google
         next();
     });
     mountStagingTestSignIn?.(app, { config, store, policy, ensureAuthenticated });
-    mountCommandRoutes(app, { store, policy, ensureAuthenticated, ready });
+    mountConfigRepairOperators(app, { store, parse: boundedCommandBody, repairAllowed, ensureAuthenticated, policy });
+    mountNodeOperators(app, { store, parse: boundedCommandBody, nodeRecoveryAllowed, ensureAuthenticated, policy });
+    mountCommandRoutes(app, { store, policy, ensureAuthenticated, ready, recoveryBenchTarget: config.recoveryBenchTarget, nodeRecoveryAllowed });
     mountWorkbenchRoutes(app, { config, store, ready, policy, ensureAuthenticated });
     app.use(express.json({ limit: '10mb' }));
     app.post('/auth/logout', ensureAuthenticated, (req, res, next) => req.logout(error => {

@@ -65,6 +65,10 @@ function encodePayload(input, type, length) {
 function submission(body) {
     const operation = body?.operation;
     const write = operation === 'write';
+    if (operation === 'retry-normal') {
+        exact(body, ['submissionId', 'target', 'operation', 'bootId']);
+        return { submissionId: opaque(body.submissionId), target: targetAddress(body.target), operation, bootId: bootId(body.bootId) };
+    }
     if (!write && operation !== 'query-value' && operation !== 'query-name') throw fault('validation');
     exact(body, ['submissionId', 'target', 'operation', ...(write ? ['expected', 'payload'] : [])]);
     const result = { submissionId: opaque(body.submissionId), target: targetAddress(body.target), operation };
@@ -78,7 +82,12 @@ function submission(body) {
     if (length % widths[type]) throw fault('validation');
     return { ...result, expected, payload: encodePayload(body.payload, type, length) };
 }
+function bootId(value) {
+    if (typeof value !== 'string' || !/^[0-9a-f]{16}$/.test(value)) throw fault('validation');
+    return value;
+}
 function requested(command) {
+    if (command.operation === 'retry-normal') return { bootId: command.payload.subarray(1).toString('hex') };
     if (command.operation !== 'write') return null;
     const { msgType: type, payload } = command;
     if (type === CHAR) {
@@ -100,11 +109,11 @@ function requested(command) {
 }
 function packet(command, source) {
     const { target, operation, priority, msgType } = command;
-    const write = operation === 'write';
+    const write = operation === 'write' || operation === 'retry-normal';
     const type = write ? msgType : operation === 'query-name' ? NAMEQUERY : QUERY;
     if (write ? priority !== 3 || type < 0 || type > CHAR : priority !== 0 || command.payload !== null || msgType !== type) throw fault('unavailable');
     const payload = write ? command.payload : Buffer.of(0);
     return encodeLinkPacket({ source, node: target.nodeAddress, channel: target.channel, param: target.param,
         priority, msgType: type, msgLength: payload.length, writable: false }, payload);
 }
-module.exports = { exact, integer, opaque, submission, requested, packet };
+module.exports = { exact, integer, opaque, bootId, submission, requested, packet };

@@ -2,9 +2,10 @@
 
 const express = require('express');
 const { randomBytes } = require('node:crypto');
+const { nodeBearer } = require('./nodeCredentials');
 const { fault } = require('./accessPolicy');
 const { asyncHandler, sendErrorResponse } = require('../middleware/errorHandler');
-const { exact, integer, opaque, submission, requested, packet } = require('./commandPayload');
+const { exact, integer, opaque, bootId, submission, requested, packet } = require('./commandPayload');
 
 const editors = ['owner', 'editor'];
 const noStore = (req, res, next) => { res.set('Cache-Control', 'private, no-store'); next(); };
@@ -65,7 +66,7 @@ function commandError(error, res) {
     if (['internal', 'duplicate'].includes(error.code)) throw fault('unavailable');
     throw error;
 }
-function mountCommandRoutes(app, { store, policy, ensureAuthenticated, ready }) {
+function mountCommandRoutes(app, { store, policy, ensureAuthenticated, ready, recoveryBenchTarget, nodeRecoveryAllowed }) {
     if (!store.commands) return;
     const root = '/api/domains/:id';
     function route(method, path, handler, { limit, roles } = {}) {
@@ -91,7 +92,12 @@ function mountCommandRoutes(app, { store, policy, ensureAuthenticated, ready }) 
             { status: result.status, firstUseExpiresAt: result.firstUseExpiresAt });
     });
     route('post', '/commands', async (req, res, actor, input) => {
-        const result = await store.commands.submit(actor, { ...input, ...submission(req.body) });
+        const intent = submission(req.body);
+        const legacy = recoveryBenchTarget === `${input.domainId}/${intent.target.nodeAddress}`;
+        const nodeRecoveryEnabled = nodeRecoveryAllowed(input.domainId);
+        if (intent.operation === 'retry-normal' && !legacy && !nodeRecoveryEnabled) throw fault('forbidden');
+        const recoveryAuthority = legacy ? (nodeRecoveryEnabled ? 'either' : 'legacy') : 'node';
+        const result = await store.commands.submit(actor, { ...input, ...intent, recoveryAuthority });
         reply(res, project(result.command), result.created ? 201 : 200);
     }, { limit: 8192, roles: editors });
     route('get', '/commands', async (req, res, actor, input) => {
@@ -131,20 +137,29 @@ function mountCommandRoutes(app, { store, policy, ensureAuthenticated, ready }) 
     }, { limit: 1024, roles: ['owner'] });
 }
 
-function mountCommandPoll(app, { store }) {
+function mountCommandPoll(app, { store, recoveryBenchTarget, nodeRecoveryAllowed }) {
     if (!store.commands) return;
     app.post('/commands/poll', noStore, body(4096), asyncHandler(async (req, res) => {
         const input = req.body;
-        if (input && typeof input === 'object' && !Array.isArray(input) && !Object.hasOwn(input, 'apiKey')) throw fault('unauthenticated');
-        exact(input, ['domain', 'id', 'apiKey', 'limit', ...(input && Object.hasOwn(input, 'peers') ? ['peers'] : [])]);
-        if (req.get('Authorization') !== undefined || req.get('Cookie') !== undefined) throw fault('unauthenticated');
+        const bearer = nodeBearer(req);
+        if (bearer && !nodeRecoveryAllowed(input?.domain)) throw fault('unauthenticated');
+        if (!bearer && input && typeof input === 'object' && !Array.isArray(input) && !Object.hasOwn(input, 'apiKey')) throw fault('unauthenticated');
+        exact(input, ['domain', 'id', ...(bearer ? [] : ['apiKey']), 'limit', ...(input && Object.hasOwn(input, 'peers') ? ['peers'] : []),
+            ...(input && Object.hasOwn(input, 'recoveryBoot') ? ['recoveryBoot'] : [])]);
+        if (req.get('Cookie') !== undefined) throw fault('unauthenticated');
         if (typeof input.domain !== 'string' || !input.domain || Buffer.byteLength(input.domain) > 200 ||
             /[/\u0000-\u001f]/.test(input.domain) || input.domain === '.' || input.domain === '..' || /^__.*__$/.test(input.domain)) throw fault('validation');
-        if (typeof input.apiKey !== 'string' || !input.apiKey || Buffer.byteLength(input.apiKey) > 512) throw fault('unauthenticated');
+        if (!bearer && (typeof input.apiKey !== 'string' || !input.apiKey || Buffer.byteLength(input.apiKey) > 512)) throw fault('unauthenticated');
         const nodeAddress = integer(input.id, 1, 254);
         const limit = integer(input.limit, 1, 32);
         const peers = input.peers === undefined ? [] : input.peers;
         if (!Array.isArray(peers) || peers.length > 16) throw fault('validation');
+        const recoveryBoot = input.recoveryBoot === undefined ? undefined : bootId(input.recoveryBoot);
+        if (recoveryBoot !== undefined) {
+            if (input.peers !== undefined) throw fault('validation');
+            if (!bearer && recoveryBenchTarget !== `${input.domain}/${nodeAddress}`) throw fault('unavailable');
+        }
+        if (bearer && !recoveryBoot) throw fault('unauthenticated');
         const targets = new Set([nodeAddress]);
         for (const peer of peers) {
             integer(peer, 1, 254);
@@ -153,8 +168,8 @@ function mountCommandPoll(app, { store }) {
         }
         let selected;
         try {
-            selected = await store.commands.consume({ credential: { kind: 'domain', secret: input.apiKey } },
-                { domainId: input.domain, nodeAddress, peers, limit, attemptId: randomBytes(32).toString('base64url') });
+            selected = await store.commands.consume({ credential: bearer || { kind: 'domain', secret: input.apiKey } },
+                { domainId: input.domain, nodeAddress, peers, limit, recoveryBoot, attemptId: randomBytes(32).toString('base64url') });
         } catch (error) {
             if (error.code === 'forbidden' || error.code === 'not-found') throw fault('unauthenticated');
             return commandError(error, res);
@@ -168,4 +183,4 @@ function mountCommandPoll(app, { store }) {
         reply(res, { count: selected.length, packets });
     }));
 }
-module.exports = { mountCommandRoutes, mountCommandPoll };
+module.exports = { mountCommandRoutes, mountCommandPoll, boundedCommandBody: body };

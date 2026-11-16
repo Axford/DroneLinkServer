@@ -12,6 +12,7 @@ function loadConfig(serviceDir = __dirname) {
     const values = { port: Number(process.env.PORT || local.port || 8003),
         projectId: process.env.GOOGLE_CLOUD_PROJECT || local.projectId,
         fileBackupLimit: process.env.WORKBENCH_FILE_BACKUP_LIMIT === undefined ? undefined : Number(process.env.WORKBENCH_FILE_BACKUP_LIMIT),
+        nodeRecoveryDomain: process.env.STAGING_NODE_RECOVERY_DOMAIN,
         stagingTestSignIn: process.env.STAGING_TEST_SIGN_IN === '1',
         databaseId: process.env.FIRESTORE_DATABASE || local.databaseId || '(default)',
         observationEpoch: 'm1-c-1',
@@ -30,6 +31,12 @@ function loadConfig(serviceDir = __dirname) {
 async function startHosted({ config, storeFactory = openFirestoreStore, appFactory = createApp, shutdownGraceMs = 10000 }) {
     config = { ...config, observationEpoch: config.observationEpoch || 'm1-c-1' };
     if (config.observationEpoch !== 'm1-c-1') throw Object.assign(new Error('Unsupported observation contract'), { code: 'observation-schema' });
+    if (config.nodeRecoveryDomain !== undefined &&
+        (!/^[A-Za-z0-9-]{1,100}$/.test(config.nodeRecoveryDomain) ||
+         config.projectId !== 'dronelink-25dbc' || (config.databaseId || '(default)') !== '(default)' ||
+         config.publicOrigin !== 'https://staging.dronewright.com' || process.env.K_SERVICE !== 'dronewright-staging' || config.emulatorHost)) {
+        throw new Error('Scoped node recovery requires the canonical staging deployment');
+    }
     let mountStagingTestSignIn;
     if (config.stagingTestSignIn) {
         if (config.projectId !== 'dronelink-25dbc' || (config.databaseId || '(default)') !== '(default)' ||
