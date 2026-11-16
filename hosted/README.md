@@ -259,3 +259,13 @@ The Domain route preview returns geometry and backup capture time for the select
 The protected Dreamer models workspace uses Domain-scoped model and revision endpoints. Each save commits a complete immutable snapshot. Reopen any retained revision from the model library. Owners, Editors and Platform Admins can create revisions in active Domains. Viewers and archived Domains have read access.
 
 The [shared model revision contract](../../DroneLinkDatastore/docs/contracts/workbench.md#dreamer-model-revisions) defines the snapshot identity and save limits. Run `CLIENT_BUILD_DIR=<built-client> node --test tests/browser/dreamer-models.cjs` from `hosted` to verify the workspace with a prepared Firestore emulator and a Playwright installation. Set `DRONELINK_PLAYWRIGHT_MODULE` if Playwright is installed separately.
+
+### Dreamer hydrostatics solver
+
+`lib/dreamer/hydrostatics.js` exposes `analyzeHydrostatics(model, options)` for a saved version-1 boat definition. Choose `water: 'salt-water'` (the default, 1,025 kg/m³) or `water: 'freshwater'` (1,000 kg/m³). Optional `heel` and `pitch` settings accept minimum, maximum and step in degrees. `proxies` maps a hull's part ID to a closed, unweighted Visual only part ID in the same model. This substitutes only the hull's displacement.
+
+The result includes waterline and draft in metres, displaced volume in cubic metres, and equilibrium and signed curve moments in N·m. The waterline is measured from the rotated model datum and draft from the lowest displacement point. Positive heel puts starboard down and positive pitch raises the bow. Positive moment increases the plotted angle. An unresolved equilibrium returns diagnostics. An unresolved sweep point has a diagnostic instead of a moment.
+
+The solver accepts separate sealed shells with disjoint bounding-box interiors in boat axes. This conservative check can reject separated geometry with overlapping bounds. Edge and vertex checks catch open or non-manifold surfaces. Use clean sealed CAD solids to avoid self-intersecting geometry. The solver works with flat water and neutral joints. It is a synchronous calculation module for worker integration in the later hosted analysis flow.
+
+Run `node --test tests/dreamer/hydrostatics.test.cjs` from `hosted` for the analytic fixtures.

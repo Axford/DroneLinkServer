@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node index.js",
     "test": "npm run test:application",
-    "test:application": "node --test tests/application/lifecycle.test.cjs tests/native/*.test.cjs",
+    "test:application": "node --test tests/application/lifecycle.test.cjs tests/dreamer/*.test.cjs tests/native/*.test.cjs",
     "test:integration": "node --test tests/native/*.test.cjs",
     "test:firestore:prepare": "node tools/firestore.cjs --prepare",
     "release:prepare": "python3 tools/operations/release.py prepare",
