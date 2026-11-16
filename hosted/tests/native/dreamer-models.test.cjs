@@ -43,7 +43,7 @@ test('Dreamer editor saves and reopens pinned revisions with current Domain auth
     assert.deepEqual((await save(editor, firstId, null)).json().data, firstRevision);
     assert.deepEqual((await viewer.request(history + '/' + firstId)).json().data.model, model);
     const secondId = randomUUID();
-    const revised = { ...model, name: 'Trimmed model' };
+    const revised = { ...model, name: 'Trimmed model', parts: [{ ...part, simulationEnabled: false }] };
     const secondRevision = (await save(editor, secondId, firstId, revised)).json().data;
     assert.equal(secondRevision.number, 2);
     assert.equal((await save(editor, randomUUID(), firstId)).status, 409);

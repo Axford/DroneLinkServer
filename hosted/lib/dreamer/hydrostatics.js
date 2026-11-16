@@ -5,7 +5,7 @@ const { bounds, closedShells, intersectsBounds, submergedVolume, volumeAtWaterli
 
 const waterDensities = Object.freeze({ 'salt-water': 1025, freshwater: 1000 });
 const defaultWater = 'salt-water';
-const solverVersion = 'hydrostatics-1';
+const solverVersion = 'hydrostatics-2';
 const gravity = 9.80665;
 const volumeRelativeTolerance = 1e-8;
 const momentRelativeTolerance = 1e-7;
@@ -39,8 +39,9 @@ function prepare(model, proxies) {
         model.forward[1] === model.up[1] || !Array.isArray(model.parts) ||
         !model.parts.length || model.parts.length > 50)
         return { diagnostics: [{ code: 'invalid-model' }] };
-    const parts = new Map(model.parts.map(part => [part.id, part]));
-    if (parts.size !== model.parts.length) return { diagnostics: [{ code: 'invalid-model' }] };
+    const allParts = new Map(model.parts.map(part => [part.id, part]));
+    if (allParts.size !== model.parts.length) return { diagnostics: [{ code: 'invalid-model' }] };
+    const parts = new Map(model.parts.filter(part => part.simulationEnabled !== false).map(part => [part.id, part]));
     const selected = new Map();
     for (const [hullId, proxyId] of Object.entries(proxies)) {
         const proxy = parts.get(proxyId);
@@ -55,7 +56,7 @@ function prepare(model, proxies) {
     let triangleCount = 0;
     const shells = [];
     const contributors = [];
-    for (const part of model.parts) {
+    for (const part of parts.values()) {
         if (!physicalRoles.has(part.role) && part.role !== 'Visual only') { report('unassigned-role', part); continue; }
         const hull = part.role === 'Displacement hull' && !Object.hasOwn(proxies, part.id);
         const contributes = hull || selected.has(part.id);

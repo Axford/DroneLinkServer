@@ -165,3 +165,15 @@ test('dry and fully submerged clipping extremes agree with the independent volum
         else close(section.center[2], Math.min(1, waterline)/2);
     }
 });
+
+test('disabled displacement and ballast parts are excluded from loading and buoyancy', () => {
+    const original = analyzeHydrostatics(fixture(), short);
+    const disabled = analyzeHydrostatics(model([
+        part(), part({ id: '2', simulationEnabled: false }),
+        part({ id: '3', role: 'Ballast', mass: 300, simulationEnabled: false }),
+    ]), short);
+    assert.deepEqual(disabled.diagnostics, []);
+    assert.equal(disabled.mass, original.mass);
+    assert.deepEqual(disabled.equilibrium, original.equilibrium);
+    assert.deepEqual(disabled.contributors, original.contributors);
+});

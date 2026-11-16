@@ -32,6 +32,7 @@ const part = Joi.object({
     translation: requiredVector, rotation: requiredVector, centerOfMass: vector.allow(null).required(),
     mass: Joi.number().min(0).allow(null).required(),
     role: Joi.string().valid('Unassigned', 'Displacement hull', 'Ballast', 'Water foil', 'Rigid sail', 'Visual only').required(),
+    simulationEnabled: Joi.boolean(),
     joint,
 });
 const body = Joi.object({
