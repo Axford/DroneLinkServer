@@ -35,7 +35,7 @@ test('Chrome runs, displays and reopens both stability curves against a historic
                 await page.getByRole('heading', { name: 'Dreamer model editor' }).waitFor();
                 await page.getByText(/^Reference barge · Revision 1/).waitFor();
                 assert.equal(await page.getByRole('tab', { name: 'Stability' }).getAttribute('aria-selected'), 'true');
-                assert.deepEqual(await page.getByRole('tab').allTextContents(), ['Import', 'Orient', 'Configure', 'Stability']);
+                assert.deepEqual(await page.getByRole('tab').allTextContents(), ['Import', 'Orient', 'Configure', 'Stability', 'Sail']);
             };
             const charts = async page => {
                 for (const title of ['Righting moment', 'Pitch restoring moment']) {

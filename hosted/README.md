@@ -271,3 +271,13 @@ The solver accepts separate sealed shells with disjoint bounding-box interiors i
 Run `node --test tests/dreamer/hydrostatics.test.cjs` from `hosted` for the analytic fixtures.
 
 Choose **Stability** from the Dreamer model library for the latest revision, or open **Revisions** and choose the analysis entry for an earlier revision. Run the local browser workflow with `CLIENT_BUILD_DIR=<built-client> node --test tests/browser/dreamer-stability.cjs` and the emulator and Playwright setup above.
+
+### Dreamer manual sailing smoke
+
+The **Sail** tab runs manual physics in the browser from a saved boat revision. To verify movement, steering controls, force vectors and deterministic replay, supply the matching Client build and its reference sloop fixture:
+
+```sh
+CLIENT_BUILD_DIR=<built-client> DRONELINK_SAILING_FIXTURE=<client-source>/src/dreamer/sailing/__fixtures__/sloop.json node --test tests/browser/dreamer-sailing.cjs
+```
+
+Use the same prepared Firestore emulator and Playwright installation as the Stability check. The test owns a disposable Domain and uses the fixture's saved revision.
